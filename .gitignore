@@ -35,3 +35,8 @@ dist-ssr
 .lovable/
 .workspace/
 .vercel
+
+# Maquettes locales (ne pas versionner)
+*.fig
+.cursor-fig-thumb.png
+.tmp-old-favicon.png

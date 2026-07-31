@@ -37,9 +37,13 @@ const NAV: Entree[] = [
 function Logo({ compact }: { compact: boolean }) {
   return (
     <div className="flex items-center gap-2">
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-brand-foreground text-sm font-bold">
-        H
-      </div>
+      <img
+        src="/hublify-mark.png"
+        alt="Hublify"
+        width={32}
+        height={32}
+        className="h-8 w-8 shrink-0 rounded-md object-contain"
+      />
       {!compact && (
         <span className="text-base font-semibold tracking-tight text-foreground">Hublify</span>
       )}
