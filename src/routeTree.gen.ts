@@ -10,33 +10,103 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MissionsIndexRouteImport } from './routes/missions.index'
+import { Route as MissionsMissionIdRouteImport } from './routes/missions.$missionId'
+import { Route as PrestatairesIndexRouteImport } from './routes/prestataires.index'
+import { Route as PrestatairesPrestataireIdRouteImport } from './routes/prestataires.$prestataireId'
+import { Route as PrestatairesNouveauRouteImport } from './routes/prestataires.nouveau'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MissionsIndexRoute = MissionsIndexRouteImport.update({
+  id: '/missions/',
+  path: '/missions/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MissionsMissionIdRoute = MissionsMissionIdRouteImport.update({
+  id: '/missions/$missionId',
+  path: '/missions/$missionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrestatairesIndexRoute = PrestatairesIndexRouteImport.update({
+  id: '/prestataires/',
+  path: '/prestataires/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrestatairesPrestataireIdRoute =
+  PrestatairesPrestataireIdRouteImport.update({
+    id: '/prestataires/$prestataireId',
+    path: '/prestataires/$prestataireId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const PrestatairesNouveauRoute = PrestatairesNouveauRouteImport.update({
+  id: '/prestataires/nouveau',
+  path: '/prestataires/nouveau',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/missions/$missionId': typeof MissionsMissionIdRoute
+  '/prestataires/$prestataireId': typeof PrestatairesPrestataireIdRoute
+  '/prestataires/nouveau': typeof PrestatairesNouveauRoute
+  '/missions/': typeof MissionsIndexRoute
+  '/prestataires/': typeof PrestatairesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/missions/$missionId': typeof MissionsMissionIdRoute
+  '/prestataires/$prestataireId': typeof PrestatairesPrestataireIdRoute
+  '/prestataires/nouveau': typeof PrestatairesNouveauRoute
+  '/missions': typeof MissionsIndexRoute
+  '/prestataires': typeof PrestatairesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/missions/$missionId': typeof MissionsMissionIdRoute
+  '/prestataires/$prestataireId': typeof PrestatairesPrestataireIdRoute
+  '/prestataires/nouveau': typeof PrestatairesNouveauRoute
+  '/missions/': typeof MissionsIndexRoute
+  '/prestataires/': typeof PrestatairesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/missions/$missionId'
+    | '/prestataires/$prestataireId'
+    | '/prestataires/nouveau'
+    | '/missions/'
+    | '/prestataires/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/missions/$missionId'
+    | '/prestataires/$prestataireId'
+    | '/prestataires/nouveau'
+    | '/missions'
+    | '/prestataires'
+  id:
+    | '__root__'
+    | '/'
+    | '/missions/$missionId'
+    | '/prestataires/$prestataireId'
+    | '/prestataires/nouveau'
+    | '/missions/'
+    | '/prestataires/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  MissionsMissionIdRoute: typeof MissionsMissionIdRoute
+  PrestatairesPrestataireIdRoute: typeof PrestatairesPrestataireIdRoute
+  PrestatairesNouveauRoute: typeof PrestatairesNouveauRoute
+  MissionsIndexRoute: typeof MissionsIndexRoute
+  PrestatairesIndexRoute: typeof PrestatairesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,22 +118,52 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/missions/': {
+      id: '/missions/'
+      path: '/missions'
+      fullPath: '/missions/'
+      preLoaderRoute: typeof MissionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/missions/$missionId': {
+      id: '/missions/$missionId'
+      path: '/missions/$missionId'
+      fullPath: '/missions/$missionId'
+      preLoaderRoute: typeof MissionsMissionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prestataires/': {
+      id: '/prestataires/'
+      path: '/prestataires'
+      fullPath: '/prestataires/'
+      preLoaderRoute: typeof PrestatairesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prestataires/$prestataireId': {
+      id: '/prestataires/$prestataireId'
+      path: '/prestataires/$prestataireId'
+      fullPath: '/prestataires/$prestataireId'
+      preLoaderRoute: typeof PrestatairesPrestataireIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prestataires/nouveau': {
+      id: '/prestataires/nouveau'
+      path: '/prestataires/nouveau'
+      fullPath: '/prestataires/nouveau'
+      preLoaderRoute: typeof PrestatairesNouveauRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  MissionsMissionIdRoute: MissionsMissionIdRoute,
+  PrestatairesPrestataireIdRoute: PrestatairesPrestataireIdRoute,
+  PrestatairesNouveauRoute: PrestatairesNouveauRoute,
+  MissionsIndexRoute: MissionsIndexRoute,
+  PrestatairesIndexRoute: PrestatairesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

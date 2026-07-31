@@ -24,7 +24,14 @@ Chaque fichier de composant construit porte un en-tête de commentaire :
 
 | Écran construit | Source principale | Source secondaire | Nom du frame/composant | Fidèle | Adapté | Inventé | Décision requise |
 |---|---|---|---|---|---|---|---|
-| _(aucun écran construit à ce jour)_ | — | — | — | — | — | — | — |
+| Layout + sidebar + en-tête (`src/components/layout/AppShell.tsx`) | V2 Redris | — | `Dashboard Sidebar`, `NavItem`, `Compte gestionnaire` | 10 entrées de navigation, en-tête, bloc compte | 7 entrées désactivées (hors périmètre), bouton de repli | Recherche non fonctionnelle, cloche décorative | Arborescence définitive de la navigation |
+| Vue générale (`src/routes/index.tsx`) | V2 Redris | — | `Dashboard.tsx` (variante principale) | Cartes d'indicateurs, liste du jour, prochaines arrivées | Indicateurs recentrés sur les missions au lieu des loyers | — | Garde-t-on les cartes financières ? |
+| Calendrier missions (`src/routes/missions.index.tsx`) | V2 Redris | — | `Vision Missions Calendar sur 3 jours`, `… mois complet` | Grille 3 jours, grille mois, filtre par bien | 2 vues sur 12 variantes ; filtre plateformes non repris | Compteurs par statut en tête | Vues et filtres définitifs |
+| Détail mission (`src/routes/missions.$missionId.tsx`) | V2 Redris | — | `Voir infos missions`, `Détails`, `Membres assignés`, `Fiche intervention` | Champs date/créneau/bien/consignes, prestataire affecté | Assemblage en une page unique | Boutons de transition de statut | Cycle de statuts définitif |
+| Liste prestataires (`src/routes/prestataires.index.tsx`) | V2 Redris | — | `Mes prestataires`, `Prestataires (5)` | Liste, catégories, compteur | Cartes + filtre par catégorie | Note sur 5, nombre de missions | Catégories officielles |
+| Fiche prestataire (`src/routes/prestataires.$prestataireId.tsx`) | V2 Redris | — | détail prestataire | Coordonnées, catégorie | Bloc « missions affectées » | Note sur 5 | Champs de la fiche |
+| Ajout prestataire (`src/routes/prestataires.nouveau.tsx`) | V2 Redris | — | `AddPrestataireForm.tsx`, `Enregistrer le prestataire` | Formulaire et libellé du bouton | Champs réduits au strict nécessaire | Case « prestataire actif » | Champs obligatoires |
+| Tokens visuels (`src/styles.css`) | V2 Redris | — | `V2_Redris_copie_.design.json` | Gris, surfaces, rayons | Typographie Inter | **Couleur d'accent `--brand`** | Couleur de marque définitive |
 
 ## Lignes prévues — LOT 1A (strictement fidèle à V2 Redris)
 
