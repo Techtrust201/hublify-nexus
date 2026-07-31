@@ -31,6 +31,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# Lovable / outillage local
+# Outillage local
 .lovable/
 .workspace/
