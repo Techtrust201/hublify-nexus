@@ -22,7 +22,7 @@ function ajouter(d: Date, n: number) {
   return c;
 }
 
-function Pastille({ mission, bien }: { mission: Mission; bien?: Bien }) {
+function Pastille({ mission, bien }: { mission: Mission; bien?: Bien | undefined }) {
   return (
     <Link
       to="/missions/$missionId"
