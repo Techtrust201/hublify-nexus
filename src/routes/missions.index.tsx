@@ -7,7 +7,7 @@ import { CLASSE_STATUT } from "@/data/statuts";
 import { useHublify } from "@/data/store";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/missions")({
+export const Route = createFileRoute("/missions/")({
   head: () => ({
     meta: [
       { title: "Calendrier des missions — Hublify" },
