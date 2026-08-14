@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { FileText, Info, Wrench } from "lucide-react";
+import { CalendarDays, ClipboardList, FileText, Info, Wrench } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 
 export const Route = createFileRoute("/outils/")({
@@ -11,6 +11,24 @@ export const Route = createFileRoute("/outils/")({
 
 const OUTILS = [
   {
+    titre: "Modèles de documents",
+    texte: "Créez et gérez vos modèles de factures, devis, quittances et contrats.",
+    icone: FileText,
+    vers: "/outils/modeles" as const,
+  },
+  {
+    titre: "Vue Annuelle",
+    texte: "Disponibilités, blocages et réservations sur l'année.",
+    icone: CalendarDays,
+    vers: "/outils/vue-annuelle" as const,
+  },
+  {
+    titre: "Inventaire",
+    texte: "Tous les inventaires de la maison sont réunis ici.",
+    icone: ClipboardList,
+    vers: "/inventaire" as const,
+  },
+  {
     titre: "Je débute",
     texte: "Parcours guidé : créer un bien, une réservation, puis une première mission.",
     icone: Info,
@@ -19,12 +37,6 @@ const OUTILS = [
     titre: "Je découvre",
     texte: "Tous les modules de la maquette : planning, documents, messagerie, tarifs.",
     icone: Wrench,
-  },
-  {
-    titre: "Modèles de documents",
-    texte: "États des lieux, quittances et contrats réutilisables.",
-    icone: FileText,
-    vers: "/documents",
   },
 ];
 

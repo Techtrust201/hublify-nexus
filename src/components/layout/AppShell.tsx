@@ -38,6 +38,16 @@ const NAV: Entree[] = [
   { titre: "Messagerie", url: "/messagerie", icone: MessageSquare },
 ];
 
+const SOUS_PRESTATAIRES = [
+  { titre: "Prestataires", url: "/prestataires" },
+  { titre: "Occupants", url: "/occupants" },
+];
+
+const SOUS_PATRIMOINES = [
+  { titre: "Patrimoines", url: "/patrimoines" },
+  { titre: "Inventaire", url: "/inventaire" },
+];
+
 function estActif(pathname: string, url: string) {
   return url === "/" ? pathname === "/" : pathname === url || pathname.startsWith(`${url}/`);
 }
@@ -94,31 +104,59 @@ export function AppShell({
         </div>
 
         <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 pt-3">
-          {NAV.map((e) => (
-            <Link
-              key={e.titre}
-              to={e.url}
-              className={cn(
-                "flex h-9 items-center gap-3 rounded-[10px] px-3 text-sm font-medium text-[#4a5565] hover:bg-[#f9fafb]",
-                estActif(pathname, e.url) && "bg-[#f3f4f6] text-[#1e2939]",
-              )}
-            >
-              <e.icone className="size-4 shrink-0" />
-              <span className="flex-1 truncate">{e.titre}</span>
-              {e.chevron &&
-                (estActif(pathname, e.url) ? (
-                  <ChevronDown className="size-3.5 text-[#99a1af]" />
-                ) : (
-                  <ChevronRight className="size-3.5 text-[#99a1af]" />
-                ))}
-            </Link>
-          ))}
+          {NAV.map((e) => {
+            const sous =
+              e.titre === "Prestataires"
+                ? SOUS_PRESTATAIRES
+                : e.titre === "Patrimoines"
+                  ? SOUS_PATRIMOINES
+                  : null;
+            const ouvert = Boolean(
+              sous?.some((s) => estActif(pathname, s.url)) || estActif(pathname, e.url),
+            );
+            return (
+              <div key={e.titre}>
+                <Link
+                  to={e.url}
+                  className={cn(
+                    "flex h-9 items-center gap-3 rounded-[10px] px-3 text-sm font-medium text-[#4a5565] hover:bg-[#f9fafb]",
+                    estActif(pathname, e.url) && "bg-[#f3f4f6] text-[#1e2939]",
+                  )}
+                >
+                  <e.icone className="size-4 shrink-0" />
+                  <span className="flex-1 truncate">{e.titre}</span>
+                  {e.chevron &&
+                    (ouvert ? (
+                      <ChevronDown className="size-3.5 text-[#99a1af]" />
+                    ) : (
+                      <ChevronRight className="size-3.5 text-[#99a1af]" />
+                    ))}
+                </Link>
+                {e.chevron && ouvert && sous && (
+                  <div className="mb-1 ml-7 mt-0.5 space-y-0.5">
+                    {sous.map((s) => (
+                      <Link
+                        key={s.url}
+                        to={s.url}
+                        className={cn(
+                          "flex h-8 items-center rounded-[8px] px-2 text-xs font-medium text-[#6a7282] hover:bg-[#f9fafb]",
+                          estActif(pathname, s.url) && "bg-[#f3f4f6] text-[#1e2939]",
+                        )}
+                      >
+                        {s.titre}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
           <p className="px-3 pt-4 text-xs uppercase tracking-[0.3px] text-[#99a1af]">Team mate</p>
           {TEAM.map((m) => (
             <Link
               key={m.id}
-              to="/messagerie"
+              to="/team"
               className="flex h-9 items-center gap-2 rounded-[10px] px-3 text-sm font-medium text-[#4a5565] hover:bg-[#f9fafb]"
             >
               <span className="flex size-6 items-center justify-center rounded-full bg-[#e5e7eb] text-[10px] font-medium text-[#6a7282]">
@@ -178,13 +216,26 @@ export function AppShell({
           </div>
           <div className="flex items-center gap-4">
             {actions}
-            <Link
-              to="/outils"
-              className="hidden h-[34px] items-center gap-1 rounded-[10px] border border-[#e5e7eb] px-3 text-sm font-medium text-[#4a5565] sm:inline-flex"
-            >
-              Outils
-              <ChevronDown className="size-3.5" />
-            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="hidden h-[34px] items-center gap-1 rounded-[10px] border border-[#e5e7eb] px-3 text-sm font-medium text-[#4a5565] sm:inline-flex">
+                Outils
+                <ChevronDown className="size-3.5" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem asChild>
+                  <Link to="/outils">Tous les outils</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/outils/modeles">Modèles de documents</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/outils/vue-annuelle">Vue annuelle</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/inventaire">Inventaire</Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <button
               type="button"
               className="flex size-8 items-center justify-center rounded-[10px] border border-[#e5e7eb] text-[#4a5565]"
@@ -212,6 +263,12 @@ export function AppShell({
                 {e.titre}
               </Link>
             ))}
+            <Link to="/occupants" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-[#4a5565]">
+              Occupants
+            </Link>
+            <Link to="/team" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-[#4a5565]">
+              Team
+            </Link>
           </nav>
         )}
 

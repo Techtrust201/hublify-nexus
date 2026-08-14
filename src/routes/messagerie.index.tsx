@@ -1,9 +1,25 @@
+// SOURCE: Maquette MO1 — Dashboard/Messagerie (+ variantes presta, teammate, archivés, panneaux)
+
 import { createFileRoute } from "@tanstack/react-router";
-import { MessageSquare } from "lucide-react";
-import { useState } from "react";
+import { Archive, MessageSquare } from "lucide-react";
+import { useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
-import { useHublify } from "@/data/store";
-import type { CanalMessage } from "@/data/types";
+import { DialogNouveauMessage } from "@/components/messagerie/DialogNouveauMessage";
+import { FilConversation } from "@/components/messagerie/FilConversation";
+import { ListeConversations } from "@/components/messagerie/ListeConversations";
+import {
+  MenuAssigner,
+  MenuCategorie,
+  MenuDocuments,
+  MenuPartage,
+} from "@/components/messagerie/MenusOutils";
+import {
+  CONVERSATIONS_MO1,
+  MESSAGES_MO1,
+  type Conversation,
+  type MessageFil,
+  type SectionConversation,
+} from "@/data/messagerie-mo1";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/messagerie/")({
@@ -13,88 +29,222 @@ export const Route = createFileRoute("/messagerie/")({
   component: PageMessagerie,
 });
 
+type Panneau = "partage" | "documents" | "categorie" | "assigner" | null;
+
+function heureMaintenant() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, "0")}h${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+function initialesDe(nom: string) {
+  return nom
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
 function PageMessagerie() {
-  const { messages } = useHublify();
-  const [canal, setCanal] = useState<CanalMessage>("occupants");
-  const [selection, setSelection] = useState(messages[0]?.id);
-  const liste = messages.filter((m) => m.canal === canal);
-  const actif = messages.find((m) => m.id === selection) ?? liste[0];
+  const [conversations, setConversations] = useState<Conversation[]>(CONVERSATIONS_MO1);
+  const [messages, setMessages] = useState<MessageFil[]>(MESSAGES_MO1);
+  const [selection, setSelection] = useState("c-brian");
+  const [recherche, setRecherche] = useState("");
+  const [archives, setArchives] = useState(false);
+  const [brouillon, setBrouillon] = useState("");
+  const [ecrire, setEcrire] = useState(false);
+  const [panneau, setPanneau] = useState<Panneau>(null);
+  const [sectionsOuvertes, setSectionsOuvertes] = useState<Record<SectionConversation, boolean>>({
+    inbox: true,
+    prospections: true,
+    prestataires: true,
+    team: true,
+  });
+
+  const filtrees = useMemo(() => {
+    const q = recherche.trim().toLowerCase();
+    return conversations.filter((c) => {
+      if (c.archivee !== archives) return false;
+      if (!q) return true;
+      return (
+        c.nom.toLowerCase().includes(q) ||
+        c.initiales.toLowerCase().includes(q) ||
+        (c.bienNom?.toLowerCase().includes(q) ?? false)
+      );
+    });
+  }, [conversations, archives, recherche]);
+
+  const actif = conversations.find((c) => c.id === selection) ?? filtrees[0];
+  const fil = messages.filter((m) => m.id && m.conversationId === actif?.id);
+  const nonLus = conversations.filter((c) => !c.archivee && c.nonLu).length;
+  const nbArchives = conversations.filter((c) => c.archivee).length;
+
+  const selectionner = (id: string) => {
+    setSelection(id);
+    setPanneau(null);
+    setConversations((liste) => liste.map((c) => (c.id === id ? { ...c, nonLu: false } : c)));
+  };
+
+  const envoyer = () => {
+    const texte = brouillon.trim();
+    if (!texte || !actif) return;
+    const heure = heureMaintenant();
+    setMessages((liste) => [
+      ...liste,
+      {
+        id: `m-local-${Date.now()}`,
+        conversationId: actif.id,
+        kind: "envoye",
+        texte,
+        heure,
+      },
+    ]);
+    setConversations((liste) =>
+      liste.map((c) => (c.id === actif.id ? { ...c, extrait: texte, ilYa: "À l'instant" } : c)),
+    );
+    setBrouillon("");
+  };
 
   return (
     <AppShell titre="Messagerie" sousTitre="Occupants, prestataires et équipe">
-      <div className="grid min-h-[520px] overflow-hidden rounded-[10px] border border-[#e5e7eb] bg-white lg:grid-cols-[320px_1fr]">
-        <aside className="border-b border-[#e5e7eb] lg:border-b-0 lg:border-r">
-          <div className="flex gap-2 border-b border-[#f3f4f6] p-3">
-            {(["occupants", "prestataires", "team"] as const).map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setCanal(c)}
-                className={cn(
-                  "h-[26px] rounded border px-3 text-xs font-medium",
-                  canal === c
-                    ? "border-[#1e2939] text-[#1e2939]"
-                    : "border-[#d1d5dc] text-[#4a5565]",
-                )}
-              >
-                {c === "occupants" ? "Occupants" : c === "prestataires" ? "Prestataires" : "Team"}
-              </button>
-            ))}
-          </div>
-          <ul>
-            {liste.map((m) => (
-              <li key={m.id}>
-                <button
-                  type="button"
-                  onClick={() => setSelection(m.id)}
-                  className={cn(
-                    "flex w-full gap-3 border-b border-[#f3f4f6] px-4 py-3 text-left",
-                    actif?.id === m.id && "bg-[#f9fafb]",
-                  )}
-                >
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#e5e7eb] text-xs text-[#4a5565]">
-                    {m.initiales}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-sm text-[#1e2939]">{m.auteur}</span>
-                    <span className="block truncate text-xs text-[#6a7282]">{m.texte}</span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </aside>
-        <section className="flex flex-col">
+      <div className="flex min-h-[calc(100vh-10rem)] flex-col overflow-hidden rounded-[10px] border border-[#e5e7eb] bg-white">
+        <div className="flex items-center justify-between border-b border-[#e5e7eb] bg-[rgba(249,250,251,0.5)] px-4 py-3">
+          <p className="flex items-center gap-2 text-sm text-[#1e2939]">
+            <MessageSquare className="size-[15px]" />
+            Messagerie
+            {nonLus > 0 && (
+              <span className="inline-flex h-[19px] min-w-[17px] items-center justify-center rounded-full bg-[#1e2939] px-1.5 text-[10px] text-white">
+                {nonLus}
+              </span>
+            )}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              const versArchives = !archives;
+              setArchives(versArchives);
+              setPanneau(null);
+              const premiere = conversations.find((c) => c.archivee === versArchives);
+              if (premiere) setSelection(premiere.id);
+            }}
+            className={cn(
+              "inline-flex h-[30px] items-center gap-1.5 rounded-[10px] border px-3 text-xs font-medium",
+              archives
+                ? "border-[#1e2939] text-[#1e2939]"
+                : "border-[#e5e7eb] text-[#6a7282]",
+            )}
+          >
+            <Archive className="size-3" />
+            Messages archivés ({nbArchives})
+          </button>
+        </div>
+
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+          <ListeConversations
+            conversations={filtrees}
+            selectionId={actif?.id}
+            recherche={recherche}
+            onRecherche={setRecherche}
+            onSelection={selectionner}
+            onEcrire={() => setEcrire(true)}
+            sectionsOuvertes={sectionsOuvertes}
+            onToggleSection={(s) =>
+              setSectionsOuvertes((o) => ({ ...o, [s]: !o[s] }))
+            }
+          />
+
           {actif ? (
-            <>
-              <header className="flex items-center gap-3 border-b border-[#f3f4f6] px-4 py-3">
-                <MessageSquare className="size-4 text-[#4a5565]" />
-                <div>
-                  <p className="text-sm text-[#1e2939]">{actif.auteur}</p>
-                  <p className="text-xs text-[#99a1af]">{actif.bienNom ?? "Conversation équipe"}</p>
-                </div>
-              </header>
-              <div className="flex-1 p-4">
-                <div className="max-w-xl rounded-[10px] border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3">
-                  <p className="text-sm text-[#1e2939]">{actif.texte}</p>
-                  <p className="mt-2 text-xs text-[#99a1af]">{actif.ilYa}</p>
-                </div>
-              </div>
-              <form
-                className="border-t border-[#f3f4f6] p-3"
-                onSubmit={(e) => e.preventDefault()}
-              >
-                <input
-                  className="h-10 w-full rounded-[10px] border border-[#e5e7eb] px-3 text-sm outline-none placeholder:text-[#99a1af]"
-                  placeholder="Écrire un message…"
-                />
-              </form>
-            </>
+            <FilConversation
+              conversation={actif}
+              messages={fil}
+              brouillon={brouillon}
+              onBrouillon={setBrouillon}
+              onEnvoyer={envoyer}
+              panneau={panneau}
+              onPanneau={setPanneau}
+              onArchiver={() => {
+                const id = actif.id;
+                const devientArchivee = !actif.archivee;
+                setConversations((liste) =>
+                  liste.map((c) => (c.id === id ? { ...c, archivee: devientArchivee } : c)),
+                );
+                setPanneau(null);
+                if (devientArchivee !== archives) {
+                  const suivante = conversations.find(
+                    (c) => c.id !== id && c.archivee === archives,
+                  );
+                  if (suivante) setSelection(suivante.id);
+                }
+              }}
+              onSupprimer={() => {
+                setConversations((liste) => liste.filter((c) => c.id !== actif.id));
+                setMessages((liste) => liste.filter((m) => m.conversationId !== actif.id));
+                setPanneau(null);
+              }}
+              enfantsPanneau={
+                <>
+                  {panneau === "partage" && <MenuPartage onFermer={() => setPanneau(null)} />}
+                  {panneau === "documents" && (
+                    <MenuDocuments
+                      conversationId={actif.id}
+                      nom={actif.nom}
+                      onFermer={() => setPanneau(null)}
+                    />
+                  )}
+                  {panneau === "categorie" && (
+                    <MenuCategorie
+                      sectionActive={actif.section}
+                      onChoisir={(s) =>
+                        setConversations((liste) =>
+                          liste.map((c) => (c.id === actif.id ? { ...c, section: s } : c)),
+                        )
+                      }
+                      onFermer={() => setPanneau(null)}
+                    />
+                  )}
+                  {panneau === "assigner" && <MenuAssigner onFermer={() => setPanneau(null)} />}
+                </>
+              }
+            />
           ) : (
-            <p className="p-6 text-sm text-[#6a7282]">Aucun message.</p>
+            <p className="flex flex-1 items-center justify-center p-6 text-sm text-[#6a7282]">
+              Aucun message.
+            </p>
           )}
-        </section>
+        </div>
       </div>
+
+      <DialogNouveauMessage
+        ouvert={ecrire}
+        onFermer={() => setEcrire(false)}
+        onEnvoyer={(destinataire, _objet, texte) => {
+          const id = `c-new-${Date.now()}`;
+          const conv: Conversation = {
+            id,
+            section: "inbox",
+            nom: destinataire,
+            initiales: initialesDe(destinataire) || "??",
+            type: "voyageur",
+            badge: "Voyageur",
+            extrait: texte,
+            ilYa: "À l'instant",
+            nonLu: false,
+            archivee: false,
+          };
+          setConversations((liste) => [conv, ...liste]);
+          setMessages((liste) => [
+            ...liste,
+            {
+              id: `m-new-${Date.now()}`,
+              conversationId: id,
+              kind: "envoye",
+              texte,
+              heure: heureMaintenant(),
+            },
+          ]);
+          setSelection(id);
+          setArchives(false);
+        }}
+      />
     </AppShell>
   );
 }
