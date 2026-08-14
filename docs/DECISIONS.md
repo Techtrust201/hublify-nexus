@@ -41,9 +41,7 @@ Volontairement **non** implémentés à ce stade : Proposée, Acceptée, Refusé
 
 ## 4. Périmètre construit à l'étape 1
 
-Construit : layout gestionnaire, sidebar, en-tête, vue générale, calendrier des missions (3 jours + mois), détail de mission, liste des prestataires, fiche prestataire, ajout d'un prestataire.
-
-Entrées de navigation visibles mais **désactivées** (présentes dans la maquette, hors périmètre) : Biens, Réservations, Voyageurs, Documents, Messagerie, Équipe, Paramètres.
+Construit : chrome maquette MO1 (sidebar, en-tête), vue générale (KPI, planning biens × jours, messages, loyers, événements), calendrier missions 3/5 jours + mois, réservations, documents, patrimoines, messagerie, tarifs, outils, profil, détail de mission, prestataires.
 
 Hors périmètre : connexion réelle, base de données, paiements, abonnements, commissions, marketplace, Airbnb/Booking, e-mails, SMS, signature électronique, portail voyageur, analytics, mobile prestataire.
 
