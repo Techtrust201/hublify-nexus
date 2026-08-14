@@ -10,15 +10,37 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProfilRouteImport } from './routes/profil'
+import { Route as DocumentsIndexRouteImport } from './routes/documents.index'
+import { Route as MessagerieIndexRouteImport } from './routes/messagerie.index'
 import { Route as MissionsIndexRouteImport } from './routes/missions.index'
 import { Route as MissionsMissionIdRouteImport } from './routes/missions.$missionId'
+import { Route as OutilsIndexRouteImport } from './routes/outils.index'
+import { Route as PatrimoinesIndexRouteImport } from './routes/patrimoines.index'
 import { Route as PrestatairesIndexRouteImport } from './routes/prestataires.index'
 import { Route as PrestatairesPrestataireIdRouteImport } from './routes/prestataires.$prestataireId'
 import { Route as PrestatairesNouveauRouteImport } from './routes/prestataires.nouveau'
+import { Route as ReservationsIndexRouteImport } from './routes/reservations.index'
+import { Route as TarifsIndexRouteImport } from './routes/tarifs.index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfilRoute = ProfilRouteImport.update({
+  id: '/profil',
+  path: '/profil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocumentsIndexRoute = DocumentsIndexRouteImport.update({
+  id: '/documents/',
+  path: '/documents/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessagerieIndexRoute = MessagerieIndexRouteImport.update({
+  id: '/messagerie/',
+  path: '/messagerie/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MissionsIndexRoute = MissionsIndexRouteImport.update({
@@ -29,6 +51,16 @@ const MissionsIndexRoute = MissionsIndexRouteImport.update({
 const MissionsMissionIdRoute = MissionsMissionIdRouteImport.update({
   id: '/missions/$missionId',
   path: '/missions/$missionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OutilsIndexRoute = OutilsIndexRouteImport.update({
+  id: '/outils/',
+  path: '/outils/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PatrimoinesIndexRoute = PatrimoinesIndexRouteImport.update({
+  id: '/patrimoines/',
+  path: '/patrimoines/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrestatairesIndexRoute = PrestatairesIndexRouteImport.update({
@@ -47,66 +79,125 @@ const PrestatairesNouveauRoute = PrestatairesNouveauRouteImport.update({
   path: '/prestataires/nouveau',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReservationsIndexRoute = ReservationsIndexRouteImport.update({
+  id: '/reservations/',
+  path: '/reservations/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TarifsIndexRoute = TarifsIndexRouteImport.update({
+  id: '/tarifs/',
+  path: '/tarifs/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/profil': typeof ProfilRoute
   '/missions/$missionId': typeof MissionsMissionIdRoute
   '/prestataires/$prestataireId': typeof PrestatairesPrestataireIdRoute
   '/prestataires/nouveau': typeof PrestatairesNouveauRoute
+  '/documents/': typeof DocumentsIndexRoute
+  '/messagerie/': typeof MessagerieIndexRoute
   '/missions/': typeof MissionsIndexRoute
+  '/outils/': typeof OutilsIndexRoute
+  '/patrimoines/': typeof PatrimoinesIndexRoute
   '/prestataires/': typeof PrestatairesIndexRoute
+  '/reservations/': typeof ReservationsIndexRoute
+  '/tarifs/': typeof TarifsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/profil': typeof ProfilRoute
   '/missions/$missionId': typeof MissionsMissionIdRoute
   '/prestataires/$prestataireId': typeof PrestatairesPrestataireIdRoute
   '/prestataires/nouveau': typeof PrestatairesNouveauRoute
+  '/documents': typeof DocumentsIndexRoute
+  '/messagerie': typeof MessagerieIndexRoute
   '/missions': typeof MissionsIndexRoute
+  '/outils': typeof OutilsIndexRoute
+  '/patrimoines': typeof PatrimoinesIndexRoute
   '/prestataires': typeof PrestatairesIndexRoute
+  '/reservations': typeof ReservationsIndexRoute
+  '/tarifs': typeof TarifsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/profil': typeof ProfilRoute
   '/missions/$missionId': typeof MissionsMissionIdRoute
   '/prestataires/$prestataireId': typeof PrestatairesPrestataireIdRoute
   '/prestataires/nouveau': typeof PrestatairesNouveauRoute
+  '/documents/': typeof DocumentsIndexRoute
+  '/messagerie/': typeof MessagerieIndexRoute
   '/missions/': typeof MissionsIndexRoute
+  '/outils/': typeof OutilsIndexRoute
+  '/patrimoines/': typeof PatrimoinesIndexRoute
   '/prestataires/': typeof PrestatairesIndexRoute
+  '/reservations/': typeof ReservationsIndexRoute
+  '/tarifs/': typeof TarifsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/profil'
     | '/missions/$missionId'
     | '/prestataires/$prestataireId'
     | '/prestataires/nouveau'
+    | '/documents/'
+    | '/messagerie/'
     | '/missions/'
+    | '/outils/'
+    | '/patrimoines/'
     | '/prestataires/'
+    | '/reservations/'
+    | '/tarifs/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/profil'
     | '/missions/$missionId'
     | '/prestataires/$prestataireId'
     | '/prestataires/nouveau'
+    | '/documents'
+    | '/messagerie'
     | '/missions'
+    | '/outils'
+    | '/patrimoines'
     | '/prestataires'
+    | '/reservations'
+    | '/tarifs'
   id:
     | '__root__'
     | '/'
+    | '/profil'
     | '/missions/$missionId'
     | '/prestataires/$prestataireId'
     | '/prestataires/nouveau'
+    | '/documents/'
+    | '/messagerie/'
     | '/missions/'
+    | '/outils/'
+    | '/patrimoines/'
     | '/prestataires/'
+    | '/reservations/'
+    | '/tarifs/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ProfilRoute: typeof ProfilRoute
   MissionsMissionIdRoute: typeof MissionsMissionIdRoute
   PrestatairesPrestataireIdRoute: typeof PrestatairesPrestataireIdRoute
   PrestatairesNouveauRoute: typeof PrestatairesNouveauRoute
+  DocumentsIndexRoute: typeof DocumentsIndexRoute
+  MessagerieIndexRoute: typeof MessagerieIndexRoute
   MissionsIndexRoute: typeof MissionsIndexRoute
+  OutilsIndexRoute: typeof OutilsIndexRoute
+  PatrimoinesIndexRoute: typeof PatrimoinesIndexRoute
   PrestatairesIndexRoute: typeof PrestatairesIndexRoute
+  ReservationsIndexRoute: typeof ReservationsIndexRoute
+  TarifsIndexRoute: typeof TarifsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,6 +207,27 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profil': {
+      id: '/profil'
+      path: '/profil'
+      fullPath: '/profil'
+      preLoaderRoute: typeof ProfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/documents/': {
+      id: '/documents/'
+      path: '/documents'
+      fullPath: '/documents/'
+      preLoaderRoute: typeof DocumentsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messagerie/': {
+      id: '/messagerie/'
+      path: '/messagerie'
+      fullPath: '/messagerie/'
+      preLoaderRoute: typeof MessagerieIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/missions/': {
@@ -130,6 +242,20 @@ declare module '@tanstack/react-router' {
       path: '/missions/$missionId'
       fullPath: '/missions/$missionId'
       preLoaderRoute: typeof MissionsMissionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/outils/': {
+      id: '/outils/'
+      path: '/outils'
+      fullPath: '/outils/'
+      preLoaderRoute: typeof OutilsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/patrimoines/': {
+      id: '/patrimoines/'
+      path: '/patrimoines'
+      fullPath: '/patrimoines/'
+      preLoaderRoute: typeof PatrimoinesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/prestataires/': {
@@ -153,17 +279,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrestatairesNouveauRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reservations/': {
+      id: '/reservations/'
+      path: '/reservations'
+      fullPath: '/reservations/'
+      preLoaderRoute: typeof ReservationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tarifs/': {
+      id: '/tarifs/'
+      path: '/tarifs'
+      fullPath: '/tarifs/'
+      preLoaderRoute: typeof TarifsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ProfilRoute: ProfilRoute,
   MissionsMissionIdRoute: MissionsMissionIdRoute,
   PrestatairesPrestataireIdRoute: PrestatairesPrestataireIdRoute,
   PrestatairesNouveauRoute: PrestatairesNouveauRoute,
+  DocumentsIndexRoute: DocumentsIndexRoute,
+  MessagerieIndexRoute: MessagerieIndexRoute,
   MissionsIndexRoute: MissionsIndexRoute,
+  OutilsIndexRoute: OutilsIndexRoute,
+  PatrimoinesIndexRoute: PatrimoinesIndexRoute,
   PrestatairesIndexRoute: PrestatairesIndexRoute,
+  ReservationsIndexRoute: ReservationsIndexRoute,
+  TarifsIndexRoute: TarifsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

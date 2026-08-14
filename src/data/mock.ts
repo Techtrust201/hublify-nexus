@@ -2,7 +2,18 @@
 // (« Appartement Colette », « Villa Lavandrix », « Studio Raclette », « Suzette », « Yannick Rath »)
 // Jeu de données fictif UNIQUE : calendrier, détail mission et fiche prestataire lisent d'ici.
 
-import type { Bien, Mission, Prestataire, Reservation } from "./types";
+import type {
+  Bien,
+  DocumentBien,
+  EvenementLocal,
+  Loyer,
+  Message,
+  Mission,
+  Prestataire,
+  Reservation,
+  TarifBien,
+  TeamMate,
+} from "./types";
 
 export const GESTIONNAIRE = {
   nom: "Yannick Rath",
@@ -99,9 +110,9 @@ export const PRESTATAIRES: Prestataire[] = [
   },
 ];
 
-/** Date de référence du jeu fictif : aujourd'hui, pour que le calendrier soit toujours peuplé. */
+/** Dates de la maquette MO1 (planning mars 2026). */
 function jour(offset: number): string {
-  const d = new Date();
+  const d = new Date(2026, 2, 5);
   d.setHours(12, 0, 0, 0);
   d.setDate(d.getDate() + offset);
   return d.toISOString().slice(0, 10);
@@ -111,33 +122,41 @@ export const RESERVATIONS: Reservation[] = [
   {
     id: "r1",
     bienId: "b1",
-    voyageur: { nom: "Claire Fontaine", telephone: "06 41 22 90 10" },
-    arrivee: jour(0),
-    depart: jour(4),
+    voyageur: { nom: "Pierre Bernard", telephone: "06 41 22 90 10" },
+    arrivee: jour(-1),
+    depart: jour(1),
     plateforme: "Airbnb",
   },
   {
     id: "r2",
     bienId: "b2",
-    voyageur: { nom: "Marc Lemoine", telephone: "06 88 71 30 55" },
-    arrivee: jour(1),
-    depart: jour(6),
+    voyageur: { nom: "Jean Dupont", telephone: "06 88 71 30 55" },
+    arrivee: jour(-1),
+    depart: jour(2),
     plateforme: "Booking",
   },
   {
     id: "r3",
     bienId: "b3",
-    voyageur: { nom: "Elsa Roux", telephone: "07 12 65 44 08" },
-    arrivee: jour(-2),
-    depart: jour(1),
+    voyageur: { nom: "Mike Johnson", telephone: "07 12 65 44 08" },
+    arrivee: jour(10),
+    depart: jour(14),
     plateforme: "Direct",
   },
   {
     id: "r4",
     bienId: "b4",
-    voyageur: { nom: "Hugo Perrin", telephone: "06 55 09 77 21" },
-    arrivee: jour(3),
-    depart: jour(8),
+    voyageur: { nom: "Sophie Martin", telephone: "06 55 09 77 21" },
+    arrivee: jour(-1),
+    depart: jour(2),
+    plateforme: "Airbnb",
+  },
+  {
+    id: "r5",
+    bienId: "b1",
+    voyageur: { nom: "Anna Schmidt", telephone: "06 19 44 02 88" },
+    arrivee: jour(1),
+    depart: jour(4),
     plateforme: "Airbnb",
   },
 ];
@@ -146,7 +165,7 @@ export const MISSIONS: Mission[] = [
   {
     id: "m1",
     reference: "MIS-2401",
-    titre: "Ménage de départ",
+    titre: "Ménage express",
     type: "Ménage",
     bienId: "b1",
     prestataireId: "p1",
@@ -160,11 +179,11 @@ export const MISSIONS: Mission[] = [
   {
     id: "m2",
     reference: "MIS-2402",
-    titre: "Check-in voyageur",
+    titre: "Check-in assisté",
     type: "Check-in",
-    bienId: "b1",
+    bienId: "b4",
     prestataireId: "p1",
-    reservationId: "r1",
+    reservationId: "r4",
     date: jour(0),
     heureDebut: "16:00",
     heureFin: "16:45",
@@ -193,7 +212,7 @@ export const MISSIONS: Mission[] = [
     bienId: "b1",
     prestataireId: "p3",
     reservationId: null,
-    date: jour(1),
+    date: jour(0),
     heureDebut: "08:00",
     heureFin: "08:30",
     statut: "planifiee",
@@ -202,29 +221,29 @@ export const MISSIONS: Mission[] = [
   {
     id: "m5",
     reference: "MIS-2405",
-    titre: "Ménage d'arrivée",
+    titre: "Ménage complet",
     type: "Ménage",
-    bienId: "b3",
-    prestataireId: null,
-    reservationId: "r3",
-    date: jour(1),
+    bienId: "b4",
+    prestataireId: "p1",
+    reservationId: "r4",
+    date: jour(-1),
     heureDebut: "13:00",
     heureFin: "15:00",
-    statut: "a_affecter",
+    statut: "terminee",
     consignes: "Aucun prestataire disponible sur Chamonix pour l'instant.",
   },
   {
     id: "m6",
     reference: "MIS-2406",
-    titre: "Inventaire complet",
+    titre: "État des lieux entrée",
     type: "Inventaire",
-    bienId: "b4",
+    bienId: "b2",
     prestataireId: "p5",
-    reservationId: "r4",
-    date: jour(2),
+    reservationId: "r2",
+    date: jour(-1),
     heureDebut: "14:00",
     heureFin: "16:00",
-    statut: "planifiee",
+    statut: "terminee",
     consignes: "Vérifier la vaisselle et le mobilier de jardin.",
   },
   {
@@ -258,12 +277,12 @@ export const MISSIONS: Mission[] = [
   {
     id: "m9",
     reference: "MIS-2409",
-    titre: "Ménage intermédiaire",
+    titre: "Ménage inter-séjour",
     type: "Ménage",
-    bienId: "b4",
+    bienId: "b2",
     prestataireId: "p1",
-    reservationId: "r4",
-    date: jour(4),
+    reservationId: "r2",
+    date: jour(1),
     heureDebut: "10:00",
     heureFin: "12:00",
     statut: "planifiee",
@@ -283,4 +302,190 @@ export const MISSIONS: Mission[] = [
     statut: "a_affecter",
     consignes: "Contrôle annuel obligatoire.",
   },
+  {
+    id: "m11",
+    reference: "MIS-2411",
+    titre: "Préparer les clés",
+    type: "Check-in",
+    bienId: "b4",
+    prestataireId: "p1",
+    reservationId: "r4",
+    date: jour(0),
+    heureDebut: "15:30",
+    heureFin: "16:00",
+    statut: "planifiee",
+    consignes: "Boîte à clés à vérifier avant le check-in assisté.",
+  },
+];
+
+export const ANCRE_PLANNING = new Date(2026, 2, 4);
+
+export const ORDRE_BIENS = ["b4", "b2", "b1", "b3"] as const;
+
+export const TEAM: TeamMate[] = [
+  { id: "t1", nom: "Erik Dunnell", initiales: "ER" },
+  { id: "t2", nom: "Emily Smith", initiales: "EM" },
+  { id: "t3", nom: "Arthur Ajolk", initiales: "AR" },
+];
+
+export const MESSAGES: Message[] = [
+  {
+    id: "msg1",
+    canal: "occupants",
+    auteur: "Sophie Martin",
+    initiales: "SM",
+    bienNom: "Appartement Colette",
+    texte: "Bonjour, j'arrive demain vers 15h. Est-ce que je peux avoir le code WIFI à l'avance ?",
+    ilYa: "Il y a 5 min",
+  },
+  {
+    id: "msg2",
+    canal: "occupants",
+    auteur: "John Doe",
+    initiales: "JD",
+    bienNom: "Villa Lavandrix",
+    texte: "Merci pour votre accueil. Petite question : où puis-je trouver des draps supplémentaires ?",
+    ilYa: "Il y a 1h",
+  },
+  {
+    id: "msg3",
+    canal: "occupants",
+    auteur: "Mike Johnson",
+    initiales: "MJ",
+    bienNom: "Studio Raclette",
+    texte: "Tout est parfait ! Merci beaucoup pour les recommandations de restaurants.",
+    ilYa: "Il y a 2h",
+  },
+  {
+    id: "msg4",
+    canal: "prestataires",
+    auteur: "Amélie Dubois",
+    initiales: "AD",
+    bienNom: "Appartement Colette",
+    texte: "Ménage express terminé. Photos déposées dans le dossier mission.",
+    ilYa: "Il y a 20 min",
+  },
+  {
+    id: "msg5",
+    canal: "prestataires",
+    auteur: "Karim Benali",
+    initiales: "KB",
+    bienNom: "Villa Lavandrix",
+    texte: "Je passe demain matin pour le volet de la chambre 2.",
+    ilYa: "Il y a 3h",
+  },
+  {
+    id: "msg6",
+    canal: "team",
+    auteur: "Erik Dunnell",
+    initiales: "ER",
+    texte: "Peux-tu relancer Sophie Martin pour le code Wi-Fi ?",
+    ilYa: "Il y a 12 min",
+  },
+  {
+    id: "msg7",
+    canal: "team",
+    auteur: "Emily Smith",
+    initiales: "EM",
+    texte: "Quittance Lucie Blanc générée, je l'archive dans Documents.",
+    ilYa: "Il y a 45 min",
+  },
+];
+
+export const LOYERS: Loyer[] = [
+  {
+    id: "l1",
+    locataire: "Sophie Martin",
+    initiales: "SO",
+    bienNom: "Suzette",
+    echeance: "01 mars 2026",
+    montant: 850,
+    statut: "a_valider",
+  },
+  {
+    id: "l2",
+    locataire: "Théo Garnier",
+    initiales: "TH",
+    bienNom: "Villa Lavandrix",
+    echeance: "01 mars 2026",
+    montant: 1200,
+    statut: "a_valider",
+  },
+  {
+    id: "l3",
+    locataire: "Lucie Blanc",
+    initiales: "LU",
+    bienNom: "Studio Raclette",
+    echeance: "05 mars 2026",
+    montant: 620,
+    statut: "valide",
+  },
+];
+
+export const EVENEMENTS: EvenementLocal[] = [
+  {
+    id: "e1",
+    titre: "Festival de Jazz de Paris",
+    lieu: "Paris · à 2km de Villa Lavandrix",
+    dates: "27 avril – 2 mai 2025",
+    impact: "Fort impact",
+    description:
+      "Grande affluence attendue. Vos propriétés à Paris pourraient bénéficier d'une forte demande.",
+  },
+  {
+    id: "e2",
+    titre: "Marathon de Lyon",
+    lieu: "Lyon Centre · à 500m du Studio Raclette",
+    dates: "3 mai 2026",
+    impact: "Impact modéré",
+    description:
+      "Circulation perturbée le dimanche. Pensez à informer vos occupants des déviations.",
+  },
+  {
+    id: "e3",
+    titre: "Salon de l'Immobilier",
+    lieu: "Paris Expo Porte de Versailles · à 4km",
+    dates: "19-20 avril 2025",
+    impact: "Opportunité",
+    description:
+      "Augmentation des réservations courtes durées, 3 demandes reçues cette semaine.",
+  },
+];
+
+export const DOCUMENTS: DocumentBien[] = [
+  {
+    id: "d1",
+    titre: "État des lieux d'entrée — Sophie Martin",
+    type: "État des lieux",
+    bienNom: "Suzette",
+    date: "4 mars 2026",
+  },
+  {
+    id: "d2",
+    titre: "Quittance de loyer — Lucie Blanc",
+    type: "Quittance",
+    bienNom: "Studio Raclette",
+    date: "5 mars 2026",
+  },
+  {
+    id: "d3",
+    titre: "Contrat de location saisonnière",
+    type: "Contrat",
+    bienNom: "Villa Lavandrix",
+    date: "1 mars 2026",
+  },
+  {
+    id: "d4",
+    titre: "Règlement intérieur",
+    type: "Modèle",
+    bienNom: "Appartement Colette",
+    date: "12 février 2026",
+  },
+];
+
+export const TARIFS: TarifBien[] = [
+  { bienId: "b4", nuit: 145, weekend: 175, hauteSaison: 210 },
+  { bienId: "b2", nuit: 320, weekend: 380, hauteSaison: 450 },
+  { bienId: "b1", nuit: 110, weekend: 135, hauteSaison: 160 },
+  { bienId: "b3", nuit: 95, weekend: 120, hauteSaison: 150 },
 ];

@@ -1,54 +1,45 @@
-// SOURCE: V2 Redris — « Dashboard Sidebar », « NavItem », en-tête gestionnaire
-// Adapté : libellés purgés de toute référence REDRIS, identité HUBLIFY uniquement.
+// SOURCE: Maquette MO1 — sidebar gestionnaire + en-tête (frame Dashboard/Calendar/Missions/3days)
 
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Building2,
-  CalendarDays,
+  Bell,
+  ChevronDown,
+  ChevronRight,
   FileText,
-  LayoutDashboard,
+  Home,
+  Info,
+  Menu,
   MessageSquare,
-  PanelLeft,
-  Search,
-  Settings,
   Users,
   Wrench,
-  Bell,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { GESTIONNAIRE } from "@/data/mock";
+import { GESTIONNAIRE, TEAM } from "@/data/mock";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-type Entree = { titre: string; url: string; icone: typeof LayoutDashboard; actif: boolean };
+type Entree = {
+  titre: string;
+  url: string;
+  icone: typeof Users;
+  chevron?: boolean;
+};
 
 const NAV: Entree[] = [
-  { titre: "Vue générale", url: "/", icone: LayoutDashboard, actif: true },
-  { titre: "Missions", url: "/missions", icone: CalendarDays, actif: true },
-  { titre: "Prestataires", url: "/prestataires", icone: Wrench, actif: true },
-  { titre: "Biens", url: "/", icone: Building2, actif: false },
-  { titre: "Réservations", url: "/", icone: CalendarDays, actif: false },
-  { titre: "Voyageurs", url: "/", icone: Users, actif: false },
-  { titre: "Documents", url: "/", icone: FileText, actif: false },
-  { titre: "Messagerie", url: "/", icone: MessageSquare, actif: false },
-  { titre: "Équipe", url: "/", icone: Users, actif: false },
-  { titre: "Paramètres", url: "/", icone: Settings, actif: false },
+  { titre: "Réservations", url: "/reservations", icone: Users },
+  { titre: "Documents", url: "/documents", icone: FileText },
+  { titre: "Prestataires", url: "/prestataires", icone: Wrench, chevron: true },
+  { titre: "Patrimoines", url: "/patrimoines", icone: Home, chevron: true },
+  { titre: "Messagerie", url: "/messagerie", icone: MessageSquare },
 ];
 
-function Logo({ compact }: { compact: boolean }) {
-  return (
-    <div className="flex items-center gap-2">
-      <img
-        src="/hublify-mark.png"
-        alt="Hublify"
-        width={32}
-        height={32}
-        className="h-8 w-8 shrink-0 rounded-md object-contain"
-      />
-      {!compact && (
-        <span className="text-base font-semibold tracking-tight text-foreground">Hublify</span>
-      )}
-    </div>
-  );
+function estActif(pathname: string, url: string) {
+  return url === "/" ? pathname === "/" : pathname === url || pathname.startsWith(`${url}/`);
 }
 
 export function AppShell({
@@ -57,116 +48,174 @@ export function AppShell({
   actions,
   children,
 }: {
-  titre: string;
+  titre?: string;
   sousTitre?: string;
   actions?: ReactNode;
   children: ReactNode;
 }) {
-  const [replie, setReplie] = useState(false);
+  const [mobileOuvert, setMobileOuvert] = useState(false);
   const pathname = useRouterState({ select: (r) => r.location.pathname });
 
-  const estActif = (url: string) => (url === "/" ? pathname === "/" : pathname.startsWith(url));
-
   return (
-    <div className="flex min-h-screen w-full bg-muted/40">
-      <aside
-        className={cn(
-          "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-border bg-sidebar transition-all md:flex",
-          replie ? "w-16" : "w-64",
-        )}
-      >
-        <div className="flex h-16 items-center px-4">
-          <Logo compact={replie} />
-        </div>
-        <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-2">
-          {NAV.map((e) => {
-            const contenu = (
-              <>
-                <e.icone className="h-4 w-4 shrink-0" />
-                {!replie && <span className="truncate">{e.titre}</span>}
-              </>
-            );
-            const classes = cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-              e.actif
-                ? estActif(e.url)
-                  ? "bg-brand-soft text-brand-strong"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                : "cursor-not-allowed text-muted-foreground/50",
-            );
-            return e.actif ? (
-              <Link key={e.titre} to={e.url} className={classes} title={e.titre}>
-                {contenu}
-              </Link>
-            ) : (
-              <div key={e.titre} className={classes} title={`${e.titre} — hors périmètre étape 1`}>
-                {contenu}
-              </div>
-            );
-          })}
-        </nav>
-        <div className="border-t border-border p-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
+    <div className="flex min-h-screen w-full bg-[#f9fafb]">
+      <aside className="sticky top-0 hidden h-screen w-[255px] shrink-0 flex-col border-r border-[#e5e7eb] bg-white md:flex">
+        <div className="border-b border-[#f3f4f6] px-4 py-4">
+          <Link to="/profil" className="flex items-center gap-3">
+            <span className="flex size-10 items-center justify-center rounded-full bg-[#e5e7eb] text-sm text-[#4a5565]">
               YR
-            </div>
-            {!replie && (
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-foreground">{GESTIONNAIRE.nom}</p>
-                <p className="truncate text-xs text-muted-foreground">Compte gestionnaire</p>
-              </div>
-            )}
-          </div>
+            </span>
+            <span className="min-w-0">
+              <span className="block text-xs uppercase tracking-[0.3px] text-[#99a1af]">
+                Gestionnaire
+              </span>
+              <span className="block text-sm text-[#1e2939]">{GESTIONNAIRE.nom}</span>
+            </span>
+          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="mt-4 flex h-[38px] w-full items-center justify-center rounded-[10px] border border-[#e5e7eb] bg-white text-sm font-medium text-[#4a5565]">
+              Vue générale
+              <ChevronDown className="ml-1 size-3.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuItem asChild>
+                <Link to="/">Vue générale</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/missions">Missions</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/reservations">Réservations</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/tarifs">Tarifs</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 pt-3">
+          {NAV.map((e) => (
+            <Link
+              key={e.titre}
+              to={e.url}
+              className={cn(
+                "flex h-9 items-center gap-3 rounded-[10px] px-3 text-sm font-medium text-[#4a5565] hover:bg-[#f9fafb]",
+                estActif(pathname, e.url) && "bg-[#f3f4f6] text-[#1e2939]",
+              )}
+            >
+              <e.icone className="size-4 shrink-0" />
+              <span className="flex-1 truncate">{e.titre}</span>
+              {e.chevron &&
+                (estActif(pathname, e.url) ? (
+                  <ChevronDown className="size-3.5 text-[#99a1af]" />
+                ) : (
+                  <ChevronRight className="size-3.5 text-[#99a1af]" />
+                ))}
+            </Link>
+          ))}
+
+          <p className="px-3 pt-4 text-xs uppercase tracking-[0.3px] text-[#99a1af]">Team mate</p>
+          {TEAM.map((m) => (
+            <Link
+              key={m.id}
+              to="/messagerie"
+              className="flex h-9 items-center gap-2 rounded-[10px] px-3 text-sm font-medium text-[#4a5565] hover:bg-[#f9fafb]"
+            >
+              <span className="flex size-6 items-center justify-center rounded-full bg-[#e5e7eb] text-[10px] font-medium text-[#6a7282]">
+                {m.initiales}
+              </span>
+              {m.nom}
+            </Link>
+          ))}
+
+          <p className="px-3 pt-4 text-xs uppercase tracking-[0.3px] text-[#99a1af]">
+            Tous les outils
+          </p>
+          <Link
+            to="/outils"
+            className="flex h-8 items-center gap-2 rounded-[10px] px-3 text-sm font-medium text-[#4a5565] hover:bg-[#f9fafb]"
+          >
+            <Info className="size-3.5" />
+            En savoir plus
+          </Link>
+        </nav>
+
+        <div className="space-y-2 border-t border-[#f3f4f6] px-4 py-4">
+          <Link
+            to="/outils"
+            className="flex h-9 w-full items-center justify-center rounded-[10px] bg-[#101828] text-sm font-medium text-white"
+          >
+            Je débute
+          </Link>
+          <Link
+            to="/outils"
+            className="flex h-[38px] w-full items-center justify-center rounded-[10px] border border-[#e5e7eb] text-sm font-medium text-[#4a5565]"
+          >
+            Je découvre
+          </Link>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex h-16 items-center gap-3 border-b border-border bg-background px-4 md:px-6">
-          <button
-            onClick={() => setReplie((v) => !v)}
-            className="hidden rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground md:inline-flex"
-            aria-label="Replier la navigation"
-          >
-            <PanelLeft className="h-4 w-4" />
-          </button>
-          <div className="md:hidden">
-            <Logo compact={false} />
+        <header className="sticky top-0 z-10 flex h-[73px] items-center justify-between border-b border-[#e5e7eb] bg-white px-4 md:px-6">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="rounded-[10px] border border-[#e5e7eb] p-2 text-[#4a5565] md:hidden"
+              onClick={() => setMobileOuvert((v) => !v)}
+              aria-label="Ouvrir la navigation"
+            >
+              <Menu className="size-4" />
+            </button>
+            {titre ? (
+              <div className="min-w-0">
+                <h1 className="truncate text-sm font-medium text-[#1e2939]">{titre}</h1>
+                {sousTitre && <p className="truncate text-xs text-[#99a1af]">{sousTitre}</p>}
+              </div>
+            ) : (
+              <div className="hidden h-8 w-16 md:block" />
+            )}
           </div>
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-base font-semibold text-foreground">{titre}</h1>
-            {sousTitre && <p className="truncate text-xs text-muted-foreground">{sousTitre}</p>}
+          <div className="flex items-center gap-4">
+            {actions}
+            <Link
+              to="/outils"
+              className="hidden h-[34px] items-center gap-1 rounded-[10px] border border-[#e5e7eb] px-3 text-sm font-medium text-[#4a5565] sm:inline-flex"
+            >
+              Outils
+              <ChevronDown className="size-3.5" />
+            </Link>
+            <button
+              type="button"
+              className="flex size-8 items-center justify-center rounded-[10px] border border-[#e5e7eb] text-[#4a5565]"
+              aria-label="Notifications"
+            >
+              <Bell className="size-4" />
+            </button>
+            <Link to="/profil" className="hidden text-sm font-medium text-[#4a5565] sm:inline">
+              Compte gestionnaire
+            </Link>
           </div>
-          <div className="hidden items-center gap-2 rounded-lg border border-border px-3 py-2 lg:flex">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Rechercher…</span>
-          </div>
-          <button
-            className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
-            aria-label="Notifications"
-          >
-            <Bell className="h-4 w-4" />
-          </button>
-          {actions}
         </header>
 
-        <nav className="flex gap-1 overflow-x-auto border-b border-border bg-background px-4 py-2 md:hidden">
-          {NAV.filter((e) => e.actif).map((e) => (
-            <Link
-              key={e.titre}
-              to={e.url}
-              className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-muted-foreground"
-              activeProps={{ className: "bg-brand-soft text-brand-strong" }}
-            >
-              {e.titre}
+        {mobileOuvert && (
+          <nav className="flex gap-1 overflow-x-auto border-b border-[#e5e7eb] bg-white px-4 py-2 md:hidden">
+            <Link to="/" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-[#4a5565]">
+              Vue générale
             </Link>
-          ))}
-        </nav>
+            {NAV.map((e) => (
+              <Link
+                key={e.titre}
+                to={e.url}
+                className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-[#4a5565]"
+              >
+                {e.titre}
+              </Link>
+            ))}
+          </nav>
+        )}
 
         <main className="flex-1 p-4 md:p-6">{children}</main>
-
-        <footer className="border-t border-border px-4 py-3 text-xs text-muted-foreground md:px-6">
-          Hublify — prototype interne. Données fictives, aucun traitement réel.
-        </footer>
       </div>
     </div>
   );

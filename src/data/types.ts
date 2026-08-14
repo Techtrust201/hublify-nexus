@@ -60,3 +60,57 @@ export type Mission = {
   statut: StatutMission;
   consignes: string;
 };
+
+export type CanalMessage = "occupants" | "prestataires" | "team";
+
+export type TeamMate = {
+  id: string;
+  nom: string;
+  initiales: string;
+};
+
+export type Message = {
+  id: string;
+  canal: CanalMessage;
+  auteur: string;
+  initiales: string;
+  bienNom?: string;
+  texte: string;
+  ilYa: string;
+};
+
+export type StatutLoyer = "a_valider" | "valide";
+
+export type Loyer = {
+  id: string;
+  locataire: string;
+  initiales: string;
+  bienNom: string;
+  echeance: string;
+  montant: number;
+  statut: StatutLoyer;
+};
+
+export type EvenementLocal = {
+  id: string;
+  titre: string;
+  lieu: string;
+  dates: string;
+  impact: "Fort impact" | "Impact modéré" | "Opportunité";
+  description: string;
+};
+
+export type DocumentBien = {
+  id: string;
+  titre: string;
+  type: string;
+  bienNom: string;
+  date: string;
+};
+
+export type TarifBien = {
+  bienId: string;
+  nuit: number;
+  weekend: number;
+  hauteSaison: number;
+};

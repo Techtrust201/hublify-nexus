@@ -2,8 +2,30 @@
 // Aucun backend, aucune persistance. Remplaçable par une API réelle plus tard.
 
 import { useSyncExternalStore } from "react";
-import { BIENS, MISSIONS, PRESTATAIRES, RESERVATIONS } from "./mock";
-import type { Bien, Mission, Prestataire, Reservation } from "./types";
+import {
+  BIENS,
+  DOCUMENTS,
+  EVENEMENTS,
+  LOYERS,
+  MESSAGES,
+  MISSIONS,
+  PRESTATAIRES,
+  RESERVATIONS,
+  TARIFS,
+  TEAM,
+} from "./mock";
+import type {
+  Bien,
+  DocumentBien,
+  EvenementLocal,
+  Loyer,
+  Message,
+  Mission,
+  Prestataire,
+  Reservation,
+  TarifBien,
+  TeamMate,
+} from "./types";
 import type { StatutMission } from "./statuts";
 
 type Etat = {
@@ -11,6 +33,12 @@ type Etat = {
   prestataires: Prestataire[];
   reservations: Reservation[];
   missions: Mission[];
+  team: TeamMate[];
+  messages: Message[];
+  loyers: Loyer[];
+  evenements: EvenementLocal[];
+  documents: DocumentBien[];
+  tarifs: TarifBien[];
 };
 
 let etat: Etat = {
@@ -18,6 +46,12 @@ let etat: Etat = {
   prestataires: PRESTATAIRES,
   reservations: RESERVATIONS,
   missions: MISSIONS,
+  team: TEAM,
+  messages: MESSAGES,
+  loyers: LOYERS,
+  evenements: EVENEMENTS,
+  documents: DOCUMENTS,
+  tarifs: TARIFS,
 };
 
 const abonnes = new Set<() => void>();
@@ -63,6 +97,13 @@ export function affecterPrestataire(missionId: string, prestataireId: string | n
           }
         : m,
     ),
+  });
+}
+
+export function validerLoyer(loyerId: string) {
+  notifier({
+    ...etat,
+    loyers: etat.loyers.map((l) => (l.id === loyerId ? { ...l, statut: "valide" } : l)),
   });
 }
 
