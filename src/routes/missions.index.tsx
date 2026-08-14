@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { PlanningGrid } from "@/components/dashboard/PlanningGrid";
 import { AppShell } from "@/components/layout/AppShell";
-import { useHublify } from "@/data/store";
+import type { OngletPlanning } from "@/data/planning-mo1";
 
 export const Route = createFileRoute("/missions/")({
   head: () => ({
@@ -18,16 +18,12 @@ export const Route = createFileRoute("/missions/")({
 });
 
 function PageMissions() {
-  const { missions, biens, reservations } = useHublify();
-  const [onglet, setOnglet] = useState<"missions" | "reservations" | "tarifs">("missions");
+  const [onglet, setOnglet] = useState<OngletPlanning>("missions");
   const navigate = useNavigate();
 
   return (
-    <AppShell titre="Missions" sousTitre="Calendrier des interventions planifiées">
+    <AppShell>
       <PlanningGrid
-        missions={missions}
-        biens={biens}
-        reservations={reservations}
         onglet={onglet}
         onOnglet={(v) => {
           if (v === "reservations") navigate({ to: "/reservations" });
