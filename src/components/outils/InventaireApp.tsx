@@ -1,6 +1,7 @@
 import { Download, Eye, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { BtnNavy, BtnOutline, Chip } from "@/components/documents/ui";
+import { ScrollHint } from "@/components/layout/ScrollHint";
 import { ITEMS_INVENTAIRE } from "@/data/documents-mo1";
 import { cn } from "@/lib/utils";
 
@@ -33,8 +34,8 @@ export function InventaireApp() {
     <div>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-2xl text-[#1e2939]">Inventaire</h2>
-          <p className="text-sm text-[#6a7282]">Tous les inventaires de la maison sont réunis ici</p>
+          <h2 className="text-2xl text-ink">Inventaire</h2>
+          <p className="text-sm text-ink-subtle">Tous les inventaires de la maison sont réunis ici</p>
         </div>
         <BtnNavy className="h-[49px] px-5 text-sm">
           <Download className="size-4" /> Télécharger le tableau
@@ -49,20 +50,20 @@ export function InventaireApp() {
         ))}
       </div>
 
-      <section className="overflow-hidden rounded-[10px] border border-[#e5e7eb] bg-white">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#f3f4f6] px-6 py-4">
+      <section className="overflow-hidden rounded-card border border-line bg-white">
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-soft px-6 py-4">
           <div className="flex items-center gap-3">
-            <h3 className="text-lg text-[#1e2939]">{titre}</h3>
-            <span className="text-sm text-[#99a1af]">{items.length} éléments</span>
+            <h3 className="text-lg text-ink">{titre}</h3>
+            <span className="text-sm text-ink-muted">{items.length} éléments</span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <label className="relative flex h-[39px] w-[320px] max-w-full items-center">
-              <Search className="absolute left-3 size-3.5 text-[#99a1af]" />
+              <Search className="absolute left-3 size-3.5 text-ink-muted" />
               <input
                 value={recherche}
                 onChange={(e) => setRecherche(e.target.value)}
                 placeholder="Rechercher par code ou désignation..."
-                className="h-full w-full rounded-[10px] border border-[#e5e7eb] bg-white pl-9 pr-3 text-sm outline-none placeholder:text-[#99a1af]"
+                className="h-full w-full rounded-card border border-line bg-white pl-9 pr-3 text-sm outline-none placeholder:text-ink-muted"
               />
             </label>
             <BtnOutline>
@@ -77,9 +78,9 @@ export function InventaireApp() {
           </div>
         </header>
 
-        <div className="overflow-x-auto">
+        <ScrollHint>
           <table className="w-full min-w-[900px] text-left text-sm">
-            <thead className="border-b border-[#f3f4f6] text-xs text-[#6a7282]">
+            <thead className="border-b border-surface-soft text-xs text-ink-subtle">
               <tr>
                 <th className="w-14 px-6 py-4" />
                 <th className="px-3 py-4 font-medium">Code</th>
@@ -94,7 +95,7 @@ export function InventaireApp() {
             </thead>
             <tbody>
               {items.map((i) => (
-                <tr key={i.id} className="border-b border-[#f3f4f6] last:border-b-0">
+                <tr key={i.id} className="border-b border-surface-soft last:border-b-0">
                   <td className="px-6 py-4">
                     <input
                       type="checkbox"
@@ -106,37 +107,37 @@ export function InventaireApp() {
                       }
                     />
                   </td>
-                  <td className="px-3 py-4 text-[#1e2939]">{i.code}</td>
-                  <td className="px-3 py-4 text-[#1e2939]">{i.designation}</td>
+                  <td className="px-3 py-4 text-ink">{i.code}</td>
+                  <td className="px-3 py-4 text-ink">{i.designation}</td>
                   <td className="px-3 py-4">
                     <span
                       className={cn(
                         "rounded px-2 py-0.5 text-xs",
                         i.etat === "Très bon"
-                          ? "bg-[#dcfce7] text-[#008236]"
+                          ? "bg-chip-success text-chip-success-fg"
                           : i.etat === "Bon"
-                            ? "bg-[#f3f4f6] text-[#4a5565]"
+                            ? "bg-surface-soft text-ink-body"
                             : i.etat === "Moyen"
-                              ? "bg-[#ffedd4] text-[#ca3500]"
-                              : "border border-[#e5e7eb] text-[#6a7282]",
+                              ? "bg-chip-warning text-chip-warning-fg"
+                              : "border border-line text-ink-subtle",
                       )}
                     >
                       {i.etat}
                     </span>
                   </td>
-                  <td className="px-3 py-4 text-[#1e2939]">{i.qte}</td>
+                  <td className="px-3 py-4 text-ink">{i.qte}</td>
                   <td className="px-3 py-4 text-xl leading-none">{i.emoji}</td>
-                  <td className="px-3 py-4 text-[#4a5565]">{i.emplacement}</td>
-                  <td className="px-3 py-4 text-[#4a5565]">{i.serie}</td>
+                  <td className="px-3 py-4 text-ink-body">{i.emplacement}</td>
+                  <td className="px-3 py-4 text-ink-body">{i.serie}</td>
                   <td className="px-3 py-4">
                     <div className="flex gap-1">
-                      <button type="button" aria-label="Voir" className="p-1 text-[#4a5565]">
+                      <button type="button" aria-label="Voir" className="p-1 text-ink-body">
                         <Eye className="size-4" />
                       </button>
-                      <button type="button" aria-label="Modifier" className="p-1 text-[#4a5565]">
+                      <button type="button" aria-label="Modifier" className="p-1 text-ink-body">
                         <Pencil className="size-4" />
                       </button>
-                      <button type="button" aria-label="Supprimer" className="p-1 text-[#4a5565]">
+                      <button type="button" aria-label="Supprimer" className="p-1 text-ink-body">
                         <Trash2 className="size-4" />
                       </button>
                     </div>
@@ -145,7 +146,7 @@ export function InventaireApp() {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollHint>
       </section>
     </div>
   );

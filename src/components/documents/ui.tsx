@@ -15,10 +15,10 @@ export function Chip({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-[30px] items-center rounded border px-3 text-xs font-medium",
+        "inline-flex h-11 min-h-11 items-center rounded border px-3 text-sm font-medium md:h-[30px] md:min-h-[30px] md:text-xs",
         actif
-          ? "border-[#1e2939] bg-[#1e2939] text-white"
-          : "border-[#d1d5dc] bg-white text-[#4a5565]",
+          ? "border-ink bg-ink text-white"
+          : "border-line-strong bg-white text-ink-body",
       )}
     >
       {children}
@@ -45,7 +45,7 @@ export function BtnOutline({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "inline-flex h-[34px] items-center gap-1.5 rounded-[10px] border border-[#e5e7eb] bg-white px-3 text-xs font-medium text-[#4a5565] disabled:opacity-40",
+        "inline-flex h-11 min-h-11 items-center gap-1.5 rounded-card border border-line bg-white px-3 text-sm font-medium text-ink-body disabled:opacity-40 md:h-[34px] md:min-h-[34px] md:text-xs",
         className,
       )}
     >
@@ -70,7 +70,7 @@ export function BtnNavy({
       type={type}
       onClick={onClick}
       className={cn(
-        "inline-flex h-[34px] items-center gap-1.5 rounded-[10px] bg-[#1e2939] px-3 text-xs font-medium text-white",
+        "inline-flex h-11 min-h-11 items-center gap-1.5 rounded-card bg-ink px-3 text-sm font-medium text-white md:h-[34px] md:min-h-[34px] md:text-xs",
         className,
       )}
     >
@@ -91,13 +91,13 @@ export function Champ({
   placeholder?: string;
 }) {
   return (
-    <label className="block text-xs text-[#6a7282]">
+    <label className="block text-xs text-ink-subtle">
       {label}
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="mt-1.5 h-[34px] w-full rounded-[10px] border border-[#e5e7eb] bg-white px-3 text-sm text-[#1e2939] outline-none placeholder:text-[#99a1af]"
+        className="mt-1.5 h-11 w-full rounded-card border border-line bg-white px-3 text-base text-ink outline-none placeholder:text-ink-muted md:h-[34px] md:text-sm"
       />
     </label>
   );
@@ -105,7 +105,7 @@ export function Champ({
 
 export function BadgeType({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex h-[23px] items-center rounded border border-[#e5e7eb] bg-[#f9fafb] px-2 text-xs text-[#4a5565]">
+    <span className="inline-flex h-[23px] items-center rounded border border-line bg-surface px-2 text-xs text-ink-body">
       {children}
     </span>
   );

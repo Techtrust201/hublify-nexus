@@ -18,6 +18,7 @@ import { Route as MissionsIndexRouteImport } from './routes/missions.index'
 import { Route as MissionsMissionIdRouteImport } from './routes/missions.$missionId'
 import { Route as OccupantsIndexRouteImport } from './routes/occupants.index'
 import { Route as OutilsIndexRouteImport } from './routes/outils.index'
+import { Route as OutilsDebuterRouteImport } from './routes/outils.debuter'
 import { Route as OutilsModelesRouteImport } from './routes/outils.modeles'
 import { Route as OutilsVueAnnuelleRouteImport } from './routes/outils.vue-annuelle'
 import { Route as PatrimoinesIndexRouteImport } from './routes/patrimoines.index'
@@ -72,6 +73,11 @@ const OccupantsIndexRoute = OccupantsIndexRouteImport.update({
 const OutilsIndexRoute = OutilsIndexRouteImport.update({
   id: '/outils/',
   path: '/outils/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OutilsDebuterRoute = OutilsDebuterRouteImport.update({
+  id: '/outils/debuter',
+  path: '/outils/debuter',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OutilsModelesRoute = OutilsModelesRouteImport.update({
@@ -130,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/profil': typeof ProfilRoute
   '/missions/$missionId': typeof MissionsMissionIdRoute
+  '/outils/debuter': typeof OutilsDebuterRoute
   '/outils/modeles': typeof OutilsModelesRoute
   '/outils/vue-annuelle': typeof OutilsVueAnnuelleRoute
   '/prestataires/$prestataireId': typeof PrestatairesPrestataireIdRoute
@@ -151,6 +158,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/profil': typeof ProfilRoute
   '/missions/$missionId': typeof MissionsMissionIdRoute
+  '/outils/debuter': typeof OutilsDebuterRoute
   '/outils/modeles': typeof OutilsModelesRoute
   '/outils/vue-annuelle': typeof OutilsVueAnnuelleRoute
   '/prestataires/$prestataireId': typeof PrestatairesPrestataireIdRoute
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/profil': typeof ProfilRoute
   '/missions/$missionId': typeof MissionsMissionIdRoute
+  '/outils/debuter': typeof OutilsDebuterRoute
   '/outils/modeles': typeof OutilsModelesRoute
   '/outils/vue-annuelle': typeof OutilsVueAnnuelleRoute
   '/prestataires/$prestataireId': typeof PrestatairesPrestataireIdRoute
@@ -196,6 +205,7 @@ export interface FileRouteTypes {
     | '/'
     | '/profil'
     | '/missions/$missionId'
+    | '/outils/debuter'
     | '/outils/modeles'
     | '/outils/vue-annuelle'
     | '/prestataires/$prestataireId'
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/'
     | '/profil'
     | '/missions/$missionId'
+    | '/outils/debuter'
     | '/outils/modeles'
     | '/outils/vue-annuelle'
     | '/prestataires/$prestataireId'
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/'
     | '/profil'
     | '/missions/$missionId'
+    | '/outils/debuter'
     | '/outils/modeles'
     | '/outils/vue-annuelle'
     | '/prestataires/$prestataireId'
@@ -260,6 +272,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ProfilRoute: typeof ProfilRoute
   MissionsMissionIdRoute: typeof MissionsMissionIdRoute
+  OutilsDebuterRoute: typeof OutilsDebuterRoute
   OutilsModelesRoute: typeof OutilsModelesRoute
   OutilsVueAnnuelleRoute: typeof OutilsVueAnnuelleRoute
   PrestatairesPrestataireIdRoute: typeof PrestatairesPrestataireIdRoute
@@ -343,6 +356,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OutilsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/outils/debuter': {
+      id: '/outils/debuter'
+      path: '/outils/debuter'
+      fullPath: '/outils/debuter'
+      preLoaderRoute: typeof OutilsDebuterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/outils/modeles': {
       id: '/outils/modeles'
       path: '/outils/modeles'
@@ -420,6 +440,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ProfilRoute: ProfilRoute,
   MissionsMissionIdRoute: MissionsMissionIdRoute,
+  OutilsDebuterRoute: OutilsDebuterRoute,
   OutilsModelesRoute: OutilsModelesRoute,
   OutilsVueAnnuelleRoute: OutilsVueAnnuelleRoute,
   PrestatairesPrestataireIdRoute: PrestatairesPrestataireIdRoute,

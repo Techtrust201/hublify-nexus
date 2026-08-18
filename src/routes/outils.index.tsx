@@ -32,7 +32,7 @@ const OUTILS = [
     titre: "Je débute",
     texte: "Parcours guidé : créer un bien, une réservation, puis une première mission.",
     icone: Info,
-    vers: "/patrimoines" as const,
+    vers: "/outils/debuter" as const,
   },
   {
     titre: "Je découvre",
@@ -45,14 +45,17 @@ const OUTILS = [
 function PageOutils() {
   return (
     <AppShell titre="Outils" sousTitre="Tous les outils">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {OUTILS.map((o) => (
-          <article key={o.titre} className="rounded-[10px] border border-[#e5e7eb] bg-white p-4">
-            <o.icone className="size-4 text-[#4a5565]" />
-            <h2 className="mt-3 text-sm font-medium text-[#1e2939]">{o.titre}</h2>
-            <p className="mt-1 text-xs text-[#6a7282]">{o.texte}</p>
+          <article key={o.titre} className="rounded-card border border-line bg-white p-4">
+            <o.icone className="size-4 text-ink-body" />
+            <h2 className="mt-3 text-sm font-medium text-ink">{o.titre}</h2>
+            <p className="mt-1 text-xs text-ink-subtle">{o.texte}</p>
             {o.vers && (
-              <Link to={o.vers} className="mt-3 inline-block text-xs font-medium text-[#4a5565]">
+              <Link
+                to={o.vers}
+                className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-ink-body"
+              >
                 Ouvrir
               </Link>
             )}

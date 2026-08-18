@@ -418,9 +418,9 @@ const LECTURE = DROITS_CATALOGUE.filter((d) => d.groupe === "Lecture").map((d) =
 export const MEMBRES_MO1: MembreEquipe[] = [
   {
     id: "me-fo",
-    nom: "Olive",
-    prenom: "Frobisher",
-    initiales: "FO",
+    nom: "Dunnell",
+    prenom: "Erik",
+    initiales: "ER",
     statut: "actif",
     role: "Administrateur",
     affectation: "Assignment Terra",
@@ -428,9 +428,9 @@ export const MEMBRES_MO1: MembreEquipe[] = [
   },
   {
     id: "me-kv",
-    nom: "Vilma",
-    prenom: "Kidderminster",
-    initiales: "KV",
+    nom: "Smith",
+    prenom: "Emily",
+    initiales: "EM",
     statut: "actif",
     role: "Administrateur",
     affectation: "Assignment Origine",
@@ -438,10 +438,10 @@ export const MEMBRES_MO1: MembreEquipe[] = [
   },
   {
     id: "me-mu",
-    nom: "Ufana",
-    prenom: "Meddison",
-    initiales: "MU",
-    statut: "externe",
+    nom: "Ajolk",
+    prenom: "Arthur",
+    initiales: "AR",
+    statut: "actif",
     role: "Gestionnaire",
     affectation: "Assignment Pradela",
     droits: ["voir-reservations", "messagerie"],
@@ -491,7 +491,7 @@ export const MEMBRES_MO1: MembreEquipe[] = [
 export const ACTIONS_EN_COURS: ActionEnCours[] = [
   { id: "ac-1", titre: "Invitation Clara Renard", quand: "Hier", detail: "En attente d'acceptation" },
   { id: "ac-2", titre: "Invitation Lucas Dune", quand: "Hier", detail: "En attente d'acceptation" },
-  { id: "ac-3", titre: "Droit messagerie", quand: "Aujourd'hui", detail: "À valider pour Frobisher" },
+  { id: "ac-3", titre: "Droit messagerie", quand: "Aujourd'hui", detail: "À valider pour Erik Dunnell" },
 ];
 
 export const DROIT_PERSONNALISE_INITIAL: DroitPersonnalise = {

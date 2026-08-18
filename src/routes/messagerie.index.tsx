@@ -14,12 +14,12 @@ import {
   MenuPartage,
 } from "@/components/messagerie/MenusOutils";
 import {
-  CONVERSATIONS_MO1,
-  MESSAGES_MO1,
   type Conversation,
   type MessageFil,
   type SectionConversation,
 } from "@/data/messagerie-mo1";
+import { ajouterNotif, modifierSession, useSession } from "@/data/session";
+import { toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/messagerie/")({
@@ -45,8 +45,19 @@ function initialesDe(nom: string) {
 }
 
 function PageMessagerie() {
-  const [conversations, setConversations] = useState<Conversation[]>(CONVERSATIONS_MO1);
-  const [messages, setMessages] = useState<MessageFil[]>(MESSAGES_MO1);
+  const session = useSession();
+  const conversations = session.conversations;
+  const messages = session.messagesFil;
+  const setConversations = (
+    next: Conversation[] | ((prev: Conversation[]) => Conversation[]),
+  ) => {
+    const resolu = typeof next === "function" ? next(conversations) : next;
+    modifierSession((e) => ({ ...e, conversations: resolu }));
+  };
+  const setMessages = (next: MessageFil[] | ((prev: MessageFil[]) => MessageFil[])) => {
+    const resolu = typeof next === "function" ? next(messages) : next;
+    modifierSession((e) => ({ ...e, messagesFil: resolu }));
+  };
   const [selection, setSelection] = useState("c-brian");
   const [recherche, setRecherche] = useState("");
   const [archives, setArchives] = useState(false);
@@ -59,6 +70,8 @@ function PageMessagerie() {
     prestataires: true,
     team: true,
   });
+
+  const [filMobileOuvert, setFilMobileOuvert] = useState(false);
 
   const filtrees = useMemo(() => {
     const q = recherche.trim().toLowerCase();
@@ -81,6 +94,7 @@ function PageMessagerie() {
   const selectionner = (id: string) => {
     setSelection(id);
     setPanneau(null);
+    setFilMobileOuvert(true);
     setConversations((liste) => liste.map((c) => (c.id === id ? { ...c, nonLu: false } : c)));
   };
 
@@ -102,17 +116,18 @@ function PageMessagerie() {
       liste.map((c) => (c.id === actif.id ? { ...c, extrait: texte, ilYa: "À l'instant" } : c)),
     );
     setBrouillon("");
+    toastOk("Message envoyé.");
   };
 
   return (
     <AppShell titre="Messagerie" sousTitre="Occupants, prestataires et équipe">
-      <div className="flex min-h-[calc(100vh-10rem)] flex-col overflow-hidden rounded-[10px] border border-[#e5e7eb] bg-white">
-        <div className="flex items-center justify-between border-b border-[#e5e7eb] bg-[rgba(249,250,251,0.5)] px-4 py-3">
-          <p className="flex items-center gap-2 text-sm text-[#1e2939]">
+      <div className="flex min-h-[calc(100dvh-10rem)] flex-col overflow-hidden rounded-card border border-line bg-white">
+        <div className="flex items-center justify-between border-b border-line bg-[color-mix(in srgb, var(--surface) 50%, transparent)] px-4 py-3">
+          <p className="flex items-center gap-2 text-sm text-ink">
             <MessageSquare className="size-[15px]" />
             Messagerie
             {nonLus > 0 && (
-              <span className="inline-flex h-[19px] min-w-[17px] items-center justify-center rounded-full bg-[#1e2939] px-1.5 text-[10px] text-white">
+              <span className="inline-flex h-[19px] min-w-[17px] items-center justify-center rounded-full bg-ink px-1.5 text-[10px] text-white">
                 {nonLus}
               </span>
             )}
@@ -127,10 +142,10 @@ function PageMessagerie() {
               if (premiere) setSelection(premiere.id);
             }}
             className={cn(
-              "inline-flex h-[30px] items-center gap-1.5 rounded-[10px] border px-3 text-xs font-medium",
+              "inline-flex h-11 items-center gap-1.5 rounded-card border px-3 text-sm font-medium md:h-[30px] md:text-xs",
               archives
-                ? "border-[#1e2939] text-[#1e2939]"
-                : "border-[#e5e7eb] text-[#6a7282]",
+                ? "border-ink text-ink"
+                : "border-line text-ink-subtle",
             )}
           >
             <Archive className="size-3" />
@@ -140,6 +155,7 @@ function PageMessagerie() {
 
         <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
           <ListeConversations
+            className={cn(filMobileOuvert && "hidden lg:flex")}
             conversations={filtrees}
             selectionId={actif?.id}
             recherche={recherche}
@@ -154,6 +170,8 @@ function PageMessagerie() {
 
           {actif ? (
             <FilConversation
+              className={cn(!filMobileOuvert && "hidden lg:flex")}
+              onRetour={() => setFilMobileOuvert(false)}
               conversation={actif}
               messages={fil}
               brouillon={brouillon}
@@ -206,7 +224,7 @@ function PageMessagerie() {
               }
             />
           ) : (
-            <p className="flex flex-1 items-center justify-center p-6 text-sm text-[#6a7282]">
+            <p className={cn("flex flex-1 items-center justify-center p-6 text-sm text-ink-subtle", !filMobileOuvert && "hidden lg:flex")}>
               Aucun message.
             </p>
           )}
@@ -242,7 +260,14 @@ function PageMessagerie() {
             },
           ]);
           setSelection(id);
+          setFilMobileOuvert(true);
           setArchives(false);
+          ajouterNotif({
+            titre: "Message envoyé",
+            detail: destinataire,
+            href: "/messagerie",
+          });
+          toastOk("Conversation créée.");
         }}
       />
     </AppShell>

@@ -6,6 +6,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       className="toaster group"
+      aria-live="polite"
       toastOptions={{
         classNames: {
           toast:

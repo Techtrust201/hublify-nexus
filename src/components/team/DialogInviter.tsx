@@ -62,12 +62,12 @@ export function DialogInviter({
         }
       }}
     >
-      <DialogContent className="max-h-[90vh] max-w-[600px] gap-0 overflow-y-auto rounded-[10px] border-[#e5e7eb] p-0 sm:rounded-[10px]">
-        <DialogHeader className="border-b border-[#f3f4f6] px-6 py-4">
-          <DialogTitle className="text-base font-normal text-[#1e2939]">
+      <DialogContent className="max-h-[90vh] max-w-[600px] gap-0 overflow-y-auto rounded-card border-line p-0 sm:rounded-card">
+        <DialogHeader className="border-b border-surface-soft px-6 py-4">
+          <DialogTitle className="text-base font-normal text-ink">
             Inviter un membre
           </DialogTitle>
-          <DialogDescription className="text-xs text-[#6a7282]">
+          <DialogDescription className="text-xs text-ink-subtle">
             Le membre recevra un email d'invitation
           </DialogDescription>
         </DialogHeader>
@@ -122,19 +122,19 @@ export function DialogInviter({
           </div>
 
           <div>
-            <p className="mb-3 text-xs text-[#1e2939]">Droits d'accès</p>
+            <p className="mb-3 text-xs text-ink">Droits d'accès</p>
             <ListeDroits selection={droits} onToggle={toggle} />
           </div>
         </div>
 
-        <div className="flex gap-3 border-t border-[#f3f4f6] px-6 py-4">
+        <div className="flex gap-3 border-t border-surface-soft px-6 py-4">
           <button
             type="button"
             onClick={() => {
               reset();
               onFermer();
             }}
-            className="h-[38px] flex-1 rounded-[10px] border border-[#e5e7eb] text-xs font-medium text-[#4a5565]"
+            className="h-[38px] flex-1 rounded-card border border-line text-xs font-medium text-ink-body"
           >
             Annuler
           </button>
@@ -153,7 +153,7 @@ export function DialogInviter({
               reset();
               onFermer();
             }}
-            className="h-[38px] flex-1 rounded-[10px] bg-[#1e2939] text-xs font-medium text-white disabled:opacity-40"
+            className="h-[38px] flex-1 rounded-card bg-ink text-xs font-medium text-white disabled:opacity-40"
           >
             Envoyer l'invitation
           </button>
@@ -174,7 +174,7 @@ export function ListeDroits({
     <div className="space-y-5">
       {GROUPES.map(({ nom, icone: Icone }) => (
         <div key={nom}>
-          <p className="mb-2 flex items-center gap-1.5 text-[10px] text-[#99a1af]">
+          <p className="mb-2 flex items-center gap-1.5 text-[10px] text-ink-muted">
             <Icone className="size-2.5" />
             {nom}
           </p>
@@ -185,11 +185,11 @@ export function ListeDroits({
                   <Checkbox
                     checked={selection.includes(d.id)}
                     onCheckedChange={() => onToggle(d.id)}
-                    className="mt-0.5 border-[#d1d5dc] data-[state=checked]:border-[#1e2939] data-[state=checked]:bg-[#1e2939]"
+                    className="mt-0.5 border-line-strong data-[state=checked]:border-ink data-[state=checked]:bg-ink"
                   />
                   <span>
-                    <span className="block text-xs text-[#1e2939]">{d.titre}</span>
-                    <span className="block text-[10px] text-[#99a1af]">{d.description}</span>
+                    <span className="block text-xs text-ink">{d.titre}</span>
+                    <span className="block text-[10px] text-ink-muted">{d.description}</span>
                   </span>
                 </label>
               </li>
@@ -204,11 +204,11 @@ export function ListeDroits({
 function Champ({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs text-[#4a5565]">{label}</span>
+      <span className="mb-1.5 block text-xs text-ink-body">{label}</span>
       {children}
     </label>
   );
 }
 
 const champClasse =
-  "h-[34px] w-full rounded-[10px] border border-[#e5e7eb] bg-white px-3 text-xs text-[#1e2939] outline-none placeholder:text-[#99a1af]";
+  "h-[34px] w-full rounded-card border border-line bg-white px-3 text-xs text-ink outline-none placeholder:text-ink-muted";

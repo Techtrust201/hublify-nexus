@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { telechargerDemo, toastInfo } from "@/lib/feedback";
 import { BtnNavy, BtnOutline, Champ } from "./ui";
 
 export function GenerateQuittanceDialog({
@@ -22,18 +23,18 @@ export function GenerateQuittanceDialog({
   const [locAdr, setLocAdr] = useState("01 rue du Bien, 75001 PARIS");
   const [loyer, setLoyer] = useState("500");
   const [charges, setCharges] = useState("50");
-  const [mois, setMois] = useState("Août 2025");
+  const [mois, setMois] = useState("Août 2026");
   const [faitA, setFaitA] = useState("PARIS");
   const total = (Number(loyer) || 0) + (Number(charges) || 0);
 
   return (
     <Dialog open={ouvert} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-[540px] overflow-y-auto rounded-[10px] border-[#e5e7eb] p-0">
-        <DialogHeader className="border-b border-[#f3f4f6] px-6 py-4">
-          <DialogTitle className="text-base font-medium text-[#1e2939]">
+      <DialogContent className="max-h-[90vh] max-w-[540px] overflow-y-auto rounded-card border-line p-0">
+        <DialogHeader className="border-b border-surface-soft px-6 py-4">
+          <DialogTitle className="text-base font-medium text-ink">
             Générer une quittance
           </DialogTitle>
-          <DialogDescription className="text-xs text-[#99a1af]">
+          <DialogDescription className="text-xs text-ink-muted">
             Remplissez puis téléchargez
           </DialogDescription>
         </DialogHeader>
@@ -47,39 +48,48 @@ export function GenerateQuittanceDialog({
           <Champ label="Mois concerné" value={mois} onChange={setMois} />
           <Champ label="Fait à" value={faitA} onChange={setFaitA} />
         </div>
-        <div className="mx-6 mb-4 rounded-[10px] border border-[#f3f4f6] bg-[#f9fafb] p-4">
-          <p className="text-xs text-[#99a1af]">Aperçu</p>
+        <div className="mx-6 mb-4 rounded-card border border-surface-soft bg-surface p-4">
+          <p className="text-xs text-ink-muted">Aperçu</p>
           <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
             <div>
-              <p className="text-[#99a1af]">Bailleur</p>
-              <p className="text-[#1e2939]">{bailleur}</p>
-              <p className="text-[#6a7282]">{bailleurAdr}</p>
+              <p className="text-ink-muted">Bailleur</p>
+              <p className="text-ink">{bailleur}</p>
+              <p className="text-ink-subtle">{bailleurAdr}</p>
             </div>
             <div>
-              <p className="text-[#99a1af]">Locataire</p>
-              <p className="text-[#1e2939]">{locataire}</p>
-              <p className="text-[#6a7282]">{locAdr}</p>
+              <p className="text-ink-muted">Locataire</p>
+              <p className="text-ink">{locataire}</p>
+              <p className="text-ink-subtle">{locAdr}</p>
             </div>
           </div>
-          <p className="mt-3 text-xs font-medium text-[#1e2939]">Quittance de loyer — {mois}</p>
-          <div className="mt-2 flex justify-between text-xs text-[#4a5565]">
+          <p className="mt-3 text-xs font-medium text-ink">Quittance de loyer — {mois}</p>
+          <div className="mt-2 flex justify-between text-xs text-ink-body">
             <div>
               <p>Loyer nu : {Number(loyer).toFixed(2).replace(".", ",")} €</p>
               <p>Charges : {Number(charges).toFixed(2).replace(".", ",")} €</p>
             </div>
-            <p className="font-medium text-[#1e2939]">
+            <p className="font-medium text-ink">
               Total : {total.toFixed(2).replace(".", ",")} €
             </p>
           </div>
         </div>
-        <div className="flex gap-2 border-t border-[#f3f4f6] px-6 py-4">
+        <div className="flex gap-2 border-t border-surface-soft px-6 py-4">
           <BtnOutline className="flex-1 justify-center" onClick={onClose}>
             Annuler
           </BtnOutline>
-          <BtnOutline className="flex-1 justify-center">
+          <BtnOutline
+            className="flex-1 justify-center"
+            onClick={() => toastInfo("Aperçu PDF (démo) — utilisez Télécharger.")}
+          >
             <Eye className="size-3" /> Aperçu PDF
           </BtnOutline>
-          <BtnNavy className="flex-1 justify-center">
+          <BtnNavy
+            className="flex-1 justify-center"
+            onClick={() => {
+              telechargerDemo("quittance-loyer.txt");
+              onClose();
+            }}
+          >
             <Download className="size-3" /> Télécharger
           </BtnNavy>
         </div>
@@ -101,15 +111,15 @@ export function GenerateAvisDialog({
   const [locAdr, setLocAdr] = useState("01 rue du Bien, 75001 PARIS");
   const [loyer, setLoyer] = useState("500");
   const [charges, setCharges] = useState("50");
-  const [mois, setMois] = useState("Septembre 2025");
-  const [echeance, setEcheance] = useState("05 Sept 2025");
+  const [mois, setMois] = useState("Septembre 2026");
+  const [echeance, setEcheance] = useState("05 Sept 2026");
 
   return (
     <Dialog open={ouvert} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-[540px] overflow-y-auto rounded-[10px] border-[#e5e7eb] p-0">
-        <DialogHeader className="border-b border-[#f3f4f6] px-6 py-4">
-          <DialogTitle className="text-base font-medium text-[#1e2939]">Avis d'échéance</DialogTitle>
-          <DialogDescription className="text-xs text-[#99a1af]">
+      <DialogContent className="max-h-[90vh] max-w-[540px] overflow-y-auto rounded-card border-line p-0">
+        <DialogHeader className="border-b border-surface-soft px-6 py-4">
+          <DialogTitle className="text-base font-medium text-ink">Avis d'échéance</DialogTitle>
+          <DialogDescription className="text-xs text-ink-muted">
             Remplissez puis téléchargez
           </DialogDescription>
         </DialogHeader>
@@ -123,18 +133,24 @@ export function GenerateAvisDialog({
           <Champ label="Mois concerné" value={mois} onChange={setMois} />
           <Champ label="Date d'échéance" value={echeance} onChange={setEcheance} />
         </div>
-        <div className="mx-6 mb-4 rounded-[10px] border border-[#f3f4f6] bg-[#f9fafb] p-4 text-xs">
-          <p className="text-[#99a1af]">Aperçu</p>
-          <p className="mt-2 font-medium text-[#1e2939]">Avis d'échéance — {mois}</p>
-          <p className="mt-1 text-[#4a5565]">
+        <div className="mx-6 mb-4 rounded-card border border-surface-soft bg-surface p-4 text-xs">
+          <p className="text-ink-muted">Aperçu</p>
+          <p className="mt-2 font-medium text-ink">Avis d'échéance — {mois}</p>
+          <p className="mt-1 text-ink-body">
             {locataire} — échéance le {echeance}
           </p>
         </div>
-        <div className="flex gap-2 border-t border-[#f3f4f6] px-6 py-4">
+        <div className="flex gap-2 border-t border-surface-soft px-6 py-4">
           <BtnOutline className="flex-1 justify-center" onClick={onClose}>
             Annuler
           </BtnOutline>
-          <BtnNavy className="flex-1 justify-center">
+          <BtnNavy
+            className="flex-1 justify-center"
+            onClick={() => {
+              telechargerDemo("avis-echeance.txt");
+              onClose();
+            }}
+          >
             <Download className="size-3" /> Télécharger
           </BtnNavy>
         </div>
@@ -152,31 +168,31 @@ export function FicheInterventionDialog({
 }) {
   return (
     <Dialog open={ouvert} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg rounded-[10px] border-[#e5e7eb]">
+      <DialogContent className="max-w-lg rounded-card border-line">
         <DialogHeader>
-          <DialogTitle className="text-base font-medium text-[#1e2939]">
+          <DialogTitle className="text-base font-medium text-ink">
             Fiche intervention — Plomberie
           </DialogTitle>
-          <DialogDescription className="text-xs text-[#99a1af]">
+          <DialogDescription className="text-xs text-ink-muted">
             Appartement Colette · 27 Jun 2024 · Erik Gunsel
           </DialogDescription>
         </DialogHeader>
         <dl className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <dt className="text-[#99a1af]">Type</dt>
-            <dd className="text-[#1e2939]">Fiche intervention</dd>
+            <dt className="text-ink-muted">Type</dt>
+            <dd className="text-ink">Fiche intervention</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-[#99a1af]">Logement</dt>
-            <dd className="text-[#1e2939]">Appartement Colette</dd>
+            <dt className="text-ink-muted">Logement</dt>
+            <dd className="text-ink">Appartement Colette</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-[#99a1af]">Photos</dt>
-            <dd className="text-[#1e2939]">3</dd>
+            <dt className="text-ink-muted">Photos</dt>
+            <dd className="text-ink">3</dd>
           </div>
           <div>
-            <dt className="text-[#99a1af]">Constat</dt>
-            <dd className="mt-1 text-[#4a5565]">
+            <dt className="text-ink-muted">Constat</dt>
+            <dd className="mt-1 text-ink-body">
               Fuite sous évier cuisine. Joint remplacé, essai d'étanchéité OK.
             </dd>
           </div>
@@ -198,18 +214,18 @@ export function PhotosPreuvesDialog({
 }) {
   return (
     <Dialog open={ouvert} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-xl rounded-[10px] border-[#e5e7eb]">
+      <DialogContent className="max-w-xl rounded-card border-line">
         <DialogHeader>
-          <DialogTitle className="text-base font-medium text-[#1e2939]">
+          <DialogTitle className="text-base font-medium text-ink">
             Photos de preuve
           </DialogTitle>
-          <DialogDescription className="text-xs text-[#99a1af]">{titre}</DialogDescription>
+          <DialogDescription className="text-xs text-ink-muted">{titre}</DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-3 gap-2">
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="flex aspect-square items-center justify-center rounded-[10px] border border-[#e5e7eb] bg-[#f3f4f6] text-xs text-[#99a1af]"
+              className="flex aspect-square items-center justify-center rounded-card border border-line bg-surface-soft text-xs text-ink-muted"
             >
               Photo {i + 1}
             </div>
@@ -235,10 +251,10 @@ export function FiltreLogementDialog({
 }) {
   return (
     <Dialog open={ouvert} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-sm rounded-[10px] border-[#e5e7eb]">
+      <DialogContent className="max-w-sm rounded-card border-line">
         <DialogHeader>
-          <DialogTitle className="text-base font-medium text-[#1e2939]">Filtres</DialogTitle>
-          <DialogDescription className="text-xs text-[#99a1af]">
+          <DialogTitle className="text-base font-medium text-ink">Filtres</DialogTitle>
+          <DialogDescription className="text-xs text-ink-muted">
             Filtrer par logement
           </DialogDescription>
         </DialogHeader>
@@ -251,8 +267,8 @@ export function FiltreLogementDialog({
                 onChange(l);
                 onClose();
               }}
-              className={`rounded-[10px] px-3 py-2 text-left text-sm ${
-                valeur === l ? "bg-[#f3f4f6] text-[#1e2939]" : "text-[#4a5565]"
+              className={`rounded-card px-3 py-2 text-left text-sm ${
+                valeur === l ? "bg-surface-soft text-ink" : "text-ink-body"
               }`}
             >
               {l}

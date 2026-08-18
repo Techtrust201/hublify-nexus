@@ -15,6 +15,7 @@ import {
 import { useState } from "react";
 import { BtnNavy, BtnOutline, Champ } from "@/components/documents/ui";
 import { AppShell } from "@/components/layout/AppShell";
+import { telechargerDemo, toastOk } from "@/lib/feedback";
 import {
   DOCS_PROFIL,
   PAIEMENTS_PROFIL,
@@ -48,10 +49,10 @@ function PageProfil() {
           type="button"
           onClick={() => setOnglet("info")}
           className={cn(
-            "h-9 rounded-[10px] px-4 text-sm",
+            "h-11 rounded-card px-4 text-sm",
             onglet === "info"
-              ? "bg-[#1e2939] text-white"
-              : "bg-[#f3f4f6] text-[#1e2939]",
+              ? "bg-ink text-white"
+              : "bg-surface-soft text-ink",
           )}
         >
           Informations Profil Gestionnaire
@@ -60,10 +61,10 @@ function PageProfil() {
           type="button"
           onClick={() => setOnglet("edition")}
           className={cn(
-            "h-9 rounded-[10px] px-4 text-sm",
+            "h-11 rounded-card px-4 text-sm",
             onglet === "edition"
-              ? "bg-[#1e2939] text-white"
-              : "bg-[#f3f4f6] text-[#1e2939]",
+              ? "bg-ink text-white"
+              : "bg-surface-soft text-ink",
           )}
         >
           Mon Profil Gestionnaire (Édition)
@@ -72,18 +73,18 @@ function PageProfil() {
 
       {onglet === "info" ? (
         <div className="space-y-4">
-          <h2 className="text-2xl text-[#1e2939]">Informations profils</h2>
+          <h2 className="text-2xl text-ink">Informations profils</h2>
 
-          <section className="rounded-[10px] border border-[#e5e7eb] bg-white p-6">
+          <section className="rounded-card border border-line bg-white p-6">
             <div className="flex flex-col gap-6 sm:flex-row">
-              <span className="flex size-32 shrink-0 items-center justify-center rounded-full bg-[#e5e7eb] text-[#6a7282]">
+              <span className="flex size-32 shrink-0 items-center justify-center rounded-full bg-line text-ink-subtle">
                 <User className="size-16" />
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-lg text-[#1e2939]">{nomComplet}</h3>
-                    <p className="mt-1 flex items-center gap-2 text-sm text-[#99a1af]">
+                    <h3 className="text-lg text-ink">{nomComplet}</h3>
+                    <p className="mt-1 flex items-center gap-2 text-sm text-ink-muted">
                       <span className="inline-flex">
                         {Array.from({ length: 5 }).map((_, i) => (
                           <Star
@@ -91,8 +92,8 @@ function PageProfil() {
                             className={cn(
                               "size-4",
                               i < PROFIL_GESTIONNAIRE.note
-                                ? "fill-[#facc15] text-[#facc15]"
-                                : "text-[#d1d5dc]",
+                                ? "fill-star text-star"
+                                : "text-line-strong",
                             )}
                           />
                         ))}
@@ -103,7 +104,7 @@ function PageProfil() {
                   <button
                     type="button"
                     onClick={() => setOnglet("edition")}
-                    className="flex size-9 items-center justify-center rounded-[10px] text-[#4a5565]"
+                    className="flex size-9 items-center justify-center rounded-card text-ink-body"
                     aria-label="Éditer"
                   >
                     <Pencil className="size-5" />
@@ -111,37 +112,37 @@ function PageProfil() {
                 </div>
                 <dl className="mt-6 grid gap-4 sm:grid-cols-2">
                   <div>
-                    <dt className="text-sm text-[#99a1af]">Nom, Prénom</dt>
-                    <dd className="mt-1 text-sm text-[#1e2939]">{nomComplet}</dd>
+                    <dt className="text-sm text-ink-muted">Nom, Prénom</dt>
+                    <dd className="mt-1 text-sm text-ink">{nomComplet}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-[#99a1af]">Date de naissance</dt>
-                    <dd className="mt-1 text-sm text-[#1e2939]">{naissance}</dd>
+                    <dt className="text-sm text-ink-muted">Date de naissance</dt>
+                    <dd className="mt-1 text-sm text-ink">{naissance}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-[#99a1af]">Email</dt>
-                    <dd className="mt-1 text-sm text-[#1e2939]">{email}</dd>
+                    <dt className="text-sm text-ink-muted">Email</dt>
+                    <dd className="mt-1 text-sm text-ink">{email}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-[#99a1af]">Téléphone 1</dt>
-                    <dd className="mt-1 text-sm text-[#1e2939]">{tel1}</dd>
+                    <dt className="text-sm text-ink-muted">Téléphone 1</dt>
+                    <dd className="mt-1 text-sm text-ink">{tel1}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-[#99a1af]">Téléphone 2</dt>
-                    <dd className="mt-1 text-sm text-[#1e2939]">{tel2}</dd>
+                    <dt className="text-sm text-ink-muted">Téléphone 2</dt>
+                    <dd className="mt-1 text-sm text-ink">{tel2}</dd>
                   </div>
                 </dl>
               </div>
             </div>
           </section>
 
-          <section className="rounded-[10px] border border-[#e5e7eb] bg-white p-6">
-            <h3 className="text-lg text-[#1e2939]">À propos de {prenom}</h3>
+          <section className="rounded-card border border-line bg-white p-6">
+            <h3 className="text-lg text-ink">À propos de {prenom}</h3>
             <div className="mt-4 flex flex-wrap gap-2">
               {PROFIL_GESTIONNAIRE.tags.map((t) => (
                 <span
                   key={t}
-                  className="rounded-full bg-[#f3f4f6] px-4 py-2 text-sm text-[#4a5565]"
+                  className="rounded-full bg-surface-soft px-4 py-2 text-sm text-ink-body"
                 >
                   {t}
                 </span>
@@ -151,21 +152,21 @@ function PageProfil() {
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_389px]">
             <div className="space-y-4">
-              <section className="rounded-[10px] border border-[#e5e7eb] bg-white p-6">
+              <section className="rounded-card border border-line bg-white p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h3 className="text-lg text-[#1e2939]">Documents obligatoires</h3>
+                  <h3 className="text-lg text-ink">Documents obligatoires</h3>
                   <BtnNavy>
                     <Send className="size-4" /> Envoyer un document
                   </BtnNavy>
                 </div>
-                <ul className="mt-4 divide-y divide-[#f3f4f6] text-sm">
+                <ul className="mt-4 divide-y divide-surface-soft text-sm">
                   {DOCS_PROFIL.map((d) => (
                     <li key={d.id} className="flex items-center justify-between gap-3 py-3">
-                      <span className="flex items-center gap-2 text-[#1e2939]">
+                      <span className="flex items-center gap-2 text-ink">
                         {d.statut === "Vérifié" ? (
-                          <CheckCircle2 className="size-5 text-[#00a63e]" />
+                          <CheckCircle2 className="size-5 text-chip-success-fg" />
                         ) : (
-                          <Clock className="size-5 text-[#f54900]" />
+                          <Clock className="size-5 text-chip-warning-fg" />
                         )}
                         {d.titre}
                       </span>
@@ -174,13 +175,13 @@ function PageProfil() {
                           className={cn(
                             "rounded-full px-3 py-1 text-xs",
                             d.statut === "Vérifié"
-                              ? "bg-[#dcfce7] text-[#008236]"
-                              : "bg-[#ffedd4] text-[#ca3500]",
+                              ? "bg-chip-success text-chip-success-fg"
+                              : "bg-chip-warning text-chip-warning-fg",
                           )}
                         >
                           {d.statut}
                         </span>
-                        <button type="button" aria-label="Voir" className="text-[#4a5565]">
+                        <button type="button" aria-label="Voir" className="text-ink-body">
                           <Eye className="size-4" />
                         </button>
                       </span>
@@ -189,17 +190,17 @@ function PageProfil() {
                 </ul>
               </section>
 
-              <section className="rounded-[10px] border border-[#e5e7eb] bg-white p-6">
+              <section className="rounded-card border border-line bg-white p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h3 className="text-lg text-[#1e2939]">Historique des paiements</h3>
+                  <h3 className="text-lg text-ink">Historique des paiements</h3>
                   <div className="flex gap-2">
-                    <span className="h-9 w-32 rounded-[10px] border border-[#e5e7eb] bg-white" />
-                    <span className="h-9 w-20 rounded-[10px] border border-[#e5e7eb] bg-white" />
+                    <span className="h-9 w-32 rounded-card border border-line bg-white" />
+                    <span className="h-9 w-20 rounded-card border border-line bg-white" />
                   </div>
                 </div>
                 <div className="mt-4 overflow-x-auto">
                   <table className="w-full min-w-[640px] text-left text-sm">
-                    <thead className="text-xs text-[#6a7282]">
+                    <thead className="text-xs text-ink-subtle">
                       <tr>
                         <th className="px-4 py-3 font-medium">Date</th>
                         <th className="px-4 py-3 font-medium">Montant</th>
@@ -210,18 +211,18 @@ function PageProfil() {
                     </thead>
                     <tbody>
                       {PAIEMENTS_PROFIL.map((p) => (
-                        <tr key={p.booking} className="border-t border-[#f3f4f6]">
-                          <td className="px-4 py-3 text-[#1e2939]">{p.date}</td>
-                          <td className="px-4 py-3 font-medium text-[#1e2939]">{p.montant}</td>
-                          <td className="px-4 py-3 text-[#4a5565]">{p.methode}</td>
-                          <td className="px-4 py-3 text-[#4a5565]">{p.booking}</td>
+                        <tr key={p.booking} className="border-t border-surface-soft">
+                          <td className="px-4 py-3 text-ink">{p.date}</td>
+                          <td className="px-4 py-3 font-medium text-ink">{p.montant}</td>
+                          <td className="px-4 py-3 text-ink-body">{p.methode}</td>
+                          <td className="px-4 py-3 text-ink-body">{p.booking}</td>
                           <td className="px-4 py-3">
                             <span
                               className={cn(
                                 "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs",
                                 p.statut === "Payé"
-                                  ? "bg-[#dcfce7] text-[#008236]"
-                                  : "bg-[#ffedd4] text-[#ca3500]",
+                                  ? "bg-chip-success text-chip-success-fg"
+                                  : "bg-chip-warning text-chip-warning-fg",
                               )}
                             >
                               {p.statut === "Payé" ? (
@@ -241,54 +242,63 @@ function PageProfil() {
             </div>
 
             <div className="space-y-4">
-              <section className="rounded-[10px] border border-[#e5e7eb] bg-white p-6">
-                <h3 className="text-lg text-[#1e2939]">Résumé financier</h3>
+              <section className="rounded-card border border-line bg-white p-6">
+                <h3 className="text-lg text-ink">Résumé financier</h3>
                 <div className="mt-4 space-y-3">
-                  <div className="rounded-[10px] bg-[#dcfce7] p-4">
-                    <p className="text-sm text-[#008236]">Total payé</p>
-                    <p className="mt-1 text-2xl text-[#1e2939]">3,410 €</p>
+                  <div className="rounded-card bg-chip-success p-4">
+                    <p className="text-sm text-chip-success-fg">Total payé</p>
+                    <p className="mt-1 text-2xl text-ink">3,410 €</p>
                   </div>
-                  <div className="rounded-[10px] bg-[#ffedd4] p-4">
-                    <p className="text-sm text-[#ca3500]">En attente</p>
-                    <p className="mt-1 text-2xl text-[#1e2939]">1,280 €</p>
+                  <div className="rounded-card bg-chip-warning p-4">
+                    <p className="text-sm text-chip-warning-fg">En attente</p>
+                    <p className="mt-1 text-2xl text-ink">1,280 €</p>
                   </div>
-                  <div className="rounded-[10px] bg-[#ffe2e2] p-4">
-                    <p className="text-sm text-[#c10007]">Échoué</p>
-                    <p className="mt-1 text-2xl text-[#1e2939]">0 €</p>
+                  <div className="rounded-card bg-chip-danger p-4">
+                    <p className="text-sm text-chip-danger-fg">Échoué</p>
+                    <p className="mt-1 text-2xl text-ink">0 €</p>
                   </div>
                 </div>
               </section>
 
-              <section className="rounded-[10px] border border-[#e5e7eb] bg-white p-6">
-                <h3 className="text-lg text-[#1e2939]">Actions rapides</h3>
+              <section className="rounded-card border border-line bg-white p-6">
+                <h3 className="text-lg text-ink">Actions rapides</h3>
                 <div className="mt-4 flex flex-col gap-3">
-                  <BtnNavy className="h-10 w-full justify-center">
+                  <BtnNavy
+                    className="h-10 w-full justify-center"
+                    onClick={() => toastOk("Document envoyé (démo).")}
+                  >
                     <Send className="size-4" /> Envoyer un document
                   </BtnNavy>
-                  <BtnOutline className="h-10 w-full justify-center">
+                  <BtnOutline
+                    className="h-10 w-full justify-center"
+                    onClick={() => telechargerDemo("rapport-gestionnaire-hublify.txt")}
+                  >
                     <FileText className="size-4" /> Générer un rapport
                   </BtnOutline>
-                  <BtnOutline className="h-10 w-full justify-center">
+                  <BtnOutline
+                    className="h-10 w-full justify-center"
+                    onClick={() => telechargerDemo("documents-gestionnaire-hublify.txt")}
+                  >
                     <Download className="size-4" /> Télécharger les documents
                   </BtnOutline>
                 </div>
               </section>
 
-              <section className="rounded-[10px] border border-[#e5e7eb] bg-white p-6">
-                <h3 className="text-lg text-[#1e2939]">Contact</h3>
+              <section className="rounded-card border border-line bg-white p-6">
+                <h3 className="text-lg text-ink">Contact</h3>
                 <ul className="mt-4 space-y-4 text-sm">
                   <li className="flex items-start gap-3">
-                    <Mail className="mt-0.5 size-5 text-[#4a5565]" />
+                    <Mail className="mt-0.5 size-5 text-ink-body" />
                     <div>
-                      <p className="text-xs text-[#99a1af]">Email</p>
-                      <p className="text-[#1e2939]">{email}</p>
+                      <p className="text-xs text-ink-muted">Email</p>
+                      <p className="text-ink">{email}</p>
                     </div>
                   </li>
                   <li className="flex items-start gap-3">
-                    <Phone className="mt-0.5 size-5 text-[#4a5565]" />
+                    <Phone className="mt-0.5 size-5 text-ink-body" />
                     <div>
-                      <p className="text-xs text-[#99a1af]">Téléphone principal</p>
-                      <p className="text-[#1e2939]">{tel1}</p>
+                      <p className="text-xs text-ink-muted">Téléphone principal</p>
+                      <p className="text-ink">{tel1}</p>
                     </div>
                   </li>
                 </ul>
@@ -298,23 +308,24 @@ function PageProfil() {
         </div>
       ) : (
         <form
-          className="mx-auto max-w-xl space-y-4 rounded-[10px] border border-[#e5e7eb] bg-white p-6"
+          className="mx-auto max-w-xl space-y-4 rounded-card border border-line bg-white p-6"
           onSubmit={(e) => {
             e.preventDefault();
             setEnregistre(true);
             setOnglet("info");
+            toastOk("Profil enregistré.");
           }}
         >
           <div className="flex items-center gap-3">
-            <span className="flex size-14 items-center justify-center rounded-full bg-[#e5e7eb] text-[#6a7282]">
+            <span className="flex size-14 items-center justify-center rounded-full bg-line text-ink-subtle">
               <User className="size-7" />
             </span>
             <div>
-              <p className="text-xs uppercase tracking-[0.3px] text-[#99a1af]">
+              <p className="text-xs uppercase tracking-[0.3px] text-ink-muted">
                 {PROFIL_GESTIONNAIRE.role}
               </p>
-              <p className="text-base text-[#1e2939]">{nomComplet}</p>
-              <p className="text-xs text-[#99a1af]">{email}</p>
+              <p className="text-base text-ink">{nomComplet}</p>
+              <p className="text-xs text-ink-muted">{email}</p>
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -328,7 +339,7 @@ function PageProfil() {
           </div>
           <Champ label="Date de naissance" value={naissance} onChange={setNaissance} />
           <BtnNavy type="submit">Enregistrer</BtnNavy>
-          {enregistre && <p className="text-xs text-[#6a7282]">Profil enregistré.</p>}
+          {enregistre && <p className="text-xs text-ink-subtle">Profil enregistré.</p>}
         </form>
       )}
     </AppShell>

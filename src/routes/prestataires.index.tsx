@@ -52,7 +52,7 @@ function ListePrestataires() {
             key={c}
             onClick={() => setCategorie(c)}
             className={cn(
-              "rounded-full border px-3 py-1 text-xs font-medium",
+              "inline-flex h-11 min-h-11 items-center rounded-full border px-3 text-sm font-medium md:h-auto md:min-h-0 md:py-1 md:text-xs",
               categorie === c
                 ? "border-brand bg-brand-soft text-brand-strong"
                 : "border-border text-muted-foreground hover:bg-accent",

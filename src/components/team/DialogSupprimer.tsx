@@ -18,12 +18,12 @@ export function DialogSupprimer({
 }) {
   return (
     <Dialog open={Boolean(membre)} onOpenChange={(o) => !o && onFermer()}>
-      <DialogContent className="max-w-[400px] gap-0 rounded-[10px] border-[#e5e7eb] p-6 sm:rounded-[10px]">
+      <DialogContent className="max-w-[400px] gap-0 rounded-card border-line p-6 sm:rounded-card">
         <DialogHeader>
-          <DialogTitle className="text-sm font-normal text-[#1e2939]">
+          <DialogTitle className="text-sm font-normal text-ink">
             Supprimer ce membre ?
           </DialogTitle>
-          <DialogDescription className="text-xs leading-4 text-[#6a7282]">
+          <DialogDescription className="text-xs leading-4 text-ink-subtle">
             {membre
               ? `${nomComplet(membre)} sera retiré de l'équipe et perdra l'accès à Hublify.`
               : ""}
@@ -33,7 +33,7 @@ export function DialogSupprimer({
           <button
             type="button"
             onClick={onFermer}
-            className="h-[38px] flex-1 rounded-[10px] border border-[#e5e7eb] text-xs font-medium text-[#4a5565]"
+            className="h-[38px] flex-1 rounded-card border border-line text-xs font-medium text-ink-body"
           >
             Annuler
           </button>
@@ -43,7 +43,7 @@ export function DialogSupprimer({
               if (membre) onConfirmer(membre.id);
               onFermer();
             }}
-            className="h-[38px] flex-1 rounded-[10px] bg-[#1e2939] text-xs font-medium text-white"
+            className="h-[38px] flex-1 rounded-card bg-ink text-xs font-medium text-white"
           >
             Supprimer
           </button>

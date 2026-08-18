@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Home, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
+import { ScrollHint } from "@/components/layout/ScrollHint";
 import { InfosOccupants } from "@/components/reservations/InfosOccupants";
 import { FiltreOnglet } from "@/components/reservations/KpiEtAccordeons";
 import {
@@ -8,8 +9,6 @@ import {
   AUJOURD_HUI_MO1,
   BIENS_MO1,
   CODE_BARRE,
-  DATES_BLOQUEES_MO1,
-  RESERVATIONS_MO1,
   ajouterJours,
   isoJour,
   paiementDe,
@@ -19,6 +18,7 @@ import {
   type PlateformeMo1,
   type ReservationMo1,
 } from "@/data/reservations-mo1";
+import { modifierSession, useSession } from "@/data/session";
 import { cn } from "@/lib/utils";
 
 const JOURS_MOIS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
@@ -32,13 +32,20 @@ export function PlanningReservations({
   onVoirListe?: () => void;
 }) {
   const navigate = useNavigate();
+  const session = useSession();
   const [vue, setVue] = useState<VuePlanning>("3jours");
   const [ancre, setAncre] = useState(() => new Date(ANCRE_PLANNING_MO1));
   const [plateforme, setPlateforme] = useState<FiltrePlateforme>("tout");
   const [sectionOuverte, setSectionOuverte] = useState(false);
   const [bienLocalise, setBienLocalise] = useState<string | null>(null);
   const [selection, setSelection] = useState<ReservationMo1 | null>(null);
-  const [datesBloquees, setDatesBloquees] = useState(DATES_BLOQUEES_MO1);
+  const datesBloquees = session.datesBloquees;
+  const setDatesBloquees = (
+    next: typeof datesBloquees | ((prev: typeof datesBloquees) => typeof datesBloquees),
+  ) => {
+    const resolu = typeof next === "function" ? next(datesBloquees) : next;
+    modifierSession((e) => ({ ...e, datesBloquees: resolu }));
+  };
   const [voirBloquees, setVoirBloquees] = useState(true);
 
   const nbJours = vue === "3jours" ? 3 : vue === "5jours" ? 5 : 0;
@@ -54,9 +61,10 @@ export function PlanningReservations({
   }, [ancre]);
 
   const reservations = useMemo(() => {
-    if (plateforme === "tout") return RESERVATIONS_MO1;
-    return RESERVATIONS_MO1.filter((r) => r.plateforme === plateforme);
-  }, [plateforme]);
+    const source = session.reservationsDossier;
+    if (plateforme === "tout") return source;
+    return source.filter((r) => r.plateforme === plateforme);
+  }, [plateforme, session.reservationsDossier]);
 
   const biens = useMemo(() => {
     if (!bienLocalise) return BIENS_MO1;
@@ -87,8 +95,8 @@ export function PlanningReservations({
   };
 
   return (
-    <div className="overflow-hidden rounded-[10px] border border-[#e5e7eb] bg-white">
-      <div className="flex items-center border-b border-[#e5e7eb] px-4">
+    <div className="overflow-hidden rounded-card border border-line bg-white">
+      <div className="flex min-w-0 items-center overflow-x-auto border-b border-line px-4">
         {(
           [
             ["missions", "Missions"],
@@ -101,10 +109,10 @@ export function PlanningReservations({
             type="button"
             onClick={() => allerOnglet(id)}
             className={cn(
-              "h-[46px] border-b-2 px-4 text-sm font-medium capitalize",
+              "h-[46px] shrink-0 whitespace-nowrap border-b-2 px-4 text-sm font-medium capitalize",
               id === "reservations"
-                ? "border-[#1e2939] text-[#101828]"
-                : "border-transparent text-[#6a7282]",
+                ? "border-ink text-ink-deep"
+                : "border-transparent text-ink-subtle",
             )}
           >
             {label}
@@ -112,21 +120,21 @@ export function PlanningReservations({
         ))}
       </div>
 
-      <div className="border-b border-[#f3f4f6] px-4 py-2.5">
+      <div className="border-b border-surface-soft px-4 py-2.5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <button
             type="button"
-            className="flex items-center gap-2 text-xs text-[#4a5565]"
+            className="flex items-center gap-2 text-xs text-ink-body"
             onClick={() => setSectionOuverte((v) => !v)}
           >
             <Home className="size-3.5" />
             <span>Logements & plateformes</span>
-            <span className="text-[#99a1af]">(4 biens)</span>
+            <span className="text-ink-muted">(4 biens)</span>
           </button>
           <div className="flex items-center gap-2">
             <Link
               to="/patrimoines"
-              className="inline-flex h-[26px] items-center gap-1 rounded border border-[#d1d5dc] bg-white px-2.5 text-xs font-medium text-[#4a5565]"
+              className="inline-flex h-[26px] items-center gap-1 rounded border border-line-strong bg-white px-2.5 text-xs font-medium text-ink-body"
             >
               <Home className="size-2.5" />
               Voir tous mes biens
@@ -137,9 +145,9 @@ export function PlanningReservations({
               onClick={() => setSectionOuverte((v) => !v)}
             >
               {sectionOuverte ? (
-                <ChevronUp className="size-3.5 text-[#99a1af]" />
+                <ChevronUp className="size-3.5 text-ink-muted" />
               ) : (
-                <ChevronDown className="size-3.5 text-[#99a1af]" />
+                <ChevronDown className="size-3.5 text-ink-muted" />
               )}
             </button>
           </div>
@@ -147,12 +155,12 @@ export function PlanningReservations({
         {sectionOuverte && <TableauLogements onLocaliser={setBienLocalise} actif={bienLocalise} />}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 border-b border-[#f3f4f6] bg-[#f9fafb]/50 px-4 py-2">
+      <div className="flex flex-wrap items-center gap-3 border-b border-surface-soft bg-surface/50 px-4 py-2">
         <div className="flex items-center gap-1">
           <button
             type="button"
             aria-label="Précédent"
-            className="flex size-6 items-center justify-center rounded border border-[#e5e7eb] text-[#4a5565]"
+            className="flex size-11 items-center justify-center rounded border border-line text-ink-body"
             onClick={() =>
               setAncre((d) =>
                 vue === "mois" ? new Date(d.getFullYear(), d.getMonth() - 1, 1) : ajouterJours(d, -nbJours),
@@ -161,13 +169,13 @@ export function PlanningReservations({
           >
             <ChevronLeft className="size-3.5" />
           </button>
-          <span className="min-w-24 text-center text-xs capitalize text-[#4a5565]">
+          <span className="min-w-24 text-center text-xs capitalize text-ink-body">
             {ancre.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
           </span>
           <button
             type="button"
             aria-label="Suivant"
-            className="flex size-6 items-center justify-center rounded border border-[#e5e7eb] text-[#4a5565]"
+            className="flex size-11 items-center justify-center rounded border border-line text-ink-body"
             onClick={() =>
               setAncre((d) =>
                 vue === "mois" ? new Date(d.getFullYear(), d.getMonth() + 1, 1) : ajouterJours(d, nbJours),
@@ -178,7 +186,7 @@ export function PlanningReservations({
           </button>
         </div>
 
-        <div className="flex overflow-hidden rounded border border-[#e5e7eb]">
+        <div className="flex overflow-hidden rounded border border-line">
           {(
             [
               ["3jours", "3 jours"],
@@ -191,8 +199,8 @@ export function PlanningReservations({
               type="button"
               onClick={() => setVue(id)}
               className={cn(
-                "border-r border-[#e5e7eb] px-3 py-1 text-xs font-medium last:border-r-0",
-                vue === id ? "bg-[#1e2939] text-white" : "bg-white text-[#4a5565]",
+                "h-11 min-h-11 border-r border-line px-3 text-xs font-medium last:border-r-0",
+                vue === id ? "bg-ink text-white" : "bg-white text-ink-body",
               )}
             >
               {label}
@@ -200,10 +208,10 @@ export function PlanningReservations({
           ))}
         </div>
 
-        <span className="hidden h-4 w-px bg-[#e5e7eb] sm:block" />
+        <span className="hidden h-4 w-px bg-line sm:block" />
 
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs text-[#99a1af]">Plateforme :</span>
+          <span className="text-xs text-ink-muted">Plateforme :</span>
           {(
             [
               ["tout", "Tout"],
@@ -222,10 +230,10 @@ export function PlanningReservations({
         <button
           type="button"
           onClick={onVoirListe}
-          className="ml-auto text-xs text-[#99a1af]"
+          className="ml-auto text-xs text-ink-muted"
         >
           {visiblePlanning.length} rés. ·{" "}
-          <span className="text-[#4a5565]">{totalVisible.toLocaleString("fr-FR")} €</span>
+          <span className="text-ink-body">{totalVisible.toLocaleString("fr-FR")} €</span>
         </button>
       </div>
 
@@ -269,8 +277,9 @@ function TableauLogements({
   actif: string | null;
 }) {
   return (
-    <div className="mt-3 overflow-hidden rounded-[10px] border border-[#e5e7eb]">
-      <div className="grid grid-cols-[1fr_80px_80px_80px_80px] border-b border-[#f3f4f6] bg-[#f9fafb] px-4 py-1.5 text-[11px] text-[#99a1af]">
+    <div className="mt-3 overflow-hidden rounded-card border border-line">
+      <ScrollHint>
+      <div className="grid min-w-[520px] grid-cols-[1fr_80px_80px_80px_80px] border-b border-surface-soft bg-surface px-4 py-1.5 text-[11px] text-ink-muted">
         <span>Bien</span>
         <span className="text-center">Airbnb</span>
         <span className="text-center">Booking.com</span>
@@ -281,12 +290,12 @@ function TableauLogements({
         <div
           key={b.id}
           className={cn(
-            "grid grid-cols-[1fr_80px_80px_80px_80px] items-center border-b border-[#f3f4f6] px-4 py-2.5 last:border-b-0",
-            actif === b.id && "bg-[#f9fafb]",
+            "grid min-w-[520px] grid-cols-[1fr_80px_80px_80px_80px] items-center border-b border-surface-soft px-4 py-2.5 last:border-b-0",
+            actif === b.id && "bg-surface",
           )}
         >
-          <span className="flex items-center gap-2 text-xs text-[#4a5565]">
-            <span className="flex size-6 items-center justify-center rounded border border-[#e5e7eb] bg-[#f3f4f6]">
+          <span className="flex items-center gap-2 text-xs text-ink-body">
+            <span className="flex size-6 items-center justify-center rounded border border-line bg-surface-soft">
               <Home className="size-2.5" />
             </span>
             {b.nom}
@@ -297,34 +306,35 @@ function TableauLogements({
           <button
             type="button"
             onClick={() => onLocaliser(actif === b.id ? null : b.id)}
-            className="justify-self-center rounded border border-[#d1d5dc] px-2 py-0.5 text-[11px] text-[#4a5565]"
+            className="justify-self-center rounded border border-line-strong px-2 py-0.5 text-[11px] text-ink-body"
           >
             Localiser
           </button>
         </div>
       ))}
-      <div className="flex flex-wrap gap-4 px-4 py-2 text-[11px] text-[#99a1af]">
+      <div className="flex flex-wrap gap-4 px-4 py-2 text-[11px] text-ink-muted">
         <span className="flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-[#1e2939]" /> Actif sur la plateforme
+          <span className="size-2 rounded-full bg-ink" /> Actif sur la plateforme
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="size-2 rounded-full border border-[#99a1af]" /> Inactif
+          <span className="size-2 rounded-full border border-ink-muted" /> Inactif
         </span>
         <span className="flex items-center gap-1.5">— Non référencé</span>
       </div>
+      </ScrollHint>
     </div>
   );
 }
 
 function StatutPlateforme({ etat }: { etat: "actif" | "inactif" | "aucun" }) {
   if (etat === "aucun") {
-    return <span className="text-center text-xs text-[#99a1af]">—</span>;
+    return <span className="text-center text-xs text-ink-muted">—</span>;
   }
   return (
     <span
       className={cn(
         "justify-self-center rounded px-2 py-0.5 text-[11px]",
-        etat === "actif" ? "bg-[#1e2939] text-white" : "border border-[#e5e7eb] text-[#99a1af]",
+        etat === "actif" ? "bg-ink text-white" : "border border-line text-ink-muted",
       )}
     >
       {etat === "actif" ? "Actif" : "Inactif"}
@@ -348,12 +358,12 @@ function GrilleJours({
   onBloquer: (bienId: string, date: string) => void;
 }) {
   return (
-    <div className="overflow-x-auto">
+    <ScrollHint snap>
       <div
         className="grid min-w-[720px]"
-        style={{ gridTemplateColumns: `130px repeat(${jours.length}, minmax(0, 1fr))` }}
+        style={{ gridTemplateColumns: `130px repeat(${jours.length}, minmax(180px, 1fr))` }}
       >
-        <div className="border-b border-r border-[#e5e7eb]" />
+        <div className="sticky left-0 z-sticky border-b border-r border-line bg-white" />
         {jours.map((d) => {
           const key = isoJour(d);
           const auj = key === AUJOURD_HUI_MO1;
@@ -361,14 +371,14 @@ function GrilleJours({
             <div
               key={key}
               className={cn(
-                "border-b border-r border-[#f3f4f6] py-2 text-center",
-                auj && "bg-[#f9fafb]",
+                "snap-start border-b border-r border-surface-soft py-2 text-center",
+                auj && "bg-surface",
               )}
             >
-              <p className="text-xs uppercase text-[#99a1af]">
+              <p className="text-xs uppercase text-ink-muted">
                 {d.toLocaleDateString("fr-FR", { weekday: "short" }).replace(".", "")}
               </p>
-              <p className={cn("text-sm text-[#4a5565]", auj && "font-semibold text-[#1e2939]")}>
+              <p className={cn("text-sm text-ink-body", auj && "font-semibold text-ink")}>
                 {d.getDate()}
               </p>
             </div>
@@ -388,7 +398,7 @@ function GrilleJours({
         ))}
       </div>
       <LegendePlanning bloque />
-    </div>
+    </ScrollHint>
   );
 }
 
@@ -409,11 +419,11 @@ function LigneBien({
 }) {
   return (
     <div className="contents">
-      <div className="border-b border-r border-[#e5e7eb] px-3 py-3 text-xs text-[#4a5565]">
+      <div className="sticky left-0 z-sticky border-b border-r border-line bg-white px-3 py-3 text-xs text-ink-body">
         {bien.nom}
       </div>
       <div
-        className="relative grid border-b border-[#f3f4f6]"
+        className="relative grid border-b border-surface-soft"
         style={{
           gridColumn: `2 / span ${jours.length}`,
           gridTemplateColumns: `repeat(${jours.length}, minmax(0, 1fr))`,
@@ -427,16 +437,16 @@ function LigneBien({
             <div
               key={key}
               className={cn(
-                "relative min-h-[59px] border-r border-[#f3f4f6]",
-                key === AUJOURD_HUI_MO1 && "bg-[#f9fafb]/50",
-                bloquee && "bg-[repeating-linear-gradient(-45deg,#f3f4f6,#f3f4f6_4px,#fff_4px,#fff_8px)]",
+                "relative min-h-[59px] border-r border-surface-soft",
+                key === AUJOURD_HUI_MO1 && "bg-surface/50",
+                bloquee && "bg-[repeating-linear-gradient(-45deg,var(--surface-soft),var(--surface-soft)_4px,var(--surface-elevated)_4px,var(--surface-elevated)_8px)]",
               )}
             >
               {!occupe && !bloquee && (
                 <div className="flex h-full items-center justify-center">
                   <button
                     type="button"
-                    className="flex size-5 items-center justify-center rounded-full border border-[#d1d5dc] text-[#99a1af]"
+                    className="flex size-5 items-center justify-center rounded-full border border-line-strong text-ink-muted"
                     aria-label={`Ajouter ou bloquer — ${bien.nom}`}
                     onClick={() => onBloquer(bien.id, key)}
                   >
@@ -448,7 +458,7 @@ function LigneBien({
                 <button
                   type="button"
                   onClick={() => onBloquer(bien.id, key)}
-                  className="flex h-full w-full items-center justify-center text-[10px] font-medium text-[#99a1af]"
+                  className="flex h-full w-full items-center justify-center text-[10px] font-medium text-ink-muted"
                 >
                   Bloqué
                 </button>
@@ -476,13 +486,13 @@ function LigneBien({
                 left: `calc(${(start / jours.length) * 100}% + 2px)`,
                 width: `calc(${(span / jours.length) * 100}% - 4px)`,
                 backgroundColor: r.couleur,
-                borderColor: paiement === "impaye" ? "#d1d5dc" : "#6a7282",
+                borderColor: paiement === "impaye" ? "var(--line-strong)" : "var(--ink-subtle)",
               }}
             >
-              <span className="shrink-0 rounded border border-[#99a1af] bg-[#f3f4f6] px-1 py-0.5 text-[9px] font-medium text-[#364153]">
+              <span className="shrink-0 rounded border border-ink-muted bg-surface-soft px-1 py-0.5 text-[9px] font-medium text-ink-status">
                 {CODE_BARRE[r.plateforme]}
               </span>
-              <span className="truncate text-left text-xs font-medium text-[#364153]">
+              <span className="truncate text-left text-xs font-medium text-ink-status">
                 {r.occupant}
               </span>
               <PointPaiement etat={paiement} />
@@ -507,9 +517,9 @@ function GrilleMois({
 }) {
   return (
     <div>
-      <div className="grid grid-cols-7 border-b border-[#e5e7eb]">
+      <div className="grid grid-cols-7 border-b border-line">
         {JOURS_MOIS.map((j) => (
-          <div key={j} className="px-2 py-2 text-center text-xs text-[#99a1af]">
+          <div key={j} className="px-2 py-2 text-center text-xs text-ink-muted">
             {j}
           </div>
         ))}
@@ -523,31 +533,31 @@ function GrilleMois({
             <div
               key={key}
               className={cn(
-                "min-h-24 border-b border-r border-[#e5e7eb] p-1.5",
-                hors && "bg-[#f9fafb]",
-                key === AUJOURD_HUI_MO1 && "bg-[#f9fafb]",
+                "min-h-24 border-b border-r border-line p-1.5",
+                hors && "bg-surface",
+                key === AUJOURD_HUI_MO1 && "bg-surface",
               )}
             >
-              <p className="mb-1 text-xs text-[#4a5565]">{d.getDate()}</p>
+              <p className="mb-1 text-xs text-ink-body">{d.getDate()}</p>
               <div className="space-y-0.5">
                 {list.slice(0, 3).map((r) => (
                   <button
                     key={r.id}
                     type="button"
                     onClick={() => onSelect(r)}
-                    className="block w-full truncate rounded bg-[#e5e7eb] px-1.5 py-0.5 text-left text-[10px] text-[#364153]"
+                    className="block w-full truncate rounded bg-line px-1.5 py-0.5 text-left text-[10px] text-ink-status"
                   >
                     {CODE_BARRE[r.plateforme]} · {r.occupant.split(" ")[0]}
                   </button>
                 ))}
                 {list.length > 3 && (
-                  <p className="px-1 text-[10px] text-[#99a1af]">+{list.length - 3} autres</p>
+                  <p className="px-1 text-[10px] text-ink-muted">+{list.length - 3} autres</p>
                 )}
                 {list.length === 0 && !hors && (
                   <div className="flex justify-center pt-2">
                     <Link
                       to="/reservations/nouveau"
-                      className="flex size-5 items-center justify-center rounded-full border border-[#d1d5dc] text-[#99a1af]"
+                      className="flex size-5 items-center justify-center rounded-full border border-line-strong text-ink-muted"
                       aria-label="Créer une réservation"
                     >
                       <Plus className="size-2.5" />
@@ -569,9 +579,9 @@ function PointPaiement({ etat }: { etat: PaiementMo1 }) {
     <span
       className={cn(
         "ml-auto size-2 shrink-0 rounded-full",
-        etat === "paye" && "bg-[#6a7282]",
-        etat === "partiel" && "border border-[#6a7282] bg-[linear-gradient(90deg,#6a7282_50%,transparent_50%)]",
-        etat === "impaye" && "border border-[#99a1af] bg-white",
+        etat === "paye" && "bg-ink-subtle",
+        etat === "partiel" && "border border-ink-subtle bg-[linear-gradient(90deg,var(--ink-subtle)_50%,transparent_50%)]",
+        etat === "impaye" && "border border-ink-muted bg-white",
       )}
     />
   );
@@ -579,20 +589,20 @@ function PointPaiement({ etat }: { etat: PaiementMo1 }) {
 
 function LegendePlanning({ bloque }: { bloque?: boolean }) {
   return (
-    <div className="flex flex-wrap items-center gap-4 border-t border-[#f3f4f6] px-4 py-2 text-[11px] text-[#99a1af]">
+    <div className="flex flex-wrap items-center gap-4 border-t border-surface-soft px-4 py-2 text-[11px] text-ink-muted">
       <span className="flex items-center gap-1.5">
-        <span className="size-2 rounded-full bg-[#6a7282]" /> Payé
+        <span className="size-2 rounded-full bg-ink-subtle" /> Payé
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="size-2 rounded-full border border-[#6a7282] bg-[linear-gradient(90deg,#6a7282_50%,transparent_50%)]" />{" "}
+        <span className="size-2 rounded-full border border-ink-subtle bg-[linear-gradient(90deg,var(--ink-subtle)_50%,transparent_50%)]" />{" "}
         Partiel
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="size-2 rounded-full border border-[#99a1af]" /> Impayé
+        <span className="size-2 rounded-full border border-ink-muted" /> Impayé
       </span>
       {bloque && (
         <span className="flex items-center gap-1.5">
-          <span className="size-3 rounded border border-[#e5e7eb] bg-[repeating-linear-gradient(-45deg,#f3f4f6,#f3f4f6_2px,#fff_2px,#fff_4px)]" />{" "}
+          <span className="size-3 rounded border border-line bg-[repeating-linear-gradient(-45deg,var(--surface-soft),var(--surface-soft)_2px,var(--surface-elevated)_2px,var(--surface-elevated)_4px)]" />{" "}
           Bloqué
         </span>
       )}

@@ -4,6 +4,7 @@
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ScrollHint } from "@/components/layout/ScrollHint";
 import { cn } from "@/lib/utils";
 import { CLASSE_STATUT } from "@/data/statuts";
 import type { Bien, Mission } from "@/data/types";
@@ -86,7 +87,7 @@ export function MissionsCalendar({
         <div className="flex items-center gap-1">
           <button
             aria-label="Précédent"
-            className="rounded-md border border-border p-1.5 text-muted-foreground hover:bg-accent"
+            className="flex size-11 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-accent"
             onClick={() =>
               setAncre((d) =>
                 vue === "3jours"
@@ -99,7 +100,7 @@ export function MissionsCalendar({
           </button>
           <button
             aria-label="Suivant"
-            className="rounded-md border border-border p-1.5 text-muted-foreground hover:bg-accent"
+            className="flex size-11 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-accent"
             onClick={() =>
               setAncre((d) =>
                 vue === "3jours" ? ajouter(d, pas) : new Date(d.getFullYear(), d.getMonth() + 1, 1),
@@ -109,7 +110,7 @@ export function MissionsCalendar({
             <ChevronRight className="h-4 w-4" />
           </button>
           <button
-            className="ml-1 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-accent"
+            className="ml-1 h-11 rounded-md border border-border px-3 text-xs font-medium hover:bg-accent"
             onClick={() => setAncre(new Date())}
           >
             Aujourd'hui
@@ -140,7 +141,7 @@ export function MissionsCalendar({
                 key={v}
                 onClick={() => setVue(v)}
                 className={cn(
-                  "rounded px-2.5 py-1 text-xs font-medium",
+                  "h-11 min-h-11 rounded px-3 text-xs font-medium",
                   vue === v ? "bg-brand text-brand-foreground" : "text-muted-foreground",
                 )}
               >
@@ -174,7 +175,8 @@ export function MissionsCalendar({
           })}
         </div>
       ) : (
-        <div>
+        <ScrollHint>
+          <div className="min-w-[640px]">
           <div className="grid grid-cols-7 border-b border-border">
             {JOURS.map((j) => (
               <div
@@ -211,7 +213,8 @@ export function MissionsCalendar({
               );
             })}
           </div>
-        </div>
+          </div>
+        </ScrollHint>
       )}
     </div>
   );

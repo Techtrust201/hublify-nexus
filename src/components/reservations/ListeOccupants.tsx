@@ -15,6 +15,12 @@ import {
   Wrench,
 } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
+import { ScrollHint } from "@/components/layout/ScrollHint";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   OCCUPANTS_MO1,
   PRESTATAIRES_MO1,
@@ -51,8 +57,8 @@ export function ListeOccupants() {
 
   return (
     <div>
-      <h1 className="text-[28px] font-medium leading-9 text-[#1e2939]">Liste des occupants</h1>
-      <p className="mt-1 text-sm text-[#6a7282]">
+      <h1 className="text-[28px] font-medium leading-9 text-ink">Liste des occupants</h1>
+      <p className="mt-1 text-sm text-ink-subtle">
         Gérez vos locataires, voyageurs et prestataires de services.
       </p>
 
@@ -61,10 +67,10 @@ export function ListeOccupants() {
           type="button"
           onClick={() => setOnglet("residents")}
           className={cn(
-            "inline-flex h-[39px] items-center gap-2 rounded-[10px] px-4 text-sm",
+            "inline-flex h-11 items-center gap-2 rounded-card px-4 text-sm",
             onglet === "residents"
-              ? "bg-[#1e2939] text-white"
-              : "border border-[#e5e7eb] bg-white text-[#4a5565]",
+              ? "bg-ink text-white"
+              : "border border-line bg-white text-ink-body",
           )}
         >
           <Users className="size-4" />
@@ -74,10 +80,10 @@ export function ListeOccupants() {
           type="button"
           onClick={() => setOnglet("prestataires")}
           className={cn(
-            "inline-flex h-[39px] items-center gap-2 rounded-[10px] px-4 text-sm",
+            "inline-flex h-11 items-center gap-2 rounded-card px-4 text-sm",
             onglet === "prestataires"
-              ? "bg-[#1e2939] text-white"
-              : "border border-[#e5e7eb] bg-white text-[#4a5565]",
+              ? "bg-ink text-white"
+              : "border border-line bg-white text-ink-body",
           )}
         >
           <Wrench className="size-4" />
@@ -85,17 +91,17 @@ export function ListeOccupants() {
         </button>
       </div>
 
-      <div className="mt-8 overflow-hidden rounded-[10px] border border-[#e5e7eb] bg-white">
-        <div className="flex flex-wrap items-center gap-3 px-6 py-4">
-          <label className="relative flex h-[39px] w-full max-w-[448px] items-center gap-2 rounded-[10px] border border-[#e5e7eb] px-3">
-            <Search className="size-4 text-[#99a1af]" />
+      <div className="mt-8 rounded-card border border-line bg-white">
+        <div className="flex flex-wrap items-center gap-3 px-4 py-4 md:px-6">
+          <label className="relative flex h-11 w-full max-w-[448px] items-center gap-2 rounded-card border border-line px-3">
+            <Search className="size-4 text-ink-muted" />
             <input
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
               placeholder={
                 onglet === "residents" ? "Rechercher un résident..." : "Rechercher un prestataire..."
               }
-              className="h-full w-full bg-transparent text-sm text-[#1e2939] outline-none placeholder:text-[#99a1af]"
+              className="h-full w-full bg-transparent text-base text-ink outline-none placeholder:text-ink-muted md:text-sm"
             />
           </label>
           {onglet === "residents" && (
@@ -112,8 +118,8 @@ export function ListeOccupants() {
                   type="button"
                   onClick={() => setFiltre(id)}
                   className={cn(
-                    "h-[37px] rounded-[10px] px-3.5 text-sm",
-                    filtre === id ? "bg-[#24292f] text-white" : "bg-[#f3f4f6] text-[#4a5565]",
+                    "h-11 rounded-card px-3.5 text-sm",
+                    filtre === id ? "bg-ink-filter text-white" : "bg-surface-soft text-ink-body",
                   )}
                 >
                   {label}
@@ -124,14 +130,14 @@ export function ListeOccupants() {
           <div className="ml-auto flex gap-2">
             <button
               type="button"
-              className="inline-flex h-[39px] items-center gap-2 rounded-[10px] border border-[#e5e7eb] px-4 text-sm text-[#4a5565]"
+              className="inline-flex h-11 items-center gap-2 rounded-card border border-line px-4 text-sm text-ink-body"
             >
               <Download className="size-4" />
               Exporter
             </button>
             <button
               type="button"
-              className="inline-flex h-[39px] items-center gap-2 rounded-[10px] bg-[#1e2939] px-4 text-sm text-white"
+              className="inline-flex h-11 items-center gap-2 rounded-card bg-ink px-4 text-sm text-white"
             >
               <Plus className="size-4" />
               Ajouter
@@ -140,9 +146,52 @@ export function ListeOccupants() {
         </div>
 
         {onglet === "residents" ? (
+          <>
+            <div className="divide-y divide-surface-soft md:hidden">
+              {occupants.map((o) => (
+                <article key={o.id} className="flex flex-col gap-3 px-4 py-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-10 items-center justify-center rounded-full bg-line text-sm text-ink-body">
+                      {o.initiales}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-ink">{o.nom}</p>
+                      <p className="text-xs text-ink-muted">{o.logement}</p>
+                    </div>
+                    <span
+                      className={cn(
+                        "inline-flex h-7 items-center rounded-full px-3 text-xs text-white",
+                        o.statut === "Actif" ? "bg-ink-deep" : "bg-ink-status",
+                      )}
+                    >
+                      {o.statut}
+                    </span>
+                  </div>
+                  <p className="text-sm text-ink-subtle">
+                    {o.telephone} · {o.email}
+                  </p>
+                  <p className="text-xs text-ink-muted">
+                    Arrivée {o.arrivee}
+                    {o.depart ? ` · Départ ${o.depart}` : ""}
+                  </p>
+                  <div className="flex gap-2">
+                    <IconeAction label="Voir" onClick={() => setFiche(o)}>
+                      <Eye className="size-4" />
+                    </IconeAction>
+                    <IconeAction label="Modifier" className="text-dot-edit">
+                      <Pencil className="size-4" />
+                    </IconeAction>
+                    <IconeAction label="Supprimer">
+                      <Trash2 className="size-4" />
+                    </IconeAction>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <ScrollHint className="hidden md:block">
           <table className="w-full min-w-[860px] text-left">
             <thead>
-              <tr className="border-y border-[#eaecf0] bg-[#f9fafb] text-xs font-medium uppercase tracking-[0.6px] text-[#667085]">
+              <tr className="border-y border-line-table bg-surface text-xs font-medium uppercase tracking-[0.6px] text-ink-header">
                 <th className="px-6 py-3 font-medium">Nom</th>
                 <th className="px-3 py-3 font-medium">Type</th>
                 <th className="px-3 py-3 font-medium">Logement</th>
@@ -154,20 +203,20 @@ export function ListeOccupants() {
             </thead>
             <tbody>
               {occupants.map((o) => (
-                <tr key={o.id} className="border-b border-[#f3f4f6] last:border-b-0">
+                <tr key={o.id} className="border-b border-surface-soft last:border-b-0">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <span className="flex size-10 items-center justify-center rounded-full bg-[#e5e7eb] text-sm text-[#4a5565]">
+                      <span className="flex size-10 items-center justify-center rounded-full bg-line text-sm text-ink-body">
                         {o.initiales}
                       </span>
-                      <span className="text-sm text-[#1e2939]">{o.nom}</span>
+                      <span className="text-sm text-ink">{o.nom}</span>
                     </div>
                   </td>
                   <td className="px-3 py-4">
                     <span
                       className={cn(
                         "inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-xs text-white",
-                        o.type === "Locataire" ? "bg-[#1e2939]" : "bg-[#4a5565]",
+                        o.type === "Locataire" ? "bg-ink" : "bg-ink-body",
                       )}
                     >
                       {o.type === "Locataire" ? (
@@ -178,8 +227,8 @@ export function ListeOccupants() {
                       {o.type}
                     </span>
                   </td>
-                  <td className="px-3 py-4 text-sm text-[#1e2939]">{o.logement}</td>
-                  <td className="px-3 py-4 text-sm text-[#6a7282]">
+                  <td className="px-3 py-4 text-sm text-ink">{o.logement}</td>
+                  <td className="px-3 py-4 text-sm text-ink-subtle">
                     <p className="flex items-center gap-1.5">
                       <Phone className="size-3" />
                       {o.telephone}
@@ -189,14 +238,14 @@ export function ListeOccupants() {
                       {o.email}
                     </p>
                   </td>
-                  <td className="px-3 py-4 text-sm text-[#6a7282]">
+                  <td className="px-3 py-4 text-sm text-ink-subtle">
                     <p className="flex items-center gap-1.5">
-                      <span className="size-2 rounded-full bg-[#22c55e]" />
+                      <span className="size-2 rounded-full bg-dot-arrivee" />
                       Arrivée: {o.arrivee}
                     </p>
                     {o.depart && (
                       <p className="flex items-center gap-1.5">
-                        <span className="size-2 rounded-full bg-[#ef4444]" />
+                        <span className="size-2 rounded-full bg-dot-depart" />
                         Départ: {o.depart}
                       </p>
                     )}
@@ -205,7 +254,7 @@ export function ListeOccupants() {
                     <span
                       className={cn(
                         "inline-flex h-7 items-center rounded-full px-3 text-xs text-white",
-                        o.statut === "Actif" ? "bg-[#101828]" : "bg-[#364153]",
+                        o.statut === "Actif" ? "bg-ink-deep" : "bg-ink-status",
                       )}
                     >
                       {o.statut}
@@ -216,7 +265,7 @@ export function ListeOccupants() {
                       <IconeAction label="Voir" onClick={() => setFiche(o)}>
                         <Eye className="size-4" />
                       </IconeAction>
-                      <IconeAction label="Modifier" className="text-[#f97316]">
+                      <IconeAction label="Modifier" className="text-dot-edit">
                         <Pencil className="size-4" />
                       </IconeAction>
                       <IconeAction label="Supprimer">
@@ -228,10 +277,46 @@ export function ListeOccupants() {
               ))}
             </tbody>
           </table>
+            </ScrollHint>
+          </>
         ) : (
+          <>
+            <div className="divide-y divide-surface-soft md:hidden">
+              {prestataires.map((p) => (
+                <article key={p.id} className="flex flex-col gap-3 px-4 py-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-10 items-center justify-center rounded-full bg-line text-sm text-ink-body">
+                      {p.initiales}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-ink">{p.nom}</p>
+                      <p className="text-xs text-ink-muted">{p.metier}</p>
+                    </div>
+                    <span className="inline-flex h-7 items-center rounded-full bg-ink px-3 text-xs text-white">
+                      {p.statut}
+                    </span>
+                  </div>
+                  <p className="text-sm text-ink-subtle">
+                    {p.telephone} · {p.email}
+                  </p>
+                  <div className="flex gap-2">
+                    <IconeAction label="Voir" onClick={() => setFiche(p)}>
+                      <Eye className="size-4" />
+                    </IconeAction>
+                    <IconeAction label="Modifier">
+                      <Pencil className="size-4" />
+                    </IconeAction>
+                    <IconeAction label="Supprimer">
+                      <Trash2 className="size-4" />
+                    </IconeAction>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <ScrollHint className="hidden md:block">
           <table className="w-full min-w-[720px] text-left">
             <thead>
-              <tr className="border-y border-[#f3f4f6] text-sm text-[#6a7282]">
+              <tr className="border-y border-surface-soft text-sm text-ink-subtle">
                 <th className="px-6 py-3 font-normal">Nom</th>
                 <th className="px-3 py-3 font-normal">Métier</th>
                 <th className="px-3 py-3 font-normal">Contact</th>
@@ -241,22 +326,22 @@ export function ListeOccupants() {
             </thead>
             <tbody>
               {prestataires.map((p) => (
-                <tr key={p.id} className="border-b border-[#f3f4f6] last:border-b-0">
+                <tr key={p.id} className="border-b border-surface-soft last:border-b-0">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <span className="flex size-10 items-center justify-center rounded-full bg-[#e5e7eb] text-sm text-[#4a5565]">
+                      <span className="flex size-10 items-center justify-center rounded-full bg-line text-sm text-ink-body">
                         {p.initiales}
                       </span>
-                      <span className="text-sm text-[#1e2939]">{p.nom}</span>
+                      <span className="text-sm text-ink">{p.nom}</span>
                     </div>
                   </td>
-                  <td className="px-3 py-4 text-sm text-[#4a5565]">{p.metier}</td>
-                  <td className="px-3 py-4 text-sm text-[#6a7282]">
+                  <td className="px-3 py-4 text-sm text-ink-body">{p.metier}</td>
+                  <td className="px-3 py-4 text-sm text-ink-subtle">
                     <p>{p.telephone}</p>
                     <p>{p.email}</p>
                   </td>
                   <td className="px-3 py-4">
-                    <span className="inline-flex h-7 items-center rounded-full bg-[#1e2939] px-3 text-xs text-white">
+                    <span className="inline-flex h-7 items-center rounded-full bg-ink px-3 text-xs text-white">
                       {p.statut}
                     </span>
                   </td>
@@ -277,6 +362,8 @@ export function ListeOccupants() {
               ))}
             </tbody>
           </table>
+            </ScrollHint>
+          </>
         )}
       </div>
 
@@ -294,27 +381,29 @@ export function ListeOccupants() {
       )}
 
       {fiche && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#1e2939]/40 p-4">
-          <div className="w-full max-w-md rounded-[10px] border border-[#e5e7eb] bg-white p-5">
+        <Dialog open onOpenChange={(ouvert) => { if (!ouvert) setFiche(null); }}>
+          <DialogContent className="max-w-md gap-0 rounded-card border-line p-5 sm:rounded-card">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium text-[#1e2939]">{"nom" in fiche ? fiche.nom : ""}</p>
-                <p className="mt-1 text-xs text-[#6a7282]">
+                <DialogTitle className="text-sm font-medium text-ink">
+                  {"nom" in fiche ? fiche.nom : ""}
+                </DialogTitle>
+                <p className="mt-1 text-xs text-ink-subtle">
                   {"type" in fiche ? `${fiche.type} · ${fiche.logement}` : fiche.metier}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setFiche(null)}
-                className="text-xs text-[#4a5565]"
+                className="flex h-11 items-center px-2 text-sm text-ink-body"
               >
                 Fermer
               </button>
             </div>
-            <p className="mt-4 text-sm text-[#4a5565]">{fiche.telephone}</p>
-            <p className="text-sm text-[#4a5565]">{fiche.email}</p>
-          </div>
-        </div>
+            <p className="mt-4 text-sm text-ink-body">{fiche.telephone}</p>
+            <p className="text-sm text-ink-body">{fiche.email}</p>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
@@ -337,7 +426,7 @@ function IconeAction({
       aria-label={label}
       onClick={onClick}
       className={cn(
-        "flex size-10 items-center justify-center rounded-[10px] border border-[#e5e7eb] text-[#4a5565]",
+        "flex size-11 items-center justify-center rounded-card border border-line text-ink-body",
         className,
       )}
     >
@@ -358,15 +447,15 @@ function CarteResume({
   detail: string;
 }) {
   return (
-    <div className="rounded-[10px] border border-[#e5e7eb] bg-white p-6">
+    <div className="rounded-card border border-line bg-white p-6">
       <div className="flex gap-4">
-        <span className="flex size-12 items-center justify-center rounded-full bg-[#101828] text-white">
+        <span className="flex size-12 items-center justify-center rounded-full bg-ink-deep text-white">
           <Icone className="size-5" />
         </span>
         <div>
-          <p className="text-sm text-[#6a7282]">{titre}</p>
-          <p className="mt-1 text-4xl text-[#1e2939]">{valeur}</p>
-          <p className="mt-1 text-xs text-[#99a1af]">{detail}</p>
+          <p className="text-sm text-ink-subtle">{titre}</p>
+          <p className="mt-1 text-4xl text-ink">{valeur}</p>
+          <p className="mt-1 text-xs text-ink-muted">{detail}</p>
         </div>
       </div>
     </div>

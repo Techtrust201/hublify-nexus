@@ -1,56 +1,22 @@
 // SOURCE: Maquette MO1 — sidebar gestionnaire + en-tête (frame Dashboard/Calendar/Missions/3days)
 
 import { Link, useRouterState } from "@tanstack/react-router";
-import {
-  Bell,
-  ChevronDown,
-  ChevronRight,
-  FileText,
-  Home,
-  Info,
-  Menu,
-  MessageSquare,
-  Users,
-  Wrench,
-} from "lucide-react";
-import { useState, type ReactNode } from "react";
-import { cn } from "@/lib/utils";
-import { GESTIONNAIRE, TEAM } from "@/data/mock";
+import { Bell, ChevronDown, Menu, X } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { NavChrome } from "@/components/layout/NavChrome";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-type Entree = {
-  titre: string;
-  url: string;
-  icone: typeof Users;
-  chevron?: boolean;
-};
-
-const NAV: Entree[] = [
-  { titre: "Réservations", url: "/reservations", icone: Users },
-  { titre: "Documents", url: "/documents", icone: FileText },
-  { titre: "Prestataires", url: "/prestataires", icone: Wrench, chevron: true },
-  { titre: "Patrimoines", url: "/patrimoines", icone: Home, chevron: true },
-  { titre: "Messagerie", url: "/messagerie", icone: MessageSquare },
-];
-
-const SOUS_PRESTATAIRES = [
-  { titre: "Prestataires", url: "/prestataires" },
-  { titre: "Occupants", url: "/occupants" },
-];
-
-const SOUS_PATRIMOINES = [
-  { titre: "Patrimoines", url: "/patrimoines" },
-  { titre: "Inventaire", url: "/inventaire" },
-];
-
-function estActif(pathname: string, url: string) {
-  return url === "/" ? pathname === "/" : pathname === url || pathname.startsWith(`${url}/`);
-}
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { marquerNotifsLues, useSession } from "@/data/session";
 
 export function AppShell({
   titre,
@@ -64,165 +30,58 @@ export function AppShell({
   children: ReactNode;
 }) {
   const [mobileOuvert, setMobileOuvert] = useState(false);
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const session = useSession();
+  const notifsNonLues = session.notifications.filter((n) => !n.lu).length;
+
+  useEffect(() => {
+    setMobileOuvert(false);
+  }, [pathname]);
 
   return (
-    <div className="flex min-h-screen w-full bg-[#f9fafb]">
-      <aside className="sticky top-0 hidden h-screen w-[255px] shrink-0 flex-col border-r border-[#e5e7eb] bg-white md:flex">
-        <div className="border-b border-[#f3f4f6] px-4 py-4">
-          <Link to="/profil" className="flex items-center gap-3">
-            <span className="flex size-10 items-center justify-center rounded-full bg-[#e5e7eb] text-sm text-[#4a5565]">
-              YR
-            </span>
-            <span className="min-w-0">
-              <span className="block text-xs uppercase tracking-[0.3px] text-[#99a1af]">
-                Gestionnaire
-              </span>
-              <span className="block text-sm text-[#1e2939]">{GESTIONNAIRE.nom}</span>
-            </span>
-          </Link>
-          <DropdownMenu>
-            <DropdownMenuTrigger className="mt-4 flex h-[38px] w-full items-center justify-center rounded-[10px] border border-[#e5e7eb] bg-white text-sm font-medium text-[#4a5565]">
-              Vue générale
-              <ChevronDown className="ml-1 size-3.5" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
-              <DropdownMenuItem asChild>
-                <Link to="/">Vue générale</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/missions">Missions</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/reservations">Réservations</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/tarifs">Tarifs</Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+    <div className="flex min-h-dvh w-full bg-surface">
+      <a
+        href="#contenu-principal"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-toast focus:rounded-card focus:bg-ink focus:px-3 focus:py-2 focus:text-sm focus:text-white"
+      >
+        Aller au contenu
+      </a>
 
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 pt-3">
-          {NAV.map((e) => {
-            const sous =
-              e.titre === "Prestataires"
-                ? SOUS_PRESTATAIRES
-                : e.titre === "Patrimoines"
-                  ? SOUS_PATRIMOINES
-                  : null;
-            const ouvert = Boolean(
-              sous?.some((s) => estActif(pathname, s.url)) || estActif(pathname, e.url),
-            );
-            return (
-              <div key={e.titre}>
-                <Link
-                  to={e.url}
-                  className={cn(
-                    "flex h-9 items-center gap-3 rounded-[10px] px-3 text-sm font-medium text-[#4a5565] hover:bg-[#f9fafb]",
-                    estActif(pathname, e.url) && "bg-[#f3f4f6] text-[#1e2939]",
-                  )}
-                >
-                  <e.icone className="size-4 shrink-0" />
-                  <span className="flex-1 truncate">{e.titre}</span>
-                  {e.chevron &&
-                    (ouvert ? (
-                      <ChevronDown className="size-3.5 text-[#99a1af]" />
-                    ) : (
-                      <ChevronRight className="size-3.5 text-[#99a1af]" />
-                    ))}
-                </Link>
-                {e.chevron && ouvert && sous && (
-                  <div className="mb-1 ml-7 mt-0.5 space-y-0.5">
-                    {sous.map((s) => (
-                      <Link
-                        key={s.url}
-                        to={s.url}
-                        className={cn(
-                          "flex h-8 items-center rounded-[8px] px-2 text-xs font-medium text-[#6a7282] hover:bg-[#f9fafb]",
-                          estActif(pathname, s.url) && "bg-[#f3f4f6] text-[#1e2939]",
-                        )}
-                      >
-                        {s.titre}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          <Link
-            to="/team"
-            className="block px-3 pt-4 text-xs uppercase tracking-[0.3px] text-[#99a1af] hover:text-[#4a5565]"
-          >
-            Team mate
-          </Link>
-          {TEAM.map((m) => (
-            <Link
-              key={m.id}
-              to="/team"
-              className="flex h-9 items-center gap-2 rounded-[10px] px-3 text-sm font-medium text-[#4a5565] hover:bg-[#f9fafb]"
-            >
-              <span className="flex size-6 items-center justify-center rounded-full bg-[#e5e7eb] text-[10px] font-medium text-[#6a7282]">
-                {m.initiales}
-              </span>
-              {m.nom}
-            </Link>
-          ))}
-
-          <p className="px-3 pt-4 text-xs uppercase tracking-[0.3px] text-[#99a1af]">
-            Tous les outils
-          </p>
-          <Link
-            to="/outils"
-            className="flex h-8 items-center gap-2 rounded-[10px] px-3 text-sm font-medium text-[#4a5565] hover:bg-[#f9fafb]"
-          >
-            <Info className="size-3.5" />
-            En savoir plus
-          </Link>
-        </nav>
-
-        <div className="space-y-2 border-t border-[#f3f4f6] px-4 py-4">
-          <Link
-            to="/outils"
-            className="flex h-9 w-full items-center justify-center rounded-[10px] bg-[#101828] text-sm font-medium text-white"
-          >
-            Je débute
-          </Link>
-          <Link
-            to="/outils"
-            className="flex h-[38px] w-full items-center justify-center rounded-[10px] border border-[#e5e7eb] text-sm font-medium text-[#4a5565]"
-          >
-            Je découvre
-          </Link>
-        </div>
+      <aside
+        className="sticky top-0 hidden h-dvh w-[255px] shrink-0 flex-col border-r border-line bg-white lg:flex"
+        aria-label="Navigation principale"
+      >
+        <NavChrome pathname={pathname} densite="desktop" />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex h-[73px] items-center justify-between border-b border-[#e5e7eb] bg-white px-4 md:px-6">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-sticky flex min-h-[73px] items-center justify-between border-b border-line bg-white px-4 pt-[env(safe-area-inset-top)] lg:px-6">
+          <div className="flex min-w-0 items-center gap-3">
             <button
+              ref={hamburgerRef}
               type="button"
-              className="rounded-[10px] border border-[#e5e7eb] p-2 text-[#4a5565] md:hidden"
-              onClick={() => setMobileOuvert((v) => !v)}
-              aria-label="Ouvrir la navigation"
+              className="flex size-11 items-center justify-center rounded-card border border-line text-ink-body lg:hidden"
+              onClick={() => setMobileOuvert(true)}
+              aria-label={mobileOuvert ? "Fermer la navigation" : "Ouvrir la navigation"}
+              aria-expanded={mobileOuvert}
+              aria-controls="nav-mobile"
             >
               <Menu className="size-4" />
             </button>
             {titre ? (
               <div className="min-w-0">
-                <h1 className="truncate text-sm font-medium text-[#1e2939]">{titre}</h1>
-                {sousTitre && <p className="truncate text-xs text-[#99a1af]">{sousTitre}</p>}
+                <h1 className="truncate text-sm font-medium text-ink">{titre}</h1>
+                {sousTitre && <p className="truncate text-xs text-ink-muted">{sousTitre}</p>}
               </div>
             ) : (
-              <div className="hidden h-8 w-16 md:block" />
+              <div className="hidden h-8 w-16 lg:block" />
             )}
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             {actions}
             <DropdownMenu>
-              <DropdownMenuTrigger className="hidden h-[34px] items-center gap-1 rounded-[10px] border border-[#e5e7eb] px-3 text-sm font-medium text-[#4a5565] sm:inline-flex">
+              <DropdownMenuTrigger className="hidden h-11 items-center gap-1 rounded-card border border-line px-3 text-sm font-medium text-ink-body lg:inline-flex">
                 Outils
                 <ChevronDown className="size-3.5" />
               </DropdownMenuTrigger>
@@ -241,43 +100,98 @@ export function AppShell({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <button
-              type="button"
-              className="flex size-8 items-center justify-center rounded-[10px] border border-[#e5e7eb] text-[#4a5565]"
-              aria-label="Notifications"
+            <DropdownMenu
+              onOpenChange={(ouvert) => {
+                if (ouvert && notifsNonLues > 0) marquerNotifsLues();
+              }}
             >
-              <Bell className="size-4" />
-            </button>
-            <Link to="/profil" className="hidden text-sm font-medium text-[#4a5565] sm:inline">
+              <DropdownMenuTrigger
+                className="relative flex size-11 items-center justify-center rounded-card border border-line text-ink-body"
+                aria-label="Notifications"
+              >
+                <Bell className="size-4" />
+                {notifsNonLues > 0 && (
+                  <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-ink text-[9px] text-white">
+                    {notifsNonLues}
+                  </span>
+                )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 p-0">
+                <p className="border-b border-surface-soft px-3 py-2 text-xs font-medium text-ink">
+                  Notifications
+                </p>
+                {session.notifications.length === 0 ? (
+                  <p className="px-3 py-4 text-xs text-ink-subtle">Aucune notification.</p>
+                ) : (
+                  session.notifications.slice(0, 8).map((n) => (
+                    <DropdownMenuItem
+                      key={n.id}
+                      asChild
+                      className="cursor-pointer items-start gap-2 py-2"
+                    >
+                      <a href={n.href}>
+                        <span>
+                          <span className="block text-xs text-ink">{n.titre}</span>
+                          <span className="block text-[11px] text-ink-muted">{n.detail}</span>
+                        </span>
+                      </a>
+                    </DropdownMenuItem>
+                  ))
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Link
+              to="/profil"
+              className="hidden min-h-11 items-center text-sm font-medium text-ink-body lg:inline-flex"
+            >
               Compte gestionnaire
             </Link>
           </div>
         </header>
 
-        {mobileOuvert && (
-          <nav className="flex gap-1 overflow-x-auto border-b border-[#e5e7eb] bg-white px-4 py-2 md:hidden">
-            <Link to="/" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-[#4a5565]">
-              Vue générale
-            </Link>
-            {NAV.map((e) => (
-              <Link
-                key={e.titre}
-                to={e.url}
-                className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-[#4a5565]"
+        <Sheet
+          open={mobileOuvert}
+          onOpenChange={(open) => {
+            setMobileOuvert(open);
+            if (!open) {
+              requestAnimationFrame(() => hamburgerRef.current?.focus());
+            }
+          }}
+        >
+          <SheetContent
+            side="left"
+            showClose={false}
+            id="nav-mobile"
+            className="flex w-[min(255px,100%)] max-w-[255px] flex-col gap-0 border-line bg-white p-0 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:max-w-[255px]"
+          >
+            <div className="flex items-center justify-between border-b border-surface-soft px-3 py-2">
+              <SheetTitle className="text-sm font-medium text-ink">Menu</SheetTitle>
+              <SheetDescription className="sr-only">
+                Navigation principale de l'espace gestionnaire
+              </SheetDescription>
+              <button
+                type="button"
+                className="flex size-11 items-center justify-center rounded-card text-ink-body"
+                onClick={() => setMobileOuvert(false)}
+                aria-label="Fermer la navigation"
               >
-                {e.titre}
-              </Link>
-            ))}
-            <Link to="/occupants" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-[#4a5565]">
-              Occupants
-            </Link>
-            <Link to="/team" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-[#4a5565]">
-              Team
-            </Link>
-          </nav>
-        )}
+                <X className="size-4" />
+              </button>
+            </div>
+            <NavChrome
+              pathname={pathname}
+              densite="mobile"
+              onNavigate={() => setMobileOuvert(false)}
+            />
+          </SheetContent>
+        </Sheet>
 
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+        <main
+          id="contenu-principal"
+          className="flex-1 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] lg:p-6"
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

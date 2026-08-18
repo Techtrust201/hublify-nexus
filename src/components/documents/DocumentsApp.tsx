@@ -26,6 +26,8 @@ import {
   type OngletResident,
   type VueDocuments,
 } from "@/data/documents-mo1";
+import { choisirFichier, telechargerDemo, toastOk } from "@/lib/feedback";
+import { ScrollHint } from "@/components/layout/ScrollHint";
 import { cn } from "@/lib/utils";
 import {
   FicheInterventionDialog,
@@ -65,6 +67,10 @@ const FILTRES_PROPRIO = [
   "RIB",
   "Contrats",
 ];
+
+function importerDoc() {
+  choisirFichier((nom) => toastOk(`Document importé (démo) : ${nom}`));
+}
 
 export function DocumentsApp() {
   const [vue, setVue] = useState<VueDocuments>("hub");
@@ -151,7 +157,7 @@ export function DocumentsApp() {
               <BtnOutline onClick={() => setAvis(true)}>
                 <FileText className="size-3" /> Avis d'échéance
               </BtnOutline>
-              <BtnOutline>
+              <BtnOutline onClick={importerDoc}>
                 <Upload className="size-3" /> Importer
               </BtnOutline>
             </>
@@ -189,7 +195,7 @@ export function DocumentsApp() {
                 : "Contrats, factures et preuves déposées par les prestataires"
           }
           onglets={
-            <div className="flex border-b border-[#f3f4f6]">
+            <div className="flex border-b border-surface-soft">
               {(
                 [
                   ["locataires", "Locataires", 7],
@@ -208,12 +214,12 @@ export function DocumentsApp() {
                   className={cn(
                     "inline-flex h-[46px] items-center gap-2 px-5 text-sm",
                     onglet === k
-                      ? "border-b-2 border-[#1e2939] text-[#1e2939]"
-                      : "text-[#6a7282]",
+                      ? "border-b-2 border-ink text-ink"
+                      : "text-ink-subtle",
                   )}
                 >
                   {label}
-                  <span className="rounded bg-[#f3f4f6] px-1.5 text-[10px] text-[#6a7282]">{n}</span>
+                  <span className="rounded bg-surface-soft px-1.5 text-[10px] text-ink-subtle">{n}</span>
                 </button>
               ))}
             </div>
@@ -223,7 +229,7 @@ export function DocumentsApp() {
               <BtnOutline onClick={() => setQuittance(true)}>
                 <FileText className="size-3" /> Quittance
               </BtnOutline>
-              <BtnOutline>
+              <BtnOutline onClick={importerDoc}>
                 <Upload className="size-3" /> Importer
               </BtnOutline>
             </>
@@ -248,7 +254,7 @@ export function DocumentsApp() {
           onFiltres={() => setFiltresOuverts(true)}
           onRetour={() => aller("hub")}
           actionsEntete={
-            <BtnOutline>
+            <BtnOutline onClick={importerDoc}>
               <Upload className="size-3" /> Importer
             </BtnOutline>
           }
@@ -280,7 +286,7 @@ export function DocumentsApp() {
           onFiltres={() => setFiltresOuverts(true)}
           onRetour={() => aller("hub")}
           actionsEntete={
-            <BtnOutline>
+            <BtnOutline onClick={importerDoc}>
               <Upload className="size-3" /> Importer
             </BtnOutline>
           }
@@ -319,18 +325,18 @@ function FilAriane({ vue, onHub }: { vue: VueDocuments; onHub: () => void }) {
     fiches: "Fiches d'accès",
   };
   return (
-    <p className="mb-4 flex items-center gap-2 text-xs text-[#99a1af]">
+    <p className="mb-4 flex items-center gap-2 text-xs text-ink-muted">
       <span>Tableau de bord</span>
       <ChevronRight className="size-3" />
       {vue === "hub" ? (
-        <span className="text-[#6a7282]">Documents</span>
+        <span className="text-ink-subtle">Documents</span>
       ) : (
         <>
           <button type="button" onClick={onHub} className="hover:underline">
             Documents
           </button>
           <ChevronRight className="size-3" />
-          <span className="text-[#6a7282]">{labels[vue]}</span>
+          <span className="text-ink-subtle">{labels[vue]}</span>
         </>
       )}
     </p>
@@ -350,7 +356,7 @@ function Hub({
   onAlerte: (n: number) => void;
   onAcceder: (v: VueDocuments) => void;
 }) {
-  const a = ALERTES_DOCS[alerte];
+  const a = ALERTES_DOCS[alerte] ?? ALERTES_DOCS[0]!;
   const cartes = [
     {
       titre: "Documents Logements",
@@ -398,27 +404,27 @@ function Hub({
 
   return (
     <div className="space-y-4">
-      <label className="flex h-[50px] items-center gap-3 rounded-[10px] border border-[#e5e7eb] bg-white px-5">
-        <Search className="size-4 text-[#99a1af]" />
+      <label className="flex h-[50px] items-center gap-3 rounded-card border border-line bg-white px-5">
+        <Search className="size-4 text-ink-muted" />
         <input
           value={recherche}
           onChange={(e) => onRecherche(e.target.value)}
           placeholder="Rechercher un document, un logement, un locataire…"
-          className="h-full w-full bg-transparent text-sm text-[#1e2939] outline-none placeholder:text-[#d1d5dc]"
+          className="h-full w-full bg-transparent text-sm text-ink outline-none placeholder:text-line-strong"
         />
       </label>
 
       <button
         type="button"
         onClick={() => onAcceder("logements")}
-        className="flex w-full items-center gap-4 rounded-2xl border border-[#d1d5dc] bg-white px-5 py-4 text-left"
+        className="flex w-full items-center gap-4 rounded-2xl border border-line-strong bg-white px-5 py-4 text-left"
       >
-        <span className="flex size-10 items-center justify-center rounded-[14px] bg-[#f3f4f6]">
-          <AlertTriangle className="size-[18px] text-[#4a5565]" />
+        <span className="flex size-10 items-center justify-center rounded-[14px] bg-surface-soft">
+          <AlertTriangle className="size-[18px] text-ink-body" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-medium text-[#1e2939]">{a.titre}</span>
-          <span className="block text-xs font-medium text-[#99a1af]">{a.detail}</span>
+          <span className="block text-sm font-medium text-ink">{a.titre}</span>
+          <span className="block text-xs font-medium text-ink-muted">{a.detail}</span>
         </span>
         <span className="flex items-center gap-2">
           {ALERTES_DOCS.map((_, i) => (
@@ -431,11 +437,11 @@ function Hub({
               }}
               className={cn(
                 "size-2 rounded-full",
-                i === alerte ? "bg-[#1e2939]" : "bg-[#d1d5dc]",
+                i === alerte ? "bg-ink" : "bg-line-strong",
               )}
             />
           ))}
-          <ChevronRight className="size-3.5 text-[#99a1af]" />
+          <ChevronRight className="size-3.5 text-ink-muted" />
         </span>
       </button>
 
@@ -443,23 +449,23 @@ function Hub({
         {cartes.map((c) => (
           <article
             key={c.titre}
-            className="flex flex-col rounded-2xl border border-[#e5e7eb] bg-white p-5"
+            className="flex flex-col rounded-2xl border border-line bg-white p-5"
           >
             <div className="flex items-start justify-between">
-              <span className="flex size-10 items-center justify-center rounded-[14px] bg-[#f3f4f6]">
-                <c.icone className="size-5 text-[#4a5565]" />
+              <span className="flex size-10 items-center justify-center rounded-[14px] bg-surface-soft">
+                <c.icone className="size-5 text-ink-body" />
               </span>
               <div className="text-right">
-                <p className="text-2xl leading-8 text-[#1e2939]">{c.n}</p>
-                <p className="text-[10px] text-[#99a1af]">documents</p>
+                <p className="text-2xl leading-8 text-ink">{c.n}</p>
+                <p className="text-[10px] text-ink-muted">documents</p>
               </div>
             </div>
-            <h2 className="mt-4 text-sm font-medium text-[#1e2939]">{c.titre}</h2>
-            <p className="mt-1 text-xs text-[#6a7282]">{c.desc}</p>
+            <h2 className="mt-4 text-sm font-medium text-ink">{c.titre}</h2>
+            <p className="mt-1 text-xs text-ink-subtle">{c.desc}</p>
             <button
               type="button"
               onClick={() => onAcceder(c.vue)}
-              className="mt-4 inline-flex items-center gap-1 text-xs text-[#4a5565]"
+              className="mt-4 inline-flex items-center gap-1 text-xs text-ink-body"
             >
               Accéder <ArrowRight className="size-2.5" />
             </button>
@@ -467,14 +473,14 @@ function Hub({
         ))}
       </div>
 
-      <section className="overflow-hidden rounded-[10px] border border-[#e5e7eb] bg-white">
-        <header className="flex items-center gap-3 border-b border-[#f3f4f6] px-5 py-4">
-          <span className="flex size-8 items-center justify-center rounded-[10px] bg-[#f3f4f6]">
-            <Clock className="size-3.5 text-[#4a5565]" />
+      <section className="overflow-hidden rounded-card border border-line bg-white">
+        <header className="flex items-center gap-3 border-b border-surface-soft px-5 py-4">
+          <span className="flex size-8 items-center justify-center rounded-card bg-surface-soft">
+            <Clock className="size-3.5 text-ink-body" />
           </span>
           <div>
-            <p className="text-sm text-[#1e2939]">Activité récente</p>
-            <p className="text-[10px] text-[#99a1af]">Derniers documents consultés ou modifiés</p>
+            <p className="text-sm text-ink">Activité récente</p>
+            <p className="text-[10px] text-ink-muted">Derniers documents consultés ou modifiés</p>
           </div>
         </header>
         <ul>
@@ -484,20 +490,20 @@ function Hub({
           ).map((a) => (
             <li
               key={a.id}
-              className="flex items-center gap-3 border-b border-[#f3f4f6] px-5 py-3.5 last:border-b-0"
+              className="flex items-center gap-3 border-b border-surface-soft px-5 py-3.5 last:border-b-0"
             >
-              <span className="flex size-8 items-center justify-center rounded-[10px] bg-[#f3f4f6]">
-                <FileText className="size-3.5 text-[#4a5565]" />
+              <span className="flex size-8 items-center justify-center rounded-card bg-surface-soft">
+                <FileText className="size-3.5 text-ink-body" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm text-[#1e2939]">{a.titre}</p>
-                <p className="mt-0.5 flex items-center gap-2 text-xs text-[#99a1af]">
+                <p className="text-sm text-ink">{a.titre}</p>
+                <p className="mt-0.5 flex items-center gap-2 text-xs text-ink-muted">
                   <span
                     className={cn(
                       "rounded px-1.5 py-0.5 text-[10px]",
                       a.statut === "Créé"
-                        ? "bg-[#1e2939] text-white"
-                        : "border border-[#e5e7eb] text-[#6a7282]",
+                        ? "bg-ink text-white"
+                        : "border border-line text-ink-subtle",
                     )}
                   >
                     {a.statut}
@@ -505,7 +511,7 @@ function Hub({
                   {a.detail}
                 </p>
               </div>
-              <button type="button" className="text-[#99a1af]" aria-label="Voir">
+              <button type="button" className="text-ink-muted" aria-label="Voir">
                 <Eye className="size-3.5" />
               </button>
             </li>
@@ -565,38 +571,38 @@ function ListeDocs({
           <button
             type="button"
             onClick={onRetour}
-            className="mt-1 flex size-8 items-center justify-center rounded-[10px] border border-[#e5e7eb] text-[#4a5565]"
+            className="mt-1 flex size-8 items-center justify-center rounded-card border border-line text-ink-body"
             aria-label="Retour"
           >
             <ChevronLeft className="size-3.5" />
           </button>
           <div>
-            <h2 className="text-lg text-[#1e2939]">{titre}</h2>
-            <p className="text-xs text-[#99a1af]">{sousTitre}</p>
+            <h2 className="text-lg text-ink">{titre}</h2>
+            <p className="text-xs text-ink-muted">{sousTitre}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">{actionsEntete}</div>
       </div>
 
-      <div className="overflow-hidden rounded-[10px] border border-[#e5e7eb] bg-white">
+      <div className="overflow-hidden rounded-card border border-line bg-white">
         {onglets}
         {bandeau && (
-          <p className="border-b border-[#f3f4f6] bg-[#f9fafb]/60 px-5 py-2.5 text-xs text-[#99a1af]">
+          <p className="border-b border-surface-soft bg-surface/60 px-5 py-2.5 text-xs text-ink-muted">
             {bandeau}
           </p>
         )}
-        <div className="space-y-2 border-b border-[#f3f4f6] p-4">
+        <div className="space-y-2 border-b border-surface-soft p-4">
           <div className="flex gap-2">
             <BtnOutline onClick={onFiltres}>
               <Home className="size-2.5" /> Tous
             </BtnOutline>
-            <label className="flex h-[34px] flex-1 items-center gap-2 rounded-[10px] border border-[#e5e7eb] px-3">
-              <Search className="size-3 text-[#99a1af]" />
+            <label className="flex h-[34px] flex-1 items-center gap-2 rounded-card border border-line px-3">
+              <Search className="size-3 text-ink-muted" />
               <input
                 value={recherche}
                 onChange={(e) => onRecherche(e.target.value)}
                 placeholder="Rechercher un document…"
-                className="h-full w-full bg-transparent text-xs text-[#1e2939] outline-none placeholder:text-[#99a1af]"
+                className="h-full w-full bg-transparent text-xs text-ink outline-none placeholder:text-ink-muted"
               />
             </label>
           </div>
@@ -609,9 +615,9 @@ function ListeDocs({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <ScrollHint>
           <table className="w-full min-w-[900px] text-left text-xs">
-            <thead className="border-b border-[#f3f4f6] text-[#6a7282]">
+            <thead className="border-b border-surface-soft text-ink-subtle">
               <tr>
                 <th className="w-12 px-4 py-3">
                   <input
@@ -633,7 +639,7 @@ function ListeDocs({
             </thead>
             <tbody>
               {docs.map((d) => (
-                <tr key={d.id} className="border-b border-[#f3f4f6] last:border-b-0">
+                <tr key={d.id} className="border-b border-surface-soft last:border-b-0">
                   <td className="px-4 py-3">
                     <input
                       type="checkbox"
@@ -643,9 +649,9 @@ function ListeDocs({
                     />
                   </td>
                   <td className="px-2 py-3">
-                    <span className="inline-flex items-center gap-2 text-sm text-[#1e2939]">
-                      <span className="flex size-7 items-center justify-center rounded-[8px] bg-[#f3f4f6]">
-                        <FileText className="size-3 text-[#4a5565]" />
+                    <span className="inline-flex items-center gap-2 text-sm text-ink">
+                      <span className="flex size-7 items-center justify-center rounded-[8px] bg-surface-soft">
+                        <FileText className="size-3 text-ink-body" />
                       </span>
                       {d.titre}
                     </span>
@@ -653,21 +659,21 @@ function ListeDocs({
                   <td className="px-2 py-3">
                     <BadgeType>{d.type}</BadgeType>
                   </td>
-                  <td className="px-2 py-3 text-[#4a5565]">{d.logement}</td>
-                  <td className="px-2 py-3 text-[#4a5565]">{d.date}</td>
-                  <td className="px-2 py-3 text-[#4a5565]">{d.taille}</td>
-                  <td className="px-2 py-3 text-[#4a5565]">{d.modifiePar}</td>
+                  <td className="px-2 py-3 text-ink-body">{d.logement}</td>
+                  <td className="px-2 py-3 text-ink-body">{d.date}</td>
+                  <td className="px-2 py-3 text-ink-body">{d.taille}</td>
+                  <td className="px-2 py-3 text-ink-body">{d.modifiePar}</td>
                   <td className="px-2 py-3">
                     {d.photos > 0 ? (
                       <button
                         type="button"
                         onClick={() => onPhotos(d.titre)}
-                        className="inline-flex items-center gap-1 text-[#4a5565]"
+                        className="inline-flex items-center gap-1 text-ink-body"
                       >
                         <Camera className="size-3" /> {d.photos}
                       </button>
                     ) : (
-                      <span className="text-[#99a1af]">—</span>
+                      <span className="text-ink-muted">—</span>
                     )}
                   </td>
                   <td className="px-2 py-3">
@@ -677,21 +683,22 @@ function ListeDocs({
                         onClick={() =>
                           d.titre.includes("intervention") ? onFiche() : onPhotos(d.titre)
                         }
-                        className="flex size-7 items-center justify-center rounded-[8px] text-[#4a5565]"
+                        className="flex size-7 items-center justify-center rounded-[8px] text-ink-body"
                         aria-label="Voir"
                       >
                         <Eye className="size-3.5" />
                       </button>
                       <button
                         type="button"
-                        className="flex size-7 items-center justify-center rounded-[8px] text-[#4a5565]"
+                        onClick={() => telechargerDemo(`${d.titre}.txt`)}
+                        className="flex size-7 items-center justify-center rounded-[8px] text-ink-body"
                         aria-label="Télécharger"
                       >
                         <Download className="size-3.5" />
                       </button>
                       <button
                         type="button"
-                        className="flex size-7 items-center justify-center rounded-[8px] text-[#4a5565]"
+                        className="flex size-7 items-center justify-center rounded-[8px] text-ink-body"
                         aria-label="Supprimer"
                       >
                         <Trash2 className="size-3.5" />
@@ -702,9 +709,9 @@ function ListeDocs({
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollHint>
 
-        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-[#f3f4f6] px-4 py-3">
+        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-surface-soft px-4 py-3">
           <div className="flex flex-wrap gap-2">
             <BtnOutline disabled={selection.length === 0}>
               <Trash2 className="size-3" /> Supprimer ({selection.length})
@@ -712,7 +719,7 @@ function ListeDocs({
             <BtnOutline>Extraire la liste</BtnOutline>
             <BtnOutline>Envoyer</BtnOutline>
           </div>
-          <p className="text-xs text-[#99a1af]">{docs.length} documents</p>
+          <p className="text-xs text-ink-muted">{docs.length} documents</p>
         </footer>
       </div>
     </div>
@@ -733,14 +740,14 @@ function InventairePresta({
           <button
             type="button"
             onClick={onRetour}
-            className="mt-1 flex size-8 items-center justify-center rounded-[10px] border border-[#e5e7eb] text-[#4a5565]"
+            className="mt-1 flex size-8 items-center justify-center rounded-card border border-line text-ink-body"
             aria-label="Retour"
           >
             <ChevronLeft className="size-3.5" />
           </button>
           <div>
-            <h2 className="text-lg text-[#1e2939]">Inventaire des prestations</h2>
-            <p className="text-xs text-[#99a1af]">
+            <h2 className="text-lg text-ink">Inventaire des prestations</h2>
+            <p className="text-xs text-ink-muted">
               Photos de preuve déposées par les prestataires après intervention
             </p>
           </div>
@@ -749,28 +756,28 @@ function InventairePresta({
           <Camera className="size-3" /> Nouvelle prestation
         </BtnNavy>
       </div>
-      <p className="mb-4 flex items-start gap-2 rounded-[10px] border border-[#e5e7eb] bg-white px-5 py-3 text-xs text-[#6a7282]">
-        <FileText className="mt-0.5 size-3.5 shrink-0 text-[#99a1af]" />
+      <p className="mb-4 flex items-start gap-2 rounded-card border border-line bg-white px-5 py-3 text-xs text-ink-subtle">
+        <FileText className="mt-0.5 size-3.5 shrink-0 text-ink-muted" />
         Chaque prestataire (ménage, plombier, jardinier…) dépose ici les photos de preuve de
         l'intervention réalisée.
       </p>
       <div className="grid gap-4 md:grid-cols-2">
         {PRESTATIONS_PHOTOS.map((p) => (
-          <article key={p.id} className="overflow-hidden rounded-[10px] border border-[#e5e7eb] bg-white">
+          <article key={p.id} className="overflow-hidden rounded-card border border-line bg-white">
             <div className="flex items-start justify-between p-4">
               <div>
-                <p className="text-sm text-[#1e2939]">{p.titre}</p>
-                <p className="text-xs text-[#99a1af]">{p.lieu}</p>
+                <p className="text-sm text-ink">{p.titre}</p>
+                <p className="text-xs text-ink-muted">{p.lieu}</p>
               </div>
-              <span className="inline-flex items-center gap-1 rounded border border-[#e5e7eb] bg-[#f9fafb] px-2 py-0.5 text-[10px] text-[#4a5565]">
+              <span className="inline-flex items-center gap-1 rounded border border-line bg-surface px-2 py-0.5 text-[10px] text-ink-body">
                 {p.statut}
               </span>
             </div>
-            <div className="flex items-center gap-2 border-t border-[#f3f4f6] px-4 py-2.5 text-xs text-[#6a7282]">
-              <span className="flex size-6 items-center justify-center rounded-full bg-[#e5e7eb] text-[10px]">
+            <div className="flex items-center gap-2 border-t border-surface-soft px-4 py-2.5 text-xs text-ink-subtle">
+              <span className="flex size-6 items-center justify-center rounded-full bg-line text-[10px]">
                 {p.initiales}
               </span>
-              Déposé par <span className="text-[#1e2939]">{p.deposant}</span>
+              Déposé par <span className="text-ink">{p.deposant}</span>
               <button
                 type="button"
                 onClick={() => onPhotos(p.titre)}
@@ -785,7 +792,7 @@ function InventairePresta({
                   key={i}
                   type="button"
                   onClick={() => onPhotos(p.titre)}
-                  className="aspect-square rounded-[8px] bg-[#f3f4f6]"
+                  className="aspect-square rounded-[8px] bg-surface-soft"
                   aria-label={`Photo ${i + 1}`}
                 />
               ))}
