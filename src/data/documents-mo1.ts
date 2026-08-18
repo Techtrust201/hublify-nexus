@@ -5,7 +5,9 @@ export type VueDocuments =
   | "logements"
   | "residents"
   | "proprio"
-  | "inventaire-presta";
+  | "inventaire-presta"
+  | "etats"
+  | "fiches";
 
 export type OngletResident = "locataires" | "voyageurs" | "prestataires";
 
@@ -19,7 +21,7 @@ export type DocMo1 = {
   taille: string;
   modifiePar: string;
   photos: number;
-  vue: Exclude<VueDocuments, "hub">;
+  vue: Exclude<VueDocuments, "hub" | "etats" | "fiches">;
   occupant?: OngletResident;
 };
 

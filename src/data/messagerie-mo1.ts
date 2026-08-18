@@ -489,14 +489,14 @@ export const MEMBRES_MO1: MembreEquipe[] = [
 ];
 
 export const ACTIONS_EN_COURS: ActionEnCours[] = [
-  { id: "ac-1", titre: "Item", quand: "Hier", detail: "Lorem" },
-  { id: "ac-2", titre: "Item", quand: "Hier", detail: "Lorem" },
-  { id: "ac-3", titre: "Item", quand: "Hier", detail: "Lorem" },
+  { id: "ac-1", titre: "Invitation Clara Renard", quand: "Hier", detail: "En attente d'acceptation" },
+  { id: "ac-2", titre: "Invitation Lucas Dune", quand: "Hier", detail: "En attente d'acceptation" },
+  { id: "ac-3", titre: "Droit messagerie", quand: "Aujourd'hui", detail: "À valider pour Frobisher" },
 ];
 
 export const DROIT_PERSONNALISE_INITIAL: DroitPersonnalise = {
-  id: "dp-redris",
-  nom: "Accès à la messagerie du gestionnaire Redris",
+  id: "dp-hublify",
+  nom: "Accès à la messagerie du gestionnaire Hublify",
   description: "Peut gérer les mails, les réponses, et les appels",
   membresIds: ["me-fo", "me-kv", "me-mu", "me-tu", "me-eu", "me-cr", "me-ld"],
 };
