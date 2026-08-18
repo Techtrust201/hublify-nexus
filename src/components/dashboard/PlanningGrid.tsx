@@ -90,8 +90,8 @@ export function PlanningGrid({
 
   return (
     <div className="overflow-hidden rounded-card border border-line bg-white">
-      <div className="flex items-center justify-between border-b border-line px-4">
-        <div className="flex">
+      <div className="flex min-w-0 items-center justify-between border-b border-line px-4">
+        <div className="min-w-0 flex-1 overflow-x-auto">
           {(
             [
               ["missions", "Missions"],
@@ -104,7 +104,7 @@ export function PlanningGrid({
               type="button"
               onClick={() => onOnglet(id)}
               className={cn(
-                "h-[46px] border-b-2 px-4 text-sm font-medium capitalize",
+                "h-[46px] shrink-0 whitespace-nowrap border-b-2 px-4 text-sm font-medium capitalize",
                 onglet === id
                   ? "border-ink text-ink-deep"
                   : "border-transparent text-ink-subtle",

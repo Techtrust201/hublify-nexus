@@ -96,7 +96,7 @@ export function PlanningReservations({
 
   return (
     <div className="overflow-hidden rounded-card border border-line bg-white">
-      <div className="flex items-center border-b border-line px-4">
+      <div className="flex min-w-0 items-center overflow-x-auto border-b border-line px-4">
         {(
           [
             ["missions", "Missions"],
@@ -109,7 +109,7 @@ export function PlanningReservations({
             type="button"
             onClick={() => allerOnglet(id)}
             className={cn(
-              "h-[46px] border-b-2 px-4 text-sm font-medium capitalize",
+              "h-[46px] shrink-0 whitespace-nowrap border-b-2 px-4 text-sm font-medium capitalize",
               id === "reservations"
                 ? "border-ink text-ink-deep"
                 : "border-transparent text-ink-subtle",

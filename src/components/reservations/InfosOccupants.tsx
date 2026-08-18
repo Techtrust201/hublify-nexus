@@ -1,5 +1,10 @@
 import { LogIn, LogOut } from "lucide-react";
 import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   bienParId,
   formatJourCourt,
   formatMontant,
@@ -24,21 +29,22 @@ export function InfosOccupants({
     paiement === "paye" ? "Payé" : paiement === "partiel" ? "Partiel" : "Impayé";
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-ink/40 p-4">
-      <div
-        role="dialog"
-        aria-labelledby="infos-occupant-titre"
-        className="w-full max-w-[480px] overflow-hidden rounded-card border border-line bg-white shadow-lg"
-      >
+    <Dialog
+      open
+      onOpenChange={(ouvert) => {
+        if (!ouvert) onFermer();
+      }}
+    >
+      <DialogContent className="max-w-[480px] gap-0 overflow-hidden rounded-card border-line p-0 sm:rounded-card">
         <header className="flex items-center justify-between border-b border-surface-soft px-5 py-4">
           <div className="flex items-center gap-3">
             <span className="flex size-8 items-center justify-center rounded-full bg-line text-xs text-ink-body">
               {reservation.initiales}
             </span>
             <div>
-              <p id="infos-occupant-titre" className="text-sm text-ink">
+              <DialogTitle className="text-sm font-medium text-ink">
                 {reservation.occupant}
-              </p>
+              </DialogTitle>
               <p className="text-xs text-ink-muted">{bien?.nom}</p>
             </div>
           </div>
@@ -114,19 +120,19 @@ export function InfosOccupants({
           <button
             type="button"
             onClick={onFermer}
-            className="h-[30px] rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body"
+            className="h-11 min-h-11 rounded border border-line-strong bg-white px-3 text-sm font-medium text-ink-body md:h-[30px] md:min-h-[30px] md:text-xs"
           >
             Fermer
           </button>
           <button
             type="button"
             onClick={onModifier}
-            className="h-[30px] rounded bg-ink px-3 text-xs font-medium text-white"
+            className="h-11 min-h-11 rounded bg-ink px-3 text-sm font-medium text-white md:h-[30px] md:min-h-[30px] md:text-xs"
           >
             Modifier la réservation
           </button>
         </footer>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
