@@ -86,7 +86,12 @@ export function DocumentsApp() {
   );
 
   const docsFiltres = useMemo(() => {
-    let list = DOCS_MO1.filter((d) => d.vue === vue);
+    let list =
+      vue === "etats"
+        ? DOCS_MO1.filter((d) => d.filtre === "États des lieux")
+        : vue === "fiches"
+          ? DOCS_MO1.filter((d) => d.filtre === "Fiches accès")
+          : DOCS_MO1.filter((d) => d.vue === vue);
     if (vue === "residents") list = list.filter((d) => d.occupant === onglet);
     if (typeFiltre !== "Tous") list = list.filter((d) => d.filtre === typeFiltre);
     if (logementFiltre !== "Tous") list = list.filter((d) => d.logement === logementFiltre);
@@ -256,6 +261,34 @@ export function DocumentsApp() {
         <InventairePresta onRetour={() => aller("hub")} onPhotos={(t) => setPhotos(t)} />
       )}
 
+      {(vue === "etats" || vue === "fiches") && (
+        <ListeDocs
+          titre={vue === "etats" ? "États des lieux" : "Fiches d'accès"}
+          sousTitre={
+            vue === "etats"
+              ? "Créer, comparer et archiver les états des lieux d'entrée et de sortie"
+              : "Codes, instructions et contacts d'urgence par logement"
+          }
+          filtres={vue === "etats" ? ["Tous", "États des lieux"] : ["Tous", "Fiches accès"]}
+          docs={docsFiltres}
+          recherche={recherche}
+          onRecherche={setRecherche}
+          typeFiltre={typeFiltre}
+          onType={setTypeFiltre}
+          selection={selection}
+          onSelection={setSelection}
+          onFiltres={() => setFiltresOuverts(true)}
+          onRetour={() => aller("hub")}
+          actionsEntete={
+            <BtnOutline>
+              <Upload className="size-3" /> Importer
+            </BtnOutline>
+          }
+          onFiche={() => setFiche(true)}
+          onPhotos={(t) => setPhotos(t)}
+        />
+      )}
+
       <GenerateQuittanceDialog ouvert={quittance} onClose={() => setQuittance(false)} />
       <GenerateAvisDialog ouvert={avis} onClose={() => setAvis(false)} />
       <FicheInterventionDialog ouvert={fiche} onClose={() => setFiche(false)} />
@@ -282,6 +315,8 @@ function FilAriane({ vue, onHub }: { vue: VueDocuments; onHub: () => void }) {
     residents: "Résidents & Prestataires",
     proprio: "Documents Propriétaires",
     "inventaire-presta": "Inventaire des prestations",
+    etats: "États des lieux",
+    fiches: "Fiches d'accès",
   };
   return (
     <p className="mb-4 flex items-center gap-2 text-xs text-[#99a1af]">
@@ -336,6 +371,7 @@ function Hub({
       desc: "Créer, comparer et archiver les états des lieux d'entrée et de sortie",
       n: 34,
       icone: FileText,
+      vue: "etats" as const,
     },
     {
       titre: "Documents Propriétaires",
@@ -349,6 +385,7 @@ function Hub({
       desc: "Codes, instructions et contacts d'urgence par logement",
       n: 8,
       icone: Lock,
+      vue: "fiches" as const,
     },
     {
       titre: "Inventaire des prestations",
@@ -419,19 +456,13 @@ function Hub({
             </div>
             <h2 className="mt-4 text-sm font-medium text-[#1e2939]">{c.titre}</h2>
             <p className="mt-1 text-xs text-[#6a7282]">{c.desc}</p>
-            {c.vue ? (
-              <button
-                type="button"
-                onClick={() => onAcceder(c.vue)}
-                className="mt-4 inline-flex items-center gap-1 text-xs text-[#4a5565]"
-              >
-                Accéder <ArrowRight className="size-2.5" />
-              </button>
-            ) : (
-              <span className="mt-4 inline-flex w-fit rounded border border-[#e5e7eb] bg-[#f9fafb] px-2.5 py-1 text-[10px] text-[#99a1af]">
-                Bientôt disponible
-              </span>
-            )}
+            <button
+              type="button"
+              onClick={() => onAcceder(c.vue)}
+              className="mt-4 inline-flex items-center gap-1 text-xs text-[#4a5565]"
+            >
+              Accéder <ArrowRight className="size-2.5" />
+            </button>
           </article>
         ))}
       </div>

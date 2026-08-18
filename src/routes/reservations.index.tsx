@@ -1,10 +1,26 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Plus, Search } from "lucide-react";
 import { useState } from "react";
-import { AccordeonsBas, KpiReservations } from "@/components/reservations/KpiEtAccordeons";
+import {
+  CreateEventDialog,
+  QuittanceDialog,
+} from "@/components/dashboard/DashboardDialogs";
+import {
+  EvenementsSection,
+  LoyersSection,
+  MessagesSection,
+} from "@/components/dashboard/DashboardSections";
+import { KpiReservations } from "@/components/reservations/KpiEtAccordeons";
 import { PlanningReservations } from "@/components/reservations/PlanningReservations";
 import { TableauReservations } from "@/components/reservations/TableauReservations";
 import { AppShell } from "@/components/layout/AppShell";
+import {
+  EVENEMENTS_MO1,
+  LOYERS_MO1,
+  MESSAGES_MO1,
+  type EvenementMo1,
+  type LoyerMo1,
+} from "@/data/planning-mo1";
 import { BIENS_MO1 } from "@/data/reservations-mo1";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +50,10 @@ function PageReservations() {
     void navigate({ search: { vue: v } });
   };
   const [recherche, setRecherche] = useState("");
+  const [loyers, setLoyers] = useState<LoyerMo1[]>(LOYERS_MO1);
+  const [evenements, setEvenements] = useState<EvenementMo1[]>(EVENEMENTS_MO1);
+  const [loyerQuittance, setLoyerQuittance] = useState<LoyerMo1 | null>(null);
+  const [creerEvent, setCreerEvent] = useState(false);
 
   const resultats = recherche.trim()
     ? BIENS_MO1.filter(
@@ -136,7 +156,38 @@ function PageReservations() {
         <PlanningReservations onVoirListe={() => setVue("liste")} />
       </div>
 
-      <AccordeonsBas />
+      <MessagesSection messages={MESSAGES_MO1} />
+      <LoyersSection
+        loyers={loyers}
+        onValider={(id) =>
+          setLoyers((list) => list.map((l) => (l.id === id ? { ...l, valide: true } : l)))
+        }
+        onQuittance={(id) => {
+          const l = loyers.find((x) => x.id === id);
+          if (l) setLoyerQuittance(l);
+        }}
+      />
+      <EvenementsSection evenements={evenements} onAjouter={() => setCreerEvent(true)} />
+
+      <QuittanceDialog
+        loyer={loyerQuittance}
+        ouvert={Boolean(loyerQuittance)}
+        onFermer={() => setLoyerQuittance(null)}
+        onConfirmer={() => {
+          if (!loyerQuittance) return;
+          setLoyers((list) =>
+            list.map((l) =>
+              l.id === loyerQuittance.id ? { ...l, valide: true, quittance: true } : l,
+            ),
+          );
+          setLoyerQuittance(null);
+        }}
+      />
+      <CreateEventDialog
+        ouvert={creerEvent}
+        onFermer={() => setCreerEvent(false)}
+        onCreer={(e) => setEvenements((list) => [e, ...list])}
+      />
     </AppShell>
   );
 }

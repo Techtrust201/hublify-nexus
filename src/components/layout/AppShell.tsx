@@ -152,7 +152,12 @@ export function AppShell({
             );
           })}
 
-          <p className="px-3 pt-4 text-xs uppercase tracking-[0.3px] text-[#99a1af]">Team mate</p>
+          <Link
+            to="/team"
+            className="block px-3 pt-4 text-xs uppercase tracking-[0.3px] text-[#99a1af] hover:text-[#4a5565]"
+          >
+            Team mate
+          </Link>
           {TEAM.map((m) => (
             <Link
               key={m.id}

@@ -32,11 +32,13 @@ const OUTILS = [
     titre: "Je débute",
     texte: "Parcours guidé : créer un bien, une réservation, puis une première mission.",
     icone: Info,
+    vers: "/patrimoines" as const,
   },
   {
     titre: "Je découvre",
     texte: "Tous les modules de la maquette : planning, documents, messagerie, tarifs.",
     icone: Wrench,
+    vers: "/" as const,
   },
 ];
 

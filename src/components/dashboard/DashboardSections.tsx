@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type { CanalMo1, EvenementMo1, LoyerMo1, MessageMo1 } from "@/data/planning-mo1";
-import { cn } from "@/lib/utils";
+import { cn, useSessionBool } from "@/lib/utils";
 
 export function KpiCards() {
   return (
@@ -97,7 +97,7 @@ function CarteKpi({
 }
 
 export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
-  const [ouvert, setOuvert] = useState(true);
+  const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.messages", true);
   const [canal, setCanal] = useState<CanalMo1>("occupants");
   const filtres = messages.filter((m) => m.canal === canal);
 
@@ -171,7 +171,7 @@ export function LoyersSection({
   onValider: (id: string) => void;
   onQuittance: (id: string) => void;
 }) {
-  const [ouvert, setOuvert] = useState(true);
+  const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.loyers", true);
   const total = loyers.reduce((s, l) => s + l.montant, 0);
 
   return (
@@ -271,7 +271,7 @@ export function EvenementsSection({
   evenements: EvenementMo1[];
   onAjouter: () => void;
 }) {
-  const [ouvert, setOuvert] = useState(true);
+  const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.evenements", true);
 
   return (
     <section className="mt-4 overflow-hidden rounded-[10px] border border-[#e5e7eb] bg-white">
