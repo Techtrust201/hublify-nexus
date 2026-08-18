@@ -36,6 +36,8 @@ dist-ssr
 .workspace/
 .vercel
 
+docs/audit/*.png
+
 # Maquettes locales (ne pas versionner)
 *.fig
 .cursor-fig-thumb.png

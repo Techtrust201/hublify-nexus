@@ -18,7 +18,7 @@ Ces points **ne sont pas « corrigés »** : les changer casserait la fidélité
 | Seuil chrome | **1024 px (`lg`)** unique | Ferme le trou 640–767. Sidebar desktop inchangée au-dessus. |
 | Nav mobile | Drawer Sheet 255 px, overlay `bg-ink/40` | Réplique la sidebar ; overlay plus proche navy MO1 que `black/80` shadcn. |
 | Vue générale desktop | Dropdown header **conservé** | Le drawer mobile liste Missions/Tarifs. Desktop : menu existant. |
-| Outils dans la sidebar | Liens Modèles / Vue annuelle / Inventaire **aussi** en sidebar | Sinon le drawer et la sidebar divergeraient. Desktop gagne 3 liens ; dropdown « Outils » reste. |
+| Outils sidebar vs drawer | Desktop : uniquement « En savoir plus » → `/outils` (maquette). Drawer mobile : liste complète (Modèles, Vue annuelle, Inventaire). | Les 3 liens extra en sidebar desktop ont été retirés — absents de la maquette. |
 | Planning mobile | Scroll X + `scroll-snap`, **pas** de vue jour | Une vue jour changerait l’architecture de l’information. |
 | Colonne biens | `sticky left-0` fond blanc | Reste lisible pendant le scroll des jours. |
 | Tables Occupants / Réservations | Cartes empilées **&lt; 768 px** | Usage : une ligne = une personne / une resa. |

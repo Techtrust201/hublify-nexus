@@ -5,22 +5,12 @@ import path from "node:path";
 const BASE = "http://127.0.0.1:8080";
 const OUT = path.resolve("docs/audit");
 
+/** Paires de référence (PNG gitignorés). Relancer avec le serveur local. */
 const shots = [
-  { name: "after-01-dashboard-320", url: "/", w: 320, h: 844 },
-  { name: "after-02-dashboard-375", url: "/", w: 375, h: 812 },
-  { name: "after-03-reservations-375", url: "/reservations", w: 375, h: 812 },
-  { name: "after-04-messagerie-375", url: "/messagerie", w: 375, h: 812 },
-  { name: "after-05-occupants-375", url: "/occupants", w: 375, h: 812 },
-  { name: "after-06-documents-375", url: "/documents", w: 375, h: 812 },
-  { name: "after-07-dashboard-810", url: "/", w: 810, h: 1080 },
-  { name: "after-08-dashboard-1440", url: "/", w: 1440, h: 900 },
-  { name: "after-09-reservations-768", url: "/reservations", w: 768, h: 1024 },
-  { name: "after-10-occupants-1440", url: "/occupants", w: 1440, h: 900 },
-  { name: "after-11-messagerie-1440", url: "/messagerie", w: 1440, h: 900 },
-  { name: "after-12-team-375", url: "/team", w: 375, h: 812 },
-  { name: "after-13-profil-375", url: "/profil", w: 375, h: 812 },
-  { name: "after-14-outils-375", url: "/outils", w: 375, h: 812 },
-  { name: "after-15-vue-annuelle-375", url: "/outils/vue-annuelle", w: 375, h: 812 },
+  { name: "after-dashboard-375", url: "/", w: 375, h: 812 },
+  { name: "after-occupants-375", url: "/occupants", w: 375, h: 812 },
+  { name: "after-messagerie-375", url: "/messagerie", w: 375, h: 812 },
+  { name: "after-dashboard-1440", url: "/", w: 1440, h: 900 },
 ];
 
 async function measure(page) {
@@ -53,24 +43,6 @@ for (const s of shots) {
   report.push({ ...s, ...m });
   await page.close();
 }
-
-const page = await browser.newPage({ viewport: { width: 375, height: 812 } });
-await page.goto(`${BASE}/messagerie`, { waitUntil: "load", timeout: 20_000 });
-await page.waitForTimeout(300);
-const conv = page.locator("main aside button").filter({ hasNotText: "Écrire" }).nth(1);
-if (await conv.count()) {
-  await conv.click();
-  await page.waitForTimeout(300);
-  await page.screenshot({
-    path: path.join(OUT, "after-04b-messagerie-fil-375.png"),
-    fullPage: false,
-  });
-  report.push({
-    name: "after-04b-messagerie-fil-375",
-    ...(await measure(page)),
-  });
-}
-await page.close();
 
 console.log(JSON.stringify(report, null, 2));
 await browser.close();

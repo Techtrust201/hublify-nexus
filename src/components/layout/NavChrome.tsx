@@ -203,9 +203,12 @@ export function NavChrome({
         ))}
 
         <p className="px-3 pt-4 text-xs uppercase tracking-[0.3px] text-ink-muted">Tous les outils</p>
-        {OUTILS.map((o) => (
+        {(mobile
+          ? OUTILS
+          : [{ titre: "En savoir plus", url: "/outils", icone: Info }]
+        ).map((o) => (
           <Link
-            key={o.url}
+            key={o.url + o.titre}
             to={o.url}
             onClick={onNavigate}
             className={cn(lien, "gap-2", estActif(pathname, o.url) && "bg-surface-soft text-ink")}

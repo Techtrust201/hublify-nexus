@@ -1,10 +1,10 @@
 # QA — Recette responsive
 
-Branche `feat/responsive-ux`. Date : 18 août 2026. Captures : `docs/audit/` (avant = numéros 01–07 ; après = `after-*`).
+Branche `feat/responsive-ux`. Date : 18 août 2026. Captures PNG **non versionnées** (`docs/audit/*.png` dans `.gitignore`). Paires de référence locales : dashboard-375, occupants-375, messagerie-375, dashboard-1440. Régénération : `node docs/audit/capture-after.mjs`.
 
 ## Automate (à relancer)
 
-Script Playwright `docs/audit/capture-after.mjs` : overflow page, captures 320 / 375 / 768 / 810 / 1440.
+Script Playwright `docs/audit/capture-after.mjs` : overflow page + 4 paires (dashboard 375/1440, occupants 375, messagerie 375).
 
 Critères bloquants par écran :
 

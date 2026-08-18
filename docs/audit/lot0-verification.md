@@ -6,7 +6,7 @@ Date : 18 août 2026. Comparaison tokens vs hex MO1.
 
 1. Mapping 1:1 hex → CSS custom properties (`--ink: #1e2939`, `--line: #e5e7eb`, etc.).
 2. Mesure `getComputedStyle` après remplacement, viewports 375 et 1440.
-3. Capture dashboard 1440 : `docs/audit/lot0-dashboard-1440.png` (après). Captures audit initial = avant.
+3. Captures dashboard 1440 : `docs/audit/avant-dashboard-1440.png` / `after-dashboard-1440.png` (non versionnées, voir `capture-after.mjs`).
 
 ## Couleurs mesurées (doivent être identiques)
 
