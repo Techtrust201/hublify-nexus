@@ -51,19 +51,19 @@ export function FilConversation({
 }) {
   return (
     <section className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <header className="relative flex items-center gap-3 border-b border-[#f3f4f6] px-4 py-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#e5e7eb] text-xs text-[#4a5565]">
+      <header className="relative flex items-center gap-3 border-b border-surface-soft px-4 py-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-line text-xs text-ink-body">
           {conversation.initiales}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm text-[#1e2939]">{conversation.nom}</p>
-            <span className="rounded border border-[#e5e7eb] bg-[#f9fafb] px-1.5 py-0.5 text-[10px] text-[#6a7282]">
+            <p className="text-sm text-ink">{conversation.nom}</p>
+            <span className="rounded border border-line bg-surface px-1.5 py-0.5 text-[10px] text-ink-subtle">
               {conversation.badge}
             </span>
           </div>
           {conversation.bienNom && (
-            <p className="truncate text-xs text-[#99a1af]">{conversation.bienNom}</p>
+            <p className="truncate text-xs text-ink-muted">{conversation.bienNom}</p>
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -105,13 +105,13 @@ export function FilConversation({
         {enfantsPanneau}
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-[rgba(249,250,251,0.3)] p-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-[color-mix(in srgb, var(--surface) 30%, transparent)] p-4">
         {messages.map((m) => {
           if (m.kind === "systeme") {
             const Icone = m.iconeSysteme ? ICONE_SYS[m.iconeSysteme] : LogIn;
             return (
               <div key={m.id} className="flex justify-center">
-                <p className="inline-flex items-center gap-2 rounded-full border border-[#e5e7eb] bg-white px-3 py-1.5 text-[10px] text-[#6a7282] shadow-sm">
+                <p className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-3 py-1.5 text-[10px] text-ink-subtle shadow-sm">
                   <Icone className="size-2.5 shrink-0" />
                   {m.texte}
                 </p>
@@ -128,8 +128,8 @@ export function FilConversation({
                 className={cn(
                   "max-w-[70%] whitespace-pre-line rounded-[16px] px-3.5 py-2.5 text-xs leading-[19.5px]",
                   envoye
-                    ? "rounded-tr-md bg-[#1e2939] text-white"
-                    : "rounded-tl-md border border-[#e5e7eb] bg-white text-[#364153] shadow-sm",
+                    ? "rounded-tr-md bg-ink text-white"
+                    : "rounded-tl-md border border-line bg-white text-ink-status shadow-sm",
                 )}
               >
                 {m.texte}
@@ -139,24 +139,24 @@ export function FilConversation({
                   {m.pieces.map((p) => (
                     <span
                       key={p.nom}
-                      className="inline-flex items-center gap-1.5 rounded-[10px] border border-[#e5e7eb] bg-white px-2.5 py-1.5"
+                      className="inline-flex items-center gap-1.5 rounded-card border border-line bg-white px-2.5 py-1.5"
                     >
-                      <File className="size-3 text-[#4a5565]" />
-                      <span className="max-w-[140px] truncate text-xs text-[#4a5565]">{p.nom}</span>
-                      <span className="text-[10px] text-[#99a1af]">{p.taille}</span>
-                      <Download className="size-2.5 text-[#99a1af]" />
+                      <File className="size-3 text-ink-body" />
+                      <span className="max-w-[140px] truncate text-xs text-ink-body">{p.nom}</span>
+                      <span className="text-[10px] text-ink-muted">{p.taille}</span>
+                      <Download className="size-2.5 text-ink-muted" />
                     </span>
                   ))}
                 </div>
               )}
-              {m.heure && <span className="px-1 text-[10px] text-[#99a1af]">{m.heure}</span>}
+              {m.heure && <span className="px-1 text-[10px] text-ink-muted">{m.heure}</span>}
             </div>
           );
         })}
       </div>
 
       <form
-        className="border-t border-[#e5e7eb] bg-white px-3 py-2.5"
+        className="border-t border-line bg-white px-3 py-2.5"
         onSubmit={(e) => {
           e.preventDefault();
           onEnvoyer();
@@ -165,7 +165,7 @@ export function FilConversation({
         <div className="flex items-end gap-2">
           <button
             type="button"
-            className="flex size-8 shrink-0 items-center justify-center rounded-[14px] border border-[#e5e7eb] text-[#4a5565]"
+            className="flex size-8 shrink-0 items-center justify-center rounded-[14px] border border-line text-ink-body"
             aria-label="Joindre un fichier"
           >
             <Paperclip className="size-3.5" />
@@ -174,19 +174,19 @@ export function FilConversation({
             value={brouillon}
             onChange={(e) => onBrouillon(e.target.value)}
             placeholder="Écrire un message…"
-            className="h-[34px] min-w-0 flex-1 rounded-[14px] border border-[#e5e7eb] px-3 text-xs text-[#1e2939] outline-none placeholder:text-[#d1d5dc]"
+            className="h-[34px] min-w-0 flex-1 rounded-[14px] border border-line px-3 text-xs text-ink outline-none placeholder:text-line-strong"
           />
           <button
             type="submit"
             disabled={!brouillon.trim()}
-            className="flex size-8 shrink-0 items-center justify-center rounded-[14px] bg-[#1e2939] text-white disabled:opacity-40"
+            className="flex size-8 shrink-0 items-center justify-center rounded-[14px] bg-ink text-white disabled:opacity-40"
             aria-label="Envoyer"
           >
             <Send className="size-3.5" />
           </button>
           <button
             type="button"
-            className="flex size-8 shrink-0 items-center justify-center rounded-[14px] border border-[#e5e7eb] text-[#4a5565]"
+            className="flex size-8 shrink-0 items-center justify-center rounded-[14px] border border-line text-ink-body"
             aria-label="Modèles"
           >
             <Bot className="size-3.5" />
@@ -214,8 +214,8 @@ function BoutonOutil({
       aria-label={label}
       onClick={onClick}
       className={cn(
-        "flex size-7 items-center justify-center rounded-[10px] border border-[#e5e7eb] text-[#4a5565]",
-        actif && "bg-[#f3f4f6]",
+        "flex size-7 items-center justify-center rounded-card border border-line text-ink-body",
+        actif && "bg-surface-soft",
       )}
     >
       {children}

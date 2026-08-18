@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { ajouterPrestataire } from "@/data/store";
+import { toastOk } from "@/lib/feedback";
 import type { CategoriePrestataire } from "@/data/types";
 
 export const Route = createFileRoute("/prestataires/nouveau")({
@@ -50,6 +51,7 @@ function AjoutPrestataire() {
   const soumettre = (e: React.FormEvent) => {
     e.preventDefault();
     const id = ajouterPrestataire({ ...form, note: 0 });
+    toastOk("Prestataire enregistré.");
     navigate({ to: "/prestataires/$prestataireId", params: { prestataireId: id } });
   };
 

@@ -10,8 +10,9 @@
  * The @theme inline block maps CSS custom properties to Tailwind utility
  * classes (e.g. --color-primary -> bg-primary, text-primary).
  *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
+ * The :root and .dark blocks define shadcn colors in oklch.
+ * The palette MO1 (--surface, --ink, --line…) uses hex exacts from the maquette.
+ * Do not mix the two in feature screens: MO1 hex tokens win for chrome métier.
  *
  * To add a new semantic color:
  * 1. Add the variable to :root (light value) and .dark (dark value)
@@ -20,6 +21,44 @@
 
 @theme inline {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /*
+   * Tokens MO1 (source de vérité visuelle). Hex exacts de la maquette.
+   * Utilitaires : bg-surface, text-ink, border-line, rounded-card, z-sticky…
+   */
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-soft: var(--surface-soft);
+  --color-ink: var(--ink);
+  --color-ink-deep: var(--ink-deep);
+  --color-ink-body: var(--ink-body);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-ink-header: var(--ink-header);
+  --color-ink-filter: var(--ink-filter);
+  --color-ink-status: var(--ink-status);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-line-table: var(--line-table);
+  --color-chip-success: var(--chip-success);
+  --color-chip-success-fg: var(--chip-success-fg);
+  --color-chip-warning: var(--chip-warning);
+  --color-chip-warning-fg: var(--chip-warning-fg);
+  --color-chip-danger: var(--chip-danger);
+  --color-chip-danger-fg: var(--chip-danger-fg);
+  --color-chip-info: var(--chip-info);
+  --color-chip-info-fg: var(--chip-info-fg);
+  --color-dot-arrivee: var(--dot-arrivee);
+  --color-dot-depart: var(--dot-depart);
+  --color-dot-edit: var(--dot-edit);
+  --color-star: var(--star);
+  --radius-card: 0.625rem;
+  --z-index-sticky: 10;
+  --z-index-dropdown: 20;
+  --z-index-overlay: 40;
+  --z-index-modal: 50;
+  --z-index-toast: 60;
+
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-soft: var(--brand-soft);
@@ -77,6 +116,44 @@
 
 :root {
   --radius: 0.75rem;
+  --radius-card: 0.625rem; /* 10px — cartes et boutons MO1 */
+
+  --z-sticky: 10;
+  --z-dropdown: 20;
+  --z-overlay: 40;
+  --z-modal: 50;
+  --z-toast: 60;
+
+  /*
+   * Palette MO1 — hex exacts. Si un token oklch shadcn diverge, le hex gagne ici.
+   * Ne pas réutiliser --primary / --border oklch dans les écrans maquette.
+   */
+  --surface: #f9fafb;
+  --surface-elevated: #ffffff;
+  --surface-soft: #f3f4f6;
+  --ink: #1e2939;
+  --ink-deep: #101828;
+  --ink-body: #4a5565;
+  --ink-muted: #99a1af;
+  --ink-subtle: #6a7282;
+  --ink-header: #667085;
+  --ink-filter: #24292f;
+  --ink-status: #364153;
+  --line: #e5e7eb;
+  --line-strong: #d1d5dc;
+  --line-table: #eaecf0;
+  --chip-success: #dcfce7;
+  --chip-success-fg: #008236;
+  --chip-warning: #ffedd4;
+  --chip-warning-fg: #ca3500;
+  --chip-danger: #ffe2e2;
+  --chip-danger-fg: #c10007;
+  --chip-info: #eff6ff;
+  --chip-info-fg: #2563eb;
+  --dot-arrivee: #22c55e;
+  --dot-depart: #ef4444;
+  --dot-edit: #f97316;
+  --star: #facc15;
 
   /* Maquette MO1 : navy pour l'actif, fond page gris très clair. */
   --brand: oklch(0.32 0.05 264);
@@ -167,9 +244,30 @@
     border-color: var(--color-border);
   }
 
+  html {
+    overflow-x: clip;
+  }
+
   body {
     font-family: var(--font-sans);
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    background-color: var(--surface);
+    color: var(--ink);
+    overflow-wrap: anywhere;
+    min-height: 100dvh;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms;
+      animation-iteration-count: 1;
+      transition-duration: 0.01ms;
+      scroll-behavior: auto;
+    }
   }
 }

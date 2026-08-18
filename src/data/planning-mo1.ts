@@ -381,7 +381,7 @@ export const EVENEMENTS_MO1: EvenementMo1[] = [
     id: "ev1",
     titre: "Festival de Jazz de Paris",
     lieu: "Paris · à 2km de Villa Lavandrix",
-    dates: "27 avril – 2 mai 2025",
+    dates: "27 avril – 2 mai 2026",
     impact: "Fort impact",
     description:
       "Grande affluence attendue. Vos propriétés à Paris pourraient bénéficier d'une forte demande.",
@@ -398,7 +398,7 @@ export const EVENEMENTS_MO1: EvenementMo1[] = [
     id: "ev3",
     titre: "Salon de l'Immobilier",
     lieu: "Paris Expo Porte de Versailles · à 4km",
-    dates: "19-20 avril 2025",
+    dates: "19-20 avril 2026",
     impact: "Opportunité",
     description: "Augmentation des réservations courtes durées, 3 demandes reçues cette semaine.",
   },

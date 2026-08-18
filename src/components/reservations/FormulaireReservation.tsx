@@ -6,12 +6,15 @@ import {
   COULEURS_RESERVATION,
   OCCUPANTS_MO1,
   TYPES_RESERVATION,
+  type PlateformeMo1,
   type TypeReservationMo1,
 } from "@/data/reservations-mo1";
+import { ajouterNotif, ajouterReservation, idNouveau } from "@/data/session";
+import { toastErreur, toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
 const champ =
-  "h-[34px] w-full rounded-[8px] border border-[#e5e7eb] bg-white px-3 text-sm text-[#1e2939] outline-none placeholder:text-[#99a1af]";
+  "h-[34px] w-full rounded-[8px] border border-line bg-white px-3 text-sm text-ink outline-none placeholder:text-ink-muted";
 
 export function FormulaireReservation() {
   const navigate = useNavigate();
@@ -33,15 +36,79 @@ export function FormulaireReservation() {
   const [plateforme, setPlateforme] = useState("Canal Direct");
   const [services, setServices] = useState(["Service 1", "Service 2", "Upsell 1", "Upsell 2"]);
 
-  const saisonnier = type === "Location saisonnière";
   const couleurChoisie = couleur;
 
   const occupantsOptions = useMemo(() => OCCUPANTS_MO1.map((o) => o.nom), []);
 
+  const plateformeDe = (s: string): PlateformeMo1 => {
+    if (s === "Airbnb" || s === "Booking.com") return s;
+    if (s === "Canal Direct") return "Direct";
+    return "Autre";
+  };
+
+  const creer = () => {
+    if (!type) {
+      toastErreur("Choisissez un type de réservation.");
+      return;
+    }
+    if (!logement || !occupant || !checkIn || !checkOut) {
+      toastErreur("Renseignez le logement, l'occupant et les dates.");
+      return;
+    }
+    if (checkOut <= checkIn) {
+      toastErreur("Le check-out doit être après le check-in.");
+      return;
+    }
+    const nuits = Number(duree) || 1;
+    const prix = Number(prixNuit) || 0;
+    const id = idNouveau("r");
+    const initiales = occupant
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase() ?? "")
+      .join("");
+    ajouterReservation({
+      dossier: {
+        id,
+        bienId: logement,
+        occupant,
+        initiales: initiales || "??",
+        email: `${occupant.toLowerCase().replace(/\s+/g, ".")}@email.fr`,
+        telephone: "+33 6 00 00 00 00",
+        arrivee: checkIn,
+        depart: checkOut,
+        heureArrivee: heureIn,
+        heureDepart: heureOut,
+        plateforme: plateformeDe(plateforme),
+        voyageurs: adultes + enfants,
+        adultes,
+        enfants,
+        montant: prix * nuits,
+        paye: 0,
+        statut: "Confirmé",
+        couleur: couleur.hex,
+      },
+      calendrier: {
+        id: `cal-${id}`,
+        bienId: logement,
+        voyageur: occupant,
+        arrivee: checkIn,
+        depart: checkOut,
+      },
+    });
+    ajouterNotif({
+      titre: "Réservation créée",
+      detail: `${occupant} · ${checkIn} → ${checkOut}`,
+      href: "/reservations",
+    });
+    toastOk("Réservation enregistrée.");
+    void navigate({ to: "/reservations", search: { vue: "liste" } });
+  };
+
   return (
     <div>
-      <div className="flex items-center gap-2 text-xs text-[#99a1af]">
-        <Link to="/reservations" className="hover:text-[#4a5565]">
+      <div className="flex items-center gap-2 text-xs text-ink-muted">
+        <Link to="/reservations" className="hover:text-ink-body">
           Réservations
         </Link>
         <ChevronRight className="size-3" />
@@ -52,28 +119,28 @@ export function FormulaireReservation() {
         <div className="flex items-center gap-3">
           <Link
             to="/reservations"
-            className="flex size-8 items-center justify-center rounded-[10px] border border-[#e5e7eb] text-[#4a5565]"
+            className="flex size-8 items-center justify-center rounded-card border border-line text-ink-body"
             aria-label="Retour"
           >
             <ChevronLeft className="size-4" />
           </Link>
           <div>
-            <h1 className="text-lg font-medium text-[#1e2939]">Réservations</h1>
-            <p className="text-xs text-[#99a1af]">Créer une nouvelle réservation</p>
+            <h1 className="text-lg font-medium text-ink">Réservations</h1>
+            <p className="text-xs text-ink-muted">Créer une nouvelle réservation</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
             to="/reservations"
             search={{ vue: "liste" }}
-            className="inline-flex h-[34px] items-center rounded-[10px] border border-[#e5e7eb] px-4 text-xs font-medium text-[#4a5565]"
+            className="inline-flex h-[34px] items-center rounded-card border border-line px-4 text-xs font-medium text-ink-body"
           >
             Gérer toutes les réservations
           </Link>
           <button
             type="button"
-            onClick={() => navigate({ to: "/reservations" })}
-            className="inline-flex h-8 items-center gap-1 rounded-[10px] bg-[#1e2939] px-3 text-xs font-medium text-white"
+            onClick={creer}
+            className="inline-flex h-8 items-center gap-1 rounded-card bg-ink px-3 text-xs font-medium text-white"
           >
             <Check className="size-3" />
             Créer une réservation
@@ -82,9 +149,9 @@ export function FormulaireReservation() {
       </div>
 
       <div className="mx-auto mt-6 max-w-[900px] space-y-4 pb-16">
-        <div className="flex gap-3 rounded-[10px] border border-[#bfdbfe] bg-[#eff6ff] p-4">
-          <Info className="mt-0.5 size-4 shrink-0 text-[#1447e6]" />
-          <p className="text-xs leading-5 text-[#1447e6]">
+        <div className="flex gap-3 rounded-card border border-chip-info bg-chip-info p-4">
+          <Info className="mt-0.5 size-4 shrink-0 text-chip-info-fg" />
+          <p className="text-xs leading-5 text-chip-info-fg">
             Le prix indiqué est le prix proposé dans l'annonce (payé annuel est le prix proposé via
             le manuel de taxe, pour chacune, avec les charges en bas d'écran pour tous les
             locataires). La plupart si le montant de la caution il l'ont les prix. En la case
@@ -93,25 +160,25 @@ export function FormulaireReservation() {
           </p>
         </div>
 
-        <section className="rounded-[10px] border border-[#e5e7eb] bg-white p-5">
-          <h2 className="text-sm font-medium text-[#1e2939]">Type de réservation</h2>
-          <label className="mt-4 block text-xs text-[#6a7282]">Type*</label>
+        <section className="rounded-card border border-line bg-white p-5">
+          <h2 className="text-sm font-medium text-ink">Type de réservation</h2>
+          <label className="mt-4 block text-xs text-ink-subtle">Type*</label>
           <div className="relative mt-1">
             <button
               type="button"
               onClick={() => setTypeOuvert((v) => !v)}
               className={cn(champ, "flex items-center justify-between text-left")}
             >
-              <span className={type ? "text-[#1e2939]" : "text-[#99a1af]"}>
+              <span className={type ? "text-ink" : "text-ink-muted"}>
                 {type || "Sélectionner le type"}
               </span>
-              <ChevronDown className="size-3.5 text-[#99a1af]" />
+              <ChevronDown className="size-3.5 text-ink-muted" />
             </button>
             {typeOuvert && (
-              <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-[10px] border border-[#e5e7eb] bg-white py-1 shadow-md">
+              <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-card border border-line bg-white py-1 shadow-md">
                 {TYPES_RESERVATION.map((g) => (
                   <div key={g.groupe}>
-                    <p className="px-3 py-1.5 text-[11px] text-[#99a1af]">{g.groupe}</p>
+                    <p className="px-3 py-1.5 text-[11px] text-ink-muted">{g.groupe}</p>
                     {g.options.map((opt) => (
                       <button
                         key={opt}
@@ -120,7 +187,7 @@ export function FormulaireReservation() {
                           setType(opt);
                           setTypeOuvert(false);
                         }}
-                        className="flex w-full px-4 py-2 text-left text-sm text-[#1e2939] hover:bg-[#f9fafb]"
+                        className="flex w-full px-4 py-2 text-left text-sm text-ink hover:bg-surface"
                       >
                         {opt}
                       </button>
@@ -131,27 +198,27 @@ export function FormulaireReservation() {
             )}
           </div>
           {type && (
-            <p className="mt-3 flex items-center gap-2 text-xs text-[#4a5565]">
-              <span className="size-3 rounded-full bg-[#1e2939]" />
+            <p className="mt-3 flex items-center gap-2 text-xs text-ink-body">
+              <span className="size-3 rounded-full bg-ink" />
               {type}
             </p>
           )}
         </section>
 
-        {saisonnier && (
+        {type && (
           <>
-            <section className="rounded-[10px] border border-[#e5e7eb] bg-white p-5">
+            <section className="rounded-card border border-line bg-white p-5">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-medium text-[#1e2939]">Création d'une réservation</h2>
-                <button
-                  type="button"
-                  className="inline-flex h-8 items-center gap-1 rounded-[10px] border border-[#e5e7eb] px-3 text-xs font-medium text-[#4a5565]"
-                >
-                  <User className="size-3" />
-                  Créer un occupant
-                </button>
+                <h2 className="text-sm font-medium text-ink">Création d'une réservation</h2>
+          <Link
+            to="/occupants"
+            className="inline-flex h-8 items-center gap-1 rounded-card border border-line px-3 text-xs font-medium text-ink-body"
+          >
+            <User className="size-3" />
+            Créer un occupant
+          </Link>
               </div>
-              <label className="mt-4 block text-xs text-[#6a7282]">Logement*</label>
+              <label className="mt-4 block text-xs text-ink-subtle">Logement*</label>
               <select
                 value={logement}
                 onChange={(e) => setLogement(e.target.value)}
@@ -164,7 +231,7 @@ export function FormulaireReservation() {
                   </option>
                 ))}
               </select>
-              <label className="mt-4 block text-xs text-[#6a7282]">Occupant principal</label>
+              <label className="mt-4 block text-xs text-ink-subtle">Occupant principal</label>
               <div className="mt-1 grid gap-2 sm:grid-cols-2">
                 <select
                   value={occupant}
@@ -198,8 +265,8 @@ export function FormulaireReservation() {
               </div>
             </section>
 
-            <section className="rounded-[10px] border border-[#e5e7eb] bg-white p-5">
-              <h2 className="text-sm font-medium text-[#1e2939]">Dates</h2>
+            <section className="rounded-card border border-line bg-white p-5">
+              <h2 className="text-sm font-medium text-ink">Dates</h2>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <ChampDate label="Check-In*" value={checkIn} onChange={setCheckIn} type="date" />
                 <ChampDate label="Check-Out*" value={checkOut} onChange={setCheckOut} type="date" />
@@ -213,9 +280,9 @@ export function FormulaireReservation() {
               </div>
             </section>
 
-            <section className="rounded-[10px] border border-[#e5e7eb] bg-white p-5">
-              <h2 className="text-sm font-medium text-[#1e2939]">Couleur</h2>
-              <p className="mt-2 text-xs text-[#99a1af]">
+            <section className="rounded-card border border-line bg-white p-5">
+              <h2 className="text-sm font-medium text-ink">Couleur</h2>
+              <p className="mt-2 text-xs text-ink-muted">
                 Choisissez une couleur pour distinguer cette réservation dans les vues calendrier.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
@@ -230,24 +297,24 @@ export function FormulaireReservation() {
                   >
                     {couleurChoisie.id === c.id && (
                       <>
-                        <span className="absolute -inset-1 rounded-full border-2 border-[#2563eb]" />
+                        <span className="absolute -inset-1 rounded-full border-2 border-chip-info-fg" />
                         <Check className="absolute inset-0 m-auto size-3.5 text-white" />
                       </>
                     )}
                   </button>
                 ))}
               </div>
-              <p className="mt-2 text-[10px] text-[#99a1af]">
+              <p className="mt-2 text-[10px] text-ink-muted">
                 Couleur sélectionnée —{" "}
-                <span className="text-[#4a5565]">{couleurChoisie.label}</span>
+                <span className="text-ink-body">{couleurChoisie.label}</span>
                 {" · Cette couleur apparaîtra dans les vues calendrier."}
               </p>
             </section>
 
-            <section className="rounded-[10px] border border-[#e5e7eb] bg-white p-5">
-              <h2 className="text-sm font-medium text-[#1e2939]">Tarification</h2>
+            <section className="rounded-card border border-line bg-white p-5">
+              <h2 className="text-sm font-medium text-ink">Tarification</h2>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <label className="block text-xs text-[#6a7282]">
+                <label className="block text-xs text-ink-subtle">
                   Prix / nuit
                   <span className="relative mt-1 block">
                     <input
@@ -255,12 +322,12 @@ export function FormulaireReservation() {
                       onChange={(e) => setPrixNuit(e.target.value)}
                       className={champ}
                     />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#99a1af]">
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
                       €
                     </span>
                   </span>
                 </label>
-                <label className="block text-xs text-[#6a7282]">
+                <label className="block text-xs text-ink-subtle">
                   Durée
                   <span className="relative mt-1 block">
                     <input
@@ -268,13 +335,13 @@ export function FormulaireReservation() {
                       onChange={(e) => setDuree(e.target.value)}
                       className={champ}
                     />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#99a1af]">
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
                       nuits
                     </span>
                   </span>
                 </label>
               </div>
-              <label className="mt-3 block text-xs text-[#6a7282]">
+              <label className="mt-3 block text-xs text-ink-subtle">
                 Plateforme
                 <select
                   value={plateforme}
@@ -287,12 +354,12 @@ export function FormulaireReservation() {
                   <option>Autre</option>
                 </select>
               </label>
-              <p className="mt-3 text-xs text-[#6a7282]">Services inclus</p>
+              <p className="mt-3 text-xs text-ink-subtle">Services inclus</p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 {services.map((s) => (
                   <span
                     key={s}
-                    className="inline-flex h-6 items-center gap-1 rounded border border-[#e5e7eb] px-2 text-xs text-[#4a5565]"
+                    className="inline-flex h-6 items-center gap-1 rounded border border-line px-2 text-xs text-ink-body"
                   >
                     {s}
                     <button
@@ -309,7 +376,7 @@ export function FormulaireReservation() {
                   onClick={() =>
                     setServices((liste) => [...liste, `Service ${liste.length + 1}`])
                   }
-                  className="inline-flex h-[30px] items-center gap-1 rounded border border-[#e5e7eb] px-3 text-xs font-medium text-[#4a5565]"
+                  className="inline-flex h-[30px] items-center gap-1 rounded border border-line px-3 text-xs font-medium text-ink-body"
                 >
                   <Plus className="size-2.5" />
                   Créer un service
@@ -320,8 +387,8 @@ export function FormulaireReservation() {
             <div className="flex justify-center">
               <button
                 type="button"
-                onClick={() => navigate({ to: "/reservations" })}
-                className="inline-flex h-11 items-center gap-2 rounded-[10px] bg-[#1e2939] px-8 text-sm font-medium text-white"
+                onClick={creer}
+                className="inline-flex h-11 items-center gap-2 rounded-card bg-ink px-8 text-sm font-medium text-white"
               >
                 <Check className="size-3.5" />
                 Créer une réservation
@@ -347,19 +414,19 @@ function Compteur({
 }) {
   return (
     <div>
-      <p className="text-xs text-[#6a7282]">{label}</p>
+      <p className="text-xs text-ink-subtle">{label}</p>
       <div className="mt-2 flex items-center gap-1">
         <button
           type="button"
-          className="flex size-7 items-center justify-center rounded border border-[#e5e7eb] text-[#4a5565]"
+          className="flex size-7 items-center justify-center rounded border border-line text-ink-body"
           onClick={() => onChange(Math.max(min, valeur - 1))}
         >
           <Minus className="size-2.5" />
         </button>
-        <span className="w-7 text-center text-sm text-[#1e2939]">{valeur}</span>
+        <span className="w-7 text-center text-sm text-ink">{valeur}</span>
         <button
           type="button"
-          className="flex size-7 items-center justify-center rounded border border-[#e5e7eb] text-[#4a5565]"
+          className="flex size-7 items-center justify-center rounded border border-line text-ink-body"
           onClick={() => onChange(valeur + 1)}
         >
           <Plus className="size-2.5" />
@@ -381,7 +448,7 @@ function ChampDate({
   type: "date" | "time";
 }) {
   return (
-    <label className="block text-xs text-[#6a7282]">
+    <label className="block text-xs text-ink-subtle">
       {label}
       <input
         type={type}

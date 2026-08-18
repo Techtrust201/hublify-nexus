@@ -30,23 +30,23 @@ function LigneConversation({
       type="button"
       onClick={onSelect}
       className={cn(
-        "relative flex w-full gap-2.5 border-b border-[#f3f4f6] px-3 py-2.5 text-left",
-        active && "bg-[#f3f4f6]",
+        "relative flex w-full gap-2.5 border-b border-surface-soft px-3 py-2.5 text-left",
+        active && "bg-surface-soft",
       )}
     >
-      <span className="relative mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-[#e5e7eb] text-[10px] text-[#4a5565]">
+      <span className="relative mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-line text-[10px] text-ink-body">
         {conversation.initiales}
         {conversation.nonLu && (
-          <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-[#1e2939]" />
+          <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-ink" />
         )}
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1">
-          <span className="truncate text-xs text-[#4a5565]">{conversation.nom}</span>
-          <Icone className="size-2.5 shrink-0 text-[#0a0a0a]" aria-hidden />
-          <span className="ml-auto shrink-0 text-[10px] text-[#99a1af]">{conversation.ilYa}</span>
+          <span className="truncate text-xs text-ink-body">{conversation.nom}</span>
+          <Icone className="size-2.5 shrink-0 text-ink-deep" aria-hidden />
+          <span className="ml-auto shrink-0 text-[10px] text-ink-muted">{conversation.ilYa}</span>
         </span>
-        <span className="mt-0.5 block truncate text-[11px] leading-[16.5px] text-[#99a1af]">
+        <span className="mt-0.5 block truncate text-[11px] leading-[16.5px] text-ink-muted">
           {conversation.extrait}
         </span>
       </span>
@@ -76,21 +76,21 @@ export function ListeConversations({
   const inbox = conversations.filter((c) => c.section === "inbox");
 
   return (
-    <aside className="flex min-h-0 flex-col border-b border-[#e5e7eb] lg:w-[288px] lg:shrink-0 lg:border-b-0 lg:border-r">
-      <div className="flex items-center gap-2 border-b border-[#f3f4f6] px-3 py-2.5">
-        <label className="flex h-[30px] min-w-0 flex-1 items-center gap-1.5 rounded-[10px] border border-[#e5e7eb] bg-white px-2.5">
-          <Search className="size-3 shrink-0 text-[#99a1af]" />
+    <aside className="flex min-h-0 flex-col border-b border-line lg:w-[288px] lg:shrink-0 lg:border-b-0 lg:border-r">
+      <div className="flex items-center gap-2 border-b border-surface-soft px-3 py-2.5">
+        <label className="flex h-[30px] min-w-0 flex-1 items-center gap-1.5 rounded-card border border-line bg-white px-2.5">
+          <Search className="size-3 shrink-0 text-ink-muted" />
           <input
             value={recherche}
             onChange={(e) => onRecherche(e.target.value)}
             placeholder="Rechercher…"
-            className="h-full w-full bg-transparent text-xs text-[#1e2939] outline-none placeholder:text-[#d1d5dc]"
+            className="h-full w-full bg-transparent text-xs text-ink outline-none placeholder:text-line-strong"
           />
         </label>
         <button
           type="button"
           onClick={onEcrire}
-          className="inline-flex h-7 shrink-0 items-center gap-1 rounded-[10px] bg-[#1e2939] px-2.5 text-xs font-medium text-white"
+          className="inline-flex h-7 shrink-0 items-center gap-1 rounded-card bg-ink px-2.5 text-xs font-medium text-white"
         >
           <Plus className="size-3" />
           Écrire
@@ -115,11 +115,11 @@ export function ListeConversations({
               <button
                 type="button"
                 onClick={() => onToggleSection(s.id)}
-                className="flex w-full items-center justify-between px-3 py-1.5 text-[11px] text-[#99a1af]"
+                className="flex w-full items-center justify-between px-3 py-1.5 text-[11px] text-ink-muted"
               >
                 <span className="flex items-center gap-1.5">
                   {s.label}
-                  {aNonLu && <span className="size-1.5 rounded-full bg-[#1e2939]" />}
+                  {aNonLu && <span className="size-1.5 rounded-full bg-ink" />}
                 </span>
                 {ouverte ? (
                   <ChevronDown className="size-3" />

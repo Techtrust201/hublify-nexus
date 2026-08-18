@@ -34,11 +34,11 @@ export function DialogDroits({
     >
       <DialogContent
         key={membre?.id}
-        className="max-h-[90vh] max-w-[540px] gap-0 overflow-y-auto rounded-[10px] border-[#e5e7eb] p-0 sm:rounded-[10px]"
+        className="max-h-[90vh] max-w-[540px] gap-0 overflow-y-auto rounded-card border-line p-0 sm:rounded-card"
       >
-        <DialogHeader className="border-b border-[#f3f4f6] px-6 py-4">
-          <DialogTitle className="text-base font-normal text-[#1e2939]">Droits d'accès</DialogTitle>
-          <DialogDescription className="text-xs text-[#6a7282]">
+        <DialogHeader className="border-b border-surface-soft px-6 py-4">
+          <DialogTitle className="text-base font-normal text-ink">Droits d'accès</DialogTitle>
+          <DialogDescription className="text-xs text-ink-subtle">
             {membre ? `${nomComplet(membre)} · ${membre.role}` : ""}
           </DialogDescription>
         </DialogHeader>
@@ -52,11 +52,11 @@ export function DialogDroits({
             }
           />
         </div>
-        <div className="flex gap-3 border-t border-[#f3f4f6] px-6 py-4">
+        <div className="flex gap-3 border-t border-surface-soft px-6 py-4">
           <button
             type="button"
             onClick={onFermer}
-            className="h-[38px] flex-1 rounded-[10px] border border-[#e5e7eb] text-xs font-medium text-[#4a5565]"
+            className="h-[38px] flex-1 rounded-card border border-line text-xs font-medium text-ink-body"
           >
             Annuler
           </button>
@@ -66,7 +66,7 @@ export function DialogDroits({
               if (membre) onEnregistrer(membre.id, droits);
               onFermer();
             }}
-            className="h-[38px] flex-1 rounded-[10px] bg-[#1e2939] text-xs font-medium text-white"
+            className="h-[38px] flex-1 rounded-card bg-ink text-xs font-medium text-white"
           >
             Enregistrer
           </button>

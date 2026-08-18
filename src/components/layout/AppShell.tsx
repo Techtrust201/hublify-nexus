@@ -15,7 +15,9 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { GESTIONNAIRE, TEAM } from "@/data/mock";
+import { GESTIONNAIRE } from "@/data/mock";
+import { nomComplet } from "@/data/messagerie-mo1";
+import { marquerNotifsLues, useSession } from "@/data/session";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,24 +67,27 @@ export function AppShell({
 }) {
   const [mobileOuvert, setMobileOuvert] = useState(false);
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const session = useSession();
+  const teamSidebar = session.membres.filter((m) => m.statut === "actif").slice(0, 3);
+  const notifsNonLues = session.notifications.filter((n) => !n.lu).length;
 
   return (
-    <div className="flex min-h-screen w-full bg-[#f9fafb]">
-      <aside className="sticky top-0 hidden h-screen w-[255px] shrink-0 flex-col border-r border-[#e5e7eb] bg-white md:flex">
-        <div className="border-b border-[#f3f4f6] px-4 py-4">
+    <div className="flex min-h-screen w-full bg-surface">
+      <aside className="sticky top-0 hidden h-screen w-[255px] shrink-0 flex-col border-r border-line bg-white md:flex">
+        <div className="border-b border-surface-soft px-4 py-4">
           <Link to="/profil" className="flex items-center gap-3">
-            <span className="flex size-10 items-center justify-center rounded-full bg-[#e5e7eb] text-sm text-[#4a5565]">
+            <span className="flex size-10 items-center justify-center rounded-full bg-line text-sm text-ink-body">
               YR
             </span>
             <span className="min-w-0">
-              <span className="block text-xs uppercase tracking-[0.3px] text-[#99a1af]">
+              <span className="block text-xs uppercase tracking-[0.3px] text-ink-muted">
                 Gestionnaire
               </span>
-              <span className="block text-sm text-[#1e2939]">{GESTIONNAIRE.nom}</span>
+              <span className="block text-sm text-ink">{GESTIONNAIRE.nom}</span>
             </span>
           </Link>
           <DropdownMenu>
-            <DropdownMenuTrigger className="mt-4 flex h-[38px] w-full items-center justify-center rounded-[10px] border border-[#e5e7eb] bg-white text-sm font-medium text-[#4a5565]">
+            <DropdownMenuTrigger className="mt-4 flex h-[38px] w-full items-center justify-center rounded-card border border-line bg-white text-sm font-medium text-ink-body">
               Vue générale
               <ChevronDown className="ml-1 size-3.5" />
             </DropdownMenuTrigger>
@@ -119,17 +124,17 @@ export function AppShell({
                 <Link
                   to={e.url}
                   className={cn(
-                    "flex h-9 items-center gap-3 rounded-[10px] px-3 text-sm font-medium text-[#4a5565] hover:bg-[#f9fafb]",
-                    estActif(pathname, e.url) && "bg-[#f3f4f6] text-[#1e2939]",
+                    "flex h-9 items-center gap-3 rounded-card px-3 text-sm font-medium text-ink-body hover:bg-surface",
+                    estActif(pathname, e.url) && "bg-surface-soft text-ink",
                   )}
                 >
                   <e.icone className="size-4 shrink-0" />
                   <span className="flex-1 truncate">{e.titre}</span>
                   {e.chevron &&
                     (ouvert ? (
-                      <ChevronDown className="size-3.5 text-[#99a1af]" />
+                      <ChevronDown className="size-3.5 text-ink-muted" />
                     ) : (
-                      <ChevronRight className="size-3.5 text-[#99a1af]" />
+                      <ChevronRight className="size-3.5 text-ink-muted" />
                     ))}
                 </Link>
                 {e.chevron && ouvert && sous && (
@@ -139,8 +144,8 @@ export function AppShell({
                         key={s.url}
                         to={s.url}
                         className={cn(
-                          "flex h-8 items-center rounded-[8px] px-2 text-xs font-medium text-[#6a7282] hover:bg-[#f9fafb]",
-                          estActif(pathname, s.url) && "bg-[#f3f4f6] text-[#1e2939]",
+                          "flex h-8 items-center rounded-[8px] px-2 text-xs font-medium text-ink-subtle hover:bg-surface",
+                          estActif(pathname, s.url) && "bg-surface-soft text-ink",
                         )}
                       >
                         {s.titre}
@@ -154,45 +159,45 @@ export function AppShell({
 
           <Link
             to="/team"
-            className="block px-3 pt-4 text-xs uppercase tracking-[0.3px] text-[#99a1af] hover:text-[#4a5565]"
+            className="block px-3 pt-4 text-xs uppercase tracking-[0.3px] text-ink-muted hover:text-ink-body"
           >
             Team mate
           </Link>
-          {TEAM.map((m) => (
+          {teamSidebar.map((m) => (
             <Link
               key={m.id}
               to="/team"
-              className="flex h-9 items-center gap-2 rounded-[10px] px-3 text-sm font-medium text-[#4a5565] hover:bg-[#f9fafb]"
+              className="flex h-9 items-center gap-2 rounded-card px-3 text-sm font-medium text-ink-body hover:bg-surface"
             >
-              <span className="flex size-6 items-center justify-center rounded-full bg-[#e5e7eb] text-[10px] font-medium text-[#6a7282]">
+              <span className="flex size-6 items-center justify-center rounded-full bg-line text-[10px] font-medium text-ink-subtle">
                 {m.initiales}
               </span>
-              {m.nom}
+              {nomComplet(m)}
             </Link>
           ))}
 
-          <p className="px-3 pt-4 text-xs uppercase tracking-[0.3px] text-[#99a1af]">
+          <p className="px-3 pt-4 text-xs uppercase tracking-[0.3px] text-ink-muted">
             Tous les outils
           </p>
           <Link
             to="/outils"
-            className="flex h-8 items-center gap-2 rounded-[10px] px-3 text-sm font-medium text-[#4a5565] hover:bg-[#f9fafb]"
+            className="flex h-8 items-center gap-2 rounded-card px-3 text-sm font-medium text-ink-body hover:bg-surface"
           >
             <Info className="size-3.5" />
             En savoir plus
           </Link>
         </nav>
 
-        <div className="space-y-2 border-t border-[#f3f4f6] px-4 py-4">
+        <div className="space-y-2 border-t border-surface-soft px-4 py-4">
           <Link
-            to="/outils"
-            className="flex h-9 w-full items-center justify-center rounded-[10px] bg-[#101828] text-sm font-medium text-white"
+            to="/outils/debuter"
+            className="flex h-9 w-full items-center justify-center rounded-card bg-ink-deep text-sm font-medium text-white"
           >
             Je débute
           </Link>
           <Link
-            to="/outils"
-            className="flex h-[38px] w-full items-center justify-center rounded-[10px] border border-[#e5e7eb] text-sm font-medium text-[#4a5565]"
+            to="/"
+            className="flex h-[38px] w-full items-center justify-center rounded-card border border-line text-sm font-medium text-ink-body"
           >
             Je découvre
           </Link>
@@ -200,11 +205,11 @@ export function AppShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex h-[73px] items-center justify-between border-b border-[#e5e7eb] bg-white px-4 md:px-6">
+        <header className="sticky top-0 z-10 flex h-[73px] items-center justify-between border-b border-line bg-white px-4 md:px-6">
           <div className="flex items-center gap-3">
             <button
               type="button"
-              className="rounded-[10px] border border-[#e5e7eb] p-2 text-[#4a5565] md:hidden"
+              className="rounded-card border border-line p-2 text-ink-body md:hidden"
               onClick={() => setMobileOuvert((v) => !v)}
               aria-label="Ouvrir la navigation"
             >
@@ -212,8 +217,8 @@ export function AppShell({
             </button>
             {titre ? (
               <div className="min-w-0">
-                <h1 className="truncate text-sm font-medium text-[#1e2939]">{titre}</h1>
-                {sousTitre && <p className="truncate text-xs text-[#99a1af]">{sousTitre}</p>}
+                <h1 className="truncate text-sm font-medium text-ink">{titre}</h1>
+                {sousTitre && <p className="truncate text-xs text-ink-muted">{sousTitre}</p>}
               </div>
             ) : (
               <div className="hidden h-8 w-16 md:block" />
@@ -222,7 +227,7 @@ export function AppShell({
           <div className="flex items-center gap-4">
             {actions}
             <DropdownMenu>
-              <DropdownMenuTrigger className="hidden h-[34px] items-center gap-1 rounded-[10px] border border-[#e5e7eb] px-3 text-sm font-medium text-[#4a5565] sm:inline-flex">
+              <DropdownMenuTrigger className="hidden h-[34px] items-center gap-1 rounded-card border border-line px-3 text-sm font-medium text-ink-body sm:inline-flex">
                 Outils
                 <ChevronDown className="size-3.5" />
               </DropdownMenuTrigger>
@@ -241,38 +246,76 @@ export function AppShell({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <button
-              type="button"
-              className="flex size-8 items-center justify-center rounded-[10px] border border-[#e5e7eb] text-[#4a5565]"
-              aria-label="Notifications"
+            <DropdownMenu
+              onOpenChange={(ouvert) => {
+                if (ouvert && notifsNonLues > 0) marquerNotifsLues();
+              }}
             >
-              <Bell className="size-4" />
-            </button>
-            <Link to="/profil" className="hidden text-sm font-medium text-[#4a5565] sm:inline">
+              <DropdownMenuTrigger
+                className="relative flex size-8 items-center justify-center rounded-card border border-line text-ink-body"
+                aria-label="Notifications"
+              >
+                <Bell className="size-4" />
+                {notifsNonLues > 0 && (
+                  <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-ink text-[9px] text-white">
+                    {notifsNonLues}
+                  </span>
+                )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 p-0">
+                <p className="border-b border-surface-soft px-3 py-2 text-xs font-medium text-ink">
+                  Notifications
+                </p>
+                {session.notifications.length === 0 ? (
+                  <p className="px-3 py-4 text-xs text-ink-subtle">Aucune notification.</p>
+                ) : (
+                  session.notifications.slice(0, 8).map((n) => (
+                    <DropdownMenuItem key={n.id} asChild className="cursor-pointer items-start gap-2 py-2">
+                      <a href={n.href}>
+                        <span>
+                          <span className="block text-xs text-ink">{n.titre}</span>
+                          <span className="block text-[11px] text-ink-muted">{n.detail}</span>
+                        </span>
+                      </a>
+                    </DropdownMenuItem>
+                  ))
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Link to="/profil" className="hidden text-sm font-medium text-ink-body sm:inline">
               Compte gestionnaire
             </Link>
           </div>
         </header>
 
         {mobileOuvert && (
-          <nav className="flex gap-1 overflow-x-auto border-b border-[#e5e7eb] bg-white px-4 py-2 md:hidden">
-            <Link to="/" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-[#4a5565]">
+          <nav className="flex gap-1 overflow-x-auto border-b border-line bg-white px-4 py-2 md:hidden">
+            <Link to="/" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-ink-body">
               Vue générale
             </Link>
             {NAV.map((e) => (
               <Link
                 key={e.titre}
                 to={e.url}
-                className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-[#4a5565]"
+                className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-ink-body"
               >
                 {e.titre}
               </Link>
             ))}
-            <Link to="/occupants" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-[#4a5565]">
+            <Link to="/occupants" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-ink-body">
               Occupants
             </Link>
-            <Link to="/team" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-[#4a5565]">
+            <Link to="/inventaire" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-ink-body">
+              Inventaire
+            </Link>
+            <Link to="/team" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-ink-body">
               Team
+            </Link>
+            <Link to="/profil" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-ink-body">
+              Profil
+            </Link>
+            <Link to="/missions" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-ink-body">
+              Missions
             </Link>
           </nav>
         )}

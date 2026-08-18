@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import {
   AlertTriangle,
   ChevronDown,
@@ -12,20 +13,23 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type { CanalMo1, EvenementMo1, LoyerMo1, MessageMo1 } from "@/data/planning-mo1";
+import { useKpiMo1 } from "@/data/session";
 import { cn, useSessionBool } from "@/lib/utils";
 
 export function KpiCards() {
+  const kpi = useKpiMo1();
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <CarteKpi
         icone={AlertTriangle}
         titre="Loyers en retard"
         badge="Urgent"
-        valeur="3"
+        valeur={String(kpi.loyersRetard)}
         unite="en attente"
         detail={
           <>
-            Tout impayé : <span className="text-[#4a5565]">2 450 €</span>
+            Tout impayé :{" "}
+            <span className="text-ink-body">{kpi.impaye.toLocaleString("fr-FR")} €</span>
           </>
         }
       />
@@ -33,13 +37,13 @@ export function KpiCards() {
         icone={LogIn}
         titre="Check-in / Check-out"
         badge="Aujourd'hui"
-        valeur="12"
+        valeur={String(kpi.checkTotal)}
         unite="prévus"
         detail={
           <>
-            In : <span className="text-[#4a5565]">6</span>
+            In : <span className="text-ink-body">{kpi.checkIn}</span>
             {" · Out : "}
-            <span className="text-[#4a5565]">6</span>
+            <span className="text-ink-body">{kpi.checkOut}</span>
           </>
         }
       />
@@ -47,13 +51,13 @@ export function KpiCards() {
         icone={Wrench}
         titre="Interventions"
         badge="Aujourd'hui"
-        valeur="6"
+        valeur={String(kpi.interventionsEnCours)}
         unite="en cours"
         detail={
           <>
-            Ménage : <span className="text-[#4a5565]">3</span>
+            Ménage : <span className="text-ink-body">{kpi.menage}</span>
             {" · Réservation : "}
-            <span className="text-[#4a5565]">9</span>
+            <span className="text-ink-body">{kpi.reservationsActives}</span>
           </>
         }
       />
@@ -77,21 +81,21 @@ function CarteKpi({
   detail: ReactNode;
 }) {
   return (
-    <div className="rounded-[10px] border border-[#e5e7eb] bg-white p-4">
+    <div className="rounded-card border border-line bg-white p-4">
       <div className="flex items-center justify-between">
-        <p className="flex items-center gap-2 text-sm text-[#4a5565]">
+        <p className="flex items-center gap-2 text-sm text-ink-body">
           <Icone className="size-4" />
           {titre}
         </p>
-        <span className="rounded border border-[#d1d5dc] px-2 py-0.5 text-xs text-[#6a7282]">
+        <span className="rounded border border-line-strong px-2 py-0.5 text-xs text-ink-subtle">
           {badge}
         </span>
       </div>
-      <p className="mt-2 text-[#1e2939]">
+      <p className="mt-2 text-ink">
         <span className="text-2xl leading-8">{valeur} </span>
-        <span className="text-sm text-[#99a1af]">{unite}</span>
+        <span className="text-sm text-ink-muted">{unite}</span>
       </p>
-      <p className="mt-1 text-xs text-[#99a1af]">{detail}</p>
+      <p className="mt-1 text-xs text-ink-muted">{detail}</p>
     </div>
   );
 }
@@ -102,13 +106,13 @@ export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
   const filtres = messages.filter((m) => m.canal === canal);
 
   return (
-    <section className="mt-4 overflow-hidden rounded-[10px] border border-[#e5e7eb] bg-white">
+    <section className="mt-4 overflow-hidden rounded-card border border-line bg-white">
       <button
         type="button"
-        className="flex w-full items-center justify-between border-b border-[#f3f4f6] px-4 py-3"
+        className="flex w-full items-center justify-between border-b border-surface-soft px-4 py-3"
         onClick={() => setOuvert((o) => !o)}
       >
-        <span className="flex items-center gap-2 text-sm text-[#1e2939]">
+        <span className="flex items-center gap-2 text-sm text-ink">
           <MessageSquare className="size-4" />
           Les Messages
         </span>
@@ -125,35 +129,40 @@ export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
               className={cn(
                 "inline-flex h-[26px] items-center rounded border px-3 text-xs font-medium",
                 canal === c
-                  ? "border-[#1e2939] text-[#1e2939]"
-                  : "border-[#d1d5dc] text-[#4a5565]",
+                  ? "border-ink text-ink"
+                  : "border-line-strong text-ink-body",
               )}
             >
               {c === "occupants" ? "Occupants" : c === "prestataires" ? "Prestataires" : "Team"}
             </span>
           ))}
           {ouvert ? (
-            <ChevronUp className="size-4 text-[#99a1af]" />
+            <ChevronUp className="size-4 text-ink-muted" />
           ) : (
-            <ChevronDown className="size-4 text-[#99a1af]" />
+            <ChevronDown className="size-4 text-ink-muted" />
           )}
         </span>
       </button>
       {ouvert && (
         <ul>
           {filtres.map((m) => (
-            <li key={m.id} className="flex gap-3 border-b border-[#f3f4f6] px-4 py-3 last:border-b-0">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#e5e7eb] text-xs text-[#4a5565]">
+            <li key={m.id}>
+              <Link
+                to="/messagerie"
+                className="flex gap-3 border-b border-surface-soft px-4 py-3 last:border-b-0 hover:bg-surface"
+              >
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-line text-xs text-ink-body">
                 {m.initiales}
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline gap-2">
-                  <span className="text-sm text-[#1e2939]">{m.auteur}</span>
-                  {m.bienNom && <span className="text-xs text-[#99a1af]">{m.bienNom}</span>}
-                  <span className="ml-auto text-xs text-[#99a1af]">● {m.ilYa}</span>
+                  <span className="text-sm text-ink">{m.auteur}</span>
+                  {m.bienNom && <span className="text-xs text-ink-muted">{m.bienNom}</span>}
+                  <span className="ml-auto text-xs text-ink-muted">● {m.ilYa}</span>
                 </div>
-                <p className="truncate text-xs text-[#6a7282]">{m.texte}</p>
+                <p className="truncate text-xs text-ink-subtle">{m.texte}</p>
               </div>
+              </Link>
             </li>
           ))}
         </ul>
@@ -175,23 +184,23 @@ export function LoyersSection({
   const total = loyers.reduce((s, l) => s + l.montant, 0);
 
   return (
-    <section className="mt-4 overflow-hidden rounded-[10px] border border-[#e5e7eb] bg-white">
+    <section className="mt-4 overflow-hidden rounded-card border border-line bg-white">
       <button
         type="button"
-        className="flex w-full items-center justify-between border-b border-[#f3f4f6] px-4 py-3"
+        className="flex w-full items-center justify-between border-b border-surface-soft px-4 py-3"
         onClick={() => setOuvert((o) => !o)}
       >
-        <span className="flex items-center gap-2 text-sm text-[#1e2939]">
+        <span className="flex items-center gap-2 text-sm text-ink">
           <FileCheck className="size-4" />
           Les Loyers Payés Cette Semaine
-          <span className="text-xs text-[#99a1af]">
+          <span className="text-xs text-ink-muted">
             {loyers.length} paiements totaux · {total.toLocaleString("fr-FR")} €
           </span>
         </span>
         {ouvert ? (
-          <ChevronUp className="size-4 text-[#99a1af]" />
+          <ChevronUp className="size-4 text-ink-muted" />
         ) : (
-          <ChevronDown className="size-4 text-[#99a1af]" />
+          <ChevronDown className="size-4 text-ink-muted" />
         )}
       </button>
       {ouvert && (
@@ -199,18 +208,18 @@ export function LoyersSection({
           {loyers.map((l) => (
             <li
               key={l.id}
-              className="flex flex-wrap items-center gap-3 border-b border-[#f3f4f6] px-4 py-3 last:border-b-0"
+              className="flex flex-wrap items-center gap-3 border-b border-surface-soft px-4 py-3 last:border-b-0"
             >
-              <span className="flex size-8 items-center justify-center rounded-full bg-[#e5e7eb] text-xs text-[#4a5565]">
+              <span className="flex size-8 items-center justify-center rounded-full bg-line text-xs text-ink-body">
                 {l.initiales}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm text-[#1e2939]">{l.locataire}</p>
-                <p className="text-xs text-[#99a1af]">
+                <p className="text-sm text-ink">{l.locataire}</p>
+                <p className="text-xs text-ink-muted">
                   {l.bienNom} · Échéance : {l.echeance}
                 </p>
               </div>
-              <p className="text-sm font-medium text-[#364153]">
+              <p className="text-sm font-medium text-ink-status">
                 {l.montant.toLocaleString("fr-FR")} €
               </p>
               {!l.valide ? (
@@ -218,14 +227,14 @@ export function LoyersSection({
                   <button
                     type="button"
                     onClick={() => onValider(l.id)}
-                    className="h-[26px] rounded border border-[#d1d5dc] bg-white px-3 text-xs font-medium text-[#4a5565]"
+                    className="h-[26px] rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body"
                   >
                     Valider paiement
                   </button>
                   <button
                     type="button"
                     onClick={() => onQuittance(l.id)}
-                    className="inline-flex h-[26px] items-center gap-1 rounded border border-[#d1d5dc] bg-white px-3 text-xs font-medium text-[#4a5565]"
+                    className="inline-flex h-[26px] items-center gap-1 rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body"
                   >
                     <FileCheck className="size-2.5" />
                     Générer quittance
@@ -233,14 +242,14 @@ export function LoyersSection({
                 </div>
               ) : (
                 <div className="flex gap-2">
-                  <span className="inline-flex h-[26px] items-center gap-1 rounded border border-[#e5e7eb] bg-[#f9fafb] px-2 text-xs text-[#99a1af]">
-                    <span className="flex size-3 items-center justify-center rounded-full border border-[#99a1af]">
-                      <span className="size-1.5 rounded-full bg-[#99a1af]" />
+                  <span className="inline-flex h-[26px] items-center gap-1 rounded border border-line bg-surface px-2 text-xs text-ink-muted">
+                    <span className="flex size-3 items-center justify-center rounded-full border border-ink-muted">
+                      <span className="size-1.5 rounded-full bg-ink-muted" />
                     </span>
                     Validé
                   </span>
                   {l.quittance ? (
-                    <span className="inline-flex h-[26px] items-center gap-1 rounded border border-[#e5e7eb] bg-[#f9fafb] px-2 text-xs text-[#99a1af]">
+                    <span className="inline-flex h-[26px] items-center gap-1 rounded border border-line bg-surface px-2 text-xs text-ink-muted">
                       <FileCheck className="size-2.5" />
                       Quittance générée
                     </span>
@@ -248,7 +257,7 @@ export function LoyersSection({
                     <button
                       type="button"
                       onClick={() => onQuittance(l.id)}
-                      className="inline-flex h-[26px] items-center gap-1 rounded border border-[#d1d5dc] bg-white px-3 text-xs font-medium text-[#4a5565]"
+                      className="inline-flex h-[26px] items-center gap-1 rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body"
                     >
                       <FileCheck className="size-2.5" />
                       Générer quittance
@@ -274,16 +283,16 @@ export function EvenementsSection({
   const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.evenements", true);
 
   return (
-    <section className="mt-4 overflow-hidden rounded-[10px] border border-[#e5e7eb] bg-white">
-      <div className="flex items-center justify-between border-b border-[#f3f4f6] px-4 py-3">
+    <section className="mt-4 overflow-hidden rounded-card border border-line bg-white">
+      <div className="flex items-center justify-between border-b border-surface-soft px-4 py-3">
         <button
           type="button"
-          className="flex items-center gap-2 text-sm text-[#1e2939]"
+          className="flex items-center gap-2 text-sm text-ink"
           onClick={() => setOuvert((o) => !o)}
         >
           <Star className="size-4" />
           Événements en Cours
-          <span className="text-xs text-[#99a1af]">
+          <span className="text-xs text-ink-muted">
             {evenements.length} événement{evenements.length > 1 ? "s" : ""} détecté
             {evenements.length > 1 ? "s" : ""}
           </span>
@@ -292,7 +301,7 @@ export function EvenementsSection({
           <button
             type="button"
             onClick={onAjouter}
-            className="inline-flex h-[26px] items-center gap-1 rounded border border-[#d1d5dc] bg-white px-3 text-xs font-medium text-[#4a5565]"
+            className="inline-flex h-[26px] items-center gap-1 rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body"
           >
             <Plus className="size-2.5" />
             Ajouter
@@ -303,49 +312,49 @@ export function EvenementsSection({
             aria-label="Replier les événements"
           >
             {ouvert ? (
-              <ChevronUp className="size-4 text-[#99a1af]" />
+              <ChevronUp className="size-4 text-ink-muted" />
             ) : (
-              <ChevronDown className="size-4 text-[#99a1af]" />
+              <ChevronDown className="size-4 text-ink-muted" />
             )}
           </button>
         </div>
       </div>
       {ouvert && (
         <>
-          <p className="flex items-center gap-2 border-b border-[#f3f4f6] bg-[#f9fafb]/50 px-4 py-2 text-xs text-[#99a1af]">
+          <p className="flex items-center gap-2 border-b border-surface-soft bg-surface/50 px-4 py-2 text-xs text-ink-muted">
             <Info className="size-3" />
             Événements détectés automatiquement selon vos propriétés
           </p>
           <ul>
             {evenements.map((e) => (
-              <li key={e.id} className="border-b border-[#f3f4f6] px-4 py-3 last:border-b-0">
+              <li key={e.id} className="border-b border-surface-soft px-4 py-3 last:border-b-0">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-2">
-                    <span className="mt-0.5 flex size-6 items-center justify-center rounded border border-[#e5e7eb] bg-[#f3f4f6]">
-                      <Star className="size-3 text-[#4a5565]" />
+                    <span className="mt-0.5 flex size-6 items-center justify-center rounded border border-line bg-surface-soft">
+                      <Star className="size-3 text-ink-body" />
                     </span>
                     <div>
-                      <p className="text-sm text-[#1e2939]">{e.titre}</p>
-                      <p className="text-xs text-[#99a1af]">{e.lieu}</p>
+                      <p className="text-sm text-ink">{e.titre}</p>
+                      <p className="text-xs text-ink-muted">{e.lieu}</p>
                     </div>
                   </div>
                   <span
                     className={cn(
                       "rounded border px-2 py-0.5 text-xs",
                       e.impact === "Fort impact"
-                        ? "border-[#99a1af] bg-[#f3f4f6] text-[#4a5565]"
-                        : "border-[#d1d5dc] bg-[#f9fafb] text-[#6a7282]",
+                        ? "border-ink-muted bg-surface-soft text-ink-body"
+                        : "border-line-strong bg-surface text-ink-subtle",
                     )}
                   >
                     {e.impact}
                   </span>
                 </div>
-                <p className="mt-2 pl-8 text-xs text-[#99a1af]">📅 {e.dates}</p>
-                <p className="mt-1 pl-8 text-xs text-[#6a7282]">{e.description}</p>
+                <p className="mt-2 pl-8 text-xs text-ink-muted">📅 {e.dates}</p>
+                <p className="mt-1 pl-8 text-xs text-ink-subtle">{e.description}</p>
               </li>
             ))}
           </ul>
-          <p className="px-4 py-2 text-center text-xs text-[#99a1af]">
+          <p className="px-4 py-2 text-center text-xs text-ink-muted">
             Ces événements sont détectés automatiquement via l'API d'Événements. Vous pouvez
             personnaliser les alertes dans les paramètres.
           </p>

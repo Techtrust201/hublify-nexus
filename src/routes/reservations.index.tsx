@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import {
   CreateEventDialog,
@@ -14,22 +14,26 @@ import { KpiReservations } from "@/components/reservations/KpiEtAccordeons";
 import { PlanningReservations } from "@/components/reservations/PlanningReservations";
 import { TableauReservations } from "@/components/reservations/TableauReservations";
 import { AppShell } from "@/components/layout/AppShell";
+import { RechercheGlobale } from "@/components/layout/RechercheGlobale";
+import type { LoyerMo1 } from "@/data/planning-mo1";
 import {
-  EVENEMENTS_MO1,
-  LOYERS_MO1,
-  MESSAGES_MO1,
-  type EvenementMo1,
-  type LoyerMo1,
-} from "@/data/planning-mo1";
-import { BIENS_MO1 } from "@/data/reservations-mo1";
+  ajouterEvenement,
+  ajouterNotif,
+  marquerQuittance,
+  useSession,
+  validerLoyer,
+} from "@/data/session";
+import { toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
 type VuePage = "planning" | "liste";
 
 export const Route = createFileRoute("/reservations/")({
-  validateSearch: (search: Record<string, unknown>): { vue?: VuePage } => ({
-    vue: search.vue === "liste" ? "liste" : search.vue === "planning" ? "planning" : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { vue?: VuePage } => {
+    const v = search["vue"];
+    if (v === "liste" || v === "planning") return { vue: v };
+    return {};
+  },
   head: () => ({
     meta: [
       { title: "Réservations — Hublify" },
@@ -49,25 +53,16 @@ function PageReservations() {
   const setVue = (v: VuePage) => {
     void navigate({ search: { vue: v } });
   };
+  const session = useSession();
   const [recherche, setRecherche] = useState("");
-  const [loyers, setLoyers] = useState<LoyerMo1[]>(LOYERS_MO1);
-  const [evenements, setEvenements] = useState<EvenementMo1[]>(EVENEMENTS_MO1);
   const [loyerQuittance, setLoyerQuittance] = useState<LoyerMo1 | null>(null);
   const [creerEvent, setCreerEvent] = useState(false);
-
-  const resultats = recherche.trim()
-    ? BIENS_MO1.filter(
-        (b) =>
-          b.nom.toLowerCase().includes(recherche.toLowerCase()) ||
-          b.adresse.toLowerCase().includes(recherche.toLowerCase()),
-      )
-    : [];
 
   if (vue === "liste") {
     return (
       <AppShell>
-        <div className="flex items-center gap-2 text-xs text-[#99a1af]">
-          <Link to="/" className="hover:text-[#4a5565]">
+        <div className="flex items-center gap-2 text-xs text-ink-muted">
+          <Link to="/" className="hover:text-ink-body">
             Tableau de bord
           </Link>
           <span>›</span>
@@ -75,27 +70,27 @@ function PageReservations() {
         </div>
         <div className="mt-3 mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-lg font-medium text-[#1e2939]">Réservations</h1>
-            <p className="text-sm text-[#6a7282]">Gérer toutes vos réservations en un endroit</p>
+            <h1 className="text-lg font-medium text-ink">Réservations</h1>
+            <p className="text-sm text-ink-subtle">Gérer toutes vos réservations en un endroit</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setVue("planning")}
-              className="inline-flex h-10 items-center rounded-[10px] border border-[#e5e7eb] px-4 text-sm font-medium text-[#4a5565]"
+              className="inline-flex h-10 items-center rounded-card border border-line px-4 text-sm font-medium text-ink-body"
             >
               Planning
             </button>
             <Link
               to="/reservations/nouveau"
-              className="inline-flex h-10 items-center gap-2 rounded-[14px] bg-[#1e2939] px-4 text-sm font-medium text-white"
+              className="inline-flex h-10 items-center gap-2 rounded-[14px] bg-ink px-4 text-sm font-medium text-white"
             >
               <Plus className="size-3.5" />
               Créer une réservation
             </Link>
           </div>
         </div>
-        <div className="overflow-hidden rounded-[10px] border border-[#e5e7eb] bg-white">
+        <div className="overflow-hidden rounded-card border border-line bg-white">
           <TableauReservations />
         </div>
       </AppShell>
@@ -107,28 +102,20 @@ function PageReservations() {
       <KpiReservations />
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <label className="relative flex h-[38px] w-full max-w-[448px] items-center gap-2 rounded-[10px] border border-[#e5e7eb] bg-white px-3">
-          <Search className="size-3.5 shrink-0 text-[#99a1af]" />
-          <input
-            value={recherche}
-            onChange={(e) => setRecherche(e.target.value)}
-            placeholder="Rechercher par prestataire ou appartement..."
-            className="h-full w-full bg-transparent text-sm text-[#1e2939] outline-none placeholder:text-[#99a1af]"
-          />
-        </label>
+        <RechercheGlobale valeur={recherche} onChange={setRecherche} />
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => setVue("liste")}
             className={cn(
-              "inline-flex h-10 items-center rounded-[10px] border border-[#e5e7eb] px-4 text-sm font-medium text-[#4a5565]",
+              "inline-flex h-10 items-center rounded-card border border-line px-4 text-sm font-medium text-ink-body",
             )}
           >
             Liste
           </button>
           <Link
             to="/reservations/nouveau"
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-[14px] bg-[#1e2939] px-4 text-sm font-medium text-white"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-[14px] bg-ink px-4 text-sm font-medium text-white"
           >
             <Plus className="size-3.5" />
             Créer une réservation
@@ -136,38 +123,23 @@ function PageReservations() {
         </div>
       </div>
 
-      {recherche.trim() && (
-        <div className="mt-3 rounded-[10px] border border-[#e5e7eb] bg-white p-3 text-sm">
-          {resultats.length === 0 ? (
-            <p className="text-[#6a7282]">Aucun résultat pour « {recherche} ».</p>
-          ) : (
-            <ul className="space-y-1">
-              {resultats.map((b) => (
-                <li key={b.id} className="text-[#1e2939]">
-                  {b.nom} · {b.adresse}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
       <div className="mt-4">
         <PlanningReservations onVoirListe={() => setVue("liste")} />
       </div>
 
-      <MessagesSection messages={MESSAGES_MO1} />
+      <MessagesSection messages={session.messagesDash} />
       <LoyersSection
-        loyers={loyers}
-        onValider={(id) =>
-          setLoyers((list) => list.map((l) => (l.id === id ? { ...l, valide: true } : l)))
-        }
+        loyers={session.loyers}
+        onValider={(id) => {
+          validerLoyer(id);
+          toastOk("Paiement validé.");
+        }}
         onQuittance={(id) => {
-          const l = loyers.find((x) => x.id === id);
+          const l = session.loyers.find((x) => x.id === id);
           if (l) setLoyerQuittance(l);
         }}
       />
-      <EvenementsSection evenements={evenements} onAjouter={() => setCreerEvent(true)} />
+      <EvenementsSection evenements={session.evenements} onAjouter={() => setCreerEvent(true)} />
 
       <QuittanceDialog
         loyer={loyerQuittance}
@@ -175,18 +147,19 @@ function PageReservations() {
         onFermer={() => setLoyerQuittance(null)}
         onConfirmer={() => {
           if (!loyerQuittance) return;
-          setLoyers((list) =>
-            list.map((l) =>
-              l.id === loyerQuittance.id ? { ...l, valide: true, quittance: true } : l,
-            ),
-          );
+          marquerQuittance(loyerQuittance.id);
+          toastOk("Quittance générée.");
           setLoyerQuittance(null);
         }}
       />
       <CreateEventDialog
         ouvert={creerEvent}
         onFermer={() => setCreerEvent(false)}
-        onCreer={(e) => setEvenements((list) => [e, ...list])}
+        onCreer={(e) => {
+          ajouterEvenement(e);
+          ajouterNotif({ titre: "Événement ajouté", detail: e.titre, href: "/reservations" });
+          toastOk("Événement enregistré.");
+        }}
       />
     </AppShell>
   );
