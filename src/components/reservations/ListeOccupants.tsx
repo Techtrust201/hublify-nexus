@@ -15,6 +15,12 @@ import {
   Wrench,
 } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
+import { ScrollHint } from "@/components/layout/ScrollHint";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   OCCUPANTS_MO1,
   PRESTATAIRES_MO1,
@@ -61,7 +67,7 @@ export function ListeOccupants() {
           type="button"
           onClick={() => setOnglet("residents")}
           className={cn(
-            "inline-flex h-[39px] items-center gap-2 rounded-card px-4 text-sm",
+            "inline-flex h-11 items-center gap-2 rounded-card px-4 text-sm",
             onglet === "residents"
               ? "bg-ink text-white"
               : "border border-line bg-white text-ink-body",
@@ -74,7 +80,7 @@ export function ListeOccupants() {
           type="button"
           onClick={() => setOnglet("prestataires")}
           className={cn(
-            "inline-flex h-[39px] items-center gap-2 rounded-card px-4 text-sm",
+            "inline-flex h-11 items-center gap-2 rounded-card px-4 text-sm",
             onglet === "prestataires"
               ? "bg-ink text-white"
               : "border border-line bg-white text-ink-body",
@@ -85,9 +91,9 @@ export function ListeOccupants() {
         </button>
       </div>
 
-      <div className="mt-8 overflow-hidden rounded-card border border-line bg-white">
-        <div className="flex flex-wrap items-center gap-3 px-6 py-4">
-          <label className="relative flex h-[39px] w-full max-w-[448px] items-center gap-2 rounded-card border border-line px-3">
+      <div className="mt-8 rounded-card border border-line bg-white">
+        <div className="flex flex-wrap items-center gap-3 px-4 py-4 md:px-6">
+          <label className="relative flex h-11 w-full max-w-[448px] items-center gap-2 rounded-card border border-line px-3">
             <Search className="size-4 text-ink-muted" />
             <input
               value={recherche}
@@ -95,7 +101,7 @@ export function ListeOccupants() {
               placeholder={
                 onglet === "residents" ? "Rechercher un résident..." : "Rechercher un prestataire..."
               }
-              className="h-full w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
+              className="h-full w-full bg-transparent text-base text-ink outline-none placeholder:text-ink-muted md:text-sm"
             />
           </label>
           {onglet === "residents" && (
@@ -112,7 +118,7 @@ export function ListeOccupants() {
                   type="button"
                   onClick={() => setFiltre(id)}
                   className={cn(
-                    "h-[37px] rounded-card px-3.5 text-sm",
+                    "h-11 rounded-card px-3.5 text-sm",
                     filtre === id ? "bg-ink-filter text-white" : "bg-surface-soft text-ink-body",
                   )}
                 >
@@ -124,14 +130,14 @@ export function ListeOccupants() {
           <div className="ml-auto flex gap-2">
             <button
               type="button"
-              className="inline-flex h-[39px] items-center gap-2 rounded-card border border-line px-4 text-sm text-ink-body"
+              className="inline-flex h-11 items-center gap-2 rounded-card border border-line px-4 text-sm text-ink-body"
             >
               <Download className="size-4" />
               Exporter
             </button>
             <button
               type="button"
-              className="inline-flex h-[39px] items-center gap-2 rounded-card bg-ink px-4 text-sm text-white"
+              className="inline-flex h-11 items-center gap-2 rounded-card bg-ink px-4 text-sm text-white"
             >
               <Plus className="size-4" />
               Ajouter
@@ -140,6 +146,49 @@ export function ListeOccupants() {
         </div>
 
         {onglet === "residents" ? (
+          <>
+            <div className="divide-y divide-surface-soft md:hidden">
+              {occupants.map((o) => (
+                <article key={o.id} className="flex flex-col gap-3 px-4 py-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-10 items-center justify-center rounded-full bg-line text-sm text-ink-body">
+                      {o.initiales}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-ink">{o.nom}</p>
+                      <p className="text-xs text-ink-muted">{o.logement}</p>
+                    </div>
+                    <span
+                      className={cn(
+                        "inline-flex h-7 items-center rounded-full px-3 text-xs text-white",
+                        o.statut === "Actif" ? "bg-ink-deep" : "bg-ink-status",
+                      )}
+                    >
+                      {o.statut}
+                    </span>
+                  </div>
+                  <p className="text-sm text-ink-subtle">
+                    {o.telephone} · {o.email}
+                  </p>
+                  <p className="text-xs text-ink-muted">
+                    Arrivée {o.arrivee}
+                    {o.depart ? ` · Départ ${o.depart}` : ""}
+                  </p>
+                  <div className="flex gap-2">
+                    <IconeAction label="Voir" onClick={() => setFiche(o)}>
+                      <Eye className="size-4" />
+                    </IconeAction>
+                    <IconeAction label="Modifier" className="text-dot-edit">
+                      <Pencil className="size-4" />
+                    </IconeAction>
+                    <IconeAction label="Supprimer">
+                      <Trash2 className="size-4" />
+                    </IconeAction>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <ScrollHint className="hidden md:block">
           <table className="w-full min-w-[860px] text-left">
             <thead>
               <tr className="border-y border-line-table bg-surface text-xs font-medium uppercase tracking-[0.6px] text-ink-header">
@@ -228,7 +277,43 @@ export function ListeOccupants() {
               ))}
             </tbody>
           </table>
+            </ScrollHint>
+          </>
         ) : (
+          <>
+            <div className="divide-y divide-surface-soft md:hidden">
+              {prestataires.map((p) => (
+                <article key={p.id} className="flex flex-col gap-3 px-4 py-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-10 items-center justify-center rounded-full bg-line text-sm text-ink-body">
+                      {p.initiales}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-ink">{p.nom}</p>
+                      <p className="text-xs text-ink-muted">{p.metier}</p>
+                    </div>
+                    <span className="inline-flex h-7 items-center rounded-full bg-ink px-3 text-xs text-white">
+                      {p.statut}
+                    </span>
+                  </div>
+                  <p className="text-sm text-ink-subtle">
+                    {p.telephone} · {p.email}
+                  </p>
+                  <div className="flex gap-2">
+                    <IconeAction label="Voir" onClick={() => setFiche(p)}>
+                      <Eye className="size-4" />
+                    </IconeAction>
+                    <IconeAction label="Modifier">
+                      <Pencil className="size-4" />
+                    </IconeAction>
+                    <IconeAction label="Supprimer">
+                      <Trash2 className="size-4" />
+                    </IconeAction>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <ScrollHint className="hidden md:block">
           <table className="w-full min-w-[720px] text-left">
             <thead>
               <tr className="border-y border-surface-soft text-sm text-ink-subtle">
@@ -277,6 +362,8 @@ export function ListeOccupants() {
               ))}
             </tbody>
           </table>
+            </ScrollHint>
+          </>
         )}
       </div>
 
@@ -294,11 +381,13 @@ export function ListeOccupants() {
       )}
 
       {fiche && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-ink/40 p-4">
-          <div className="w-full max-w-md rounded-card border border-line bg-white p-5">
+        <Dialog open onOpenChange={(ouvert) => { if (!ouvert) setFiche(null); }}>
+          <DialogContent className="max-w-md gap-0 rounded-card border-line p-5 sm:rounded-card">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium text-ink">{"nom" in fiche ? fiche.nom : ""}</p>
+                <DialogTitle className="text-sm font-medium text-ink">
+                  {"nom" in fiche ? fiche.nom : ""}
+                </DialogTitle>
                 <p className="mt-1 text-xs text-ink-subtle">
                   {"type" in fiche ? `${fiche.type} · ${fiche.logement}` : fiche.metier}
                 </p>
@@ -306,15 +395,15 @@ export function ListeOccupants() {
               <button
                 type="button"
                 onClick={() => setFiche(null)}
-                className="text-xs text-ink-body"
+                className="flex h-11 items-center px-2 text-sm text-ink-body"
               >
                 Fermer
               </button>
             </div>
             <p className="mt-4 text-sm text-ink-body">{fiche.telephone}</p>
             <p className="text-sm text-ink-body">{fiche.email}</p>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
@@ -337,7 +426,7 @@ function IconeAction({
       aria-label={label}
       onClick={onClick}
       className={cn(
-        "flex size-10 items-center justify-center rounded-card border border-line text-ink-body",
+        "flex size-11 items-center justify-center rounded-card border border-line text-ink-body",
         className,
       )}
     >

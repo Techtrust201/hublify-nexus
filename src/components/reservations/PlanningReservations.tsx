@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Home, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
+import { ScrollHint } from "@/components/layout/ScrollHint";
 import { InfosOccupants } from "@/components/reservations/InfosOccupants";
 import { FiltreOnglet } from "@/components/reservations/KpiEtAccordeons";
 import {
@@ -159,7 +160,7 @@ export function PlanningReservations({
           <button
             type="button"
             aria-label="Précédent"
-            className="flex size-6 items-center justify-center rounded border border-line text-ink-body"
+            className="flex size-11 items-center justify-center rounded border border-line text-ink-body"
             onClick={() =>
               setAncre((d) =>
                 vue === "mois" ? new Date(d.getFullYear(), d.getMonth() - 1, 1) : ajouterJours(d, -nbJours),
@@ -174,7 +175,7 @@ export function PlanningReservations({
           <button
             type="button"
             aria-label="Suivant"
-            className="flex size-6 items-center justify-center rounded border border-line text-ink-body"
+            className="flex size-11 items-center justify-center rounded border border-line text-ink-body"
             onClick={() =>
               setAncre((d) =>
                 vue === "mois" ? new Date(d.getFullYear(), d.getMonth() + 1, 1) : ajouterJours(d, nbJours),
@@ -198,7 +199,7 @@ export function PlanningReservations({
               type="button"
               onClick={() => setVue(id)}
               className={cn(
-                "border-r border-line px-3 py-1 text-xs font-medium last:border-r-0",
+                "h-11 min-h-11 border-r border-line px-3 text-xs font-medium last:border-r-0",
                 vue === id ? "bg-ink text-white" : "bg-white text-ink-body",
               )}
             >
@@ -277,7 +278,8 @@ function TableauLogements({
 }) {
   return (
     <div className="mt-3 overflow-hidden rounded-card border border-line">
-      <div className="grid grid-cols-[1fr_80px_80px_80px_80px] border-b border-surface-soft bg-surface px-4 py-1.5 text-[11px] text-ink-muted">
+      <ScrollHint>
+      <div className="grid min-w-[520px] grid-cols-[1fr_80px_80px_80px_80px] border-b border-surface-soft bg-surface px-4 py-1.5 text-[11px] text-ink-muted">
         <span>Bien</span>
         <span className="text-center">Airbnb</span>
         <span className="text-center">Booking.com</span>
@@ -288,7 +290,7 @@ function TableauLogements({
         <div
           key={b.id}
           className={cn(
-            "grid grid-cols-[1fr_80px_80px_80px_80px] items-center border-b border-surface-soft px-4 py-2.5 last:border-b-0",
+            "grid min-w-[520px] grid-cols-[1fr_80px_80px_80px_80px] items-center border-b border-surface-soft px-4 py-2.5 last:border-b-0",
             actif === b.id && "bg-surface",
           )}
         >
@@ -319,6 +321,7 @@ function TableauLogements({
         </span>
         <span className="flex items-center gap-1.5">— Non référencé</span>
       </div>
+      </ScrollHint>
     </div>
   );
 }
@@ -355,12 +358,12 @@ function GrilleJours({
   onBloquer: (bienId: string, date: string) => void;
 }) {
   return (
-    <div className="overflow-x-auto">
+    <ScrollHint snap>
       <div
         className="grid min-w-[720px]"
-        style={{ gridTemplateColumns: `130px repeat(${jours.length}, minmax(0, 1fr))` }}
+        style={{ gridTemplateColumns: `130px repeat(${jours.length}, minmax(180px, 1fr))` }}
       >
-        <div className="border-b border-r border-line" />
+        <div className="sticky left-0 z-sticky border-b border-r border-line bg-white" />
         {jours.map((d) => {
           const key = isoJour(d);
           const auj = key === AUJOURD_HUI_MO1;
@@ -368,7 +371,7 @@ function GrilleJours({
             <div
               key={key}
               className={cn(
-                "border-b border-r border-surface-soft py-2 text-center",
+                "snap-start border-b border-r border-surface-soft py-2 text-center",
                 auj && "bg-surface",
               )}
             >
@@ -395,7 +398,7 @@ function GrilleJours({
         ))}
       </div>
       <LegendePlanning bloque />
-    </div>
+    </ScrollHint>
   );
 }
 
@@ -416,7 +419,7 @@ function LigneBien({
 }) {
   return (
     <div className="contents">
-      <div className="border-b border-r border-line px-3 py-3 text-xs text-ink-body">
+      <div className="sticky left-0 z-sticky border-b border-r border-line bg-white px-3 py-3 text-xs text-ink-body">
         {bien.nom}
       </div>
       <div

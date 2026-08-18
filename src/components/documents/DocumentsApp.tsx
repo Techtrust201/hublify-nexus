@@ -27,6 +27,7 @@ import {
   type VueDocuments,
 } from "@/data/documents-mo1";
 import { choisirFichier, telechargerDemo, toastOk } from "@/lib/feedback";
+import { ScrollHint } from "@/components/layout/ScrollHint";
 import { cn } from "@/lib/utils";
 import {
   FicheInterventionDialog,
@@ -614,7 +615,7 @@ function ListeDocs({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <ScrollHint>
           <table className="w-full min-w-[900px] text-left text-xs">
             <thead className="border-b border-surface-soft text-ink-subtle">
               <tr>
@@ -708,7 +709,7 @@ function ListeDocs({
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollHint>
 
         <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-surface-soft px-4 py-3">
           <div className="flex flex-wrap gap-2">

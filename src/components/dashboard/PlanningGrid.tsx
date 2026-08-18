@@ -9,6 +9,7 @@ import {
   MissionInfoDialog,
   MissionsPlusPopover,
 } from "@/components/dashboard/DashboardDialogs";
+import { ScrollHint } from "@/components/layout/ScrollHint";
 import {
   ANCRE_MO1,
   AUJOURD_HUI_MO1,
@@ -130,7 +131,7 @@ export function PlanningGrid({
           <button
             type="button"
             aria-label="Précédent"
-            className="flex size-6 items-center justify-center rounded border border-line text-ink-body"
+            className="flex size-11 items-center justify-center rounded border border-line text-ink-body"
             onClick={() =>
               setAncre((d) =>
                 vue === "mois" ? new Date(d.getFullYear(), d.getMonth() - 1, 1) : ajouterJours(d, -nbJours),
@@ -145,7 +146,7 @@ export function PlanningGrid({
           <button
             type="button"
             aria-label="Suivant"
-            className="flex size-6 items-center justify-center rounded border border-line text-ink-body"
+            className="flex size-11 items-center justify-center rounded border border-line text-ink-body"
             onClick={() =>
               setAncre((d) =>
                 vue === "mois" ? new Date(d.getFullYear(), d.getMonth() + 1, 1) : ajouterJours(d, nbJours),
@@ -169,7 +170,7 @@ export function PlanningGrid({
               type="button"
               onClick={() => setVue(id)}
               className={cn(
-                "border-r border-line px-3 py-1 text-xs font-medium last:border-r-0",
+                "h-11 min-h-11 border-r border-line px-3 text-xs font-medium last:border-r-0",
                 vue === id ? "bg-ink text-white" : "bg-white text-ink-body",
               )}
             >
@@ -212,7 +213,7 @@ export function PlanningGrid({
               type="button"
               onClick={() => setFiltre((f) => (f === "checkin" ? "tous" : "checkin"))}
               className={cn(
-                "inline-flex h-[26px] items-center gap-1 rounded border px-2.5 text-xs font-medium",
+                "inline-flex h-11 min-h-11 items-center gap-1 rounded border px-2.5 text-xs font-medium md:h-[26px] md:min-h-[26px]",
                 filtre === "checkin"
                   ? "border-ink bg-ink text-white"
                   : "border-line bg-white text-ink-body",
@@ -225,7 +226,7 @@ export function PlanningGrid({
               type="button"
               onClick={() => setFiltre((f) => (f === "checkout" ? "tous" : "checkout"))}
               className={cn(
-                "inline-flex h-[26px] items-center gap-1 rounded border px-2.5 text-xs font-medium",
+                "inline-flex h-11 min-h-11 items-center gap-1 rounded border px-2.5 text-xs font-medium md:h-[26px] md:min-h-[26px]",
                 filtre === "checkout"
                   ? "border-ink bg-ink text-white"
                   : "border-line bg-white text-ink-body",
@@ -341,19 +342,19 @@ function JoursMissions({
   onMission: (m: MissionMo1) => void;
 }) {
   return (
-    <div className="overflow-x-auto">
+    <ScrollHint snap>
       <div
         className="grid min-w-[720px]"
-        style={{ gridTemplateColumns: `130px repeat(${jours.length}, minmax(0, 1fr))` }}
+        style={{ gridTemplateColumns: `130px repeat(${jours.length}, minmax(180px, 1fr))` }}
       >
-        <div className="border-b border-r border-line" />
+        <div className="sticky left-0 z-sticky border-b border-r border-line bg-white" />
         {jours.map((d) => {
           const key = isoJour(d);
           return (
             <div
               key={key}
               className={cn(
-                "border-b border-r border-surface-soft py-2 text-center",
+                "snap-start border-b border-r border-surface-soft py-2 text-center",
                 key === AUJOURD_HUI_MO1 && "bg-surface",
               )}
             >
@@ -383,7 +384,7 @@ function JoursMissions({
           />
         ))}
       </div>
-    </div>
+    </ScrollHint>
   );
 }
 
@@ -406,7 +407,7 @@ function LigneBien({
 
   return (
     <div className="contents">
-      <div className="border-b border-r border-line px-3 py-3 text-xs text-ink-body">
+      <div className="sticky left-0 z-sticky border-b border-r border-line bg-white px-3 py-3 text-xs text-ink-body">
         {bien.nom}
       </div>
       <div
@@ -594,12 +595,12 @@ function TarifsJours({
   onCreerRegle: () => void;
 }) {
   return (
-    <div className="overflow-x-auto">
+    <ScrollHint snap>
       <div
         className="grid min-w-[720px]"
-        style={{ gridTemplateColumns: `130px repeat(${jours.length}, minmax(0, 1fr))` }}
+        style={{ gridTemplateColumns: `130px repeat(${jours.length}, minmax(180px, 1fr))` }}
       >
-        <div className="border-b border-r border-line px-3 pb-2 pt-8 text-[10px] text-ink-muted">
+        <div className="sticky left-0 z-sticky border-b border-r border-line bg-white px-3 pb-2 pt-8 text-[10px] text-ink-muted">
           Bien
         </div>
         {jours.map((d) => {
@@ -621,7 +622,7 @@ function TarifsJours({
         })}
         {biens.map((bien) => (
           <div key={bien.id} className="contents">
-            <div className="border-b border-r border-line px-3 py-3">
+            <div className="sticky left-0 z-sticky border-b border-r border-line bg-white px-3 py-3">
               <p className="text-xs text-ink-body">{bien.nom}</p>
               <p className="text-[10px] text-ink-muted">Base : {bien.baseNuit} €/nuit</p>
             </div>
@@ -675,7 +676,7 @@ function TarifsJours({
         </span>
         <span className="ml-auto">Cliquez une cellule pour commencer une sélection ·</span>
       </div>
-    </div>
+    </ScrollHint>
   );
 }
 

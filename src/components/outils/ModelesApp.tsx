@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { BadgeType, BtnNavy, BtnOutline, Champ, Chip } from "@/components/documents/ui";
+import { ScrollHint } from "@/components/layout/ScrollHint";
 import {
   Dialog,
   DialogContent,
@@ -194,7 +195,7 @@ export function ModelesApp() {
               ))}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <ScrollHint>
               <table className="w-full min-w-[800px] text-left text-xs">
                 <thead className="border-b border-surface-soft text-ink-subtle">
                   <tr>
@@ -255,7 +256,7 @@ export function ModelesApp() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollHint>
           )}
         </section>
       </div>

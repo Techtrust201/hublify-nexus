@@ -1,6 +1,7 @@
 import { Download, Eye, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { BtnNavy, BtnOutline, Chip } from "@/components/documents/ui";
+import { ScrollHint } from "@/components/layout/ScrollHint";
 import { ITEMS_INVENTAIRE } from "@/data/documents-mo1";
 import { cn } from "@/lib/utils";
 
@@ -77,7 +78,7 @@ export function InventaireApp() {
           </div>
         </header>
 
-        <div className="overflow-x-auto">
+        <ScrollHint>
           <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="border-b border-surface-soft text-xs text-ink-subtle">
               <tr>
@@ -145,7 +146,7 @@ export function InventaireApp() {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollHint>
       </section>
     </div>
   );

@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { ScrollHint } from "@/components/layout/ScrollHint";
 import {
   Calendar,
   ChevronRight,
@@ -132,7 +133,7 @@ export function TableauReservations() {
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-3 px-5 py-3">
-          <label className="relative flex h-[34px] min-w-[220px] flex-1 items-center gap-2 rounded-card border border-line bg-white px-3">
+          <label className="relative flex h-11 min-w-[220px] flex-1 items-center gap-2 rounded-card border border-line bg-white px-3 md:h-[34px]">
             <Search className="size-3.5 text-ink-muted" />
             <input
               value={recherche}
@@ -141,7 +142,7 @@ export function TableauReservations() {
                 setPage(1);
               }}
               placeholder="Rechercher par occupant ou logement…"
-              className="h-full w-full bg-transparent text-xs text-ink outline-none placeholder:text-ink-muted"
+              className="h-full w-full bg-transparent text-base text-ink outline-none placeholder:text-ink-muted md:text-xs"
             />
           </label>
           <div className="flex rounded-card border border-line p-1">
@@ -161,7 +162,7 @@ export function TableauReservations() {
                   setPage(1);
                 }}
                 className={cn(
-                  "h-7 rounded-md px-3 text-xs font-medium",
+                  "h-11 min-h-11 rounded-md px-3 text-sm font-medium md:h-7 md:min-h-7 md:text-xs",
                   statut === id ? "bg-ink text-white" : "text-ink-body",
                 )}
               >
@@ -197,7 +198,76 @@ export function TableauReservations() {
           </button>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="flex flex-wrap gap-2 px-4 py-3 md:hidden">
+          <FiltreLigne
+            className="w-auto shrink-0"
+            icone={Clock}
+            label="En cours"
+            compte={comptes.en_cours}
+            actif={periode === "en_cours"}
+            onClick={() => setPeriode((p) => (p === "en_cours" ? "tous" : "en_cours"))}
+          />
+          <FiltreLigne
+            icone={LogIn}
+            label="À venir"
+            compte={comptes.a_venir}
+            actif={periode === "a_venir"}
+            onClick={() => setPeriode((p) => (p === "a_venir" ? "tous" : "a_venir"))}
+          />
+          <FiltreLigne
+            icone={LogOut}
+            label="Départs"
+            compte={comptes.departs}
+            actif={periode === "departs"}
+            onClick={() => setPeriode((p) => (p === "departs" ? "tous" : "departs"))}
+          />
+          <FiltreLigne
+            icone={History}
+            label="Passés"
+            compte={comptes.passes}
+            actif={periode === "passes"}
+            onClick={() => setPeriode((p) => (p === "passes" ? "tous" : "passes"))}
+          />
+        </div>
+
+        <div className="divide-y divide-surface-soft md:hidden">
+          {visibles.map((r) => {
+            const bien = bienParId(r.bienId);
+            const pct = pourcentagePaiement(r);
+            return (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => setDetail(r)}
+                className="flex w-full flex-col gap-1 px-4 py-4 text-left"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-ink">{r.occupant}</p>
+                  <span
+                    className={cn(
+                      "inline-flex h-7 items-center rounded px-2 text-[11px]",
+                      r.statut === "Confirmé"
+                        ? "bg-ink text-white"
+                        : r.statut === "En attente"
+                          ? "bg-surface-soft text-ink-body"
+                          : "border border-line text-ink-muted",
+                    )}
+                  >
+                    {r.statut}
+                  </span>
+                </div>
+                <p className="text-xs text-ink-muted">
+                  {bien?.nom} · {formatDateLongue(r.arrivee)}
+                </p>
+                <p className="text-sm text-ink">
+                  {formatMontant(r.montant)} · {pct}% réglé
+                </p>
+              </button>
+            );
+          })}
+        </div>
+
+        <ScrollHint className="hidden md:block">
           <table className="w-full min-w-[880px] text-left">
             <thead>
               <tr className="border-y border-surface-soft text-xs text-ink-subtle">
@@ -289,7 +359,7 @@ export function TableauReservations() {
               })}
             </tbody>
           </table>
-        </div>
+        </ScrollHint>
 
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
           <p className="text-xs text-ink-muted">Affichage de {filtrees.length} réservations</p>
@@ -338,20 +408,23 @@ function FiltreLigne({
   compte,
   actif,
   onClick,
+  className,
 }: {
   icone: typeof Clock;
   label: string;
   compte: number;
   actif: boolean;
   onClick: () => void;
+  className?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "flex h-[35px] w-full items-center gap-2 rounded-[8px] px-3 text-xs",
+        "flex h-11 min-h-11 w-full items-center gap-2 rounded-[8px] px-3 text-sm md:h-[35px] md:min-h-[35px] md:text-xs",
         actif ? "bg-surface-soft text-ink" : "text-ink-body hover:bg-surface",
+        className,
       )}
     >
       <Icone className="size-3.5" />

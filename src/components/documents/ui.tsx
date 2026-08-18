@@ -15,7 +15,7 @@ export function Chip({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-[30px] items-center rounded border px-3 text-xs font-medium",
+        "inline-flex h-11 min-h-11 items-center rounded border px-3 text-sm font-medium md:h-[30px] md:min-h-[30px] md:text-xs",
         actif
           ? "border-ink bg-ink text-white"
           : "border-line-strong bg-white text-ink-body",
@@ -45,7 +45,7 @@ export function BtnOutline({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "inline-flex h-[34px] items-center gap-1.5 rounded-card border border-line bg-white px-3 text-xs font-medium text-ink-body disabled:opacity-40",
+        "inline-flex h-11 min-h-11 items-center gap-1.5 rounded-card border border-line bg-white px-3 text-sm font-medium text-ink-body disabled:opacity-40 md:h-[34px] md:min-h-[34px] md:text-xs",
         className,
       )}
     >
@@ -70,7 +70,7 @@ export function BtnNavy({
       type={type}
       onClick={onClick}
       className={cn(
-        "inline-flex h-[34px] items-center gap-1.5 rounded-card bg-ink px-3 text-xs font-medium text-white",
+        "inline-flex h-11 min-h-11 items-center gap-1.5 rounded-card bg-ink px-3 text-sm font-medium text-white md:h-[34px] md:min-h-[34px] md:text-xs",
         className,
       )}
     >
@@ -97,7 +97,7 @@ export function Champ({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="mt-1.5 h-[34px] w-full rounded-card border border-line bg-white px-3 text-sm text-ink outline-none placeholder:text-ink-muted"
+        className="mt-1.5 h-11 w-full rounded-card border border-line bg-white px-3 text-base text-ink outline-none placeholder:text-ink-muted md:h-[34px] md:text-sm"
       />
     </label>
   );

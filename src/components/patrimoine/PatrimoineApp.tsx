@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { BtnNavy, BtnOutline } from "@/components/documents/ui";
+import { ScrollHint } from "@/components/layout/ScrollHint";
 import { IMMEUBLES_PATRIMOINE, LOGEMENTS_PATRIMOINE } from "@/data/documents-mo1";
 import { cn } from "@/lib/utils";
 
@@ -96,7 +97,7 @@ export function PatrimoineApp() {
             </BtnNavy>
           </div>
         </header>
-        <div className="overflow-x-auto">
+        <ScrollHint>
           <table className="w-full min-w-[900px] text-left text-xs">
             <thead className="border-b border-surface-soft text-ink-subtle">
               <tr>
@@ -174,7 +175,7 @@ export function PatrimoineApp() {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollHint>
         <p className="px-5 py-3 text-xs text-ink-muted">4 logements</p>
       </section>
 
@@ -200,7 +201,7 @@ export function PatrimoineApp() {
             </BtnNavy>
           </div>
         </header>
-        <div className="overflow-x-auto">
+        <ScrollHint>
           <table className="w-full min-w-[700px] text-left text-xs">
             <thead className="border-b border-surface-soft text-ink-subtle">
               <tr>
@@ -263,7 +264,7 @@ export function PatrimoineApp() {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollHint>
         <p className="px-5 py-3 text-xs text-ink-muted">2 immeubles</p>
       </section>
     </div>
