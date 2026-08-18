@@ -227,7 +227,7 @@ function MoisCalendrier({
               type="button"
               onClick={() => onJour(date)}
               className={cn(
-                "mx-auto flex size-7 items-center justify-center rounded text-[10px]",
+                "mx-auto flex h-11 w-full items-center justify-center rounded text-xs md:size-7 md:text-[10px]",
                 bloquee && "bg-ink text-white",
                 reserve && !bloquee && "bg-line text-ink",
                 !bloquee && !reserve && "text-ink-body hover:bg-surface-soft",

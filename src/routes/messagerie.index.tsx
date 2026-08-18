@@ -71,6 +71,8 @@ function PageMessagerie() {
     team: true,
   });
 
+  const [filMobileOuvert, setFilMobileOuvert] = useState(false);
+
   const filtrees = useMemo(() => {
     const q = recherche.trim().toLowerCase();
     return conversations.filter((c) => {
@@ -92,6 +94,7 @@ function PageMessagerie() {
   const selectionner = (id: string) => {
     setSelection(id);
     setPanneau(null);
+    setFilMobileOuvert(true);
     setConversations((liste) => liste.map((c) => (c.id === id ? { ...c, nonLu: false } : c)));
   };
 
@@ -118,7 +121,7 @@ function PageMessagerie() {
 
   return (
     <AppShell titre="Messagerie" sousTitre="Occupants, prestataires et équipe">
-      <div className="flex min-h-[calc(100vh-10rem)] flex-col overflow-hidden rounded-card border border-line bg-white">
+      <div className="flex min-h-[calc(100dvh-10rem)] flex-col overflow-hidden rounded-card border border-line bg-white">
         <div className="flex items-center justify-between border-b border-line bg-[color-mix(in srgb, var(--surface) 50%, transparent)] px-4 py-3">
           <p className="flex items-center gap-2 text-sm text-ink">
             <MessageSquare className="size-[15px]" />
@@ -139,7 +142,7 @@ function PageMessagerie() {
               if (premiere) setSelection(premiere.id);
             }}
             className={cn(
-              "inline-flex h-[30px] items-center gap-1.5 rounded-card border px-3 text-xs font-medium",
+              "inline-flex h-11 items-center gap-1.5 rounded-card border px-3 text-sm font-medium md:h-[30px] md:text-xs",
               archives
                 ? "border-ink text-ink"
                 : "border-line text-ink-subtle",
@@ -152,6 +155,7 @@ function PageMessagerie() {
 
         <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
           <ListeConversations
+            className={cn(filMobileOuvert && "hidden lg:flex")}
             conversations={filtrees}
             selectionId={actif?.id}
             recherche={recherche}
@@ -166,6 +170,8 @@ function PageMessagerie() {
 
           {actif ? (
             <FilConversation
+              className={cn(!filMobileOuvert && "hidden lg:flex")}
+              onRetour={() => setFilMobileOuvert(false)}
               conversation={actif}
               messages={fil}
               brouillon={brouillon}
@@ -218,7 +224,7 @@ function PageMessagerie() {
               }
             />
           ) : (
-            <p className="flex flex-1 items-center justify-center p-6 text-sm text-ink-subtle">
+            <p className={cn("flex flex-1 items-center justify-center p-6 text-sm text-ink-subtle", !filMobileOuvert && "hidden lg:flex")}>
               Aucun message.
             </p>
           )}
@@ -254,6 +260,7 @@ function PageMessagerie() {
             },
           ]);
           setSelection(id);
+          setFilMobileOuvert(true);
           setArchives(false);
           ajouterNotif({
             titre: "Message envoyé",

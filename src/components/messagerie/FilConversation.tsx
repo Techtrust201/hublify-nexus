@@ -1,6 +1,7 @@
 import {
   Archive,
   Bot,
+  ChevronLeft,
   Download,
   File,
   FolderOpen,
@@ -37,6 +38,8 @@ export function FilConversation({
   onArchiver,
   onSupprimer,
   enfantsPanneau,
+  onRetour,
+  className,
 }: {
   conversation: Conversation;
   messages: MessageFil[];
@@ -48,10 +51,22 @@ export function FilConversation({
   onArchiver: () => void;
   onSupprimer: () => void;
   enfantsPanneau: ReactNode;
+  onRetour?: () => void;
+  className?: string;
 }) {
   return (
-    <section className="flex min-h-0 min-w-0 flex-1 flex-col">
+    <section className={cn("flex min-h-0 min-w-0 flex-1 flex-col", className)}>
       <header className="relative flex items-center gap-3 border-b border-surface-soft px-4 py-3">
+        {onRetour && (
+          <button
+            type="button"
+            onClick={onRetour}
+            className="flex size-11 shrink-0 items-center justify-center rounded-card border border-line text-ink-body lg:hidden"
+            aria-label="Retour à la liste"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+        )}
         <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-line text-xs text-ink-body">
           {conversation.initiales}
         </span>
@@ -66,7 +81,7 @@ export function FilConversation({
             <p className="truncate text-xs text-ink-muted">{conversation.bienNom}</p>
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
           <BoutonOutil
             label="Partager"
             actif={panneau === "partage"}
@@ -165,7 +180,7 @@ export function FilConversation({
         <div className="flex items-end gap-2">
           <button
             type="button"
-            className="flex size-8 shrink-0 items-center justify-center rounded-[14px] border border-line text-ink-body"
+            className="flex size-11 shrink-0 items-center justify-center rounded-[14px] border border-line text-ink-body"
             aria-label="Joindre un fichier"
           >
             <Paperclip className="size-3.5" />
@@ -174,19 +189,19 @@ export function FilConversation({
             value={brouillon}
             onChange={(e) => onBrouillon(e.target.value)}
             placeholder="Écrire un message…"
-            className="h-[34px] min-w-0 flex-1 rounded-[14px] border border-line px-3 text-xs text-ink outline-none placeholder:text-line-strong"
+            className="h-11 min-w-0 flex-1 rounded-[14px] border border-line px-3 text-base text-ink outline-none placeholder:text-line-strong md:h-[34px] md:text-xs"
           />
           <button
             type="submit"
             disabled={!brouillon.trim()}
-            className="flex size-8 shrink-0 items-center justify-center rounded-[14px] bg-ink text-white disabled:opacity-40"
+            className="flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-ink text-white disabled:opacity-40"
             aria-label="Envoyer"
           >
             <Send className="size-3.5" />
           </button>
           <button
             type="button"
-            className="flex size-8 shrink-0 items-center justify-center rounded-[14px] border border-line text-ink-body"
+            className="flex size-11 shrink-0 items-center justify-center rounded-[14px] border border-line text-ink-body"
             aria-label="Modèles"
           >
             <Bot className="size-3.5" />
@@ -214,7 +229,7 @@ function BoutonOutil({
       aria-label={label}
       onClick={onClick}
       className={cn(
-        "flex size-7 items-center justify-center rounded-card border border-line text-ink-body",
+        "flex size-11 items-center justify-center rounded-card border border-line text-ink-body",
         actif && "bg-surface-soft",
       )}
     >

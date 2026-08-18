@@ -49,7 +49,7 @@ function PageProfil() {
           type="button"
           onClick={() => setOnglet("info")}
           className={cn(
-            "h-9 rounded-card px-4 text-sm",
+            "h-11 rounded-card px-4 text-sm",
             onglet === "info"
               ? "bg-ink text-white"
               : "bg-surface-soft text-ink",
@@ -61,7 +61,7 @@ function PageProfil() {
           type="button"
           onClick={() => setOnglet("edition")}
           className={cn(
-            "h-9 rounded-card px-4 text-sm",
+            "h-11 rounded-card px-4 text-sm",
             onglet === "edition"
               ? "bg-ink text-white"
               : "bg-surface-soft text-ink",

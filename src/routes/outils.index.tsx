@@ -45,14 +45,17 @@ const OUTILS = [
 function PageOutils() {
   return (
     <AppShell titre="Outils" sousTitre="Tous les outils">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {OUTILS.map((o) => (
           <article key={o.titre} className="rounded-card border border-line bg-white p-4">
             <o.icone className="size-4 text-ink-body" />
             <h2 className="mt-3 text-sm font-medium text-ink">{o.titre}</h2>
             <p className="mt-1 text-xs text-ink-subtle">{o.texte}</p>
             {o.vers && (
-              <Link to={o.vers} className="mt-3 inline-block text-xs font-medium text-ink-body">
+              <Link
+                to={o.vers}
+                className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-ink-body"
+              >
                 Ouvrir
               </Link>
             )}

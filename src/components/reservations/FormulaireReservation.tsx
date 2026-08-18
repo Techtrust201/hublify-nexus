@@ -14,7 +14,7 @@ import { toastErreur, toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
 const champ =
-  "h-[34px] w-full rounded-[8px] border border-line bg-white px-3 text-sm text-ink outline-none placeholder:text-ink-muted";
+  "h-11 w-full rounded-[8px] border border-line bg-white px-3 text-base text-ink outline-none placeholder:text-ink-muted md:h-[34px] md:text-sm";
 
 export function FormulaireReservation() {
   const navigate = useNavigate();
@@ -320,6 +320,7 @@ export function FormulaireReservation() {
                     <input
                       value={prixNuit}
                       onChange={(e) => setPrixNuit(e.target.value)}
+                      inputMode="decimal"
                       className={champ}
                     />
                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
@@ -333,6 +334,7 @@ export function FormulaireReservation() {
                     <input
                       value={duree}
                       onChange={(e) => setDuree(e.target.value)}
+                      inputMode="numeric"
                       className={champ}
                     />
                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">

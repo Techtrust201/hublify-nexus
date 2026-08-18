@@ -76,7 +76,7 @@ export function TeamPage() {
         <button
           type="button"
           onClick={() => setInviter(true)}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-[14px] bg-ink px-4 text-sm font-medium text-white"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-[14px] bg-ink px-4 text-sm font-medium text-white"
         >
           <UserPlus className="size-3.5" />
           Inviter un membre
@@ -94,13 +94,13 @@ export function TeamPage() {
               <p className="text-[10px] text-ink-muted">Gérez les accès et les permissions</p>
             </div>
           </div>
-          <label className="flex h-[34px] w-full max-w-[220px] items-center gap-2 rounded-card border border-line px-3">
+          <label className="flex h-11 w-full max-w-[220px] items-center gap-2 rounded-card border border-line px-3">
             <Search className="size-3 text-ink-muted" />
             <input
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
               placeholder="Rechercher un membre…"
-              className="h-full w-full bg-transparent text-xs text-ink outline-none placeholder:text-line-strong"
+              className="h-full w-full bg-transparent text-base text-ink outline-none placeholder:text-line-strong md:text-xs"
             />
           </label>
         </header>
@@ -143,7 +143,7 @@ export function TeamPage() {
                     <button
                       type="button"
                       onClick={() => setMessagePour((id) => (id === m.id ? null : m.id))}
-                      className="inline-flex h-[30px] items-center gap-1.5 rounded-card border border-line px-3 text-xs font-medium text-ink-body"
+                      className="inline-flex h-11 items-center gap-1.5 rounded-card border border-line px-3 text-sm font-medium text-ink-body md:h-[30px] md:text-xs"
                     >
                       <Mail className="size-2.5" />
                       Envoyer un message
@@ -152,7 +152,7 @@ export function TeamPage() {
                       type="button"
                       aria-label="Modifier les droits"
                       onClick={() => setEdition(m)}
-                      className="flex size-8 items-center justify-center rounded-card border border-line text-ink-body"
+                      className="flex size-11 items-center justify-center rounded-card border border-line text-ink-body"
                     >
                       <Pencil className="size-3" />
                     </button>
@@ -160,7 +160,7 @@ export function TeamPage() {
                       type="button"
                       aria-label="Supprimer le membre"
                       onClick={() => setSuppression(m)}
-                      className="flex size-8 items-center justify-center rounded-card border border-line text-ink-body"
+                      className="flex size-11 items-center justify-center rounded-card border border-line text-ink-body"
                     >
                       <Trash2 className="size-3" />
                     </button>

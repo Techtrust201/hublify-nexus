@@ -102,13 +102,13 @@ export function RechercheGlobale({
 
   return (
     <div className="relative w-full max-w-[448px]">
-      <label className="relative flex h-[38px] w-full items-center gap-2 rounded-card border border-line bg-white px-3">
+      <label className="relative flex h-11 w-full items-center gap-2 rounded-card border border-line bg-white px-3">
         <Search className="size-3.5 shrink-0 text-ink-muted" />
         <input
           value={valeur}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="h-full w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
+          className="h-full w-full bg-transparent text-base text-ink outline-none placeholder:text-ink-muted md:text-sm"
         />
       </label>
       {q.length > 0 && (

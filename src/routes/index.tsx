@@ -60,7 +60,7 @@ function VueGenerale() {
         <RechercheGlobale valeur={recherche} onChange={setRecherche} />
         <Link
           to="/reservations/nouveau"
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-[14px] bg-ink px-4 text-sm font-medium text-white"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-[14px] bg-ink px-4 text-sm font-medium text-white"
         >
           <Plus className="size-3.5" />
           Créer une réservation

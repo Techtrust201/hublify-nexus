@@ -30,7 +30,7 @@ function LigneConversation({
       type="button"
       onClick={onSelect}
       className={cn(
-        "relative flex w-full gap-2.5 border-b border-surface-soft px-3 py-2.5 text-left",
+        "relative flex min-h-11 w-full gap-2.5 border-b border-surface-soft px-3 py-3 text-left",
         active && "bg-surface-soft",
       )}
     >
@@ -63,6 +63,7 @@ export function ListeConversations({
   onEcrire,
   sectionsOuvertes,
   onToggleSection,
+  className,
 }: {
   conversations: Conversation[];
   selectionId: string | undefined;
@@ -72,25 +73,26 @@ export function ListeConversations({
   onEcrire: () => void;
   sectionsOuvertes: Record<SectionConversation, boolean>;
   onToggleSection: (s: SectionConversation) => void;
+  className?: string;
 }) {
   const inbox = conversations.filter((c) => c.section === "inbox");
 
   return (
-    <aside className="flex min-h-0 flex-col border-b border-line lg:w-[288px] lg:shrink-0 lg:border-b-0 lg:border-r">
+    <aside className={cn("flex min-h-0 flex-col border-b border-line lg:w-[288px] lg:shrink-0 lg:border-b-0 lg:border-r", className)}>
       <div className="flex items-center gap-2 border-b border-surface-soft px-3 py-2.5">
-        <label className="flex h-[30px] min-w-0 flex-1 items-center gap-1.5 rounded-card border border-line bg-white px-2.5">
+        <label className="flex h-11 min-w-0 flex-1 items-center gap-1.5 rounded-card border border-line bg-white px-2.5">
           <Search className="size-3 shrink-0 text-ink-muted" />
           <input
             value={recherche}
             onChange={(e) => onRecherche(e.target.value)}
             placeholder="Rechercher…"
-            className="h-full w-full bg-transparent text-xs text-ink outline-none placeholder:text-line-strong"
+            className="h-full w-full bg-transparent text-base text-ink outline-none placeholder:text-line-strong md:text-xs"
           />
         </label>
         <button
           type="button"
           onClick={onEcrire}
-          className="inline-flex h-7 shrink-0 items-center gap-1 rounded-card bg-ink px-2.5 text-xs font-medium text-white"
+          className="inline-flex h-11 shrink-0 items-center gap-1 rounded-card bg-ink px-3 text-sm font-medium text-white"
         >
           <Plus className="size-3" />
           Écrire

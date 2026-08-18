@@ -116,33 +116,32 @@ export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
           <MessageSquare className="size-4" />
           Les Messages
         </span>
-        <span className="flex items-center gap-3">
-          {(["occupants", "prestataires", "team"] as const).map((c) => (
-            <span
-              key={c}
-              role="presentation"
-              onClick={(e) => {
-                e.stopPropagation();
-                setCanal(c);
-                setOuvert(true);
-              }}
-              className={cn(
-                "inline-flex h-[26px] items-center rounded border px-3 text-xs font-medium",
-                canal === c
-                  ? "border-ink text-ink"
-                  : "border-line-strong text-ink-body",
-              )}
-            >
-              {c === "occupants" ? "Occupants" : c === "prestataires" ? "Prestataires" : "Team"}
-            </span>
-          ))}
-          {ouvert ? (
-            <ChevronUp className="size-4 text-ink-muted" />
-          ) : (
-            <ChevronDown className="size-4 text-ink-muted" />
-          )}
-        </span>
+        {ouvert ? (
+          <ChevronUp className="size-4 text-ink-muted" />
+        ) : (
+          <ChevronDown className="size-4 text-ink-muted" />
+        )}
       </button>
+      <div className="flex flex-wrap gap-2 border-b border-surface-soft px-4 py-2">
+        {(["occupants", "prestataires", "team"] as const).map((c) => (
+          <button
+            key={c}
+            type="button"
+            onClick={() => {
+              setCanal(c);
+              setOuvert(true);
+            }}
+            className={cn(
+              "inline-flex h-11 min-h-11 items-center rounded border px-3 text-sm font-medium md:h-[26px] md:min-h-[26px] md:text-xs",
+              canal === c
+                ? "border-ink text-ink"
+                : "border-line-strong text-ink-body",
+            )}
+          >
+            {c === "occupants" ? "Occupants" : c === "prestataires" ? "Prestataires" : "Team"}
+          </button>
+        ))}
+      </div>
       {ouvert && (
         <ul>
           {filtres.map((m) => (
