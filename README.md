@@ -10,6 +10,27 @@ Développée par **TECHTRUST AGENCY**.
 - TanStack Start / TanStack Router
 - Tailwind CSS v4
 - Vite 7
+- Postgres (Neon en hébergé, Postgres 16 en CI) — état de démo persisté côté serveur, repli `localStorage`
+
+## Base de données
+
+Copier `.env.example` vers `.env.local` (gitignoré) avec `DATABASE_URL`, **sans** préfixe `VITE_`.
+
+Pour reproduire la CI en local :
+
+```bash
+docker compose up -d
+# dans .env.local : DATABASE_URL=postgresql://hublify:hublify@127.0.0.1:5432/hublify
+# Si le port 5432 est occupé : POSTGRES_PUBLISH=55432 docker compose up -d
+npm run db:prepare
+```
+
+Sur Neon (démo hébergée), la même URL Postgres standard convient — le client HTTP Neon n'est plus utilisé.
+
+```bash
+npm run db:apply   # schéma
+npm run db:seed    # comptes de démo
+```
 
 ## Démarrage
 
@@ -29,6 +50,9 @@ L'application démarre sur `http://localhost:8080`.
 | `bun run preview` | Prévisualisation du build |
 | `bun run lint` | Analyse statique ESLint |
 | `bun run format` | Formatage Prettier |
+| `npm test` | Tests unitaires Vitest |
+| `npm run e2e` | Tests Playwright (exige `DATABASE_URL` + seed) |
+| `npm run db:prepare` | Applique le schéma et sème les comptes de démo |
 
 ## Structure
 

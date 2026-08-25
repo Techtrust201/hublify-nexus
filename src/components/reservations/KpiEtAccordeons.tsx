@@ -17,7 +17,7 @@ export function FiltreOnglet({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-[26px] items-center rounded border px-2.5 text-xs font-medium",
+        "inline-flex h-11 items-center rounded border px-2.5 text-xs font-medium md:h-[26px]",
         actif
           ? "border-ink bg-ink text-white"
           : "border-line bg-white text-ink-body",

@@ -20,7 +20,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  BIENS_MO1,
   ENSEMBLES_MO1,
   TYPES_REGLE,
   emojiType,
@@ -35,6 +34,7 @@ import {
   type TypeModifTarif,
   type TypeRegle,
 } from "@/data/planning-mo1";
+import { useSession } from "@/data/session";
 import { cn } from "@/lib/utils";
 
 export function MissionsPlusPopover({
@@ -54,7 +54,7 @@ export function MissionsPlusPopover({
       <button
         type="button"
         onClick={() => setOuvert(true)}
-        className="flex h-[19px] w-full items-center gap-1 px-1 text-left text-[10px] font-medium text-ink-muted"
+        className="flex h-6 w-full items-center gap-1 px-1 text-left text-[10px] font-medium text-ink-muted md:h-[19px]"
       >
         <Maximize2 className="size-[9px] shrink-0" />
         +{missions.length - 1} voir plus
@@ -411,6 +411,7 @@ export function CreateEventDialog({
   onFermer: () => void;
   onCreer: (e: EvenementMo1) => void;
 }) {
+  const session = useSession();
   const [nom, setNom] = useState("");
   const [lieu, setLieu] = useState("");
   const [debut, setDebut] = useState("");
@@ -507,8 +508,14 @@ export function CreateEventDialog({
           <fieldset>
             <legend className="text-sm text-ink">Propriétés concernées</legend>
             <div className="mt-3 space-y-2 rounded-card border border-line p-4">
-              {[...BIENS_MO1.map((b) => b.nom), "Maison des Vignes"].map((nomBien) => (
-                <label key={nomBien} className="flex items-center gap-2 text-sm text-ink">
+              {(session.biens.length
+                ? session.biens.map((b) => b.nom)
+                : ["Aucun bien pour l'instant"]
+              ).map((nomBien) => (
+                <label
+                  key={nomBien}
+                  className="flex min-h-11 items-center gap-2 text-sm text-ink md:min-h-0"
+                >
                   <input
                     type="checkbox"
                     checked={biens.includes(nomBien)}
@@ -537,11 +544,11 @@ export function CreateEventDialog({
             />
           </label>
         </div>
-        <div className="flex items-center justify-between pt-2">
-          <p className="max-w-[309px] text-xs text-ink-muted">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+          <p className="min-w-0 max-w-[309px] text-xs text-ink-muted">
             💡 Les événements vous aident à anticiper les variations de demande.
           </p>
-          <div className="flex gap-2">
+          <div className="flex w-full flex-wrap gap-2 sm:w-auto">
             <button
               type="button"
               onClick={onFermer}
@@ -587,20 +594,25 @@ export function CreateRegleDialog({
   onCreer: (r: RegleTarif, nouvelEnsemble?: string) => void;
   ensembles: EnsembleRegles[];
 }) {
+  const session = useSession();
   const [nom, setNom] = useState("");
   const [type, setType] = useState<TypeRegle>("weekend");
   const [debut, setDebut] = useState("2026-03-13");
   const [fin, setFin] = useState("2026-03-13");
-  const [bienId, setBienId] = useState("suzette");
+  const [bienId, setBienId] = useState(session.biens[0]?.id ?? "");
   const [modif, setModif] = useState<TypeModifTarif>("majoration");
   const [valeur, setValeur] = useState(20);
   const [note, setNote] = useState("");
   const [ensembleId, setEnsembleId] = useState("en1");
 
-  const bien = BIENS_MO1.find((b) => b.id === bienId) ?? BIENS_MO1[0]!;
+  const bien = session.biens.find((b) => b.id === bienId) ?? session.biens[0];
   const signe = modif === "reduction" ? -1 : 1;
   const variation = modif === "fixe" ? 0 : valeur * signe;
-  const prix = modif === "fixe" ? valeur : Math.round(bien.baseNuit * (1 + variation / 100));
+  const prix = !bien
+    ? 0
+    : modif === "fixe"
+      ? valeur
+      : Math.round(bien.baseNuit * (1 + variation / 100));
 
   return (
     <Dialog open={ouvert} onOpenChange={(o) => !o && onFermer()}>
@@ -675,7 +687,7 @@ export function CreateRegleDialog({
               onChange={(e) => setBienId(e.target.value)}
               className="mt-2 h-9 w-full rounded-card border border-line bg-white px-3 text-xs outline-none"
             >
-              {BIENS_MO1.map((b) => (
+              {session.biens.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.nom}
                 </option>
@@ -718,7 +730,7 @@ export function CreateRegleDialog({
                 className="h-[34px] w-[112px] rounded-card border border-line px-3 text-xs outline-none"
               />
               <p className="text-xs text-ink-subtle">
-                Base {bien.baseNuit}€ →{" "}
+                Base {bien?.baseNuit ?? 0}€ →{" "}
                 <span className="text-ink">
                   {prix} €/nuit{modif !== "fixe" ? `(${variation > 0 ? "+" : ""}${variation}%)` : ""}
                 </span>
@@ -779,7 +791,7 @@ export function CreateRegleDialog({
               </div>
               <div className="flex justify-between">
                 <dt className="text-ink-muted">Bien(s)</dt>
-                <dd>{bien.nom}</dd>
+                <dd>{bien?.nom ?? "—"}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-ink-muted">Tarif</dt>

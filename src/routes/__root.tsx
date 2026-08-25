@@ -6,11 +6,15 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  redirect,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
+import { AuthProvider } from "@/auth/auth-context";
+import { aLeDroit, droitRequisPourChemin, type AuthContexte } from "@/auth/permissions";
 import { Toaster } from "@/components/ui/sonner";
 import { hydraterSession } from "@/data/session";
+import { getSession } from "@/lib/auth.functions";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -25,7 +29,7 @@ function NotFoundComponent() {
         <div className="mt-6">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 md:min-h-0"
           >
             Retour à l'accueil
           </Link>
@@ -56,13 +60,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 md:min-h-0"
           >
             Réessayer
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            className="inline-flex min-h-11 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
             Retour à l'accueil
           </a>
@@ -72,7 +76,28 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+export const Route = createRootRouteWithContext<{
+  queryClient: QueryClient;
+  auth: AuthContexte | null;
+}>()({
+  beforeLoad: async ({ location }) => {
+    const estPublic =
+      location.pathname === "/connexion" ||
+      location.pathname === "/inscription" ||
+      location.pathname === "/mot-de-passe-oublie" ||
+      location.pathname === "/reinitialiser-mot-de-passe" ||
+      location.pathname.startsWith("/api/");
+    if (estPublic) return { auth: null };
+    const auth = await getSession();
+    if (!auth) {
+      throw redirect({ to: "/connexion" });
+    }
+    const besoin = droitRequisPourChemin(location.pathname);
+    if (besoin && !aLeDroit(auth.droits, besoin)) {
+      throw redirect({ to: "/" });
+    }
+    return { auth };
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -133,16 +158,18 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function RootComponent() {
-  const { queryClient } = Route.useRouteContext();
+  const { queryClient, auth } = Route.useRouteContext();
   useEffect(() => {
-    hydraterSession();
-  }, []);
+    hydraterSession(auth?.userId);
+  }, [auth?.userId]);
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
-      <Toaster position="top-right" richColors closeButton />
+      <AuthProvider valeur={auth ?? null}>
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+        <Toaster position="top-right" richColors closeButton />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

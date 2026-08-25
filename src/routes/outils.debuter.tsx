@@ -2,8 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Check, ChevronRight, Home, KeyRound, Users } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
-import { BIENS_MO1 } from "@/data/reservations-mo1";
-import { ajouterMission, ajouterNotif, ajouterReservation, idNouveau } from "@/data/session";
+import { ajouterMission, ajouterNotif, ajouterReservation, idNouveau, useSession } from "@/data/session";
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
@@ -22,17 +21,22 @@ const ETAPES = [
 
 function PageDebuter() {
   const navigate = useNavigate();
+  const session = useSession();
   const [etape, setEtape] = useState(1);
-  const [bienId, setBienId] = useState(BIENS_MO1[0]?.id ?? "suzette");
+  const [bienId, setBienId] = useState("");
   const [voyageur, setVoyageur] = useState("Léa Moreau");
   const [arrivee, setArrivee] = useState("2026-03-12");
   const [depart, setDepart] = useState("2026-03-16");
   const [missionTitre, setMissionTitre] = useState("Ménage de bienvenue");
   const [missionHeure, setMissionHeure] = useState("10:00");
 
-  const bien = BIENS_MO1.find((b) => b.id === bienId) ?? BIENS_MO1[0]!;
+  const bien = session.biens.find((b) => b.id === bienId) ?? session.biens[0];
 
   const creer = () => {
+    if (!bien) {
+      toastErreur("Ajoutez un bien avant de créer une réservation.");
+      return;
+    }
     if (!voyageur.trim() || !arrivee || !depart) {
       toastErreur("Renseignez le voyageur et les dates.");
       return;
@@ -93,28 +97,30 @@ function PageDebuter() {
       detail: `${voyageur.trim()} · ${bien.nom} · ${arrivee}`,
       href: "/reservations",
     });
-    toastOk("Logement, réservation et mission enregistrés.");
+    toastOk("Logement, réservation et mission créés.");
     void navigate({ to: "/reservations" });
   };
 
   return (
     <AppShell titre="Je débute" sousTitre="Trois étapes pour lancer votre première location">
       <div className="mx-auto max-w-[720px]">
-        <ol className="mb-6 flex gap-2">
+        <ol className="mb-6 flex flex-wrap gap-2">
           {ETAPES.map((e) => (
-            <li key={e.n} className="flex flex-1 items-center gap-2">
+            <li key={e.n} className="flex min-w-0 flex-1 basis-full items-center gap-2 sm:basis-0">
               <span
                 className={cn(
-                  "flex size-7 items-center justify-center rounded-full text-xs font-medium",
+                  "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-medium",
                   etape >= e.n ? "bg-ink text-white" : "bg-surface-soft text-ink-muted",
                 )}
               >
                 {etape > e.n ? <Check className="size-3.5" /> : e.n}
               </span>
-              <span className={cn("text-xs", etape >= e.n ? "text-ink" : "text-ink-muted")}>
+              <span className={cn("min-w-0 text-xs", etape >= e.n ? "text-ink" : "text-ink-muted")}>
                 {e.titre}
               </span>
-              {e.n < 3 && <ChevronRight className="ml-auto size-3.5 text-line-strong" />}
+              {e.n < 3 && (
+                <ChevronRight className="ml-auto hidden size-3.5 shrink-0 text-line-strong sm:block" />
+              )}
             </li>
           ))}
         </ol>
@@ -128,7 +134,7 @@ function PageDebuter() {
                 vous pilotez.
               </p>
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                {BIENS_MO1.map((b) => (
+                {session.biens.map((b) => (
                   <button
                     key={b.id}
                     type="button"
@@ -152,7 +158,7 @@ function PageDebuter() {
             <>
               <h2 className="text-base font-medium text-ink">Créer la réservation</h2>
               <p className="mt-1 text-xs text-ink-subtle">
-                Séjour direct sur {bien.nom}. Les dates s’affichent ensuite dans le planning.
+                Séjour direct sur {bien?.nom ?? "votre bien"}. Les dates s’affichent ensuite dans le planning.
               </p>
               <label className="mt-4 block text-xs text-ink-subtle">
                 Voyageur
@@ -209,7 +215,7 @@ function PageDebuter() {
                 />
               </label>
               <ul className="mt-4 space-y-1 rounded-card bg-surface p-3 text-xs text-ink-body">
-                <li>Logement : {bien.nom}</li>
+                <li>Logement : {bien?.nom ?? "—"}</li>
                 <li>
                   Séjour : {voyageur} · {arrivee} → {depart}
                 </li>
@@ -222,14 +228,17 @@ function PageDebuter() {
 
           <div className="mt-6 flex justify-between">
             {etape === 1 ? (
-              <Link to="/outils" className="text-xs text-ink-subtle hover:underline">
+              <Link
+                to="/outils"
+                className="inline-flex min-h-11 items-center text-xs text-ink-subtle hover:underline md:min-h-0"
+              >
                 Retour aux outils
               </Link>
             ) : (
               <button
                 type="button"
                 onClick={() => setEtape((n) => n - 1)}
-                className="text-xs text-ink-subtle hover:underline"
+                className="inline-flex min-h-11 items-center text-xs text-ink-subtle hover:underline md:min-h-0"
               >
                 Étape précédente
               </button>
@@ -238,7 +247,7 @@ function PageDebuter() {
               <button
                 type="button"
                 onClick={() => setEtape((n) => n + 1)}
-                className="inline-flex h-9 items-center rounded-card bg-ink px-4 text-xs font-medium text-white"
+                className="inline-flex h-11 items-center rounded-card bg-ink px-4 text-xs font-medium text-white md:h-9"
               >
                 Continuer
               </button>
@@ -246,7 +255,7 @@ function PageDebuter() {
               <button
                 type="button"
                 onClick={creer}
-                className="inline-flex h-9 items-center gap-1 rounded-card bg-ink px-4 text-xs font-medium text-white"
+                className="inline-flex h-11 items-center gap-1 rounded-card bg-ink px-4 text-xs font-medium text-white md:h-9"
               >
                 <Check className="size-3.5" />
                 Terminer

@@ -7,7 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { telechargerDemo, toastInfo } from "@/lib/feedback";
+import { telechargerBase64, toastErreur, toastInfo } from "@/lib/feedback";
+import { genererAvisPdf, genererQuittancePdf } from "@/lib/documents.functions";
 import { BtnNavy, BtnOutline, Champ } from "./ui";
 
 export function GenerateQuittanceDialog({
@@ -86,8 +87,26 @@ export function GenerateQuittanceDialog({
           <BtnNavy
             className="flex-1 justify-center"
             onClick={() => {
-              telechargerDemo("quittance-loyer.txt");
-              onClose();
+              void (async () => {
+                try {
+                  const doc = await genererQuittancePdf({
+                    data: {
+                      bailleur,
+                      bailleurAdr,
+                      locataire,
+                      locAdr,
+                      loyer,
+                      charges,
+                      mois,
+                      faitA,
+                    },
+                  });
+                  telechargerBase64(doc.nom, doc.mime, doc.base64);
+                  onClose();
+                } catch {
+                  toastErreur("Impossible de générer la quittance.");
+                }
+              })();
             }}
           >
             <Download className="size-3" /> Télécharger
@@ -147,8 +166,24 @@ export function GenerateAvisDialog({
           <BtnNavy
             className="flex-1 justify-center"
             onClick={() => {
-              telechargerDemo("avis-echeance.txt");
-              onClose();
+              void (async () => {
+                try {
+                  const doc = await genererAvisPdf({
+                    data: {
+                      bailleur,
+                      locataire,
+                      mois,
+                      echeance,
+                      loyer,
+                      charges,
+                    },
+                  });
+                  telechargerBase64(doc.nom, doc.mime, doc.base64);
+                  onClose();
+                } catch {
+                  toastErreur("Impossible de générer l'avis.");
+                }
+              })();
             }}
           >
             <Download className="size-3" /> Télécharger

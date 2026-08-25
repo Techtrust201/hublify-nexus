@@ -7,7 +7,6 @@ import { FiltreOnglet } from "@/components/reservations/KpiEtAccordeons";
 import {
   ANCRE_PLANNING_MO1,
   AUJOURD_HUI_MO1,
-  BIENS_MO1,
   CODE_BARRE,
   ajouterJours,
   isoJour,
@@ -67,9 +66,22 @@ export function PlanningReservations({
   }, [plateforme, session.reservationsDossier]);
 
   const biens = useMemo(() => {
-    if (!bienLocalise) return BIENS_MO1;
-    return BIENS_MO1.filter((b) => b.id === bienLocalise);
-  }, [bienLocalise]);
+    const source = session.biens.map(
+      (b): BienMo1 => ({
+        id: b.id,
+        nom: b.nom,
+        adresse: b.adresse ?? "",
+        plateformes: {
+          Airbnb: "aucun",
+          "Booking.com": "aucun",
+          Direct: "actif",
+          Autre: "aucun",
+        },
+      }),
+    );
+    if (!bienLocalise) return source;
+    return source.filter((b) => b.id === bienLocalise);
+  }, [bienLocalise, session.biens]);
 
   const visiblePlanning = useMemo(() => {
     const cles = new Set(
@@ -124,7 +136,7 @@ export function PlanningReservations({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <button
             type="button"
-            className="flex items-center gap-2 text-xs text-ink-body"
+            className="flex min-h-11 items-center gap-2 text-xs text-ink-body md:min-h-0"
             onClick={() => setSectionOuverte((v) => !v)}
           >
             <Home className="size-3.5" />
@@ -134,7 +146,7 @@ export function PlanningReservations({
           <div className="flex items-center gap-2">
             <Link
               to="/patrimoines"
-              className="inline-flex h-[26px] items-center gap-1 rounded border border-line-strong bg-white px-2.5 text-xs font-medium text-ink-body"
+              className="inline-flex h-11 items-center gap-1 rounded border border-line-strong bg-white px-2.5 text-xs font-medium text-ink-body md:h-[26px]"
             >
               <Home className="size-2.5" />
               Voir tous mes biens
@@ -143,6 +155,7 @@ export function PlanningReservations({
               type="button"
               aria-label={sectionOuverte ? "Replier" : "Déplier"}
               onClick={() => setSectionOuverte((v) => !v)}
+              className="flex size-11 shrink-0 items-center justify-center md:size-3.5"
             >
               {sectionOuverte ? (
                 <ChevronUp className="size-3.5 text-ink-muted" />
@@ -230,7 +243,7 @@ export function PlanningReservations({
         <button
           type="button"
           onClick={onVoirListe}
-          className="ml-auto text-xs text-ink-muted"
+          className="ml-auto inline-flex min-h-11 items-center text-xs text-ink-muted md:min-h-0"
         >
           {visiblePlanning.length} rés. ·{" "}
           <span className="text-ink-body">{totalVisible.toLocaleString("fr-FR")} €</span>
@@ -276,6 +289,7 @@ function TableauLogements({
   onLocaliser: (id: string | null) => void;
   actif: string | null;
 }) {
+  const session = useSession();
   return (
     <div className="mt-3 overflow-hidden rounded-card border border-line">
       <ScrollHint>
@@ -286,7 +300,7 @@ function TableauLogements({
         <span className="text-center">Direct</span>
         <span />
       </div>
-      {BIENS_MO1.map((b) => (
+      {session.biens.map((b) => (
         <div
           key={b.id}
           className={cn(
@@ -300,9 +314,9 @@ function TableauLogements({
             </span>
             {b.nom}
           </span>
-          <StatutPlateforme etat={b.plateformes.Airbnb} />
-          <StatutPlateforme etat={b.plateformes["Booking.com"]} />
-          <StatutPlateforme etat={b.plateformes.Direct} />
+          <StatutPlateforme etat="aucun" />
+          <StatutPlateforme etat="aucun" />
+          <StatutPlateforme etat="actif" />
           <button
             type="button"
             onClick={() => onLocaliser(actif === b.id ? null : b.id)}
@@ -363,7 +377,7 @@ function GrilleJours({
         className="grid min-w-[720px]"
         style={{ gridTemplateColumns: `130px repeat(${jours.length}, minmax(180px, 1fr))` }}
       >
-        <div className="sticky left-0 z-sticky border-b border-r border-line bg-white" />
+        <div className="sticky left-0 z-[5] border-b border-r border-line bg-white" />
         {jours.map((d) => {
           const key = isoJour(d);
           const auj = key === AUJOURD_HUI_MO1;
@@ -419,7 +433,7 @@ function LigneBien({
 }) {
   return (
     <div className="contents">
-      <div className="sticky left-0 z-sticky border-b border-r border-line bg-white px-3 py-3 text-xs text-ink-body">
+      <div className="sticky left-0 z-[5] border-b border-r border-line bg-white px-3 py-3 text-xs text-ink-body">
         {bien.nom}
       </div>
       <div
@@ -481,7 +495,7 @@ function LigneBien({
               key={r.id}
               type="button"
               onClick={() => onSelect(r)}
-              className="absolute top-1.5 z-10 flex h-[47px] items-center gap-1.5 rounded-lg border-2 px-2.5"
+              className="absolute top-1.5 z-[1] flex h-[47px] items-center gap-1.5 rounded-lg border-2 px-2.5"
               style={{
                 left: `calc(${(start / jours.length) * 100}% + 2px)`,
                 width: `calc(${(span / jours.length) * 100}% - 4px)`,
@@ -519,7 +533,10 @@ function GrilleMois({
     <div>
       <div className="grid grid-cols-7 border-b border-line">
         {JOURS_MOIS.map((j) => (
-          <div key={j} className="px-2 py-2 text-center text-xs text-ink-muted">
+          <div
+            key={j}
+            className="whitespace-nowrap px-0.5 py-2 text-center text-[10px] text-ink-muted sm:px-2 sm:text-xs"
+          >
             {j}
           </div>
         ))}

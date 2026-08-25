@@ -53,7 +53,16 @@ Un **seul** jeu de données, dans `src/data/mock.ts`, servi par `src/data/store.
 
 React 19, TypeScript, Vite, Tailwind v4, TanStack Router (routage par fichiers). Routeur inchangé. Aucun secret, aucune intégration externe, aucun backend.
 
-## 7. Décisions attendues des associés
+## 7. Tenancy — prestataire (24 août 2026)
+
+Un prestataire n’est **pas** un membre de l’organisation gestionnaire. Il a un compte solo : personne ou société (ménage, etc.) = **sa propre organisation**.
+
+- Team du gestionnaire = salariés / lecture uniquement.
+- Le prestataire est relié par un **lien** (missions, contrat), pas par `org_members` du client.
+- V1 : une org prestataire = un utilisateur. Plusieurs employés chez le prestataire = plus tard.
+- Une même société prestataire liée à plusieurs gestionnaires = plus tard, même modèle (`liens_org`).
+
+## 8. Décisions attendues des associés
 
 1. Orientation centrale V1 : gestion locative & financière, ou conciergerie opérationnelle.
 2. Couleur d'accent définitive de la marque Hublify.

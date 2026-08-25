@@ -144,7 +144,7 @@ export function ModelesApp() {
               <button
                 type="button"
                 onClick={() => setCartes((v) => !v)}
-                className="flex size-8 items-center justify-center rounded-card border border-line text-ink-body"
+                className="flex size-11 shrink-0 items-center justify-center rounded-card border border-line text-ink-body md:size-8"
                 aria-label={cartes ? "Vue liste" : "Vue cartes"}
               >
                 {cartes ? <List className="size-3.5" /> : <LayoutGrid className="size-3.5" />}
@@ -166,15 +166,18 @@ export function ModelesApp() {
                     <span className="flex size-8 items-center justify-center rounded-[8px] bg-surface-soft">
                       <FileText className="size-3.5 text-ink-body" />
                     </span>
-                    <input
-                      type="checkbox"
-                      checked={selection.includes(m.id)}
-                      onChange={() =>
-                        setSelection((s) =>
-                          s.includes(m.id) ? s.filter((x) => x !== m.id) : [...s, m.id],
-                        )
-                      }
-                    />
+                    <label className="-my-1 flex min-h-11 min-w-11 items-center justify-end md:my-0 md:min-h-0 md:min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={selection.includes(m.id)}
+                        onChange={() =>
+                          setSelection((s) =>
+                            s.includes(m.id) ? s.filter((x) => x !== m.id) : [...s, m.id],
+                          )
+                        }
+                        aria-label={`Sélectionner ${m.designation}`}
+                      />
+                    </label>
                   </div>
                   <p className="mt-3 text-sm text-ink">{m.designation}</p>
                   <p className="mt-1 text-xs text-ink-muted">
@@ -213,21 +216,24 @@ export function ModelesApp() {
                   {list.map((m) => (
                     <tr key={m.id} className="border-b border-surface-soft last:border-b-0">
                       <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selection.includes(m.id)}
-                          onChange={() =>
-                            setSelection((s) =>
-                              s.includes(m.id) ? s.filter((x) => x !== m.id) : [...s, m.id],
-                            )
-                          }
-                        />
+                        <label className="flex min-h-11 items-center md:min-h-0">
+                          <input
+                            type="checkbox"
+                            checked={selection.includes(m.id)}
+                            onChange={() =>
+                              setSelection((s) =>
+                                s.includes(m.id) ? s.filter((x) => x !== m.id) : [...s, m.id],
+                              )
+                            }
+                            aria-label={`Sélectionner ${m.designation}`}
+                          />
+                        </label>
                       </td>
                       <td className="px-2 py-3">
                         <button
                           type="button"
                           onClick={() => setApercu(m)}
-                          className="inline-flex items-center gap-2 text-sm text-ink"
+                          className="inline-flex min-h-11 items-center gap-2 text-sm text-ink md:min-h-0"
                         >
                           <span className="flex size-7 items-center justify-center rounded-[8px] bg-surface-soft">
                             <FileText className="size-3.5 text-ink-body" />
@@ -244,7 +250,12 @@ export function ModelesApp() {
                       <td className="px-2 py-3 text-ink-body">{m.reference}</td>
                       <td className="px-2 py-3">
                         <div className="flex justify-end gap-1">
-                          <button type="button" onClick={() => setApercu(m)} aria-label="Aperçu">
+                          <button
+                            type="button"
+                            onClick={() => setApercu(m)}
+                            aria-label="Aperçu"
+                            className="-my-3 flex size-11 shrink-0 items-center justify-center md:my-0 md:size-3.5"
+                          >
                             <Eye className="size-3.5 text-ink-body" />
                           </button>
                           <Download className="size-3.5 text-ink-body" />

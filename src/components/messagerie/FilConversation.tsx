@@ -56,7 +56,7 @@ export function FilConversation({
 }) {
   return (
     <section className={cn("flex min-h-0 min-w-0 flex-1 flex-col", className)}>
-      <header className="relative flex items-center gap-3 border-b border-surface-soft px-4 py-3">
+      <header className="relative flex flex-wrap items-center gap-3 border-b border-surface-soft px-4 py-3">
         {onRetour && (
           <button
             type="button"
@@ -70,7 +70,7 @@ export function FilConversation({
         <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-line text-xs text-ink-body">
           {conversation.initiales}
         </span>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 basis-40">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm text-ink">{conversation.nom}</p>
             <span className="rounded border border-line bg-surface px-1.5 py-0.5 text-[10px] text-ink-subtle">
@@ -81,7 +81,7 @@ export function FilConversation({
             <p className="truncate text-xs text-ink-muted">{conversation.bienNom}</p>
           )}
         </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
           <BoutonOutil
             label="Partager"
             actif={panneau === "partage"}

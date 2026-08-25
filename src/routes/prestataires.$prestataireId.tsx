@@ -2,8 +2,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, Mail, MapPin, Phone, Star } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
-import { StatutBadge } from "@/components/StatutBadge";
-import { useHublify } from "@/data/store";
+import { useSession } from "@/data/session";
 
 export const Route = createFileRoute("/prestataires/$prestataireId")({
   head: () => ({
@@ -26,20 +25,20 @@ export const Route = createFileRoute("/prestataires/$prestataireId")({
 
 function FichePrestataire() {
   const { prestataireId } = Route.useParams();
-  const { prestataires, missions, biens } = useHublify();
+  const { prestataires, missions, biens } = useSession();
   const presta = prestataires.find((p) => p.id === prestataireId);
 
   if (!presta) throw notFound();
 
   const siennes = missions
-    .filter((m) => m.prestataireId === presta.id)
+    .filter((m) => m.assigne === presta.nom)
     .sort((a, b) => a.date.localeCompare(b.date));
 
   return (
     <AppShell titre={presta.nom} sousTitre={`${presta.categorie} · ${presta.ville}`}>
       <Link
         to="/prestataires"
-        className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        className="mb-2 inline-flex min-h-11 items-center gap-2 text-sm text-muted-foreground hover:text-foreground md:mb-4 md:min-h-0"
       >
         <ArrowLeft className="h-4 w-4" /> Retour aux prestataires
       </Link>
@@ -94,7 +93,7 @@ function FichePrestataire() {
                   className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-accent/50"
                 >
                   <span className="w-28 text-xs text-muted-foreground">
-                    {new Date(m.date).toLocaleDateString("fr-FR")} · {m.heureDebut}
+                    {new Date(m.date).toLocaleDateString("fr-FR")} · {m.heure}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium text-foreground">
@@ -104,7 +103,7 @@ function FichePrestataire() {
                       {biens.find((b) => b.id === m.bienId)?.nom}
                     </span>
                   </span>
-                  <StatutBadge statut={m.statut} />
+                  <span className="text-xs text-muted-foreground">{m.statut}</span>
                 </Link>
               </li>
             ))}

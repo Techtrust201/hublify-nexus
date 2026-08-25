@@ -13,7 +13,6 @@ import { ScrollHint } from "@/components/layout/ScrollHint";
 import {
   ANCRE_MO1,
   AUJOURD_HUI_MO1,
-  BIENS_MO1,
   ajouterJours,
   emojiType,
   isoJour,
@@ -45,6 +44,11 @@ export function PlanningGrid({
   const session = useSession();
   const missions = session.missions;
   const sejoursCal = session.reservationsCalendrier;
+  const biens: BienMo1[] = session.biens.map((b) => ({
+    id: b.id,
+    nom: b.nom,
+    baseNuit: b.baseNuit,
+  }));
   const [vue, setVue] = useState<VuePlanning>(vueInitiale);
   const [ancre, setAncre] = useState(() => new Date(ANCRE_MO1));
   const [filtre, setFiltre] = useState<FiltreMission>("tous");
@@ -83,7 +87,7 @@ export function PlanningGrid({
   }, [filtre, missions]);
 
   const biensTarif =
-    filtreBienTarif === "tous" ? BIENS_MO1 : BIENS_MO1.filter((b) => b.id === filtreBienTarif);
+    filtreBienTarif === "tous" ? biens : biens.filter((b) => b.id === filtreBienTarif);
 
   const reglesActives = regles.filter((r) => ensembles.find((e) => e.id === r.ensembleId)?.actif);
   const ensemblesActifs = ensembles.filter((e) => e.actif).length;
@@ -118,10 +122,11 @@ export function PlanningGrid({
           <button
             type="button"
             onClick={() => setGererRegles(true)}
-            className="inline-flex h-[30px] items-center gap-1.5 rounded border border-line px-3 text-xs font-medium text-ink-body"
+            aria-label="Gérer les ensembles de règles"
+            className="inline-flex size-11 shrink-0 items-center justify-center gap-1.5 rounded border border-line text-xs font-medium text-ink-body md:h-[30px] md:w-auto md:px-3"
           >
             <SlidersHorizontal className="size-3" />
-            Gérer les ensembles de règles
+            <span className="hidden md:inline">Gérer les ensembles de règles</span>
           </button>
         )}
       </div>
@@ -194,10 +199,10 @@ export function PlanningGrid({
                 <select
                   value={filtreBienTarif}
                   onChange={(e) => setFiltreBienTarif(e.target.value)}
-                  className="h-[26px] rounded border border-line bg-white px-2 text-xs outline-none"
+                  className="h-11 rounded border border-line bg-white px-2 text-xs outline-none md:h-[26px]"
                 >
                   <option value="tous">Tous les biens</option>
-                  {BIENS_MO1.map((b) => (
+                  {biens.map((b) => (
                     <option key={b.id} value={b.id}>
                       {b.nom}
                     </option>
@@ -253,7 +258,7 @@ export function PlanningGrid({
         ) : (
           <TarifsJours
             jours={jours}
-            biens={BIENS_MO1}
+            biens={biens}
             ensembles={ensembles}
             regles={regles}
             sejours={sejoursCal}
@@ -270,6 +275,7 @@ export function PlanningGrid({
       ) : (
         <JoursMissions
           jours={jours}
+          biens={biens}
           missions={missionsFiltrees}
           sejours={sejoursCal}
           onMission={setMissionOuverte}
@@ -288,7 +294,7 @@ export function PlanningGrid({
 
       <MissionInfoDialog
         mission={missionOuverte}
-        bienNom={BIENS_MO1.find((b) => b.id === missionOuverte?.bienId)?.nom ?? ""}
+        bienNom={biens.find((b) => b.id === missionOuverte?.bienId)?.nom ?? ""}
         ouvert={Boolean(missionOuverte)}
         onFermer={() => setMissionOuverte(null)}
         onStatut={(id, statut) => {
@@ -332,11 +338,13 @@ export function PlanningGrid({
 
 function JoursMissions({
   jours,
+  biens,
   missions,
   sejours,
   onMission,
 }: {
   jours: Date[];
+  biens: BienMo1[];
   missions: MissionMo1[];
   sejours: ReservationMo1[];
   onMission: (m: MissionMo1) => void;
@@ -347,7 +355,7 @@ function JoursMissions({
         className="grid min-w-[720px]"
         style={{ gridTemplateColumns: `130px repeat(${jours.length}, minmax(180px, 1fr))` }}
       >
-        <div className="sticky left-0 z-sticky border-b border-r border-line bg-white" />
+        <div className="sticky left-0 z-[5] border-b border-r border-line bg-white" />
         {jours.map((d) => {
           const key = isoJour(d);
           return (
@@ -373,7 +381,7 @@ function JoursMissions({
           );
         })}
 
-        {BIENS_MO1.map((bien) => (
+        {biens.map((bien) => (
           <LigneBien
             key={bien.id}
             bien={bien}
@@ -407,7 +415,7 @@ function LigneBien({
 
   return (
     <div className="contents">
-      <div className="sticky left-0 z-sticky border-b border-r border-line bg-white px-3 py-3 text-xs text-ink-body">
+      <div className="sticky left-0 z-[5] border-b border-r border-line bg-white px-3 py-3 text-xs text-ink-body">
         {bien.nom}
       </div>
       <div
@@ -440,10 +448,12 @@ function LigneBien({
                 >
                   <Link
                     to="/reservations"
-                    className="flex size-5 items-center justify-center rounded-full border border-line-strong text-ink-muted"
+                    className="flex size-11 items-center justify-center md:size-5"
                     aria-label={`Ajouter une réservation — ${bien.nom}`}
                   >
-                    <Plus className="size-2.5" />
+                    <span className="flex size-5 items-center justify-center rounded-full border border-line-strong text-ink-muted">
+                      <Plus className="size-2.5" />
+                    </span>
                   </Link>
                 </div>
               )}
@@ -480,7 +490,7 @@ function LigneBien({
             return (
               <div
                 key={r.id}
-                className="pointer-events-none absolute top-1.5 z-10 flex h-10 items-center justify-between rounded-lg border border-line-strong bg-surface-soft px-2.5 opacity-60"
+                className="pointer-events-none absolute top-1.5 z-[1] flex h-10 items-center justify-between rounded-lg border border-line-strong bg-surface-soft px-2.5 opacity-60"
                 style={{
                   left: `calc(${(start / jours.length) * 100}% + 2px)`,
                   width: `calc(${(span / jours.length) * 100}% - 4px)`,
@@ -505,7 +515,8 @@ function Pastille({ mission, onClick }: { mission: MissionMo1; onClick: () => vo
       type="button"
       onClick={onClick}
       className={cn(
-        "flex h-[21px] w-full items-center gap-1 overflow-hidden rounded border px-1 text-left text-[10px] font-medium",
+        // 24px sur mobile : minimum WCAG 2.5.8 ; 21px sur desktop pour rester fidèle à MO1
+        "flex h-6 w-full items-center gap-1 overflow-hidden rounded border px-1 text-left text-[10px] font-medium md:h-[21px]",
         terminee
           ? "border-line bg-surface-soft text-ink-muted line-through opacity-70"
           : mission.pastilleAccentuee
@@ -534,7 +545,10 @@ function MoisMissions({
     <div>
       <div className="grid grid-cols-7 border-b border-line">
         {JOURS_SEM.map((j) => (
-          <div key={j} className="px-2 py-2 text-center text-xs uppercase text-ink-muted">
+          <div
+            key={j}
+            className="whitespace-nowrap px-0.5 py-2 text-center text-[10px] uppercase text-ink-muted sm:px-2 sm:text-xs"
+          >
             {j}
           </div>
         ))}
@@ -600,7 +614,7 @@ function TarifsJours({
         className="grid min-w-[720px]"
         style={{ gridTemplateColumns: `130px repeat(${jours.length}, minmax(180px, 1fr))` }}
       >
-        <div className="sticky left-0 z-sticky border-b border-r border-line bg-white px-3 pb-2 pt-8 text-[10px] text-ink-muted">
+        <div className="sticky left-0 z-[5] border-b border-r border-line bg-white px-3 pb-2 pt-8 text-[10px] text-ink-muted">
           Bien
         </div>
         {jours.map((d) => {
@@ -622,7 +636,7 @@ function TarifsJours({
         })}
         {biens.map((bien) => (
           <div key={bien.id} className="contents">
-            <div className="sticky left-0 z-sticky border-b border-r border-line bg-white px-3 py-3">
+            <div className="sticky left-0 z-[5] border-b border-r border-line bg-white px-3 py-3">
               <p className="text-xs text-ink-body">{bien.nom}</p>
               <p className="text-[10px] text-ink-muted">Base : {bien.baseNuit} €/nuit</p>
             </div>
@@ -697,12 +711,18 @@ function TarifsMois({
   sejours: ReservationMo1[];
   onCreerRegle: () => void;
 }) {
-  const bien = biens[0] ?? BIENS_MO1[0]!;
+  const bien = biens[0];
+  if (!bien) {
+    return <p className="p-4 text-sm text-ink-muted">Aucun bien pour afficher les tarifs.</p>;
+  }
   return (
     <div>
       <div className="grid grid-cols-7 border-b border-line">
         {JOURS_SEM.map((j) => (
-          <div key={j} className="px-2 py-2 text-center text-xs uppercase text-ink-muted">
+          <div
+            key={j}
+            className="whitespace-nowrap px-0.5 py-2 text-center text-[10px] uppercase text-ink-muted sm:px-2 sm:text-xs"
+          >
             {j}
           </div>
         ))}
@@ -768,18 +788,22 @@ function CartesEnsembles({
               <button
                 type="button"
                 onClick={() => onToggle(e.id)}
-                className={cn(
-                  "h-4 w-7 shrink-0 rounded-full border",
-                  e.actif ? "border-ink bg-ink" : "border-line-strong bg-line",
-                )}
+                className="-mx-2 -my-3.5 flex size-11 shrink-0 items-center justify-center md:m-0 md:h-4 md:w-7"
                 aria-label={e.actif ? `Désactiver ${e.nom}` : `Activer ${e.nom}`}
               >
                 <span
                   className={cn(
-                    "block size-3 rounded-full bg-white",
-                    e.actif ? "translate-x-3" : "translate-x-0.5",
+                    "h-4 w-7 rounded-full border",
+                    e.actif ? "border-ink bg-ink" : "border-line-strong bg-line",
                   )}
-                />
+                >
+                  <span
+                    className={cn(
+                      "block size-3 rounded-full bg-white",
+                      e.actif ? "translate-x-3" : "translate-x-0.5",
+                    )}
+                  />
+                </span>
               </button>
             </div>
             <p className="mt-1 text-[10px] text-ink-muted">{e.description}</p>

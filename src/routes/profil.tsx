@@ -15,7 +15,8 @@ import {
 import { useState } from "react";
 import { BtnNavy, BtnOutline, Champ } from "@/components/documents/ui";
 import { AppShell } from "@/components/layout/AppShell";
-import { telechargerDemo, toastOk } from "@/lib/feedback";
+import { telechargerBase64, toastErreur, toastOk } from "@/lib/feedback";
+import { genererRecapReservationPdf } from "@/lib/documents.functions";
 import {
   DOCS_PROFIL,
   PAIEMENTS_PROFIL,
@@ -104,7 +105,7 @@ function PageProfil() {
                   <button
                     type="button"
                     onClick={() => setOnglet("edition")}
-                    className="flex size-9 items-center justify-center rounded-card text-ink-body"
+                    className="flex size-11 shrink-0 items-center justify-center rounded-card text-ink-body md:size-9"
                     aria-label="Éditer"
                   >
                     <Pencil className="size-5" />
@@ -151,7 +152,7 @@ function PageProfil() {
           </section>
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_389px]">
-            <div className="space-y-4">
+            <div className="min-w-0 space-y-4">
               <section className="rounded-card border border-line bg-white p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h3 className="text-lg text-ink">Documents obligatoires</h3>
@@ -161,19 +162,22 @@ function PageProfil() {
                 </div>
                 <ul className="mt-4 divide-y divide-surface-soft text-sm">
                   {DOCS_PROFIL.map((d) => (
-                    <li key={d.id} className="flex items-center justify-between gap-3 py-3">
-                      <span className="flex items-center gap-2 text-ink">
+                    <li
+                      key={d.id}
+                      className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-3"
+                    >
+                      <span className="flex min-w-0 flex-1 basis-40 items-center gap-2 text-ink">
                         {d.statut === "Vérifié" ? (
-                          <CheckCircle2 className="size-5 text-chip-success-fg" />
+                          <CheckCircle2 className="size-5 shrink-0 text-chip-success-fg" />
                         ) : (
-                          <Clock className="size-5 text-chip-warning-fg" />
+                          <Clock className="size-5 shrink-0 text-chip-warning-fg" />
                         )}
-                        {d.titre}
+                        <span className="min-w-0 break-words">{d.titre}</span>
                       </span>
-                      <span className="flex items-center gap-2">
+                      <span className="flex shrink-0 items-center gap-2">
                         <span
                           className={cn(
-                            "rounded-full px-3 py-1 text-xs",
+                            "whitespace-nowrap rounded-full px-3 py-1 text-xs",
                             d.statut === "Vérifié"
                               ? "bg-chip-success text-chip-success-fg"
                               : "bg-chip-warning text-chip-warning-fg",
@@ -181,7 +185,11 @@ function PageProfil() {
                         >
                           {d.statut}
                         </span>
-                        <button type="button" aria-label="Voir" className="text-ink-body">
+                        <button
+                          type="button"
+                          aria-label="Voir"
+                          className="flex size-11 shrink-0 items-center justify-center rounded-card text-ink-body md:size-8"
+                        >
                           <Eye className="size-4" />
                         </button>
                       </span>
@@ -241,7 +249,7 @@ function PageProfil() {
               </section>
             </div>
 
-            <div className="space-y-4">
+            <div className="min-w-0 space-y-4">
               <section className="rounded-card border border-line bg-white p-6">
                 <h3 className="text-lg text-ink">Résumé financier</h3>
                 <div className="mt-4 space-y-3">
@@ -271,13 +279,41 @@ function PageProfil() {
                   </BtnNavy>
                   <BtnOutline
                     className="h-10 w-full justify-center"
-                    onClick={() => telechargerDemo("rapport-gestionnaire-hublify.txt")}
+                    onClick={() => {
+                      void (async () => {
+                        try {
+                          const doc = await genererRecapReservationPdf({
+                            data: {
+                              titre: "Rapport gestionnaire Hublify",
+                              lignes: ["Rapport de gestion", new Date().toISOString().slice(0, 10)],
+                            },
+                          });
+                          telechargerBase64(doc.nom, doc.mime, doc.base64);
+                        } catch {
+                          toastErreur("Génération impossible.");
+                        }
+                      })();
+                    }}
                   >
                     <FileText className="size-4" /> Générer un rapport
                   </BtnOutline>
                   <BtnOutline
                     className="h-10 w-full justify-center"
-                    onClick={() => telechargerDemo("documents-gestionnaire-hublify.txt")}
+                    onClick={() => {
+                      void (async () => {
+                        try {
+                          const doc = await genererRecapReservationPdf({
+                            data: {
+                              titre: "Documents gestionnaire Hublify",
+                              lignes: ["Archive documents"],
+                            },
+                          });
+                          telechargerBase64(doc.nom, doc.mime, doc.base64);
+                        } catch {
+                          toastErreur("Téléchargement impossible.");
+                        }
+                      })();
+                    }}
                   >
                     <Download className="size-4" /> Télécharger les documents
                   </BtnOutline>
@@ -313,7 +349,7 @@ function PageProfil() {
             e.preventDefault();
             setEnregistre(true);
             setOnglet("info");
-            toastOk("Profil enregistré.");
+            toastOk("Profil mis à jour.");
           }}
         >
           <div className="flex items-center gap-3">
@@ -339,7 +375,7 @@ function PageProfil() {
           </div>
           <Champ label="Date de naissance" value={naissance} onChange={setNaissance} />
           <BtnNavy type="submit">Enregistrer</BtnNavy>
-          {enregistre && <p className="text-xs text-ink-subtle">Profil enregistré.</p>}
+          {enregistre && <p className="text-xs text-ink-subtle">Profil mis à jour.</p>}
         </form>
       )}
     </AppShell>

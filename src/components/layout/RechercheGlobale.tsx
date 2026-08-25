@@ -1,8 +1,5 @@
 import { Search } from "lucide-react";
 import { useMemo } from "react";
-import { PRESTATAIRES } from "@/data/mock";
-import { BIENS_MO1 as BIENS_PLANNING } from "@/data/planning-mo1";
-import { BIENS_MO1 as BIENS_RESA, OCCUPANTS_MO1, PRESTATAIRES_MO1 } from "@/data/reservations-mo1";
 import { useSession } from "@/data/session";
 import { cn } from "@/lib/utils";
 
@@ -24,14 +21,7 @@ export function RechercheGlobale({
     if (!q) return [] as Resultat[];
     const liste: Resultat[] = [];
 
-    const biens: { id: string; nom: string; adresse?: string }[] = [
-      ...BIENS_PLANNING.map((b) => ({ id: b.id, nom: b.nom })),
-      ...BIENS_RESA.map((b) => ({ id: b.id, nom: b.nom, adresse: b.adresse })),
-    ];
-    const vus = new Set<string>();
-    for (const b of biens) {
-      if (vus.has(b.id)) continue;
-      vus.add(b.id);
+    for (const b of session.biens) {
       const adresse = b.adresse ?? "";
       if (b.nom.toLowerCase().includes(q) || adresse.toLowerCase().includes(q)) {
         liste.push({
@@ -43,34 +33,13 @@ export function RechercheGlobale({
       }
     }
 
-    for (const p of PRESTATAIRES_MO1) {
-      if (p.nom.toLowerCase().includes(q) || p.metier.toLowerCase().includes(q)) {
-        liste.push({
-          id: `presta-mo1-${p.id}`,
-          label: p.nom,
-          detail: p.metier,
-          to: "/prestataires",
-        });
-      }
-    }
-    for (const p of PRESTATAIRES) {
+    for (const p of session.prestataires) {
       if (p.nom.toLowerCase().includes(q) || p.categorie.toLowerCase().includes(q)) {
         liste.push({
           id: `presta-${p.id}`,
           label: p.nom,
           detail: p.categorie,
           to: `/prestataires/${p.id}`,
-        });
-      }
-    }
-
-    for (const o of OCCUPANTS_MO1) {
-      if (o.nom.toLowerCase().includes(q) || o.logement.toLowerCase().includes(q)) {
-        liste.push({
-          id: `occ-${o.id}`,
-          label: o.nom,
-          detail: `${o.type} · ${o.logement}`,
-          to: "/occupants",
         });
       }
     }
@@ -98,7 +67,7 @@ export function RechercheGlobale({
     }
 
     return liste.slice(0, 12);
-  }, [q, session.missions, session.reservationsDossier]);
+  }, [q, session.biens, session.prestataires, session.missions, session.reservationsDossier]);
 
   return (
     <div className="relative w-full max-w-[448px]">

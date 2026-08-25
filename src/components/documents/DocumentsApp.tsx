@@ -26,7 +26,8 @@ import {
   type OngletResident,
   type VueDocuments,
 } from "@/data/documents-mo1";
-import { choisirFichier, telechargerDemo, toastOk } from "@/lib/feedback";
+import { choisirFichier, telechargerBase64, toastErreur, toastOk } from "@/lib/feedback";
+import { genererRecapReservationPdf } from "@/lib/documents.functions";
 import { ScrollHint } from "@/components/layout/ScrollHint";
 import { cn } from "@/lib/utils";
 import {
@@ -465,7 +466,7 @@ function Hub({
             <button
               type="button"
               onClick={() => onAcceder(c.vue)}
-              className="mt-4 inline-flex items-center gap-1 text-xs text-ink-body"
+              className="mt-4 inline-flex min-h-11 items-center gap-1 text-xs text-ink-body md:min-h-0"
             >
               Accéder <ArrowRight className="size-2.5" />
             </button>
@@ -511,7 +512,11 @@ function Hub({
                   {a.detail}
                 </p>
               </div>
-              <button type="button" className="text-ink-muted" aria-label="Voir">
+              <button
+                type="button"
+                className="-my-3 flex size-11 shrink-0 items-center justify-center text-ink-muted md:my-0 md:size-3.5"
+                aria-label="Voir"
+              >
                 <Eye className="size-3.5" />
               </button>
             </li>
@@ -620,12 +625,14 @@ function ListeDocs({
             <thead className="border-b border-surface-soft text-ink-subtle">
               <tr>
                 <th className="w-12 px-4 py-3">
-                  <input
-                    type="checkbox"
-                    checked={docs.length > 0 && selection.length === docs.length}
-                    onChange={tous}
-                    aria-label="Tout sélectionner"
-                  />
+                  <label className="flex min-h-11 items-center md:min-h-0">
+                    <input
+                      type="checkbox"
+                      checked={docs.length > 0 && selection.length === docs.length}
+                      onChange={tous}
+                      aria-label="Tout sélectionner"
+                    />
+                  </label>
                 </th>
                 <th className="px-2 py-3 font-medium">Référence</th>
                 <th className="px-2 py-3 font-medium">Type</th>
@@ -641,12 +648,14 @@ function ListeDocs({
               {docs.map((d) => (
                 <tr key={d.id} className="border-b border-surface-soft last:border-b-0">
                   <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selection.includes(d.id)}
-                      onChange={() => toggle(d.id)}
-                      aria-label={d.titre}
-                    />
+                    <label className="flex min-h-11 items-center md:min-h-0">
+                      <input
+                        type="checkbox"
+                        checked={selection.includes(d.id)}
+                        onChange={() => toggle(d.id)}
+                        aria-label={d.titre}
+                      />
+                    </label>
                   </td>
                   <td className="px-2 py-3">
                     <span className="inline-flex items-center gap-2 text-sm text-ink">
@@ -690,7 +699,18 @@ function ListeDocs({
                       </button>
                       <button
                         type="button"
-                        onClick={() => telechargerDemo(`${d.titre}.txt`)}
+                        onClick={() => {
+                          void (async () => {
+                            try {
+                              const doc = await genererRecapReservationPdf({
+                                data: { titre: d.titre, lignes: [d.titre, d.logement, d.date] },
+                              });
+                              telechargerBase64(doc.nom, doc.mime, doc.base64);
+                            } catch {
+                              toastErreur("Téléchargement impossible.");
+                            }
+                          })();
+                        }}
                         className="flex size-7 items-center justify-center rounded-[8px] text-ink-body"
                         aria-label="Télécharger"
                       >

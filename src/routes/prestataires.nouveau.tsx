@@ -3,7 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
-import { ajouterPrestataire } from "@/data/store";
+import { ajouterPrestataire } from "@/data/session";
 import { toastOk } from "@/lib/feedback";
 import type { CategoriePrestataire } from "@/data/types";
 
@@ -35,7 +35,7 @@ const CATEGORIES: CategoriePrestataire[] = [
 ];
 
 const champ =
-  "mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-brand";
+  "mt-1 h-11 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-brand md:h-auto";
 
 function AjoutPrestataire() {
   const navigate = useNavigate();
@@ -51,15 +51,15 @@ function AjoutPrestataire() {
   const soumettre = (e: React.FormEvent) => {
     e.preventDefault();
     const id = ajouterPrestataire({ ...form, note: 0 });
-    toastOk("Prestataire enregistré.");
+    toastOk("Prestataire ajouté.");
     navigate({ to: "/prestataires/$prestataireId", params: { prestataireId: id } });
   };
 
   return (
-    <AppShell titre="Ajouter un prestataire" sousTitre="Les données restent locales à ce prototype">
+    <AppShell titre="Ajouter un prestataire" sousTitre="Le prestataire est rattaché à votre organisation">
       <Link
         to="/prestataires"
-        className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        className="mb-2 inline-flex min-h-11 items-center gap-2 text-sm text-muted-foreground hover:text-foreground md:mb-4 md:min-h-0"
       >
         <ArrowLeft className="h-4 w-4" /> Retour aux prestataires
       </Link>
@@ -140,7 +140,7 @@ function AjoutPrestataire() {
           </div>
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-foreground">
+        <label className="flex min-h-11 items-center gap-2 text-sm text-foreground md:min-h-0">
           <input
             type="checkbox"
             checked={form.actif}
@@ -152,13 +152,13 @@ function AjoutPrestataire() {
         <div className="flex gap-2 pt-2">
           <button
             type="submit"
-            className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-brand-foreground hover:opacity-90"
+            className="inline-flex min-h-11 items-center rounded-md bg-brand px-4 py-2 text-sm font-medium text-brand-foreground hover:opacity-90 md:min-h-0"
           >
             Enregistrer le prestataire
           </button>
           <Link
             to="/prestataires"
-            className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-accent"
+            className="inline-flex min-h-11 items-center rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-accent md:min-h-0"
           >
             Annuler
           </Link>

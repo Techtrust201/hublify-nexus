@@ -1087,9 +1087,9 @@ export const ITEMS_INVENTAIRE: ItemInventaire[] = [
 
 export const PROFIL_GESTIONNAIRE = {
   prenom: "Yannick",
-  nom: "Rath",
+  nom: "Ratti",
   role: "Gestionnaire",
-  email: "yannick.rath@hublify.app",
+  email: "redris.gestion@gmail.com",
   telephone1: "+33 6 12 45 78 90",
   telephone2: "+33 1 42 88 10 20",
   naissance: "12/03/1984",

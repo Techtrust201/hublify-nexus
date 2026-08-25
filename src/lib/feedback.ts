@@ -12,6 +12,22 @@ export function toastErreur(message: string) {
   toast.error(message);
 }
 
+export function telechargerBase64(nom: string, mime: string, base64: string) {
+  const binaire = atob(base64);
+  const octets = new Uint8Array(binaire.length);
+  for (let i = 0; i < binaire.length; i += 1) octets[i] = binaire.charCodeAt(i);
+  const blob = new Blob([octets], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nom;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  toast.success(`Téléchargement : ${nom}`);
+}
+
 export function telechargerDemo(nomFichier: string, contenu?: string) {
   const nom = nomFichier.includes(".") ? nomFichier : `${nomFichier}.txt`;
   const blob = new Blob(

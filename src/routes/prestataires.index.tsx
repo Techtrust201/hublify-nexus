@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Plus, Star } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
-import { useHublify } from "@/data/store";
+import { useSession } from "@/data/session";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/prestataires/")({
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/prestataires/")({
 });
 
 function ListePrestataires() {
-  const { prestataires, missions } = useHublify();
+  const { prestataires, missions } = useSession();
   const [categorie, setCategorie] = useState("toutes");
   const categories = ["toutes", ...new Set(prestataires.map((p) => p.categorie))];
 
@@ -40,7 +40,7 @@ function ListePrestataires() {
       actions={
         <Link
           to="/prestataires/nouveau"
-          className="inline-flex items-center gap-2 rounded-md bg-brand px-3 py-2 text-sm font-medium text-brand-foreground hover:opacity-90"
+          className="inline-flex min-h-11 items-center gap-2 rounded-md bg-brand px-3 py-2 text-sm font-medium text-brand-foreground hover:opacity-90 md:min-h-0"
         >
           <Plus className="h-4 w-4" /> Ajouter
         </Link>
@@ -65,7 +65,7 @@ function ListePrestataires() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {liste.map((p) => {
-          const nb = missions.filter((m) => m.prestataireId === p.id).length;
+          const nb = missions.filter((m) => m.assigne === p.nom).length;
           return (
             <Link
               key={p.id}

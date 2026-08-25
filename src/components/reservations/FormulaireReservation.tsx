@@ -2,14 +2,13 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Info, Minus, Plus, User, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
-  BIENS_MO1,
   COULEURS_RESERVATION,
   OCCUPANTS_MO1,
   TYPES_RESERVATION,
   type PlateformeMo1,
   type TypeReservationMo1,
 } from "@/data/reservations-mo1";
-import { ajouterNotif, ajouterReservation, idNouveau } from "@/data/session";
+import { ajouterNotif, ajouterReservation, idNouveau, useSession } from "@/data/session";
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +17,7 @@ const champ =
 
 export function FormulaireReservation() {
   const navigate = useNavigate();
+  const session = useSession();
   const [typeOuvert, setTypeOuvert] = useState(false);
   const [type, setType] = useState<TypeReservationMo1 | "">("");
   const [logement, setLogement] = useState("");
@@ -101,14 +101,17 @@ export function FormulaireReservation() {
       detail: `${occupant} · ${checkIn} → ${checkOut}`,
       href: "/reservations",
     });
-    toastOk("Réservation enregistrée.");
+    toastOk("Réservation créée.");
     void navigate({ to: "/reservations", search: { vue: "liste" } });
   };
 
   return (
     <div>
       <div className="flex items-center gap-2 text-xs text-ink-muted">
-        <Link to="/reservations" className="hover:text-ink-body">
+        <Link
+          to="/reservations"
+          className="inline-flex min-h-11 items-center hover:text-ink-body md:min-h-0"
+        >
           Réservations
         </Link>
         <ChevronRight className="size-3" />
@@ -119,7 +122,7 @@ export function FormulaireReservation() {
         <div className="flex items-center gap-3">
           <Link
             to="/reservations"
-            className="flex size-8 items-center justify-center rounded-card border border-line text-ink-body"
+            className="flex size-11 shrink-0 items-center justify-center rounded-card border border-line text-ink-body md:size-8"
             aria-label="Retour"
           >
             <ChevronLeft className="size-4" />
@@ -133,14 +136,14 @@ export function FormulaireReservation() {
           <Link
             to="/reservations"
             search={{ vue: "liste" }}
-            className="inline-flex h-[34px] items-center rounded-card border border-line px-4 text-xs font-medium text-ink-body"
+            className="inline-flex h-11 items-center rounded-card border border-line px-4 text-xs font-medium text-ink-body md:h-[34px]"
           >
             Gérer toutes les réservations
           </Link>
           <button
             type="button"
             onClick={creer}
-            className="inline-flex h-8 items-center gap-1 rounded-card bg-ink px-3 text-xs font-medium text-white"
+            className="inline-flex h-11 items-center gap-1 rounded-card bg-ink px-3 text-xs font-medium text-white md:h-8"
           >
             <Check className="size-3" />
             Créer une réservation
@@ -225,7 +228,7 @@ export function FormulaireReservation() {
                 className={cn(champ, "mt-1")}
               >
                 <option value="">Sélectionner le logement</option>
-                {BIENS_MO1.map((b) => (
+                {session.biens.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.nom}
                   </option>

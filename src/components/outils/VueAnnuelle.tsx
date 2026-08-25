@@ -97,14 +97,14 @@ export function VueAnnuelle() {
           <h2 className="text-lg text-ink">Vue Annuelle</h2>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex h-[34px] items-center rounded-card border border-line bg-white px-3 text-sm text-ink">
+          <span className="inline-flex h-11 items-center rounded-card border border-line bg-white px-3 text-sm text-ink md:h-[34px]">
             {annee}
           </span>
           <div className="relative">
             <select
               value={logement}
               onChange={(e) => setLogement(e.target.value)}
-              className="h-[34px] appearance-none rounded-card border border-line bg-white py-0 pl-3 pr-8 text-xs text-ink-body outline-none"
+              className="h-11 appearance-none rounded-card border border-line bg-white py-0 pl-3 pr-8 text-xs text-ink-body outline-none md:h-[34px]"
             >
               {LOGEMENTS.map((l) => (
                 <option key={l}>{l}</option>

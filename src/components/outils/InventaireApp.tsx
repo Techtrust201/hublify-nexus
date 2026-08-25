@@ -56,8 +56,8 @@ export function InventaireApp() {
             <h3 className="text-lg text-ink">{titre}</h3>
             <span className="text-sm text-ink-muted">{items.length} éléments</span>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="relative flex h-[39px] w-[320px] max-w-full items-center">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <label className="relative flex h-11 w-full items-center sm:w-[320px] md:h-[39px]">
               <Search className="absolute left-3 size-3.5 text-ink-muted" />
               <input
                 value={recherche}
@@ -97,15 +97,18 @@ export function InventaireApp() {
               {items.map((i) => (
                 <tr key={i.id} className="border-b border-surface-soft last:border-b-0">
                   <td className="px-6 py-4">
-                    <input
-                      type="checkbox"
-                      checked={selection.includes(i.id)}
-                      onChange={() =>
-                        setSelection((s) =>
-                          s.includes(i.id) ? s.filter((x) => x !== i.id) : [...s, i.id],
-                        )
-                      }
-                    />
+                    <label className="flex min-h-11 items-center md:min-h-0">
+                      <input
+                        type="checkbox"
+                        checked={selection.includes(i.id)}
+                        onChange={() =>
+                          setSelection((s) =>
+                            s.includes(i.id) ? s.filter((x) => x !== i.id) : [...s, i.id],
+                          )
+                        }
+                        aria-label={`Sélectionner ${i.designation}`}
+                      />
+                    </label>
                   </td>
                   <td className="px-3 py-4 text-ink">{i.code}</td>
                   <td className="px-3 py-4 text-ink">{i.designation}</td>
