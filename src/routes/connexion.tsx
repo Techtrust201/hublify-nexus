@@ -1,9 +1,12 @@
 import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { SUPER_ADMINS } from "@/auth/permissions";
+import { ChampMotDePasse } from "@/components/ui/champ-mot-de-passe";
 import { authClient } from "@/lib/auth-client";
 import { getSession } from "@/lib/auth.functions";
 import { toastErreur, toastOk } from "@/lib/feedback";
+
+const MDP_DEMO = "Hublify-Demo-2026!";
 
 export const Route = createFileRoute("/connexion")({
   beforeLoad: async () => {
@@ -19,9 +22,9 @@ export const Route = createFileRoute("/connexion")({
   component: PageConnexion,
 });
 
-// Le panneau d'aide expose des e-mails nominatifs et un mot de passe partagé :
-// réservé au développement et aux environnements de démonstration explicites.
-const MODE_DEMO = import.meta.env.DEV || import.meta.env["VITE_MODE_DEMO"] === "1";
+// Recette : panneau des comptes de démo visible (iPhone / associés).
+// À masquer (`VITE_MODE_DEMO=0`) avant un déploiement client réel.
+const MODE_DEMO = import.meta.env["VITE_MODE_DEMO"] !== "0";
 
 const COMPTES_FONDATEURS = SUPER_ADMINS.map((c) => ({
   email: c.email,
@@ -39,17 +42,17 @@ function PageConnexion() {
   const navigate = useNavigate();
   const router = useRouter();
   const champEmail = useRef<HTMLInputElement>(null);
+  const champMdp = useRef<HTMLInputElement>(null);
   const [enCours, setEnCours] = useState(false);
   // La page est servie par le serveur : jusqu'à l'hydratation, un clic partirait
   // en soumission native. Le bouton signale l'attente au lieu de perdre la saisie.
   const [pret, setPret] = useState(false);
   useEffect(() => setPret(true), []);
 
-  function remplirEmail(valeur: string) {
-    const champ = champEmail.current;
-    if (!champ) return;
-    champ.value = valeur;
-    champ.focus();
+  function remplirCompte(email: string) {
+    if (champEmail.current) champEmail.current.value = email;
+    if (champMdp.current) champMdp.current.value = MDP_DEMO;
+    champMdp.current?.focus();
   }
 
   async function connecter(e: React.FormEvent<HTMLFormElement>) {
@@ -93,17 +96,20 @@ function PageConnexion() {
               className="h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
             />
           </label>
-          <label className="block">
-            <span className="mb-1.5 block text-xs text-ink-body">Mot de passe</span>
-            <input
+          <div>
+            <label htmlFor="champ-mdp" className="mb-1.5 block text-xs text-ink-body">
+              Mot de passe
+            </label>
+            <ChampMotDePasse
+              ref={champMdp}
+              id="champ-mdp"
               name="password"
-              type="password"
               autoComplete="current-password"
               required
               minLength={10}
-              className="h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
+              defaultValue={MODE_DEMO ? MDP_DEMO : ""}
             />
-          </label>
+          </div>
           <button
             type="submit"
             disabled={enCours || !pret}
@@ -132,7 +138,7 @@ function PageConnexion() {
                 <li key={c.email}>
                   <button
                     type="button"
-                    onClick={() => remplirEmail(c.email)}
+                    onClick={() => remplirCompte(c.email)}
                     className="flex min-h-11 w-full flex-col justify-center text-left text-xs text-ink-body hover:text-ink md:min-h-0"
                   >
                     <span className="font-medium text-ink">{c.nom}</span>
@@ -148,7 +154,7 @@ function PageConnexion() {
                 <li key={c.email}>
                   <button
                     type="button"
-                    onClick={() => remplirEmail(c.email)}
+                    onClick={() => remplirCompte(c.email)}
                     className="flex min-h-11 w-full flex-col justify-center text-left text-xs text-ink-body hover:text-ink md:min-h-0"
                   >
                     <span className="font-medium text-ink">{c.role}</span>
@@ -157,10 +163,9 @@ function PageConnexion() {
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-[10px] text-ink-muted">
-              Mot de passe temporaire :{" "}
-              <span className="font-medium text-ink">Hublify-Demo-2026!</span> (à changer après la
-              première connexion).
+            <p className="mt-3 text-xs text-ink-body">
+              Mot de passe de tous ces comptes :{" "}
+              <span className="font-medium text-ink">{MDP_DEMO}</span>
             </p>
           </div>
         )}

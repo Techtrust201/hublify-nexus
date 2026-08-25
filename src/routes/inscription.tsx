@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { inscrireAdherent } from "@/lib/auth.functions";
+import { ChampMotDePasse } from "@/components/ui/champ-mot-de-passe";
 import { authClient } from "@/lib/auth-client";
 import { toastErreur, toastOk } from "@/lib/feedback";
 
@@ -79,17 +80,19 @@ function PageInscription() {
             <span className="mb-1.5 block text-xs text-ink-body">Email</span>
             <input name="email" type="email" autoComplete="username" required className={champ} />
           </label>
-          <label className="block">
-            <span className="mb-1.5 block text-xs text-ink-body">Mot de passe</span>
-            <input
+          <div>
+            <label htmlFor="champ-mdp-inscription" className="mb-1.5 block text-xs text-ink-body">
+              Mot de passe
+            </label>
+            <ChampMotDePasse
+              id="champ-mdp-inscription"
               name="password"
-              type="password"
               autoComplete="new-password"
               required
               minLength={10}
               className={champ}
             />
-          </label>
+          </div>
           <button
             type="submit"
             disabled={enCours || !pret}

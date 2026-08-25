@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { ChampMotDePasse } from "@/components/ui/champ-mot-de-passe";
 import { toastErreur, toastOk } from "@/lib/feedback";
 
 export const Route = createFileRoute("/reinitialiser-mot-de-passe")({
@@ -43,16 +44,18 @@ function PageReset() {
       <div className="w-full max-w-md rounded-card border border-line bg-white p-6 shadow-sm">
         <h1 className="text-xl font-medium text-ink">Nouveau mot de passe</h1>
         <form className="mt-6 space-y-3" onSubmit={(ev) => void enregistrer(ev)}>
-          <label className="block">
-            <span className="mb-1.5 block text-xs text-ink-body">Mot de passe</span>
-            <input
+          <div>
+            <label htmlFor="champ-mdp-reset" className="mb-1.5 block text-xs text-ink-body">
+              Mot de passe
+            </label>
+            <ChampMotDePasse
+              id="champ-mdp-reset"
               name="password"
-              type="password"
               required
               minLength={10}
               className="h-11 w-full rounded-card border border-line px-3 text-sm outline-none"
             />
-          </label>
+          </div>
           <button
             type="submit"
             disabled={enCours || !pret}
