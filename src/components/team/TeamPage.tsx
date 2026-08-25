@@ -14,16 +14,17 @@ import {
   X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useRouter } from "@tanstack/react-router";
 import {
   DROIT_PERSONNALISE_INITIAL,
   nomComplet,
   type DroitPersonnalise,
   type MembreEquipe,
-  type RoleMembre,
   type StatutMembre,
 } from "@/data/messagerie-mo1";
 import { ajouterNotif, modifierSession, useSession } from "@/data/session";
-import { toastOk } from "@/lib/feedback";
+import { toastErreur, toastOk } from "@/lib/feedback";
+import { enregistrerDroitsMembre, inviterMembre, retirerMembre } from "@/lib/auth.functions";
 import { cn } from "@/lib/utils";
 import { CarteMessage } from "./CarteMessage";
 import { DialogDroits } from "./DialogDroits";
@@ -36,9 +37,9 @@ const BADGE: Record<StatutMembre, { label: string; classe: string }> = {
   attente: { label: "En attente", classe: "border border-line text-ink-muted" },
 };
 
-export function TeamPage() {
+export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
   const session = useSession();
-  const membres = session.membres;
+  const router = useRouter();
   const actions = session.actions;
   const [recherche, setRecherche] = useState("");
   const [inviter, setInviter] = useState(false);
@@ -139,7 +140,7 @@ export function TeamPage() {
                       </span>
                     </p>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex w-full shrink-0 items-center gap-1.5 sm:w-auto sm:justify-end">
                     <button
                       type="button"
                       onClick={() => setMessagePour((id) => (id === m.id ? null : m.id))}
@@ -148,6 +149,8 @@ export function TeamPage() {
                       <Mail className="size-2.5" />
                       Envoyer un message
                     </button>
+                    {!m.protege && (
+                      <>
                     <button
                       type="button"
                       aria-label="Modifier les droits"
@@ -164,6 +167,8 @@ export function TeamPage() {
                     >
                       <Trash2 className="size-3" />
                     </button>
+                      </>
+                    )}
                   </div>
                 </div>
                 {messagePour === m.id && (
@@ -212,7 +217,7 @@ export function TeamPage() {
                         actions: e.actions.filter((x) => x.id !== a.id),
                       }))
                     }
-                    className="inline-flex h-[29px] flex-1 items-center justify-center gap-1 rounded-card bg-ink text-[10px] font-medium text-white"
+                    className="inline-flex h-11 flex-1 items-center justify-center gap-1 rounded-card bg-ink text-[10px] font-medium text-white md:h-[29px]"
                   >
                     <Check className="size-2.5" />
                     Valider
@@ -225,7 +230,7 @@ export function TeamPage() {
                         actions: e.actions.filter((x) => x.id !== a.id),
                       }))
                     }
-                    className="inline-flex h-[29px] flex-1 items-center justify-center gap-1 rounded-card border border-line text-[10px] font-medium text-ink-body"
+                    className="inline-flex h-11 flex-1 items-center justify-center gap-1 rounded-card border border-line text-[10px] font-medium text-ink-body md:h-[29px]"
                   >
                     <RotateCcw className="size-2.5" />
                     Reporter
@@ -237,9 +242,10 @@ export function TeamPage() {
         </section>
       )}
 
-      <section className="overflow-hidden rounded-card border border-line bg-white">
+      {/* Pas d'overflow-hidden : le menu « + Assigner » doit pouvoir sortir de la carte. */}
+      <section className="rounded-card border border-line bg-white">
         <header className="flex items-center gap-2.5 border-b border-surface-soft px-5 py-4">
-          <span className="flex size-8 items-center justify-center rounded-card border border-line bg-surface">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-card border border-line bg-surface">
             <Lock className="size-3.5 text-ink-body" />
           </span>
           <div>
@@ -257,7 +263,7 @@ export function TeamPage() {
           {droitsPerso.map((d) => (
             <div key={d.id} className="rounded-card border border-line p-4">
               <div className="flex items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs text-ink">{d.nom}</p>
                   <p className="mt-0.5 text-[10px] text-ink-muted">{d.description}</p>
                 </div>
@@ -265,7 +271,7 @@ export function TeamPage() {
                   type="button"
                   aria-label="Supprimer le droit"
                   onClick={() => setDroitsPerso((liste) => liste.filter((x) => x.id !== d.id))}
-                  className="text-ink-muted"
+                  className="-m-4 flex size-11 shrink-0 items-center justify-center text-ink-muted md:m-0 md:size-3"
                 >
                   <Trash2 className="size-3" />
                 </button>
@@ -294,6 +300,7 @@ export function TeamPage() {
                             ),
                           )
                         }
+                        className="-my-3 flex size-11 items-center justify-center md:my-0 md:size-2.5"
                       >
                         <X className="size-2.5" />
                       </button>
@@ -304,12 +311,12 @@ export function TeamPage() {
                   <button
                     type="button"
                     onClick={() => setSelectMembres((id) => (id === d.id ? null : d.id))}
-                    className="h-[26px] rounded-card border border-dashed border-line-strong px-2 text-[10px] text-ink-subtle"
+                    className="h-11 rounded-card border border-dashed border-line-strong px-2 text-[10px] text-ink-subtle md:h-[26px]"
                   >
                     + Assigner
                   </button>
                   {selectMembres === d.id && (
-                    <div className="absolute left-0 top-full z-10 mt-1 w-48 overflow-hidden rounded-card border border-line bg-white py-1 shadow-md">
+                    <div className="absolute left-0 top-full z-dropdown mt-1 w-[min(12rem,calc(100vw-4rem))] overflow-hidden rounded-card border border-line bg-white py-1 shadow-md">
                       {membres
                         .filter((m) => !d.membresIds.includes(m.id))
                         .map((m) => (
@@ -397,7 +404,7 @@ export function TeamPage() {
             <button
               type="button"
               onClick={() => setFormDroit(true)}
-              className="flex h-[42px] w-full items-center justify-center gap-1.5 rounded-card border border-line text-xs font-medium text-ink-body"
+              className="flex h-11 w-full items-center justify-center gap-1.5 rounded-card border border-line text-xs font-medium text-ink-body md:h-[42px]"
             >
               <Plus className="size-3.5" />
               Ajouter un droit d'accès
@@ -409,47 +416,48 @@ export function TeamPage() {
       <DialogInviter
         ouvert={inviter}
         onFermer={() => setInviter(false)}
-        onInviter={({ prenom, nom, role, affectation, droits }) => {
-          const nouveau: MembreEquipe = {
-            id: `me-${Date.now()}`,
-            prenom,
-            nom: nom || prenom,
-            initiales: `${prenom[0] ?? ""}${nom[0] ?? prenom[1] ?? ""}`.toUpperCase(),
-            statut: "attente",
-            role: role as RoleMembre,
-            affectation: affectation.startsWith("Assignment")
-              ? affectation
-              : `Assignment ${affectation}`,
-            droits,
-          };
-          modifierSession((e) => ({ ...e, membres: [...e.membres, nouveau] }));
-          ajouterNotif({
-            titre: "Invitation envoyée",
-            detail: `${prenom} ${nom}`,
-            href: "/team",
-          });
-          toastOk("Invitation enregistrée.");
+        onInviter={async ({ prenom, nom, role, affectation, droits, email }) => {
+          try {
+            const result = await inviterMembre({
+              data: { prenom, nom, email, role, affectation, droits },
+            });
+            if (!result.ok) throw new Error("Invitation refusée");
+            ajouterNotif({
+              titre: "Invitation envoyée",
+              detail: `${prenom} ${nom}`,
+              href: "/team",
+            });
+            toastOk("Invitation envoyée par e-mail.");
+            await router.invalidate();
+          } catch {
+            toastErreur("Impossible d'inviter ce membre.");
+          }
         }}
       />
       <DialogDroits
         membre={edition}
         onFermer={() => setEdition(null)}
-        onEnregistrer={(id, droits) =>
-          modifierSession((e) => ({
-            ...e,
-            membres: e.membres.map((m) => (m.id === id ? { ...m, droits } : m)),
-          }))
-        }
+        onEnregistrer={async (id, droits) => {
+          try {
+            await enregistrerDroitsMembre({ data: { userId: id, droits } });
+            toastOk("Droits enregistrés.");
+            await router.invalidate();
+          } catch {
+            toastErreur("Impossible d'enregistrer ces droits.");
+          }
+        }}
       />
       <DialogSupprimer
         membre={suppression}
         onFermer={() => setSuppression(null)}
-        onConfirmer={(id) => {
-          modifierSession((e) => ({
-            ...e,
-            membres: e.membres.filter((m) => m.id !== id),
-          }));
-          toastOk("Membre retiré de l'équipe.");
+        onConfirmer={async (id) => {
+          try {
+            await retirerMembre({ data: { userId: id } });
+            toastOk("Membre retiré de l'équipe.");
+            await router.invalidate();
+          } catch {
+            toastErreur("Impossible de retirer ce membre.");
+          }
         }}
       />
     </div>

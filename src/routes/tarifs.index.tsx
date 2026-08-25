@@ -1,10 +1,16 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { aLeDroit } from "@/auth/permissions";
 import { PlanningGrid } from "@/components/dashboard/PlanningGrid";
 import { AppShell } from "@/components/layout/AppShell";
 import type { OngletPlanning } from "@/data/planning-mo1";
 
 export const Route = createFileRoute("/tarifs/")({
+  beforeLoad: ({ context }) => {
+    if (!context.auth || !aLeDroit(context.auth.droits, "voir-finances")) {
+      throw redirect({ to: "/" });
+    }
+  },
   head: () => ({
     meta: [{ title: "Tarifs — Hublify" }],
   }),

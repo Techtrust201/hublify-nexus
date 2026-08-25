@@ -1,3 +1,4 @@
+import { useDroit } from "@/auth/auth-context";
 import { Link } from "@tanstack/react-router";
 import {
   AlertTriangle,
@@ -18,21 +19,24 @@ import { cn, useSessionBool } from "@/lib/utils";
 
 export function KpiCards() {
   const kpi = useKpiMo1();
+  const voirFinances = useDroit("voir-finances");
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <CarteKpi
-        icone={AlertTriangle}
-        titre="Loyers en retard"
-        badge="Urgent"
-        valeur={String(kpi.loyersRetard)}
-        unite="en attente"
-        detail={
-          <>
-            Tout impayé :{" "}
-            <span className="text-ink-body">{kpi.impaye.toLocaleString("fr-FR")} €</span>
-          </>
-        }
-      />
+      {voirFinances && (
+        <CarteKpi
+          icone={AlertTriangle}
+          titre="Loyers en retard"
+          badge="Urgent"
+          valeur={String(kpi.loyersRetard)}
+          unite="en attente"
+          detail={
+            <>
+              Tout impayé :{" "}
+              <span className="text-ink-body">{kpi.impaye.toLocaleString("fr-FR")} €</span>
+            </>
+          }
+        />
+      )}
       <CarteKpi
         icone={LogIn}
         titre="Check-in / Check-out"
@@ -209,10 +213,10 @@ export function LoyersSection({
               key={l.id}
               className="flex flex-wrap items-center gap-3 border-b border-surface-soft px-4 py-3 last:border-b-0"
             >
-              <span className="flex size-8 items-center justify-center rounded-full bg-line text-xs text-ink-body">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-line text-xs text-ink-body">
                 {l.initiales}
               </span>
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 basis-32">
                 <p className="text-sm text-ink">{l.locataire}</p>
                 <p className="text-xs text-ink-muted">
                   {l.bienNom} · Échéance : {l.echeance}
@@ -222,25 +226,25 @@ export function LoyersSection({
                 {l.montant.toLocaleString("fr-FR")} €
               </p>
               {!l.valide ? (
-                <div className="flex gap-2">
+                <div className="flex w-full flex-wrap gap-2 sm:w-auto">
                   <button
                     type="button"
                     onClick={() => onValider(l.id)}
-                    className="h-[26px] rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body"
+                    className="h-11 rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[26px]"
                   >
                     Valider paiement
                   </button>
                   <button
                     type="button"
                     onClick={() => onQuittance(l.id)}
-                    className="inline-flex h-[26px] items-center gap-1 rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body"
+                    className="inline-flex h-11 items-center gap-1 rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[26px]"
                   >
                     <FileCheck className="size-2.5" />
                     Générer quittance
                   </button>
                 </div>
               ) : (
-                <div className="flex gap-2">
+                <div className="flex w-full flex-wrap gap-2 sm:w-auto">
                   <span className="inline-flex h-[26px] items-center gap-1 rounded border border-line bg-surface px-2 text-xs text-ink-muted">
                     <span className="flex size-3 items-center justify-center rounded-full border border-ink-muted">
                       <span className="size-1.5 rounded-full bg-ink-muted" />
@@ -256,7 +260,7 @@ export function LoyersSection({
                     <button
                       type="button"
                       onClick={() => onQuittance(l.id)}
-                      className="inline-flex h-[26px] items-center gap-1 rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body"
+                      className="inline-flex h-11 items-center gap-1 rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[26px]"
                     >
                       <FileCheck className="size-2.5" />
                       Générer quittance
@@ -283,10 +287,10 @@ export function EvenementsSection({
 
   return (
     <section className="mt-4 overflow-hidden rounded-card border border-line bg-white">
-      <div className="flex items-center justify-between border-b border-surface-soft px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-soft px-4 py-3">
         <button
           type="button"
-          className="flex items-center gap-2 text-sm text-ink"
+          className="flex min-h-11 min-w-0 flex-wrap items-center gap-2 text-left text-sm text-ink md:min-h-0"
           onClick={() => setOuvert((o) => !o)}
         >
           <Star className="size-4" />
@@ -296,11 +300,11 @@ export function EvenementsSection({
             {evenements.length > 1 ? "s" : ""}
           </span>
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             onClick={onAjouter}
-            className="inline-flex h-[26px] items-center gap-1 rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body"
+            className="inline-flex h-11 shrink-0 items-center gap-1 whitespace-nowrap rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[26px]"
           >
             <Plus className="size-2.5" />
             Ajouter
@@ -309,6 +313,7 @@ export function EvenementsSection({
             type="button"
             onClick={() => setOuvert((o) => !o)}
             aria-label="Replier les événements"
+            className="flex size-11 shrink-0 items-center justify-center md:size-8"
           >
             {ouvert ? (
               <ChevronUp className="size-4 text-ink-muted" />

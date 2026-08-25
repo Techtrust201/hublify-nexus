@@ -16,9 +16,9 @@ import type {
 } from "./types";
 
 export const GESTIONNAIRE = {
-  nom: "Yannick Rath",
+  nom: "Yannick Ratti",
   role: "Gestionnaire",
-  email: "yannick.rath@hublify.app",
+  email: "redris.gestion@gmail.com",
   societe: "Hublify",
 };
 

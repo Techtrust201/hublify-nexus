@@ -1,6 +1,10 @@
 // SOURCE: Maquette MO1 — Dashboard/Messagerie + Vision TeamMate
 // Noms et textes relevés tels quels dans les frames.
 
+import { DROITS_CATALOGUE } from "@/auth/permissions";
+
+export { DROITS_CATALOGUE };
+
 export type SectionConversation = "inbox" | "prospections" | "prestataires" | "team";
 
 export type TypeInterlocuteur = "voyageur" | "locataire" | "prestataire" | "team";
@@ -45,7 +49,12 @@ export type DocumentLie = {
 
 export type StatutMembre = "actif" | "externe" | "attente";
 
-export type RoleMembre = "Administrateur" | "Gestionnaire";
+export type RoleMembre =
+  | "Super-administrateur"
+  | "Administrateur"
+  | "Gestionnaire"
+  | "Prestataire"
+  | "Lecture";
 
 export type MembreEquipe = {
   id: string;
@@ -56,6 +65,8 @@ export type MembreEquipe = {
   role: RoleMembre;
   affectation: string;
   droits: string[];
+  email?: string;
+  protege?: boolean;
 };
 
 export type DroitCatalogue = {
@@ -348,69 +359,6 @@ export const SECTIONS_DEPLACEMENT: { id: SectionConversation; label: string }[] 
   { id: "prospections", label: "Mes prospections" },
   { id: "prestataires", label: "Mes prestataires" },
   { id: "team", label: "Mes teams mate" },
-];
-
-export const DROITS_CATALOGUE: DroitCatalogue[] = [
-  {
-    id: "voir-reservations",
-    groupe: "Lecture",
-    titre: "Voir les réservations",
-    description: "Accès en lecture aux réservations",
-  },
-  {
-    id: "voir-finances",
-    groupe: "Lecture",
-    titre: "Voir les finances",
-    description: "Accès en lecture aux données financières",
-  },
-  {
-    id: "voir-biens",
-    groupe: "Lecture",
-    titre: "Voir les biens",
-    description: "Accès en lecture aux fiches biens",
-  },
-  {
-    id: "voir-documents",
-    groupe: "Lecture",
-    titre: "Voir les documents",
-    description: "Accès aux documents et contrats",
-  },
-  {
-    id: "messagerie",
-    groupe: "Lecture",
-    titre: "Messagerie",
-    description: "Envoyer et recevoir des messages",
-  },
-  {
-    id: "voir-calendrier",
-    groupe: "Lecture",
-    titre: "Voir le calendrier",
-    description: "Accès au calendrier et aux vues annuelles",
-  },
-  {
-    id: "mod-reservations",
-    groupe: "Modification",
-    titre: "Modifier les réservations",
-    description: "Créer et modifier des réservations",
-  },
-  {
-    id: "mod-finances",
-    groupe: "Modification",
-    titre: "Modifier les finances",
-    description: "Saisir et modifier les montants",
-  },
-  {
-    id: "mod-biens",
-    groupe: "Modification",
-    titre: "Modifier les biens",
-    description: "Créer et modifier les fiches biens",
-  },
-  {
-    id: "gerer-equipe",
-    groupe: "Administration",
-    titre: "Gérer l'équipe",
-    description: "Inviter, modifier et supprimer des membres",
-  },
 ];
 
 const LECTURE = DROITS_CATALOGUE.filter((d) => d.groupe === "Lecture").map((d) => d.id);

@@ -3,6 +3,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { useState } from "react";
+import { useDroit } from "@/auth/auth-context";
 import {
   CreateEventDialog,
   QuittanceDialog,
@@ -43,6 +44,10 @@ export const Route = createFileRoute("/")({
 function VueGenerale() {
   const navigate = useNavigate();
   const session = useSession();
+  const peutReserver = useDroit("mod-reservations");
+  const voirFinances = useDroit("voir-finances");
+  const voirMessages = useDroit("messagerie");
+  const voirCalendrier = useDroit("voir-calendrier");
   const [recherche, setRecherche] = useState("");
   const [onglet, setOnglet] = useState<OngletPlanning>("missions");
   const [loyerQuittance, setLoyerQuittance] = useState<LoyerMo1 | null>(null);
@@ -58,33 +63,39 @@ function VueGenerale() {
     <AppShell>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <RechercheGlobale valeur={recherche} onChange={setRecherche} />
-        <Link
-          to="/reservations/nouveau"
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-[14px] bg-ink px-4 text-sm font-medium text-white"
-        >
-          <Plus className="size-3.5" />
-          Créer une réservation
-        </Link>
+        {peutReserver && (
+          <Link
+            to="/reservations/nouveau"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-[14px] bg-ink px-4 text-sm font-medium text-white"
+          >
+            <Plus className="size-3.5" />
+            Créer une réservation
+          </Link>
+        )}
       </div>
 
       <KpiCards />
 
-      <div className="mt-4">
-        <PlanningGrid onglet={onglet} onOnglet={allerOnglet} />
-      </div>
+      {voirCalendrier && (
+        <div className="mt-4">
+          <PlanningGrid onglet={onglet} onOnglet={allerOnglet} />
+        </div>
+      )}
 
-      <MessagesSection messages={session.messagesDash} />
-      <LoyersSection
-        loyers={session.loyers}
-        onValider={(id) => {
-          validerLoyer(id);
-          toastOk("Paiement validé.");
-        }}
-        onQuittance={(id) => {
-          const l = session.loyers.find((x) => x.id === id);
-          if (l) setLoyerQuittance(l);
-        }}
-      />
+      {voirMessages && <MessagesSection messages={session.messagesDash} />}
+      {voirFinances && (
+        <LoyersSection
+          loyers={session.loyers}
+          onValider={(id) => {
+            validerLoyer(id);
+            toastOk("Paiement validé.");
+          }}
+          onQuittance={(id) => {
+            const l = session.loyers.find((x) => x.id === id);
+            if (l) setLoyerQuittance(l);
+          }}
+        />
+      )}
       <EvenementsSection evenements={session.evenements} onAjouter={() => setCreerEvent(true)} />
 
       <QuittanceDialog
@@ -108,7 +119,7 @@ function VueGenerale() {
             detail: e.titre,
             href: "/",
           });
-          toastOk("Événement enregistré.");
+          toastOk("Événement ajouté.");
         }}
       />
     </AppShell>

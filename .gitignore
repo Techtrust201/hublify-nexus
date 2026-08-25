@@ -15,6 +15,11 @@ dist-ssr
 .tanstack/**
 .nitro
 *.local
+.env
+test-results
+playwright-report
+blob-report
+playwright/.cache
 
 # Wrangler / Cloudflare
 .wrangler/
@@ -31,14 +36,18 @@ dist-ssr
 *.sln
 *.sw?
 
+# Maquettes Figma locales (binaires)
+*.fig
+
 # Outillage local
 .lovable/
 .workspace/
 .vercel
 
 docs/audit/*.png
-
-# Maquettes locales (ne pas versionner)
-*.fig
+docs/audit/shots*/
+docs/audit/diag-*.txt
 .cursor-fig-thumb.png
 .tmp-old-favicon.png
+.neon
+storage/

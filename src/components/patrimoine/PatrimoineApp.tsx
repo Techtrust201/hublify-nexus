@@ -116,15 +116,18 @@ export function PatrimoineApp() {
               {LOGEMENTS_PATRIMOINE.map((l) => (
                 <tr key={l.id} className="border-b border-surface-soft last:border-b-0">
                   <td className="px-4 py-4">
-                    <input
-                      type="checkbox"
-                      checked={selLog.includes(l.id)}
-                      onChange={() =>
-                        setSelLog((s) =>
-                          s.includes(l.id) ? s.filter((x) => x !== l.id) : [...s, l.id],
-                        )
-                      }
-                    />
+                    <label className="flex min-h-11 items-center md:min-h-0">
+                      <input
+                        type="checkbox"
+                        checked={selLog.includes(l.id)}
+                        onChange={() =>
+                          setSelLog((s) =>
+                            s.includes(l.id) ? s.filter((x) => x !== l.id) : [...s, l.id],
+                          )
+                        }
+                        aria-label={`Sélectionner ${l.nom}`}
+                      />
+                    </label>
                   </td>
                   <td className="px-2 py-4">
                     <div className="flex items-start gap-2">
@@ -218,15 +221,18 @@ export function PatrimoineApp() {
               {IMMEUBLES_PATRIMOINE.map((i) => (
                 <tr key={i.id} className="border-b border-surface-soft last:border-b-0">
                   <td className="px-4 py-4">
-                    <input
-                      type="checkbox"
-                      checked={selImm.includes(i.id)}
-                      onChange={() =>
-                        setSelImm((s) =>
-                          s.includes(i.id) ? s.filter((x) => x !== i.id) : [...s, i.id],
-                        )
-                      }
-                    />
+                    <label className="flex min-h-11 items-center md:min-h-0">
+                      <input
+                        type="checkbox"
+                        checked={selImm.includes(i.id)}
+                        onChange={() =>
+                          setSelImm((s) =>
+                            s.includes(i.id) ? s.filter((x) => x !== i.id) : [...s, i.id],
+                          )
+                        }
+                        aria-label={`Sélectionner ${i.nom}`}
+                      />
+                    </label>
                   </td>
                   <td className="px-2 py-4">
                     <span className="inline-flex items-center gap-2 text-sm text-ink">

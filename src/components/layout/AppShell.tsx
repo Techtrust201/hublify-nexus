@@ -3,6 +3,8 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Bell, ChevronDown, Menu, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useAuth } from "@/auth/auth-context";
+import { BandeauSync } from "@/components/layout/BandeauSync";
 import { NavChrome } from "@/components/layout/NavChrome";
 import {
   DropdownMenu,
@@ -33,6 +35,7 @@ export function AppShell({
   const hamburgerRef = useRef<HTMLButtonElement>(null);
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const session = useSession();
+  const auth = useAuth();
   const notifsNonLues = session.notifications.filter((n) => !n.lu).length;
 
   useEffect(() => {
@@ -144,10 +147,12 @@ export function AppShell({
               to="/profil"
               className="hidden min-h-11 items-center text-sm font-medium text-ink-body lg:inline-flex"
             >
-              Compte gestionnaire
+              Compte {auth?.role?.toLowerCase() ?? "utilisateur"}
             </Link>
           </div>
         </header>
+
+        <BandeauSync />
 
         <Sheet
           open={mobileOuvert}
@@ -167,7 +172,7 @@ export function AppShell({
             <div className="flex items-center justify-between border-b border-surface-soft px-3 py-2">
               <SheetTitle className="text-sm font-medium text-ink">Menu</SheetTitle>
               <SheetDescription className="sr-only">
-                Navigation principale de l'espace gestionnaire
+                Navigation principale de l'espace {auth?.role ?? "Hublify"}
               </SheetDescription>
               <button
                 type="button"

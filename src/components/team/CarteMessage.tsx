@@ -25,7 +25,12 @@ export function CarteMessage({
             <p className="text-[10px] text-ink-muted">{membre.role}</p>
           </div>
         </div>
-        <button type="button" onClick={onFermer} aria-label="Fermer">
+        <button
+          type="button"
+          onClick={onFermer}
+          aria-label="Fermer"
+          className="-my-3 flex size-11 shrink-0 items-center justify-center md:my-0 md:size-3.5"
+        >
           <X className="size-3.5 text-ink-muted" />
         </button>
       </div>

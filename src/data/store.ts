@@ -2,18 +2,6 @@
 // Aucun backend, aucune persistance. Remplaçable par une API réelle plus tard.
 
 import { useSyncExternalStore } from "react";
-import {
-  BIENS,
-  DOCUMENTS,
-  EVENEMENTS,
-  LOYERS,
-  MESSAGES,
-  MISSIONS,
-  PRESTATAIRES,
-  RESERVATIONS,
-  TARIFS,
-  TEAM,
-} from "./mock";
 import type {
   Bien,
   DocumentBien,
@@ -42,16 +30,16 @@ type Etat = {
 };
 
 let etat: Etat = {
-  biens: BIENS,
-  prestataires: PRESTATAIRES,
-  reservations: RESERVATIONS,
-  missions: MISSIONS,
-  team: TEAM,
-  messages: MESSAGES,
-  loyers: LOYERS,
-  evenements: EVENEMENTS,
-  documents: DOCUMENTS,
-  tarifs: TARIFS,
+  biens: [],
+  prestataires: [],
+  reservations: [],
+  missions: [],
+  team: [],
+  messages: [],
+  loyers: [],
+  evenements: [],
+  documents: [],
+  tarifs: [],
 };
 
 const abonnes = new Set<() => void>();

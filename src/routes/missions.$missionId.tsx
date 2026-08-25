@@ -62,7 +62,7 @@ function DetailMission() {
     <AppShell titre={mission.titre} sousTitre={`${mission.reference} · ${mission.type}`}>
       <Link
         to="/missions"
-        className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        className="mb-2 inline-flex min-h-11 items-center gap-2 text-sm text-muted-foreground hover:text-foreground md:mb-4 md:min-h-0"
       >
         <ArrowLeft className="h-4 w-4" /> Retour au calendrier
       </Link>
@@ -144,7 +144,7 @@ function DetailMission() {
               id="affectation"
               value={mission.prestataireId ?? ""}
               onChange={(e) => affecterPrestataire(mission.id, e.target.value || null)}
-              className="mt-1 w-full rounded-md border border-border bg-background px-2.5 py-2 text-sm"
+              className="mt-1 h-11 w-full rounded-md border border-border bg-background px-2.5 py-2 text-sm md:h-auto"
             >
               <option value="">— Aucun —</option>
               {prestataires
@@ -167,7 +167,7 @@ function DetailMission() {
                 <button
                   key={s}
                   onClick={() => changerStatutMission(mission.id, s)}
-                  className="rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent"
+                  className="min-h-11 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent md:min-h-0"
                 >
                   Passer à « {LIBELLE_STATUT[s]} »
                 </button>

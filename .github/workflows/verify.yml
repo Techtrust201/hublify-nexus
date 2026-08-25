@@ -1,0 +1,43 @@
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: hublify
+          POSTGRES_PASSWORD: hublify
+          POSTGRES_DB: hublify
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hublify -d hublify"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://hublify:hublify@127.0.0.1:5432/hublify
+      BETTER_AUTH_SECRET: ci-uniquement-32-caracteres-min!!
+      BETTER_AUTH_URL: http://127.0.0.1:8080
+      DEMO_AUTH_PASSWORD: Hublify-Demo-2026!
+      CI: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm test
+      - run: npm run db:prepare
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test

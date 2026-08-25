@@ -1,5 +1,6 @@
 import { Eye, Pencil, Shield } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { DROITS_CATALOGUE, DROITS_PAR_ROLE, ROLES_EQUIPE, roleParLabel, type RoleLabel } from "@/auth/permissions";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -8,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DROITS_CATALOGUE, type RoleMembre } from "@/data/messagerie-mo1";
 import { cn } from "@/lib/utils";
 
 const GROUPES = [
@@ -28,7 +28,7 @@ export function DialogInviter({
     prenom: string;
     nom: string;
     email: string;
-    role: RoleMembre;
+    role: RoleLabel;
     affectation: string;
     droits: string[];
   }) => void;
@@ -36,9 +36,9 @@ export function DialogInviter({
   const [prenom, setPrenom] = useState("");
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<RoleMembre>("Gestionnaire");
+  const [role, setRole] = useState<RoleLabel>("Gestionnaire");
   const [affectation, setAffectation] = useState("");
-  const [droits, setDroits] = useState<string[]>([]);
+  const [droits, setDroits] = useState<string[]>([...DROITS_PAR_ROLE.gestionnaire]);
 
   const reset = () => {
     setPrenom("");
@@ -46,7 +46,7 @@ export function DialogInviter({
     setEmail("");
     setRole("Gestionnaire");
     setAffectation("");
-    setDroits([]);
+    setDroits([...DROITS_PAR_ROLE.gestionnaire]);
   };
 
   const toggle = (id: string) =>
@@ -104,11 +104,16 @@ export function DialogInviter({
             <Champ label="Rôle">
               <select
                 value={role}
-                onChange={(e) => setRole(e.target.value as RoleMembre)}
+                onChange={(e) => {
+                  const prochain = e.target.value as RoleLabel;
+                  setRole(prochain);
+                  setDroits([...DROITS_PAR_ROLE[roleParLabel(prochain)]]);
+                }}
                 className={cn(champClasse, "h-9")}
               >
-                <option>Gestionnaire</option>
-                <option>Administrateur</option>
+                {ROLES_EQUIPE.map((r) => (
+                  <option key={r.id}>{r.label}</option>
+                ))}
               </select>
             </Champ>
             <Champ label="Affectation">

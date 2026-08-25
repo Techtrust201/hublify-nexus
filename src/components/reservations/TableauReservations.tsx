@@ -16,7 +16,6 @@ import { useMemo, useState } from "react";
 import {
   AUJOURD_HUI_MO1,
   CODE_PLATEFORME,
-  bienParId,
   formatDateLongue,
   formatMontant,
   nuitsEntre,
@@ -25,7 +24,8 @@ import {
   type StatutReservationMo1,
 } from "@/data/reservations-mo1";
 import { useSession } from "@/data/session";
-import { telechargerDemo } from "@/lib/feedback";
+import { genererRecapReservationPdf } from "@/lib/documents.functions";
+import { telechargerBase64, telechargerDemo } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
 type FiltrePeriode = "tous" | "en_cours" | "a_venir" | "departs" | "passes";
@@ -35,6 +35,7 @@ const PAGE = 8;
 export function TableauReservations() {
   const session = useSession();
   const reservations = session.reservationsDossier;
+  const bienParId = (id: string) => session.biens.find((b) => b.id === id);
   const [recherche, setRecherche] = useState("");
   const [statut, setStatut] = useState<"tout" | StatutReservationMo1>("tout");
   const [periode, setPeriode] = useState<FiltrePeriode>("tous");
@@ -145,7 +146,7 @@ export function TableauReservations() {
               className="h-full w-full bg-transparent text-base text-ink outline-none placeholder:text-ink-muted md:text-xs"
             />
           </label>
-          <div className="flex rounded-card border border-line p-1">
+          <div className="grid w-full grid-cols-2 gap-1 rounded-card border border-line p-1 md:flex md:w-auto md:gap-0">
             {(
               [
                 ["tout", "Tout"],
@@ -175,23 +176,33 @@ export function TableauReservations() {
         <div className="flex justify-end gap-2 px-5 pb-3">
           <button
             type="button"
-            onClick={() =>
-              telechargerDemo(
-                "reservations-hublify.csv",
-                ["Occupant;Bien;Arrivee;Depart;Statut;Montant", ...filtrees.map((r) => {
-                  const bien = bienParId(r.bienId);
-                  return `${r.occupant};${bien?.nom ?? r.bienId};${r.arrivee};${r.depart};${r.statut};${r.montant}`;
-                })].join("\n"),
-              )
-            }
-            className="inline-flex h-[30px] items-center gap-1 rounded border border-line px-3 text-xs font-medium text-ink-body"
+            onClick={() => {
+              void (async () => {
+                const lignes = [
+                  "Occupant;Bien;Arrivee;Depart;Statut;Montant",
+                  ...filtrees.map((r) => {
+                    const bien = bienParId(r.bienId);
+                    return `${r.occupant};${bien?.nom ?? r.bienId};${r.arrivee};${r.depart};${r.statut};${r.montant}`;
+                  }),
+                ];
+                try {
+                  const doc = await genererRecapReservationPdf({
+                    data: { titre: "Reservations Hublify", lignes },
+                  });
+                  telechargerBase64(doc.nom, doc.mime, doc.base64);
+                } catch {
+                  telechargerDemo("reservations-hublify.csv", lignes.join("\n"));
+                }
+              })();
+            }}
+            className="inline-flex h-11 items-center gap-1 rounded border border-line px-3 text-xs font-medium text-ink-body md:h-[30px]"
           >
             <Download className="size-3" />
             Exporter
           </button>
           <button
             type="button"
-            className="inline-flex h-[34px] items-center gap-1 rounded-card border border-line px-3 text-xs font-medium text-ink-body"
+            className="inline-flex h-11 items-center gap-1 rounded-card border border-line px-3 text-xs font-medium text-ink-body md:h-[34px]"
           >
             <Calendar className="size-3.5" />
             Année 2026
@@ -272,7 +283,9 @@ export function TableauReservations() {
             <thead>
               <tr className="border-y border-surface-soft text-xs text-ink-subtle">
                 <th className="w-10 px-3 py-3 font-normal">
-                  <input type="checkbox" aria-label="Tout sélectionner" className="size-3.5" />
+                  <label className="flex min-h-11 items-center md:min-h-0">
+                    <input type="checkbox" aria-label="Tout sélectionner" className="size-3.5" />
+                  </label>
                 </th>
                 <th className="px-3 py-3 font-normal">Statut</th>
                 <th className="px-3 py-3 font-normal">Propriété</th>
@@ -299,7 +312,9 @@ export function TableauReservations() {
                     onClick={() => setDetail(r)}
                   >
                     <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
-                      <input type="checkbox" aria-label={r.occupant} className="size-3.5" />
+                      <label className="flex min-h-11 items-center md:min-h-0">
+                        <input type="checkbox" aria-label={r.occupant} className="size-3.5" />
+                      </label>
                     </td>
                     <td className="px-3 py-3">
                       <span
@@ -368,7 +383,7 @@ export function TableauReservations() {
               type="button"
               disabled={pageCourante <= 1}
               onClick={() => setPage((p) => p - 1)}
-              className="h-[30px] rounded border border-line px-3 text-xs text-ink-body disabled:opacity-40"
+              className="h-11 rounded border border-line px-3 text-xs text-ink-body disabled:opacity-40 md:h-[30px]"
             >
               Précédent
             </button>
@@ -378,7 +393,7 @@ export function TableauReservations() {
                 type="button"
                 onClick={() => setPage(n)}
                 className={cn(
-                  "size-7 rounded text-xs",
+                  "size-11 rounded text-xs md:size-7",
                   n === pageCourante ? "bg-ink text-white" : "text-ink-body",
                 )}
               >
@@ -389,7 +404,7 @@ export function TableauReservations() {
               type="button"
               disabled={pageCourante >= pages}
               onClick={() => setPage((p) => p + 1)}
-              className="h-[30px] rounded border border-line px-3 text-xs text-ink-body disabled:opacity-40"
+              className="h-11 rounded border border-line px-3 text-xs text-ink-body disabled:opacity-40 md:h-[30px]"
             >
               Suivant
             </button>
@@ -441,7 +456,8 @@ function PanneauDetail({
   reservation: ReservationMo1;
   onFermer: () => void;
 }) {
-  const bien = bienParId(reservation.bienId);
+  const session = useSession();
+  const bien = session.biens.find((b) => b.id === reservation.bienId);
   const pct = pourcentagePaiement(reservation);
   const nuits = nuitsEntre(reservation.arrivee, reservation.depart);
 

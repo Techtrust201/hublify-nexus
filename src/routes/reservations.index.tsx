@@ -62,7 +62,7 @@ function PageReservations() {
     return (
       <AppShell>
         <div className="flex items-center gap-2 text-xs text-ink-muted">
-          <Link to="/" className="hover:text-ink-body">
+          <Link to="/" className="inline-flex min-h-11 items-center hover:text-ink-body md:min-h-0">
             Tableau de bord
           </Link>
           <span>›</span>
@@ -77,13 +77,13 @@ function PageReservations() {
             <button
               type="button"
               onClick={() => setVue("planning")}
-              className="inline-flex h-10 items-center rounded-card border border-line px-4 text-sm font-medium text-ink-body"
+              className="inline-flex h-11 items-center rounded-card border border-line px-4 text-sm font-medium text-ink-body md:h-10"
             >
               Planning
             </button>
             <Link
               to="/reservations/nouveau"
-              className="inline-flex h-10 items-center gap-2 rounded-[14px] bg-ink px-4 text-sm font-medium text-white"
+              className="inline-flex h-11 items-center gap-2 rounded-[14px] bg-ink px-4 text-sm font-medium text-white md:h-10"
             >
               <Plus className="size-3.5" />
               Créer une réservation
@@ -158,7 +158,7 @@ function PageReservations() {
         onCreer={(e) => {
           ajouterEvenement(e);
           ajouterNotif({ titre: "Événement ajouté", detail: e.titre, href: "/reservations" });
-          toastOk("Événement enregistré.");
+          toastOk("Événement ajouté.");
         }}
       />
     </AppShell>

@@ -117,7 +117,7 @@ export function ListeConversations({
               <button
                 type="button"
                 onClick={() => onToggleSection(s.id)}
-                className="flex w-full items-center justify-between px-3 py-1.5 text-[11px] text-ink-muted"
+                className="flex min-h-11 w-full items-center justify-between px-3 py-1.5 text-[11px] text-ink-muted md:min-h-0"
               >
                 <span className="flex items-center gap-1.5">
                   {s.label}

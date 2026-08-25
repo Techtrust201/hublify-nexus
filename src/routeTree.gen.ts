@@ -10,7 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ConnexionRouteImport } from './routes/connexion'
+import { Route as InscriptionRouteImport } from './routes/inscription'
+import { Route as MotDePasseOublieRouteImport } from './routes/mot-de-passe-oublie'
 import { Route as ProfilRouteImport } from './routes/profil'
+import { Route as ReinitialiserMotDePasseRouteImport } from './routes/reinitialiser-mot-de-passe'
 import { Route as DocumentsIndexRouteImport } from './routes/documents.index'
 import { Route as InventaireIndexRouteImport } from './routes/inventaire.index'
 import { Route as MessagerieIndexRouteImport } from './routes/messagerie.index'
@@ -29,15 +33,37 @@ import { Route as ReservationsIndexRouteImport } from './routes/reservations.ind
 import { Route as ReservationsNouveauRouteImport } from './routes/reservations.nouveau'
 import { Route as TarifsIndexRouteImport } from './routes/tarifs.index'
 import { Route as TeamIndexRouteImport } from './routes/team.index'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiTestMailsRouteImport } from './routes/api/test/mails'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConnexionRoute = ConnexionRouteImport.update({
+  id: '/connexion',
+  path: '/connexion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InscriptionRoute = InscriptionRouteImport.update({
+  id: '/inscription',
+  path: '/inscription',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MotDePasseOublieRoute = MotDePasseOublieRouteImport.update({
+  id: '/mot-de-passe-oublie',
+  path: '/mot-de-passe-oublie',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfilRoute = ProfilRouteImport.update({
   id: '/profil',
   path: '/profil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReinitialiserMotDePasseRoute = ReinitialiserMotDePasseRouteImport.update({
+  id: '/reinitialiser-mot-de-passe',
+  path: '/reinitialiser-mot-de-passe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocumentsIndexRoute = DocumentsIndexRouteImport.update({
@@ -131,10 +157,24 @@ const TeamIndexRoute = TeamIndexRouteImport.update({
   path: '/team/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTestMailsRoute = ApiTestMailsRouteImport.update({
+  id: '/api/test/mails',
+  path: '/api/test/mails',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/connexion': typeof ConnexionRoute
+  '/inscription': typeof InscriptionRoute
+  '/mot-de-passe-oublie': typeof MotDePasseOublieRoute
   '/profil': typeof ProfilRoute
+  '/reinitialiser-mot-de-passe': typeof ReinitialiserMotDePasseRoute
   '/missions/$missionId': typeof MissionsMissionIdRoute
   '/outils/debuter': typeof OutilsDebuterRoute
   '/outils/modeles': typeof OutilsModelesRoute
@@ -153,10 +193,16 @@ export interface FileRoutesByFullPath {
   '/reservations/': typeof ReservationsIndexRoute
   '/tarifs/': typeof TarifsIndexRoute
   '/team/': typeof TeamIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/test/mails': typeof ApiTestMailsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/connexion': typeof ConnexionRoute
+  '/inscription': typeof InscriptionRoute
+  '/mot-de-passe-oublie': typeof MotDePasseOublieRoute
   '/profil': typeof ProfilRoute
+  '/reinitialiser-mot-de-passe': typeof ReinitialiserMotDePasseRoute
   '/missions/$missionId': typeof MissionsMissionIdRoute
   '/outils/debuter': typeof OutilsDebuterRoute
   '/outils/modeles': typeof OutilsModelesRoute
@@ -175,11 +221,17 @@ export interface FileRoutesByTo {
   '/reservations': typeof ReservationsIndexRoute
   '/tarifs': typeof TarifsIndexRoute
   '/team': typeof TeamIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/test/mails': typeof ApiTestMailsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/connexion': typeof ConnexionRoute
+  '/inscription': typeof InscriptionRoute
+  '/mot-de-passe-oublie': typeof MotDePasseOublieRoute
   '/profil': typeof ProfilRoute
+  '/reinitialiser-mot-de-passe': typeof ReinitialiserMotDePasseRoute
   '/missions/$missionId': typeof MissionsMissionIdRoute
   '/outils/debuter': typeof OutilsDebuterRoute
   '/outils/modeles': typeof OutilsModelesRoute
@@ -198,12 +250,18 @@ export interface FileRoutesById {
   '/reservations/': typeof ReservationsIndexRoute
   '/tarifs/': typeof TarifsIndexRoute
   '/team/': typeof TeamIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/test/mails': typeof ApiTestMailsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/connexion'
+    | '/inscription'
+    | '/mot-de-passe-oublie'
     | '/profil'
+    | '/reinitialiser-mot-de-passe'
     | '/missions/$missionId'
     | '/outils/debuter'
     | '/outils/modeles'
@@ -222,10 +280,16 @@ export interface FileRouteTypes {
     | '/reservations/'
     | '/tarifs/'
     | '/team/'
+    | '/api/auth/$'
+    | '/api/test/mails'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/connexion'
+    | '/inscription'
+    | '/mot-de-passe-oublie'
     | '/profil'
+    | '/reinitialiser-mot-de-passe'
     | '/missions/$missionId'
     | '/outils/debuter'
     | '/outils/modeles'
@@ -244,10 +308,16 @@ export interface FileRouteTypes {
     | '/reservations'
     | '/tarifs'
     | '/team'
+    | '/api/auth/$'
+    | '/api/test/mails'
   id:
     | '__root__'
     | '/'
+    | '/connexion'
+    | '/inscription'
+    | '/mot-de-passe-oublie'
     | '/profil'
+    | '/reinitialiser-mot-de-passe'
     | '/missions/$missionId'
     | '/outils/debuter'
     | '/outils/modeles'
@@ -266,11 +336,17 @@ export interface FileRouteTypes {
     | '/reservations/'
     | '/tarifs/'
     | '/team/'
+    | '/api/auth/$'
+    | '/api/test/mails'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ConnexionRoute: typeof ConnexionRoute
+  InscriptionRoute: typeof InscriptionRoute
+  MotDePasseOublieRoute: typeof MotDePasseOublieRoute
   ProfilRoute: typeof ProfilRoute
+  ReinitialiserMotDePasseRoute: typeof ReinitialiserMotDePasseRoute
   MissionsMissionIdRoute: typeof MissionsMissionIdRoute
   OutilsDebuterRoute: typeof OutilsDebuterRoute
   OutilsModelesRoute: typeof OutilsModelesRoute
@@ -289,6 +365,8 @@ export interface RootRouteChildren {
   ReservationsIndexRoute: typeof ReservationsIndexRoute
   TarifsIndexRoute: typeof TarifsIndexRoute
   TeamIndexRoute: typeof TeamIndexRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiTestMailsRoute: typeof ApiTestMailsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -300,11 +378,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/connexion': {
+      id: '/connexion'
+      path: '/connexion'
+      fullPath: '/connexion'
+      preLoaderRoute: typeof ConnexionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inscription': {
+      id: '/inscription'
+      path: '/inscription'
+      fullPath: '/inscription'
+      preLoaderRoute: typeof InscriptionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mot-de-passe-oublie': {
+      id: '/mot-de-passe-oublie'
+      path: '/mot-de-passe-oublie'
+      fullPath: '/mot-de-passe-oublie'
+      preLoaderRoute: typeof MotDePasseOublieRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profil': {
       id: '/profil'
       path: '/profil'
       fullPath: '/profil'
       preLoaderRoute: typeof ProfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reinitialiser-mot-de-passe': {
+      id: '/reinitialiser-mot-de-passe'
+      path: '/reinitialiser-mot-de-passe'
+      fullPath: '/reinitialiser-mot-de-passe'
+      preLoaderRoute: typeof ReinitialiserMotDePasseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/documents/': {
@@ -433,12 +539,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/test/mails': {
+      id: '/api/test/mails'
+      path: '/api/test/mails'
+      fullPath: '/api/test/mails'
+      preLoaderRoute: typeof ApiTestMailsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ConnexionRoute: ConnexionRoute,
+  InscriptionRoute: InscriptionRoute,
+  MotDePasseOublieRoute: MotDePasseOublieRoute,
   ProfilRoute: ProfilRoute,
+  ReinitialiserMotDePasseRoute: ReinitialiserMotDePasseRoute,
   MissionsMissionIdRoute: MissionsMissionIdRoute,
   OutilsDebuterRoute: OutilsDebuterRoute,
   OutilsModelesRoute: OutilsModelesRoute,
@@ -457,6 +581,8 @@ const rootRouteChildren: RootRouteChildren = {
   ReservationsIndexRoute: ReservationsIndexRoute,
   TarifsIndexRoute: TarifsIndexRoute,
   TeamIndexRoute: TeamIndexRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiTestMailsRoute: ApiTestMailsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
