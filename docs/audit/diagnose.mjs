@@ -5,35 +5,33 @@ const BASE = process.env.BASE ?? "http://127.0.0.1:8080";
 const ROUTES = (process.env.ROUTES ?? "").split(",").filter(Boolean).length
   ? process.env.ROUTES.split(",")
   : [
-  "/",
-  "/missions",
-  "/missions/m1",
-  "/reservations",
-  "/reservations?vue=liste",
-  "/reservations?vue=planning",
-  "/reservations/nouveau",
-  "/occupants",
-  "/documents",
-  "/prestataires",
-  "/prestataires/p1",
-  "/prestataires/nouveau",
-  "/patrimoines",
-  "/inventaire",
-  "/messagerie",
-  "/tarifs",
-  "/team",
-  "/outils",
-  "/outils/modeles",
-  "/outils/vue-annuelle",
-  "/outils/debuter",
-  "/profil",
-  "/connexion",
-  "/page-inconnue-xyz", // notFoundComponent
-];
+      "/",
+      "/missions",
+      "/missions/m1",
+      "/reservations",
+      "/reservations?vue=liste",
+      "/reservations?vue=planning",
+      "/reservations/nouveau",
+      "/occupants",
+      "/documents",
+      "/prestataires",
+      "/prestataires/p1",
+      "/prestataires/nouveau",
+      "/patrimoines",
+      "/inventaire",
+      "/messagerie",
+      "/tarifs",
+      "/team",
+      "/outils",
+      "/outils/modeles",
+      "/outils/vue-annuelle",
+      "/outils/debuter",
+      "/profil",
+      "/connexion",
+      "/page-inconnue-xyz", // notFoundComponent
+    ];
 
-const WIDTHS = (process.env.WIDTHS ?? "320,375,414,768,834,1024")
-  .split(",")
-  .map(Number);
+const WIDTHS = (process.env.WIDTHS ?? "320,375,414,768,834,1024").split(",").map(Number);
 
 import { PROBE } from "./probe-page.mjs";
 
@@ -53,7 +51,7 @@ if (!process.env.ANONYME) {
   await authPage.waitForTimeout(2500); // l'app doit être hydratée avant de soumettre
   await authPage.getByLabel("Email").fill(process.env.EMAIL ?? "contact@tech-trust.fr");
   await authPage
-    .getByLabel("Mot de passe")
+    .locator('input[name="password"]')
     .fill(process.env.DEMO_AUTH_PASSWORD ?? "Hublify-Demo-2026!");
   await authPage.getByRole("button", { name: "Se connecter" }).click();
   await authPage.waitForURL((u) => !u.pathname.includes("/connexion"), { timeout: 20_000 });
@@ -109,12 +107,15 @@ for (const p of problems) {
     continue;
   }
   if (p.pageOverflow > 1) console.log(`  SCROLL-X PAGE: ${p.pageOverflow}px`);
-  for (const s of dedupe(p.bleed, (x) => `${x.el} [${x.left}→${x.right}]`)) console.log("  BLEED  ", s);
+  for (const s of dedupe(p.bleed, (x) => `${x.el} [${x.left}→${x.right}]`))
+    console.log("  BLEED  ", s);
   for (const s of dedupe(p.clipped, (x) => `${x.el} (-${x.hidden}px)`)) console.log("  CLIP   ", s);
-  for (const s of dedupe(p.overlaps, (x) => `${x.a}  ||  ${x.b}  (${x.overlap})`)) console.log("  OVERLAP", s);
+  for (const s of dedupe(p.overlaps, (x) => `${x.a}  ||  ${x.b}  (${x.overlap})`))
+    console.log("  OVERLAP", s);
   for (const s of dedupe(p.squeezed, (x) => `${x.el} ${x.w}px pour ${x.content}px de contenu`))
     console.log("  SQUEEZE", s);
-  for (const s of dedupe(p.smallTargets, (x) => `${x.el} ${x.w}x${x.h}`)) console.log("  TARGET ", s);
+  for (const s of dedupe(p.smallTargets, (x) => `${x.el} ${x.w}x${x.h}`))
+    console.log("  TARGET ", s);
 }
 
 console.log(`\n---- ${problems.length} combinaisons route×largeur avec problème ----`);

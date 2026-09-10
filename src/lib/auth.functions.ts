@@ -95,31 +95,33 @@ export const enregistrerDroitsMembre = createServerFn({ method: "POST" })
   });
 
 export const inviterMembre = createServerFn({ method: "POST" })
-  .validator((input: {
-    prenom: string;
-    nom: string;
-    email: string;
-    role: string;
-    affectation: string;
-    droits: string[];
-  }) => {
-    const email = input.email.trim().toLowerCase();
-    if (!email.includes("@")) throw new Error("Email invalide");
-    const prenom = input.prenom.trim();
-    if (!prenom) throw new Error("Prénom requis");
-    const roleId = roleParLabel(input.role);
-    if (roleId === "super-admin" || roleId === "prestataire") {
-      throw new Error("Ce rôle ne peut pas être attribué depuis l'équipe");
-    }
-    return {
-      prenom,
-      nom: input.nom.trim(),
-      email,
-      roleId,
-      affectation: input.affectation.trim() || "Assignment",
-      droits: input.droits.filter(estDroitId) as DroitId[],
-    };
-  })
+  .validator(
+    (input: {
+      prenom: string;
+      nom: string;
+      email: string;
+      role: string;
+      affectation: string;
+      droits: string[];
+    }) => {
+      const email = input.email.trim().toLowerCase();
+      if (!email.includes("@")) throw new Error("Email invalide");
+      const prenom = input.prenom.trim();
+      if (!prenom) throw new Error("Prénom requis");
+      const roleId = roleParLabel(input.role);
+      if (roleId === "super-admin" || roleId === "prestataire") {
+        throw new Error("Ce rôle ne peut pas être attribué depuis l'équipe");
+      }
+      return {
+        prenom,
+        nom: input.nom.trim(),
+        email,
+        roleId,
+        affectation: input.affectation.trim() || "Assignment",
+        droits: input.droits.filter(estDroitId) as DroitId[],
+      };
+    },
+  )
   .handler(async ({ data }) => {
     const moi = await sessionDepuisRequete();
     if (!moi || !aLeDroit(moi.droits, "gerer-equipe")) {
@@ -150,7 +152,7 @@ export const inviterMembre = createServerFn({ method: "POST" })
       droits: data.droits,
     });
     const base = process.env["BETTER_AUTH_URL"] ?? "http://localhost:8080";
-    await envoyerMail({
+    const mailEnvoye = await envoyerMail({
       a: data.email,
       sujet: `Invitation Hublify — ${moi.orgNom}`,
       html: `<p>Vous êtes invité(e) à rejoindre <strong>${moi.orgNom}</strong> sur Hublify.</p>
@@ -159,7 +161,7 @@ export const inviterMembre = createServerFn({ method: "POST" })
 <p>Mot de passe temporaire : <code>${motDePasse}</code></p>
 <p>Changez-le après votre première connexion.</p>`,
     });
-    return { ok: true as const, email: data.email };
+    return { ok: true as const, email: data.email, mailEnvoye };
   });
 
 export const retirerMembre = createServerFn({ method: "POST" })
@@ -190,28 +192,24 @@ export const retirerMembre = createServerFn({ method: "POST" })
   });
 
 export const inscrireAdherent = createServerFn({ method: "POST" })
-  .validator((input: {
-    prenom: string;
-    nom: string;
-    email: string;
-    password: string;
-    nomOrg: string;
-  }) => {
-    const email = input.email.trim().toLowerCase();
-    const prenom = input.prenom.trim();
-    const nomOrg = input.nomOrg.trim();
-    if (!prenom) throw new Error("Prénom requis");
-    if (!email.includes("@")) throw new Error("Email invalide");
-    if (nomOrg.length < 2) throw new Error("Nom de l'organisation requis");
-    if (input.password.length < 10) throw new Error("Mot de passe trop court");
-    return {
-      prenom,
-      nom: input.nom.trim(),
-      email,
-      password: input.password,
-      nomOrg,
-    };
-  })
+  .validator(
+    (input: { prenom: string; nom: string; email: string; password: string; nomOrg: string }) => {
+      const email = input.email.trim().toLowerCase();
+      const prenom = input.prenom.trim();
+      const nomOrg = input.nomOrg.trim();
+      if (!prenom) throw new Error("Prénom requis");
+      if (!email.includes("@")) throw new Error("Email invalide");
+      if (nomOrg.length < 2) throw new Error("Nom de l'organisation requis");
+      if (input.password.length < 10) throw new Error("Mot de passe trop court");
+      return {
+        prenom,
+        nom: input.nom.trim(),
+        email,
+        password: input.password,
+        nomOrg,
+      };
+    },
+  )
   .handler(async ({ data }) => {
     const sql = getSql();
     if (!sql) throw new Error("Base indisponible");

@@ -1,17 +1,13 @@
 import { LogIn, LogOut } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  bienParId,
   formatJourCourt,
   formatMontant,
   nuitsEntre,
   paiementDe,
   type ReservationMo1,
 } from "@/data/reservations-mo1";
+import { useSession } from "@/data/session";
 
 export function InfosOccupants({
   reservation,
@@ -22,7 +18,8 @@ export function InfosOccupants({
   onFermer: () => void;
   onModifier?: () => void;
 }) {
-  const bien = bienParId(reservation.bienId);
+  const session = useSession();
+  const bien = session.biens.find((b) => b.id === reservation.bienId);
   const paiement = paiementDe(reservation);
   const nuits = nuitsEntre(reservation.arrivee, reservation.depart);
   const labelPaiement =
@@ -86,11 +83,21 @@ export function InfosOccupants({
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-card border border-surface-soft p-2.5">
               <p className="text-xs text-ink-muted">Email</p>
-              <p className="mt-1 text-xs text-ink">{reservation.email}</p>
+              <a
+                href={`mailto:${reservation.email}`}
+                className="mt-1 block text-xs text-accent-teal"
+              >
+                {reservation.email}
+              </a>
             </div>
             <div className="rounded-card border border-surface-soft p-2.5">
               <p className="text-xs text-ink-muted">Téléphone</p>
-              <p className="mt-1 text-xs text-ink">{reservation.telephone}</p>
+              <a
+                href={`tel:${reservation.telephone.replace(/\s+/g, "")}`}
+                className="mt-1 block text-xs text-accent-teal"
+              >
+                {reservation.telephone}
+              </a>
             </div>
           </div>
 

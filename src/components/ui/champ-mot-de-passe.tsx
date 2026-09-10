@@ -19,7 +19,11 @@ export const ChampMotDePasse = forwardRef<HTMLInputElement, ComponentProps<"inpu
           aria-pressed={visible}
           className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-ink-muted hover:text-ink"
         >
-          {visible ? <EyeOff aria-hidden className="size-4" /> : <Eye aria-hidden className="size-4" />}
+          {visible ? (
+            <EyeOff aria-hidden className="size-4" />
+          ) : (
+            <Eye aria-hidden className="size-4" />
+          )}
         </button>
       </div>
     );

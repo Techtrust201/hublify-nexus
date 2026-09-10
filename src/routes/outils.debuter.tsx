@@ -1,8 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Check, ChevronRight, Home, KeyRound, Users } from "lucide-react";
+import { Check, ChevronRight, FileText, Home, KeyRound, Plus, Users } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/auth/auth-context";
 import { AppShell } from "@/components/layout/AppShell";
-import { ajouterMission, ajouterNotif, ajouterReservation, idNouveau, useSession } from "@/data/session";
+import { nuitsEntre } from "@/data/reservations-mo1";
+import {
+  ajouterBien,
+  ajouterMission,
+  ajouterNotif,
+  ajouterReservation,
+  idNouveau,
+  useSession,
+} from "@/data/session";
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
@@ -22,13 +31,17 @@ const ETAPES = [
 function PageDebuter() {
   const navigate = useNavigate();
   const session = useSession();
+  const auth = useAuth();
   const [etape, setEtape] = useState(1);
   const [bienId, setBienId] = useState("");
   const [voyageur, setVoyageur] = useState("Léa Moreau");
+  const [email, setEmail] = useState("lea.moreau@email.fr");
+  const [telephone, setTelephone] = useState("+33 6 12 34 56 78");
   const [arrivee, setArrivee] = useState("2026-03-12");
   const [depart, setDepart] = useState("2026-03-16");
   const [missionTitre, setMissionTitre] = useState("Ménage de bienvenue");
   const [missionHeure, setMissionHeure] = useState("10:00");
+  const [nouveauBien, setNouveauBien] = useState("");
 
   const bien = session.biens.find((b) => b.id === bienId) ?? session.biens[0];
 
@@ -37,8 +50,8 @@ function PageDebuter() {
       toastErreur("Ajoutez un bien avant de créer une réservation.");
       return;
     }
-    if (!voyageur.trim() || !arrivee || !depart) {
-      toastErreur("Renseignez le voyageur et les dates.");
+    if (!voyageur.trim() || !email.trim() || !telephone.trim() || !arrivee || !depart) {
+      toastErreur("Renseignez le voyageur, le contact et les dates.");
       return;
     }
     if (depart <= arrivee) {
@@ -51,26 +64,28 @@ function PageDebuter() {
       .slice(0, 2)
       .map((p) => p[0]?.toUpperCase() ?? "")
       .join("");
+    const nuits = Math.max(1, nuitsEntre(arrivee, depart));
     ajouterReservation({
       dossier: {
         id,
         bienId: bien.id,
         occupant: voyageur.trim(),
         initiales: initiales || "??",
-        email: `${voyageur.trim().toLowerCase().replace(/\s+/g, ".")}@email.fr`,
-        telephone: "+33 6 00 00 00 00",
+        email: email.trim(),
+        telephone: telephone.trim(),
         arrivee,
         depart,
-        heureArrivee: "16:00",
-        heureDepart: "10:00",
+        heureArrivee: session.parametrage.heureCheckIn || "16:00",
+        heureDepart: session.parametrage.heureCheckOut || "10:00",
         plateforme: "Direct",
         voyageurs: 2,
         adultes: 2,
         enfants: 0,
-        montant: 4 * 180,
+        montant: nuits * (bien.baseNuit || 180),
         paye: 0,
         statut: "Confirmé",
         couleur: "#4f8ef7",
+        type: "Location saisonnière",
       },
       calendrier: {
         id: `cal-${id}`,
@@ -95,15 +110,44 @@ function PageDebuter() {
     ajouterNotif({
       titre: "Parcours Je débute terminé",
       detail: `${voyageur.trim()} · ${bien.nom} · ${arrivee}`,
-      href: "/reservations",
+      href: `/reservations?vue=liste&resa=${encodeURIComponent(id)}`,
     });
     toastOk("Logement, réservation et mission créés.");
-    void navigate({ to: "/reservations" });
+    void navigate({ to: "/reservations", search: { vue: "liste", resa: id } });
   };
 
   return (
     <AppShell titre="Je débute" sousTitre="Trois étapes pour lancer votre première location">
       <div className="mx-auto max-w-[720px]">
+        <section className="mb-4 rounded-card border border-line bg-white p-5">
+          <h2 className="text-sm font-medium text-ink">Ma fiche</h2>
+          <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
+            <div>
+              <dt className="text-xs text-ink-muted">Nom</dt>
+              <dd className="text-ink">{auth ? `${auth.prenom} ${auth.nom}` : "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-ink-muted">Téléphone</dt>
+              <dd className="text-ink">+33 6 12 45 78 90</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-ink-muted">E-mail</dt>
+              <dd className="text-ink">{auth?.email ?? "—"}</dd>
+            </div>
+          </dl>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              to="/profil"
+              className="inline-flex h-9 items-center rounded-card bg-accent-teal px-4 text-sm font-medium text-white"
+            >
+              Je remplis ma fiche
+            </Link>
+            <p className="inline-flex items-center gap-1 text-xs text-ink-muted">
+              <FileText className="size-3.5" /> Mes documents reçus : pièce d'identité, RIB
+            </p>
+          </div>
+        </section>
+
         <ol className="mb-6 flex flex-wrap gap-2">
           {ETAPES.map((e) => (
             <li key={e.n} className="flex min-w-0 flex-1 basis-full items-center gap-2 sm:basis-0">
@@ -130,9 +174,36 @@ function PageDebuter() {
             <>
               <h2 className="text-base font-medium text-ink">Choisissez le logement</h2>
               <p className="mt-1 text-xs text-ink-subtle">
-                Dans cette démo, les 4 biens de la maquette sont déjà créés. Sélectionnez celui que
-                vous pilotez.
+                Sélectionnez un logement existant, ou créez-en un si le parc est vide.
               </p>
+              {session.biens.length === 0 && (
+                <div className="mt-4 flex gap-2">
+                  <input
+                    value={nouveauBien}
+                    onChange={(e) => setNouveauBien(e.target.value)}
+                    placeholder="Nom du logement"
+                    className="h-[34px] flex-1 rounded-[8px] border border-line px-3 text-sm outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nom = nouveauBien.trim();
+                      if (!nom) {
+                        toastErreur("Indiquez le nom du logement.");
+                        return;
+                      }
+                      const id = idNouveau("bien");
+                      ajouterBien({ id, nom, baseNuit: 180 });
+                      setBienId(id);
+                      setNouveauBien("");
+                      toastOk(`${nom} ajouté.`);
+                    }}
+                    className="inline-flex h-[34px] items-center gap-1 rounded-card bg-ink px-3 text-xs font-medium text-white"
+                  >
+                    <Plus className="size-3" /> Créer
+                  </button>
+                </div>
+              )}
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 {session.biens.map((b) => (
                   <button
@@ -141,9 +212,7 @@ function PageDebuter() {
                     onClick={() => setBienId(b.id)}
                     className={cn(
                       "rounded-card border px-4 py-3 text-left",
-                      bienId === b.id
-                        ? "border-ink bg-surface"
-                        : "border-line hover:bg-surface",
+                      bienId === b.id ? "border-ink bg-surface" : "border-line hover:bg-surface",
                     )}
                   >
                     <p className="text-sm text-ink">{b.nom}</p>
@@ -158,7 +227,8 @@ function PageDebuter() {
             <>
               <h2 className="text-base font-medium text-ink">Créer la réservation</h2>
               <p className="mt-1 text-xs text-ink-subtle">
-                Séjour direct sur {bien?.nom ?? "votre bien"}. Les dates s’affichent ensuite dans le planning.
+                Séjour direct sur {bien?.nom ?? "votre bien"}. Les dates s’affichent ensuite dans le
+                planning.
               </p>
               <label className="mt-4 block text-xs text-ink-subtle">
                 Voyageur
@@ -168,6 +238,25 @@ function PageDebuter() {
                   className="mt-1 h-[34px] w-full rounded-[8px] border border-line px-3 text-sm outline-none"
                 />
               </label>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="block text-xs text-ink-subtle">
+                  E-mail
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="mt-1 h-[34px] w-full rounded-[8px] border border-line px-3 text-sm outline-none"
+                  />
+                </label>
+                <label className="block text-xs text-ink-subtle">
+                  Téléphone
+                  <input
+                    value={telephone}
+                    onChange={(e) => setTelephone(e.target.value)}
+                    className="mt-1 h-[34px] w-full rounded-[8px] border border-line px-3 text-sm outline-none"
+                  />
+                </label>
+              </div>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <label className="block text-xs text-ink-subtle">
                   Arrivée
@@ -246,8 +335,22 @@ function PageDebuter() {
             {etape < 3 ? (
               <button
                 type="button"
-                onClick={() => setEtape((n) => n + 1)}
-                className="inline-flex h-11 items-center rounded-card bg-ink px-4 text-xs font-medium text-white md:h-9"
+                disabled={etape === 1 && !bienId}
+                onClick={() => {
+                  if (etape === 1 && !bienId) {
+                    toastErreur("Choisissez un logement pour continuer.");
+                    return;
+                  }
+                  if (
+                    etape === 2 &&
+                    (!voyageur.trim() || !email.trim() || !telephone.trim() || !arrivee || !depart)
+                  ) {
+                    toastErreur("Renseignez le voyageur, le contact et les dates.");
+                    return;
+                  }
+                  setEtape((n) => n + 1);
+                }}
+                className="inline-flex h-11 items-center rounded-card bg-ink px-4 text-xs font-medium text-white disabled:opacity-40 md:h-9"
               >
                 Continuer
               </button>

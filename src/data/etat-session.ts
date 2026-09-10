@@ -1,4 +1,10 @@
-import type { ActionEnCours, Conversation, MembreEquipe, MessageFil } from "@/data/messagerie-mo1";
+import type {
+  ActionEnCours,
+  Conversation,
+  DroitPersonnalise,
+  MembreEquipe,
+  MessageFil,
+} from "@/data/messagerie-mo1";
 import type {
   EnsembleRegles,
   EvenementMo1,
@@ -8,8 +14,15 @@ import type {
   RegleTarif,
   ReservationMo1 as ReservationCalendrier,
 } from "@/data/planning-mo1";
-import type { DateBloqueeMo1, ReservationMo1 as ReservationDossier } from "@/data/reservations-mo1";
+import type {
+  DateBloqueeMo1,
+  OccupantMo1,
+  ReservationMo1 as ReservationDossier,
+} from "@/data/reservations-mo1";
+import type { DocMo1, ItemInventaire, ModeleDoc } from "@/data/documents-mo1";
+import type { DossierEdl } from "@/data/edl-mo1";
 import type { Prestataire } from "@/data/types";
+import { PARAMETRAGE_DEFAUT, type ParametrageSession } from "@/data/parametrage-mo1";
 
 export type NotifMo1 = {
   id: string;
@@ -24,11 +37,31 @@ export type BienSession = {
   nom: string;
   baseNuit: number;
   adresse?: string;
+  typologie?: string;
+  immeubleId?: string | null;
+  surface?: string;
+  meuble?: boolean;
+  proprietaire?: string;
+  initiales?: string;
+  note?: number;
+  statut?: "loué" | "libre" | "en travaux";
+};
+
+export type ImmeubleSession = {
+  id: string;
+  nom: string;
+  proprietaire: string;
+  initiales: string;
+  adresse: string;
+  statut: "actif" | "inactif";
+  logements: number;
 };
 
 export type EtatSession = {
   biens: BienSession[];
+  immeubles: ImmeubleSession[];
   prestataires: Prestataire[];
+  occupants: OccupantMo1[];
   loyers: LoyerMo1[];
   evenements: EvenementMo1[];
   messagesDash: MessageMo1[];
@@ -44,11 +77,22 @@ export type EtatSession = {
   membres: MembreEquipe[];
   actions: ActionEnCours[];
   notifications: NotifMo1[];
+  documents: DocMo1[];
+  modeles: ModeleDoc[];
+  inventaire: ItemInventaire[];
+  edl: DossierEdl[];
+  droitsPersonnalises: DroitPersonnalise[];
+  parametrage: ParametrageSession;
 };
 
+// L'ordre est celui des écritures : un parent avant ses enfants, sinon les clés
+// étrangères refusent l'insertion (immeuble → bien → réservation, ensemble →
+// règle, conversation → message).
 export const COLLECTIONS_METIER = [
+  "immeubles",
   "biens",
   "prestataires",
+  "occupants",
   "loyers",
   "evenements",
   "messagesDash",
@@ -63,13 +107,20 @@ export const COLLECTIONS_METIER = [
   "messagesFil",
   "actions",
   "notifications",
+  "documents",
+  "modeles",
+  "inventaire",
+  "edl",
+  "droitsPersonnalises",
 ] as const;
 
 export type CollectionMetier = (typeof COLLECTIONS_METIER)[number];
 
 export const TABLE_COLLECTION: Record<CollectionMetier, string> = {
   biens: "biens",
+  immeubles: "immeubles",
   prestataires: "prestataires",
+  occupants: "occupants",
   loyers: "loyers",
   evenements: "evenements",
   messagesDash: "messages_dash",
@@ -84,12 +135,19 @@ export const TABLE_COLLECTION: Record<CollectionMetier, string> = {
   messagesFil: "messages_fil",
   actions: "actions",
   notifications: "notifications",
+  documents: "documents",
+  modeles: "modeles_documents",
+  inventaire: "inventaire_items",
+  edl: "edl_dossiers",
+  droitsPersonnalises: "droits_personnalises",
 };
 
 export function etatVide(): EtatSession {
   return {
     biens: [],
+    immeubles: [],
     prestataires: [],
+    occupants: [],
     loyers: [],
     evenements: [],
     messagesDash: [],
@@ -105,6 +163,12 @@ export function etatVide(): EtatSession {
     membres: [],
     actions: [],
     notifications: [],
+    documents: [],
+    modeles: [],
+    inventaire: [],
+    edl: [],
+    droitsPersonnalises: [],
+    parametrage: PARAMETRAGE_DEFAUT,
   };
 }
 

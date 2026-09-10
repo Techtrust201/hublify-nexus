@@ -1,9 +1,22 @@
 import { useSyncExternalStore } from "react";
-import { etatVide, type EtatSession, type NotifMo1, type CollectionMetier } from "@/data/etat-session";
+import {
+  etatVide,
+  estCollectionMetier,
+  type BienSession,
+  type EtatSession,
+  type NotifMo1,
+  type CollectionMetier,
+} from "@/data/etat-session";
+import { fusionnerParametrage, type ParametrageSession } from "@/data/parametrage-mo1";
 import { calculerKpi } from "@/lib/kpi";
-import { AUJOURD_HUI_MO1, type EvenementMo1, type MissionMo1, type StatutPastille } from "@/data/planning-mo1";
+import {
+  AUJOURD_HUI_MO1,
+  type EvenementMo1,
+  type MissionMo1,
+  type StatutPastille,
+} from "@/data/planning-mo1";
 import type { ReservationMo1 as ReservationCalendrier } from "@/data/planning-mo1";
-import type { ReservationMo1 as ReservationDossier } from "@/data/reservations-mo1";
+import type { OccupantMo1, ReservationMo1 as ReservationDossier } from "@/data/reservations-mo1";
 import {
   chargerEtatDistant,
   insererLigneMetier,
@@ -57,7 +70,10 @@ let ecouteReseau = false;
 let statutSync: StatutSync = INACTIF;
 const abonnes = new Set<() => void>();
 const abonnesStatut = new Set<() => void>();
-const sales = new Set<CollectionMetier>();
+
+// Le paramétrage n'est pas une collection mais il se synchronise comme telle.
+type CleSynchronisable = CollectionMetier | "parametrage";
+const sales = new Set<CleSynchronisable>();
 
 function persisterLocal() {
   const cle = cleLocale(userIdCourant);
@@ -153,7 +169,11 @@ function charger(userId: string | null): EtatSession {
     const brut = localStorage.getItem(cle);
     if (!brut) return etatVide();
     const parsed = JSON.parse(brut) as Partial<EtatSession>;
-    return { ...etatVide(), ...parsed };
+    return {
+      ...etatVide(),
+      ...parsed,
+      parametrage: fusionnerParametrage(parsed.parametrage),
+    };
   } catch {
     return etatVide();
   }
@@ -171,12 +191,20 @@ async function hydraterDistant() {
       return;
     }
     ignorePush = true;
-    etat = distant.payload;
+    etat = {
+      ...etatVide(),
+      ...distant.payload,
+      parametrage: fusionnerParametrage(distant.payload.parametrage),
+    };
     sales.clear();
     persisterLocal();
     abonnes.forEach((fn) => fn());
     ignorePush = false;
     poserStatut({ etat: "enregistre", a: Date.now() });
+    // Import différé : la reprise dépend de la session, elle ne pèse pas sur le
+    // chargement initial et ne s'exécute qu'une fois par navigateur.
+    const { migrerDonneesLocales } = await import("@/data/migration-locale");
+    await migrerDonneesLocales(etat);
   } catch (e) {
     if (gen !== generation) return;
     poserStatut({
@@ -250,22 +278,43 @@ export function modifierSession(fn: (actuel: EtatSession) => EtatSession) {
   const avant = etat;
   const prochain = fn(etat);
   for (const cle of CLES_ETAT) {
-    if (cle === "membres") continue;
+    if (!estCollectionMetier(cle) && cle !== "parametrage") continue;
     if (prochain[cle] !== avant[cle]) {
-      sales.add(cle as CollectionMetier);
+      sales.add(cle);
     }
   }
   notifier(prochain);
+}
+
+/**
+ * Écrit une collection entière et la marque pour synchronisation. Les écrans
+ * qui manipulaient un tableau en localStorage passent par ici sans changer de
+ * forme : ils poussent la liste complète, le serveur aligne la table.
+ */
+export function poserCollection<K extends CollectionMetier>(
+  cle: K,
+  maj: EtatSession[K] | ((actuel: EtatSession[K]) => EtatSession[K]),
+) {
+  modifierSession((e) => ({
+    ...e,
+    [cle]: typeof maj === "function" ? (maj as (a: EtatSession[K]) => EtatSession[K])(e[cle]) : maj,
+  }));
+}
+
+export function poserParametrage(
+  maj: ParametrageSession | ((actuel: ParametrageSession) => ParametrageSession),
+) {
+  modifierSession((e) => ({
+    ...e,
+    parametrage: typeof maj === "function" ? maj(e.parametrage) : maj,
+  }));
 }
 
 export function idNouveau(prefixe: string) {
   return `${prefixe}-${Date.now().toString(36)}`;
 }
 
-async function pousserLigne(
-  collection: CollectionMetier,
-  item: { id: string },
-): Promise<boolean> {
+async function pousserLigne(collection: CollectionMetier, item: { id: string }): Promise<boolean> {
   poserStatut({ etat: "en-cours" });
   try {
     const res = await insererLigneMetier({ data: { collection, item } });
@@ -362,6 +411,24 @@ export function ajouterMission(mission: MissionMo1) {
   void pousserLigne("missions", mission).then((ok) => !ok && programmerReprise());
 }
 
+export function affecterMission(id: string, assigne: string) {
+  appliquerLocal((e) => ({
+    ...e,
+    missions: e.missions.map((m) => (m.id === id ? { ...m, assigne } : m)),
+  }));
+  void pousserPatch("missions", id, { assigne }).then((ok) => !ok && programmerReprise());
+}
+
+function lieAuDossier(cal: ReservationCalendrier, dossier: ReservationDossier) {
+  return (
+    cal.id === dossier.id ||
+    cal.id === `cal-${dossier.id}` ||
+    (cal.voyageur === dossier.occupant &&
+      cal.arrivee === dossier.arrivee &&
+      cal.bienId === dossier.bienId)
+  );
+}
+
 export function ajouterReservation(params: {
   dossier: ReservationDossier;
   calendrier: ReservationCalendrier;
@@ -378,12 +445,97 @@ export function ajouterReservation(params: {
   })();
 }
 
+export function modifierReservation(id: string, patch: Partial<ReservationDossier>) {
+  appliquerLocal((e) => {
+    const actuel = e.reservationsDossier.find((r) => r.id === id);
+    if (!actuel) return e;
+    const dossier: ReservationDossier = { ...actuel, ...patch, id };
+    return {
+      ...e,
+      reservationsDossier: e.reservationsDossier.map((r) => (r.id === id ? dossier : r)),
+      reservationsCalendrier: e.reservationsCalendrier.map((r) =>
+        lieAuDossier(r, actuel)
+          ? {
+              ...r,
+              bienId: dossier.bienId,
+              voyageur: dossier.occupant,
+              arrivee: dossier.arrivee,
+              depart: dossier.depart,
+            }
+          : r,
+      ),
+    };
+  });
+  void pousserPatch("reservationsDossier", id, { ...patch } as Record<string, unknown>).then(
+    (ok) => !ok && programmerReprise(),
+  );
+}
+
+export function annulerReservation(id: string) {
+  appliquerLocal((e) => {
+    const actuel = e.reservationsDossier.find((r) => r.id === id);
+    if (!actuel) return e;
+    return {
+      ...e,
+      reservationsDossier: e.reservationsDossier.map((r) =>
+        r.id === id ? { ...r, statut: "Annulé" as const } : r,
+      ),
+      reservationsCalendrier: e.reservationsCalendrier.filter((r) => !lieAuDossier(r, actuel)),
+    };
+  });
+  void pousserPatch("reservationsDossier", id, { statut: "Annulé" }).then(
+    (ok) => !ok && programmerReprise(),
+  );
+}
+
+export function ajouterBien(bien: BienSession) {
+  appliquerLocal((e) => ({ ...e, biens: [...e.biens, bien] }));
+  void pousserLigne("biens", bien).then((ok) => !ok && programmerReprise());
+}
+
+export function retirerBien(id: string) {
+  appliquerLocal((e) => ({ ...e, biens: e.biens.filter((b) => b.id !== id) }));
+  sales.add("biens");
+  persister();
+}
+
 export function ajouterPrestataire(prestataire: Omit<import("@/data/types").Prestataire, "id">) {
   const id = idNouveau("p");
   const ligne = { ...prestataire, id };
   appliquerLocal((e) => ({ ...e, prestataires: [...e.prestataires, ligne] }));
   void pousserLigne("prestataires", ligne).then((ok) => !ok && programmerReprise());
   return id;
+}
+
+export function modifierPrestataire(
+  id: string,
+  patch: Partial<Omit<import("@/data/types").Prestataire, "id">>,
+) {
+  appliquerLocal((e) => ({
+    ...e,
+    prestataires: e.prestataires.map((p) => (p.id === id ? { ...p, ...patch, id } : p)),
+  }));
+  void pousserPatch("prestataires", id, { ...patch } as Record<string, unknown>).then(
+    (ok) => !ok && programmerReprise(),
+  );
+}
+
+export function retirerPrestataire(id: string) {
+  appliquerLocal((e) => ({ ...e, prestataires: e.prestataires.filter((p) => p.id !== id) }));
+  sales.add("prestataires");
+  persister();
+}
+
+/** Rapproche par identifiant, à défaut par nom : un occupant saisi deux fois reste une seule fiche. */
+export function upsertOccupant(occupant: OccupantMo1) {
+  poserCollection("occupants", (liste) => {
+    const i = liste.findIndex(
+      (x) => x.id === occupant.id || x.nom.toLowerCase() === occupant.nom.toLowerCase(),
+    );
+    return i >= 0
+      ? liste.map((x, idx) => (idx === i ? { ...x, ...occupant, id: x.id } : x))
+      : [occupant, ...liste];
+  });
 }
 
 export function ajouterNotif(notif: Omit<NotifMo1, "id" | "lu"> & { id?: string }) {

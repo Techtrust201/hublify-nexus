@@ -112,5 +112,4 @@ function PageInscription() {
   );
 }
 
-const champ =
-  "h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none";
+const champ = "h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none";

@@ -13,12 +13,7 @@ export function ScrollHint({
 }) {
   return (
     <div className={cn("relative", className)}>
-      <div
-        className={cn(
-          "overflow-x-auto overscroll-x-contain",
-          snap && "snap-x snap-mandatory",
-        )}
-      >
+      <div className={cn("overflow-x-auto overscroll-x-contain", snap && "snap-x snap-mandatory")}>
         {children}
       </div>
       <div

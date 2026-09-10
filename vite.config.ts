@@ -8,4 +8,7 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Sans preset explicite, le preset partagé vise Cloudflare Workers, dont le
+  // runtime n'ouvre pas les connexions Postgres dont l'application a besoin.
+  nitro: { preset: "vercel" },
 });

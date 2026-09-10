@@ -32,6 +32,9 @@ async function viaResend(mail: Mail) {
   return reponse.ok;
 }
 
+// Renvoie true seulement si le message est réellement parti chez le fournisseur.
+// Sans RESEND_API_KEY il est uniquement archivé dans `mails_sortants` : l'appelant
+// doit pouvoir le dire à l'utilisateur au lieu d'annoncer un envoi qui n'a pas eu lieu.
 export async function envoyerMail(mail: Mail) {
   const sql = getSql();
   if (sql) await capturer(sql, mail);
@@ -39,6 +42,7 @@ export async function envoyerMail(mail: Mail) {
   if (!envoye && process.env["NODE_ENV"] !== "production") {
     console.info(`[mail] ${mail.a} — ${mail.sujet}`);
   }
+  return envoye;
 }
 
 export async function mailsPour(destinataire: string) {

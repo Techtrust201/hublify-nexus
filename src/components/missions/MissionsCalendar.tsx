@@ -41,13 +41,7 @@ function Pastille({ mission, bien }: { mission: Mission; bien?: Bien | undefined
   );
 }
 
-export function MissionsCalendar({
-  missions,
-  biens,
-}: {
-  missions: Mission[];
-  biens: Bien[];
-}) {
+export function MissionsCalendar({ missions, biens }: { missions: Mission[]; biens: Bien[] }) {
   const [vue, setVue] = useState<"3jours" | "mois">("3jours");
   const [ancre, setAncre] = useState(() => new Date());
   const [bienFiltre, setBienFiltre] = useState<string>("tous");
@@ -160,7 +154,11 @@ export function MissionsCalendar({
             return (
               <div key={key} className="min-h-64 p-3">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
+                  {d.toLocaleDateString("fr-FR", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                  })}
                 </p>
                 <div className="space-y-2">
                   {list.length === 0 && (
@@ -177,42 +175,42 @@ export function MissionsCalendar({
       ) : (
         <ScrollHint>
           <div className="min-w-[640px]">
-          <div className="grid grid-cols-7 border-b border-border">
-            {JOURS.map((j) => (
-              <div
-                key={j}
-                className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground"
-              >
-                {j}
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7">
-            {joursMois.map((d) => {
-              const key = iso(d);
-              const list = parJour.get(key) ?? [];
-              const horsMois = d.getMonth() !== ancre.getMonth();
-              return (
+            <div className="grid grid-cols-7 border-b border-border">
+              {JOURS.map((j) => (
                 <div
-                  key={key}
-                  className={cn(
-                    "min-h-24 border-b border-r border-border p-1.5",
-                    horsMois && "bg-muted/40",
-                  )}
+                  key={j}
+                  className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground"
                 >
-                  <p className="mb-1 text-xs text-muted-foreground">{d.getDate()}</p>
-                  <div className="space-y-1">
-                    {list.slice(0, 2).map((m) => (
-                      <Pastille key={m.id} mission={m} />
-                    ))}
-                    {list.length > 2 && (
-                      <p className="text-[11px] text-muted-foreground">+{list.length - 2}</p>
-                    )}
-                  </div>
+                  {j}
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7">
+              {joursMois.map((d) => {
+                const key = iso(d);
+                const list = parJour.get(key) ?? [];
+                const horsMois = d.getMonth() !== ancre.getMonth();
+                return (
+                  <div
+                    key={key}
+                    className={cn(
+                      "min-h-24 border-b border-r border-border p-1.5",
+                      horsMois && "bg-muted/40",
+                    )}
+                  >
+                    <p className="mb-1 text-xs text-muted-foreground">{d.getDate()}</p>
+                    <div className="space-y-1">
+                      {list.slice(0, 2).map((m) => (
+                        <Pastille key={m.id} mission={m} />
+                      ))}
+                      {list.length > 2 && (
+                        <p className="text-[11px] text-muted-foreground">+{list.length - 2}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </ScrollHint>
       )}

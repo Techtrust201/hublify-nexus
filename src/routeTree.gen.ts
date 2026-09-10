@@ -15,6 +15,7 @@ import { Route as InscriptionRouteImport } from './routes/inscription'
 import { Route as MotDePasseOublieRouteImport } from './routes/mot-de-passe-oublie'
 import { Route as ProfilRouteImport } from './routes/profil'
 import { Route as ReinitialiserMotDePasseRouteImport } from './routes/reinitialiser-mot-de-passe'
+import { Route as AnalyseIndexRouteImport } from './routes/analyse.index'
 import { Route as DocumentsIndexRouteImport } from './routes/documents.index'
 import { Route as InventaireIndexRouteImport } from './routes/inventaire.index'
 import { Route as MessagerieIndexRouteImport } from './routes/messagerie.index'
@@ -23,8 +24,10 @@ import { Route as MissionsMissionIdRouteImport } from './routes/missions.$missio
 import { Route as OccupantsIndexRouteImport } from './routes/occupants.index'
 import { Route as OutilsIndexRouteImport } from './routes/outils.index'
 import { Route as OutilsDebuterRouteImport } from './routes/outils.debuter'
+import { Route as OutilsEtatsDesLieuxRouteImport } from './routes/outils.etats-des-lieux'
 import { Route as OutilsModelesRouteImport } from './routes/outils.modeles'
 import { Route as OutilsVueAnnuelleRouteImport } from './routes/outils.vue-annuelle'
+import { Route as ParametrageIndexRouteImport } from './routes/parametrage.index'
 import { Route as PatrimoinesIndexRouteImport } from './routes/patrimoines.index'
 import { Route as PrestatairesIndexRouteImport } from './routes/prestataires.index'
 import { Route as PrestatairesPrestataireIdRouteImport } from './routes/prestataires.$prestataireId'
@@ -64,6 +67,11 @@ const ProfilRoute = ProfilRouteImport.update({
 const ReinitialiserMotDePasseRoute = ReinitialiserMotDePasseRouteImport.update({
   id: '/reinitialiser-mot-de-passe',
   path: '/reinitialiser-mot-de-passe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyseIndexRoute = AnalyseIndexRouteImport.update({
+  id: '/analyse/',
+  path: '/analyse/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocumentsIndexRoute = DocumentsIndexRouteImport.update({
@@ -106,6 +114,11 @@ const OutilsDebuterRoute = OutilsDebuterRouteImport.update({
   path: '/outils/debuter',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OutilsEtatsDesLieuxRoute = OutilsEtatsDesLieuxRouteImport.update({
+  id: '/outils/etats-des-lieux',
+  path: '/outils/etats-des-lieux',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OutilsModelesRoute = OutilsModelesRouteImport.update({
   id: '/outils/modeles',
   path: '/outils/modeles',
@@ -114,6 +127,11 @@ const OutilsModelesRoute = OutilsModelesRouteImport.update({
 const OutilsVueAnnuelleRoute = OutilsVueAnnuelleRouteImport.update({
   id: '/outils/vue-annuelle',
   path: '/outils/vue-annuelle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ParametrageIndexRoute = ParametrageIndexRouteImport.update({
+  id: '/parametrage/',
+  path: '/parametrage/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PatrimoinesIndexRoute = PatrimoinesIndexRouteImport.update({
@@ -177,17 +195,20 @@ export interface FileRoutesByFullPath {
   '/reinitialiser-mot-de-passe': typeof ReinitialiserMotDePasseRoute
   '/missions/$missionId': typeof MissionsMissionIdRoute
   '/outils/debuter': typeof OutilsDebuterRoute
+  '/outils/etats-des-lieux': typeof OutilsEtatsDesLieuxRoute
   '/outils/modeles': typeof OutilsModelesRoute
   '/outils/vue-annuelle': typeof OutilsVueAnnuelleRoute
   '/prestataires/$prestataireId': typeof PrestatairesPrestataireIdRoute
   '/prestataires/nouveau': typeof PrestatairesNouveauRoute
   '/reservations/nouveau': typeof ReservationsNouveauRoute
+  '/analyse/': typeof AnalyseIndexRoute
   '/documents/': typeof DocumentsIndexRoute
   '/inventaire/': typeof InventaireIndexRoute
   '/messagerie/': typeof MessagerieIndexRoute
   '/missions/': typeof MissionsIndexRoute
   '/occupants/': typeof OccupantsIndexRoute
   '/outils/': typeof OutilsIndexRoute
+  '/parametrage/': typeof ParametrageIndexRoute
   '/patrimoines/': typeof PatrimoinesIndexRoute
   '/prestataires/': typeof PrestatairesIndexRoute
   '/reservations/': typeof ReservationsIndexRoute
@@ -205,17 +226,20 @@ export interface FileRoutesByTo {
   '/reinitialiser-mot-de-passe': typeof ReinitialiserMotDePasseRoute
   '/missions/$missionId': typeof MissionsMissionIdRoute
   '/outils/debuter': typeof OutilsDebuterRoute
+  '/outils/etats-des-lieux': typeof OutilsEtatsDesLieuxRoute
   '/outils/modeles': typeof OutilsModelesRoute
   '/outils/vue-annuelle': typeof OutilsVueAnnuelleRoute
   '/prestataires/$prestataireId': typeof PrestatairesPrestataireIdRoute
   '/prestataires/nouveau': typeof PrestatairesNouveauRoute
   '/reservations/nouveau': typeof ReservationsNouveauRoute
+  '/analyse': typeof AnalyseIndexRoute
   '/documents': typeof DocumentsIndexRoute
   '/inventaire': typeof InventaireIndexRoute
   '/messagerie': typeof MessagerieIndexRoute
   '/missions': typeof MissionsIndexRoute
   '/occupants': typeof OccupantsIndexRoute
   '/outils': typeof OutilsIndexRoute
+  '/parametrage': typeof ParametrageIndexRoute
   '/patrimoines': typeof PatrimoinesIndexRoute
   '/prestataires': typeof PrestatairesIndexRoute
   '/reservations': typeof ReservationsIndexRoute
@@ -234,17 +258,20 @@ export interface FileRoutesById {
   '/reinitialiser-mot-de-passe': typeof ReinitialiserMotDePasseRoute
   '/missions/$missionId': typeof MissionsMissionIdRoute
   '/outils/debuter': typeof OutilsDebuterRoute
+  '/outils/etats-des-lieux': typeof OutilsEtatsDesLieuxRoute
   '/outils/modeles': typeof OutilsModelesRoute
   '/outils/vue-annuelle': typeof OutilsVueAnnuelleRoute
   '/prestataires/$prestataireId': typeof PrestatairesPrestataireIdRoute
   '/prestataires/nouveau': typeof PrestatairesNouveauRoute
   '/reservations/nouveau': typeof ReservationsNouveauRoute
+  '/analyse/': typeof AnalyseIndexRoute
   '/documents/': typeof DocumentsIndexRoute
   '/inventaire/': typeof InventaireIndexRoute
   '/messagerie/': typeof MessagerieIndexRoute
   '/missions/': typeof MissionsIndexRoute
   '/occupants/': typeof OccupantsIndexRoute
   '/outils/': typeof OutilsIndexRoute
+  '/parametrage/': typeof ParametrageIndexRoute
   '/patrimoines/': typeof PatrimoinesIndexRoute
   '/prestataires/': typeof PrestatairesIndexRoute
   '/reservations/': typeof ReservationsIndexRoute
@@ -264,17 +291,20 @@ export interface FileRouteTypes {
     | '/reinitialiser-mot-de-passe'
     | '/missions/$missionId'
     | '/outils/debuter'
+    | '/outils/etats-des-lieux'
     | '/outils/modeles'
     | '/outils/vue-annuelle'
     | '/prestataires/$prestataireId'
     | '/prestataires/nouveau'
     | '/reservations/nouveau'
+    | '/analyse/'
     | '/documents/'
     | '/inventaire/'
     | '/messagerie/'
     | '/missions/'
     | '/occupants/'
     | '/outils/'
+    | '/parametrage/'
     | '/patrimoines/'
     | '/prestataires/'
     | '/reservations/'
@@ -292,17 +322,20 @@ export interface FileRouteTypes {
     | '/reinitialiser-mot-de-passe'
     | '/missions/$missionId'
     | '/outils/debuter'
+    | '/outils/etats-des-lieux'
     | '/outils/modeles'
     | '/outils/vue-annuelle'
     | '/prestataires/$prestataireId'
     | '/prestataires/nouveau'
     | '/reservations/nouveau'
+    | '/analyse'
     | '/documents'
     | '/inventaire'
     | '/messagerie'
     | '/missions'
     | '/occupants'
     | '/outils'
+    | '/parametrage'
     | '/patrimoines'
     | '/prestataires'
     | '/reservations'
@@ -320,17 +353,20 @@ export interface FileRouteTypes {
     | '/reinitialiser-mot-de-passe'
     | '/missions/$missionId'
     | '/outils/debuter'
+    | '/outils/etats-des-lieux'
     | '/outils/modeles'
     | '/outils/vue-annuelle'
     | '/prestataires/$prestataireId'
     | '/prestataires/nouveau'
     | '/reservations/nouveau'
+    | '/analyse/'
     | '/documents/'
     | '/inventaire/'
     | '/messagerie/'
     | '/missions/'
     | '/occupants/'
     | '/outils/'
+    | '/parametrage/'
     | '/patrimoines/'
     | '/prestataires/'
     | '/reservations/'
@@ -349,17 +385,20 @@ export interface RootRouteChildren {
   ReinitialiserMotDePasseRoute: typeof ReinitialiserMotDePasseRoute
   MissionsMissionIdRoute: typeof MissionsMissionIdRoute
   OutilsDebuterRoute: typeof OutilsDebuterRoute
+  OutilsEtatsDesLieuxRoute: typeof OutilsEtatsDesLieuxRoute
   OutilsModelesRoute: typeof OutilsModelesRoute
   OutilsVueAnnuelleRoute: typeof OutilsVueAnnuelleRoute
   PrestatairesPrestataireIdRoute: typeof PrestatairesPrestataireIdRoute
   PrestatairesNouveauRoute: typeof PrestatairesNouveauRoute
   ReservationsNouveauRoute: typeof ReservationsNouveauRoute
+  AnalyseIndexRoute: typeof AnalyseIndexRoute
   DocumentsIndexRoute: typeof DocumentsIndexRoute
   InventaireIndexRoute: typeof InventaireIndexRoute
   MessagerieIndexRoute: typeof MessagerieIndexRoute
   MissionsIndexRoute: typeof MissionsIndexRoute
   OccupantsIndexRoute: typeof OccupantsIndexRoute
   OutilsIndexRoute: typeof OutilsIndexRoute
+  ParametrageIndexRoute: typeof ParametrageIndexRoute
   PatrimoinesIndexRoute: typeof PatrimoinesIndexRoute
   PrestatairesIndexRoute: typeof PrestatairesIndexRoute
   ReservationsIndexRoute: typeof ReservationsIndexRoute
@@ -411,6 +450,13 @@ declare module '@tanstack/react-router' {
       path: '/reinitialiser-mot-de-passe'
       fullPath: '/reinitialiser-mot-de-passe'
       preLoaderRoute: typeof ReinitialiserMotDePasseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analyse/': {
+      id: '/analyse/'
+      path: '/analyse'
+      fullPath: '/analyse/'
+      preLoaderRoute: typeof AnalyseIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/documents/': {
@@ -469,6 +515,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OutilsDebuterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/outils/etats-des-lieux': {
+      id: '/outils/etats-des-lieux'
+      path: '/outils/etats-des-lieux'
+      fullPath: '/outils/etats-des-lieux'
+      preLoaderRoute: typeof OutilsEtatsDesLieuxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/outils/modeles': {
       id: '/outils/modeles'
       path: '/outils/modeles'
@@ -481,6 +534,13 @@ declare module '@tanstack/react-router' {
       path: '/outils/vue-annuelle'
       fullPath: '/outils/vue-annuelle'
       preLoaderRoute: typeof OutilsVueAnnuelleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/parametrage/': {
+      id: '/parametrage/'
+      path: '/parametrage'
+      fullPath: '/parametrage/'
+      preLoaderRoute: typeof ParametrageIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/patrimoines/': {
@@ -565,17 +625,20 @@ const rootRouteChildren: RootRouteChildren = {
   ReinitialiserMotDePasseRoute: ReinitialiserMotDePasseRoute,
   MissionsMissionIdRoute: MissionsMissionIdRoute,
   OutilsDebuterRoute: OutilsDebuterRoute,
+  OutilsEtatsDesLieuxRoute: OutilsEtatsDesLieuxRoute,
   OutilsModelesRoute: OutilsModelesRoute,
   OutilsVueAnnuelleRoute: OutilsVueAnnuelleRoute,
   PrestatairesPrestataireIdRoute: PrestatairesPrestataireIdRoute,
   PrestatairesNouveauRoute: PrestatairesNouveauRoute,
   ReservationsNouveauRoute: ReservationsNouveauRoute,
+  AnalyseIndexRoute: AnalyseIndexRoute,
   DocumentsIndexRoute: DocumentsIndexRoute,
   InventaireIndexRoute: InventaireIndexRoute,
   MessagerieIndexRoute: MessagerieIndexRoute,
   MissionsIndexRoute: MissionsIndexRoute,
   OccupantsIndexRoute: OccupantsIndexRoute,
   OutilsIndexRoute: OutilsIndexRoute,
+  ParametrageIndexRoute: ParametrageIndexRoute,
   PatrimoinesIndexRoute: PatrimoinesIndexRoute,
   PrestatairesIndexRoute: PrestatairesIndexRoute,
   ReservationsIndexRoute: ReservationsIndexRoute,

@@ -3,7 +3,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Bell, ChevronDown, Menu, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useAuth } from "@/auth/auth-context";
+import { useAuth, useDroit } from "@/auth/auth-context";
 import { BandeauSync } from "@/components/layout/BandeauSync";
 import { NavChrome } from "@/components/layout/NavChrome";
 import {
@@ -12,12 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { marquerNotifsLues, useSession } from "@/data/session";
 
 export function AppShell({
@@ -36,6 +31,8 @@ export function AppShell({
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const session = useSession();
   const auth = useAuth();
+  const voirDocs = useDroit("voir-documents");
+  const peutParametrer = useDroit("mod-reservations");
   const notifsNonLues = session.notifications.filter((n) => !n.lu).length;
 
   useEffect(() => {
@@ -43,7 +40,7 @@ export function AppShell({
   }, [pathname]);
 
   return (
-    <div className="flex min-h-dvh w-full bg-surface">
+    <div className="flex min-h-dvh w-full bg-canvas">
       <a
         href="#contenu-principal"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-toast focus:rounded-card focus:bg-ink focus:px-3 focus:py-2 focus:text-sm focus:text-white"
@@ -59,7 +56,7 @@ export function AppShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-sticky flex min-h-[73px] items-center justify-between border-b border-line bg-white px-4 pt-[env(safe-area-inset-top)] lg:px-6">
+        <header className="sticky top-0 z-sticky flex min-h-[73px] items-center justify-between border-b border-line bg-canvas px-4 pt-[env(safe-area-inset-top)] lg:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <button
               ref={hamburgerRef}
@@ -72,7 +69,11 @@ export function AppShell({
             >
               <Menu className="size-4" />
             </button>
-            {titre ? (
+            {pathname === "/" && auth ? (
+              <h1 className="truncate text-lg font-medium text-ink-deep sm:text-xl">
+                Bonjour {auth.prenom}
+              </h1>
+            ) : titre ? (
               <div className="min-w-0">
                 <h1 className="truncate text-sm font-medium text-ink">{titre}</h1>
                 {sousTitre && <p className="truncate text-xs text-ink-muted">{sousTitre}</p>}
@@ -81,10 +82,10 @@ export function AppShell({
               <div className="hidden h-8 w-16 lg:block" />
             )}
           </div>
-          <div className="flex items-center gap-2 sm:gap-4">
-            {actions}
+          <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+            {actions ? <div className="flex min-w-0 shrink items-center">{actions}</div> : null}
             <DropdownMenu>
-              <DropdownMenuTrigger className="hidden h-11 items-center gap-1 rounded-card border border-line px-3 text-sm font-medium text-ink-body lg:inline-flex">
+              <DropdownMenuTrigger className="hidden h-[34px] items-center gap-1 rounded-card border border-line px-3 text-sm font-medium text-ink-body lg:inline-flex">
                 Outils
                 <ChevronDown className="size-3.5" />
               </DropdownMenuTrigger>
@@ -101,6 +102,16 @@ export function AppShell({
                 <DropdownMenuItem asChild>
                   <Link to="/inventaire">Inventaire</Link>
                 </DropdownMenuItem>
+                {voirDocs && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/outils/etats-des-lieux">États des lieux</Link>
+                  </DropdownMenuItem>
+                )}
+                {peutParametrer && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/parametrage">Paramétrage</Link>
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
             <DropdownMenu
@@ -109,7 +120,7 @@ export function AppShell({
               }}
             >
               <DropdownMenuTrigger
-                className="relative flex size-11 items-center justify-center rounded-card border border-line text-ink-body"
+                className="relative flex size-11 items-center justify-center rounded-card border border-line text-ink-body lg:size-8"
                 aria-label="Notifications"
               >
                 <Bell className="size-4" />
@@ -119,7 +130,7 @@ export function AppShell({
                   </span>
                 )}
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80 p-0">
+              <DropdownMenuContent align="end" className="w-[min(20rem,calc(100vw-1.5rem))] p-0">
                 <p className="border-b border-surface-soft px-3 py-2 text-xs font-medium text-ink">
                   Notifications
                 </p>
@@ -145,7 +156,7 @@ export function AppShell({
             </DropdownMenu>
             <Link
               to="/profil"
-              className="hidden min-h-11 items-center text-sm font-medium text-ink-body lg:inline-flex"
+              className="hidden min-h-8 items-center text-sm font-medium text-ink-body lg:inline-flex"
             >
               Compte {auth?.role?.toLowerCase() ?? "utilisateur"}
             </Link>

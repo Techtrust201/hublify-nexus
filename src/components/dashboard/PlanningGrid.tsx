@@ -1,7 +1,15 @@
 // SOURCE: Maquette MO1 — grille biens × jours (Missions / Tarifs, 3 jours / 5 jours / mois)
 
 import { Link } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, LogIn, LogOut, Plus, SlidersHorizontal, Tag } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  LogIn,
+  LogOut,
+  Plus,
+  SlidersHorizontal,
+  Tag,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   CreateRegleDialog,
@@ -55,7 +63,9 @@ export function PlanningGrid({
   const [missionOuverte, setMissionOuverte] = useState<MissionMo1 | null>(null);
   const ensembles = session.ensembles;
   const regles = session.regles;
-  const setEnsembles = (next: EnsembleRegles[] | ((prev: EnsembleRegles[]) => EnsembleRegles[])) => {
+  const setEnsembles = (
+    next: EnsembleRegles[] | ((prev: EnsembleRegles[]) => EnsembleRegles[]),
+  ) => {
     const resolu = typeof next === "function" ? next(ensembles) : next;
     modifierSession((e) => ({ ...e, ensembles: resolu }));
   };
@@ -64,6 +74,7 @@ export function PlanningGrid({
     modifierSession((e) => ({ ...e, regles: resolu }));
   };
   const [creerRegle, setCreerRegle] = useState(false);
+  const [cibleRegle, setCibleRegle] = useState<{ bienId?: string; date?: string }>({});
   const [gererRegles, setGererRegles] = useState(false);
   const [ensembleCible, setEnsembleCible] = useState("en1");
   const [filtreBienTarif, setFiltreBienTarif] = useState<string>("tous");
@@ -110,7 +121,7 @@ export function PlanningGrid({
               className={cn(
                 "h-[46px] shrink-0 whitespace-nowrap border-b-2 px-4 text-sm font-medium capitalize",
                 onglet === id
-                  ? "border-ink text-ink-deep"
+                  ? "rounded-t-[8px] border-ink bg-tab-active text-ink-deep"
                   : "border-transparent text-ink-subtle",
               )}
             >
@@ -139,7 +150,9 @@ export function PlanningGrid({
             className="flex size-11 items-center justify-center rounded border border-line text-ink-body"
             onClick={() =>
               setAncre((d) =>
-                vue === "mois" ? new Date(d.getFullYear(), d.getMonth() - 1, 1) : ajouterJours(d, -nbJours),
+                vue === "mois"
+                  ? new Date(d.getFullYear(), d.getMonth() - 1, 1)
+                  : ajouterJours(d, -nbJours),
               )
             }
           >
@@ -154,7 +167,9 @@ export function PlanningGrid({
             className="flex size-11 items-center justify-center rounded border border-line text-ink-body"
             onClick={() =>
               setAncre((d) =>
-                vue === "mois" ? new Date(d.getFullYear(), d.getMonth() + 1, 1) : ajouterJours(d, nbJours),
+                vue === "mois"
+                  ? new Date(d.getFullYear(), d.getMonth() + 1, 1)
+                  : ajouterJours(d, nbJours),
               )
             }
           >
@@ -176,7 +191,7 @@ export function PlanningGrid({
               onClick={() => setVue(id)}
               className={cn(
                 "h-11 min-h-11 border-r border-line px-3 text-xs font-medium last:border-r-0",
-                vue === id ? "bg-ink text-white" : "bg-white text-ink-body",
+                vue === id ? "bg-tab-active text-ink-body" : "bg-white text-ink-body",
               )}
             >
               {label}
@@ -225,7 +240,7 @@ export function PlanningGrid({
               )}
             >
               <LogIn className="size-2.5" />
-              CheckIn
+              Taches
             </button>
             <button
               type="button"
@@ -253,7 +268,10 @@ export function PlanningGrid({
             ensembles={ensembles}
             regles={regles}
             sejours={sejoursCal}
-            onCreerRegle={() => setCreerRegle(true)}
+            onCreerRegle={(bienId, date) => {
+              setCibleRegle({ bienId, date });
+              setCreerRegle(true);
+            }}
           />
         ) : (
           <TarifsJours
@@ -262,7 +280,10 @@ export function PlanningGrid({
             ensembles={ensembles}
             regles={regles}
             sejours={sejoursCal}
-            onCreerRegle={() => setCreerRegle(true)}
+            onCreerRegle={(bienId, date) => {
+              setCibleRegle({ bienId, date });
+              setCreerRegle(true);
+            }}
           />
         )
       ) : vue === "mois" ? (
@@ -307,9 +328,23 @@ export function PlanningGrid({
       />
       <CreateRegleDialog
         ouvert={creerRegle}
-        onFermer={() => setCreerRegle(false)}
+        onFermer={() => {
+          setCreerRegle(false);
+          setCibleRegle({});
+        }}
         ensembles={ensembles}
-        onCreer={(r) => {
+        {...(cibleRegle.bienId ? { bienIdInitial: cibleRegle.bienId } : {})}
+        {...(cibleRegle.date ? { dateInitiale: cibleRegle.date } : {})}
+        onCreer={(r, nouvelEnsemble) => {
+          if (nouvelEnsemble) {
+            const id = `en-${Date.now()}`;
+            setEnsembles((list) => [
+              ...list,
+              { id, nom: nouvelEnsemble, description: "Ensemble créé", actif: true },
+            ]);
+            setRegles((list) => [...list, { ...r, ensembleId: id }]);
+            return;
+          }
           setRegles((list) => [...list, { ...r, ensembleId: ensembleCible || r.ensembleId }]);
         }}
       />
@@ -328,6 +363,7 @@ export function PlanningGrid({
         onSupprimerRegle={(id) => setRegles((list) => list.filter((r) => r.id !== id))}
         onAjouterRegle={(id) => {
           setEnsembleCible(id);
+          setCibleRegle({});
           setGererRegles(false);
           setCreerRegle(true);
         }}
@@ -447,7 +483,8 @@ function LigneBien({
                   )}
                 >
                   <Link
-                    to="/reservations"
+                    to="/reservations/nouveau"
+                    search={{ bien: bien.id, arrivee: key }}
                     className="flex size-11 items-center justify-center md:size-5"
                     aria-label={`Ajouter une réservation — ${bien.nom}`}
                   >
@@ -516,7 +553,7 @@ function Pastille({ mission, onClick }: { mission: MissionMo1; onClick: () => vo
       onClick={onClick}
       className={cn(
         // 24px sur mobile : minimum WCAG 2.5.8 ; 21px sur desktop pour rester fidèle à MO1
-        "flex h-6 w-full items-center gap-1 overflow-hidden rounded border px-1 text-left text-[10px] font-medium md:h-[21px]",
+        "flex h-11 w-full items-center gap-1 overflow-hidden rounded border px-1 text-left text-[10px] font-medium md:h-[21px]",
         terminee
           ? "border-line bg-surface-soft text-ink-muted line-through opacity-70"
           : mission.pastilleAccentuee
@@ -606,7 +643,7 @@ function TarifsJours({
   ensembles: EnsembleRegles[];
   regles: RegleTarif[];
   sejours: ReservationMo1[];
-  onCreerRegle: () => void;
+  onCreerRegle: (bienId: string, date: string) => void;
 }) {
   return (
     <ScrollHint snap>
@@ -650,7 +687,7 @@ function TarifsJours({
                 <button
                   key={key}
                   type="button"
-                  onClick={onCreerRegle}
+                  onClick={() => onCreerRegle(bien.id, key)}
                   className="relative min-h-[71px] border-b border-r border-surface-soft px-1 py-2 text-center"
                 >
                   <span className="absolute inset-x-0 top-0 h-2 bg-surface-soft" />
@@ -664,7 +701,8 @@ function TarifsJours({
                   {regle && (
                     <span className="mt-1 flex items-center justify-between rounded bg-surface px-1 text-[10px] text-ink-body">
                       <span>
-                        {emojiType(regle.type)} {regle.nom.includes("Week") ? "Week-end" : regle.nom}
+                        {emojiType(regle.type)}{" "}
+                        {regle.nom.includes("Week") ? "Week-end" : regle.nom}
                       </span>
                       <span>
                         {variation > 0 ? "+" : ""}
@@ -683,12 +721,11 @@ function TarifsJours({
           <span className="size-2 rounded-sm bg-ink" /> Règle active
         </span>
         <span className="flex items-center gap-1">
-          <span className="size-2 rounded-sm border border-line-strong" /> Sélection
-        </span>
-        <span className="flex items-center gap-1">
           <span className="h-0.5 w-4 bg-line-strong" /> Réservé
         </span>
-        <span className="ml-auto">Cliquez une cellule pour commencer une sélection ·</span>
+        <span className="ml-auto">
+          Cliquez une cellule pour créer une règle sur ce bien et ce jour
+        </span>
       </div>
     </ScrollHint>
   );
@@ -709,7 +746,7 @@ function TarifsMois({
   ensembles: EnsembleRegles[];
   regles: RegleTarif[];
   sejours: ReservationMo1[];
-  onCreerRegle: () => void;
+  onCreerRegle: (bienId: string, date: string) => void;
 }) {
   const bien = biens[0];
   if (!bien) {
@@ -717,6 +754,9 @@ function TarifsMois({
   }
   return (
     <div>
+      <p className="border-b border-surface-soft px-4 py-2 text-xs text-ink-muted">
+        Tarifs affichés : {bien.nom}. Cliquez un jour pour créer une règle.
+      </p>
       <div className="grid grid-cols-7 border-b border-line">
         {JOURS_SEM.map((j) => (
           <div
@@ -737,7 +777,11 @@ function TarifsMois({
             <button
               key={key}
               type="button"
-              onClick={onCreerRegle}
+              disabled={hors}
+              onClick={() => {
+                if (hors) return;
+                onCreerRegle(bien.id, key);
+              }}
               className={cn(
                 "min-h-[88px] border-b border-r border-line p-1.5 text-left",
                 hors && "bg-surface text-ink-muted",

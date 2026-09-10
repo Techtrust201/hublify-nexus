@@ -1,4 +1,5 @@
 // SOURCE: V2 Redris — « Mes prestataires », « Prestataires (5) »
+import { useDroit } from "@/auth/auth-context";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Plus, Star } from "lucide-react";
 import { useState } from "react";
@@ -27,6 +28,7 @@ export const Route = createFileRoute("/prestataires/")({
 
 function ListePrestataires() {
   const { prestataires, missions } = useSession();
+  const peutMod = useDroit("mod-biens");
   const [categorie, setCategorie] = useState("toutes");
   const categories = ["toutes", ...new Set(prestataires.map((p) => p.categorie))];
 
@@ -38,12 +40,14 @@ function ListePrestataires() {
       titre="Prestataires"
       sousTitre={`${prestataires.length} prestataires enregistrés`}
       actions={
-        <Link
-          to="/prestataires/nouveau"
-          className="inline-flex min-h-11 items-center gap-2 rounded-md bg-brand px-3 py-2 text-sm font-medium text-brand-foreground hover:opacity-90 md:min-h-0"
-        >
-          <Plus className="h-4 w-4" /> Ajouter
-        </Link>
+        peutMod ? (
+          <Link
+            to="/prestataires/nouveau"
+            className="inline-flex h-11 items-center gap-2 rounded-md bg-brand px-2 text-sm font-medium text-brand-foreground hover:opacity-90 sm:px-3 md:h-auto md:min-h-0"
+          >
+            <Plus className="h-4 w-4" /> Ajouter
+          </Link>
+        ) : undefined
       }
     >
       <div className="mb-4 flex flex-wrap gap-2">

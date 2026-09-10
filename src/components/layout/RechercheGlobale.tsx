@@ -28,7 +28,7 @@ export function RechercheGlobale({
           id: `bien-${b.id}`,
           label: b.nom,
           detail: adresse || "Patrimoine",
-          to: "/patrimoines",
+          to: `/patrimoines?logement=${encodeURIComponent(b.id)}`,
         });
       }
     }
@@ -50,7 +50,7 @@ export function RechercheGlobale({
           id: `resa-${r.id}`,
           label: r.occupant,
           detail: `Réservation · ${r.arrivee} → ${r.depart}`,
-          to: "/reservations?vue=liste",
+          to: `/reservations?vue=liste&resa=${encodeURIComponent(r.id)}`,
         });
       }
     }
@@ -61,7 +61,7 @@ export function RechercheGlobale({
           id: `ms-${m.id}`,
           label: m.titre,
           detail: `${m.assigne} · ${m.date}`,
-          to: "/missions",
+          to: `/missions/${m.id}`,
         });
       }
     }
@@ -91,9 +91,7 @@ export function RechercheGlobale({
                   <a
                     href={r.to}
                     onClick={() => onChange("")}
-                    className={cn(
-                      "block px-3 py-2 text-sm text-ink hover:bg-surface",
-                    )}
+                    className={cn("block px-3 py-2 text-sm text-ink hover:bg-surface")}
                   >
                     <span className="block font-medium">{r.label}</span>
                     <span className="block text-xs text-ink-muted">{r.detail}</span>

@@ -14,46 +14,210 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ScrollHint } from "@/components/layout/ScrollHint";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  OCCUPANTS_MO1,
-  PRESTATAIRES_MO1,
+  formatJourFr,
+  isoJour,
   type OccupantMo1,
   type PrestataireMo1,
+  type TypeOccupantMo1,
 } from "@/data/reservations-mo1";
+import {
+  ajouterPrestataire,
+  idNouveau,
+  modifierPrestataire,
+  poserCollection,
+  retirerPrestataire,
+  useSession,
+} from "@/data/session";
+import { copierTexte, confirmer, telechargerDemo, toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
+import type { CategoriePrestataire, Prestataire } from "@/data/types";
 
 type Onglet = "residents" | "prestataires";
 type FiltreOccupant = "tous" | "Locataire" | "Voyageur";
 
+function vuePresta(p: Prestataire): PrestataireMo1 {
+  const parts = p.nom.split(/\s+/);
+  const initiales = `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? parts[0]?.[1] ?? ""}`.toUpperCase();
+  return {
+    id: p.id,
+    nom: p.nom,
+    initiales: initiales || "??",
+    metier: p.categorie,
+    telephone: p.telephone,
+    email: p.email,
+    statut: p.actif ? "Actif" : "Inactif",
+  };
+}
+
+function categorieDe(metier: string): CategoriePrestataire {
+  const m = metier.toLowerCase();
+  if (m.includes("ménage") || m.includes("menage")) return "Ménage";
+  if (m.includes("blanch")) return "Blanchisserie";
+  if (m.includes("jardin")) return "Jardinage";
+  if (m.includes("accueil") || m.includes("check")) return "Accueil";
+  return "Maintenance";
+}
+
 export function ListeOccupants() {
+  const session = useSession();
   const [onglet, setOnglet] = useState<Onglet>("residents");
   const [filtre, setFiltre] = useState<FiltreOccupant>("tous");
   const [recherche, setRecherche] = useState("");
   const [fiche, setFiche] = useState<OccupantMo1 | PrestataireMo1 | null>(null);
+  const occupantsBase = session.occupants;
+  const prestasBase = session.prestataires.map(vuePresta);
+  const [formOuvert, setFormOuvert] = useState(false);
+  const [editionOccupant, setEditionOccupant] = useState<OccupantMo1 | null>(null);
+  const [editionPresta, setEditionPresta] = useState<PrestataireMo1 | null>(null);
+  const [form, setForm] = useState({
+    nom: "",
+    type: "Voyageur" as TypeOccupantMo1,
+    logement: "",
+    telephone: "",
+    email: "",
+    metier: "",
+  });
 
   const occupants = useMemo(() => {
-    return OCCUPANTS_MO1.filter((o) => {
+    return occupantsBase.filter((o) => {
       if (filtre !== "tous" && o.type !== filtre) return false;
       const q = recherche.trim().toLowerCase();
       if (!q) return true;
       return o.nom.toLowerCase().includes(q) || o.logement.toLowerCase().includes(q);
     });
-  }, [filtre, recherche]);
+  }, [filtre, recherche, occupantsBase]);
 
   const prestataires = useMemo(() => {
     const q = recherche.trim().toLowerCase();
-    if (!q) return PRESTATAIRES_MO1;
-    return PRESTATAIRES_MO1.filter(
+    if (!q) return prestasBase;
+    return prestasBase.filter(
       (p) => p.nom.toLowerCase().includes(q) || p.metier.toLowerCase().includes(q),
     );
-  }, [recherche]);
+  }, [recherche, prestasBase]);
+
+  const locataires = occupantsBase.filter((o) => o.type === "Locataire");
+  const voyageurs = occupantsBase.filter((o) => o.type === "Voyageur");
+
+  const majOccupants = (next: OccupantMo1[] | ((liste: OccupantMo1[]) => OccupantMo1[])) =>
+    poserCollection("occupants", next);
+
+  const retirerOccupant = async (id: string) => {
+    const ok = await confirmer({
+      titre: "Retirer cet occupant ?",
+      description: "Il disparaît de l'annuaire. Ses réservations passées restent consultables.",
+      libelleConfirmer: "Retirer",
+      danger: true,
+    });
+    if (!ok) return;
+    majOccupants((liste) => liste.filter((x) => x.id !== id));
+    toastOk("Occupant retiré.");
+  };
+
+  const supprimerPrestataire = async (id: string) => {
+    const ok = await confirmer({
+      titre: "Retirer ce prestataire ?",
+      description: "Il ne sera plus proposé à l'assignation des missions.",
+      libelleConfirmer: "Retirer",
+      danger: true,
+    });
+    if (!ok) return;
+    retirerPrestataire(id);
+    toastOk("Prestataire retiré.");
+  };
+
+  const ouvrirAjout = () => {
+    setEditionOccupant(null);
+    setEditionPresta(null);
+    setForm({
+      nom: "",
+      type: "Voyageur",
+      logement: "",
+      telephone: "",
+      email: "",
+      metier: "",
+    });
+    setFormOuvert(true);
+  };
+
+  const ouvrirEditOccupant = (o: OccupantMo1) => {
+    setEditionOccupant(o);
+    setEditionPresta(null);
+    setForm({
+      nom: o.nom,
+      type: o.type,
+      logement: o.logement,
+      telephone: o.telephone,
+      email: o.email,
+      metier: "",
+    });
+    setFormOuvert(true);
+  };
+
+  const ouvrirEditPresta = (p: PrestataireMo1) => {
+    setEditionPresta(p);
+    setEditionOccupant(null);
+    setForm({
+      nom: p.nom,
+      type: "Voyageur",
+      logement: "",
+      telephone: p.telephone,
+      email: p.email,
+      metier: p.metier,
+    });
+    setFormOuvert(true);
+  };
+
+  const enregistrerForm = () => {
+    const nom = form.nom.trim();
+    if (!nom) return;
+    const initiales = nom
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase() ?? "")
+      .join("");
+    if (onglet === "residents" || editionOccupant) {
+      const ligne: OccupantMo1 = {
+        id: editionOccupant?.id ?? idNouveau("occ"),
+        nom,
+        initiales: initiales || "??",
+        type: form.type,
+        logement: form.logement.trim() || "—",
+        telephone: form.telephone.trim() || "—",
+        email: form.email.trim() || `${nom.toLowerCase().replace(/\s+/g, ".")}@email.fr`,
+        arrivee: editionOccupant?.arrivee ?? isoJour(new Date()),
+        statut: "Actif",
+      };
+      majOccupants((liste) =>
+        editionOccupant
+          ? liste.map((o) => (o.id === editionOccupant.id ? ligne : o))
+          : [ligne, ...liste],
+      );
+      toastOk(editionOccupant ? "Occupant mis à jour." : "Occupant ajouté.");
+    } else {
+      const payload = {
+        nom,
+        categorie: categorieDe(form.metier.trim() || "Maintenance"),
+        telephone: form.telephone.trim() || "—",
+        email: form.email.trim() || `${nom.toLowerCase().replace(/\s+/g, ".")}@email.fr`,
+        ville: "",
+        actif: true,
+        note: 0,
+      };
+      if (editionPresta) {
+        modifierPrestataire(editionPresta.id, payload);
+        toastOk("Prestataire mis à jour.");
+      } else {
+        ajouterPrestataire(payload);
+        toastOk("Prestataire ajouté. Il apparaît aussi dans Lieux → Prestataires.");
+      }
+    }
+    setFormOuvert(false);
+    setFiche(null);
+  };
 
   return (
     <div>
@@ -74,7 +238,7 @@ export function ListeOccupants() {
           )}
         >
           <Users className="size-4" />
-          Résidents (5)
+          Résidents ({occupantsBase.length})
         </button>
         <button
           type="button"
@@ -87,7 +251,7 @@ export function ListeOccupants() {
           )}
         >
           <Wrench className="size-4" />
-          Prestataires (5)
+          Prestataires ({prestasBase.length})
         </button>
       </div>
 
@@ -99,7 +263,9 @@ export function ListeOccupants() {
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
               placeholder={
-                onglet === "residents" ? "Rechercher un résident..." : "Rechercher un prestataire..."
+                onglet === "residents"
+                  ? "Rechercher un résident..."
+                  : "Rechercher un prestataire..."
               }
               className="h-full w-full bg-transparent text-base text-ink outline-none placeholder:text-ink-muted md:text-sm"
             />
@@ -130,6 +296,26 @@ export function ListeOccupants() {
           <div className="ml-auto flex gap-2">
             <button
               type="button"
+              onClick={() => {
+                if (onglet === "residents") {
+                  const lignes = [
+                    "Nom;Type;Logement;Telephone;Email;Statut",
+                    ...occupants.map(
+                      (o) =>
+                        `${o.nom};${o.type};${o.logement};${o.telephone};${o.email};${o.statut}`,
+                    ),
+                  ];
+                  telechargerDemo("occupants-hublify.csv", lignes.join("\n"));
+                } else {
+                  const lignes = [
+                    "Nom;Metier;Telephone;Email;Statut",
+                    ...prestataires.map(
+                      (p) => `${p.nom};${p.metier};${p.telephone};${p.email};${p.statut}`,
+                    ),
+                  ];
+                  telechargerDemo("prestataires-occupants-hublify.csv", lignes.join("\n"));
+                }
+              }}
               className="inline-flex h-11 items-center gap-2 rounded-card border border-line px-4 text-sm text-ink-body"
             >
               <Download className="size-4" />
@@ -137,6 +323,7 @@ export function ListeOccupants() {
             </button>
             <button
               type="button"
+              onClick={ouvrirAjout}
               className="inline-flex h-11 items-center gap-2 rounded-card bg-ink px-4 text-sm text-white"
             >
               <Plus className="size-4" />
@@ -171,17 +358,21 @@ export function ListeOccupants() {
                     {o.telephone} · {o.email}
                   </p>
                   <p className="text-xs text-ink-muted">
-                    Arrivée {o.arrivee}
-                    {o.depart ? ` · Départ ${o.depart}` : ""}
+                    Arrivée {formatJourFr(o.arrivee)}
+                    {o.depart ? ` · Départ ${formatJourFr(o.depart)}` : ""}
                   </p>
                   <div className="flex gap-2">
                     <IconeAction label="Voir" onClick={() => setFiche(o)}>
                       <Eye className="size-4" />
                     </IconeAction>
-                    <IconeAction label="Modifier" className="text-dot-edit">
+                    <IconeAction
+                      label="Modifier"
+                      className="text-dot-edit"
+                      onClick={() => ouvrirEditOccupant(o)}
+                    >
                       <Pencil className="size-4" />
                     </IconeAction>
-                    <IconeAction label="Supprimer">
+                    <IconeAction label="Supprimer" onClick={() => void retirerOccupant(o.id)}>
                       <Trash2 className="size-4" />
                     </IconeAction>
                   </div>
@@ -189,94 +380,98 @@ export function ListeOccupants() {
               ))}
             </div>
             <ScrollHint className="hidden md:block">
-          <table className="w-full min-w-[860px] text-left">
-            <thead>
-              <tr className="border-y border-line-table bg-surface text-xs font-medium uppercase tracking-[0.6px] text-ink-header">
-                <th className="px-6 py-3 font-medium">Nom</th>
-                <th className="px-3 py-3 font-medium">Type</th>
-                <th className="px-3 py-3 font-medium">Logement</th>
-                <th className="px-3 py-3 font-medium">Contact</th>
-                <th className="px-3 py-3 font-medium">Dates</th>
-                <th className="px-3 py-3 font-medium">Statut</th>
-                <th className="px-6 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {occupants.map((o) => (
-                <tr key={o.id} className="border-b border-surface-soft last:border-b-0">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <span className="flex size-10 items-center justify-center rounded-full bg-line text-sm text-ink-body">
-                        {o.initiales}
-                      </span>
-                      <span className="text-sm text-ink">{o.nom}</span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-4">
-                    <span
-                      className={cn(
-                        "inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-xs text-white",
-                        o.type === "Locataire" ? "bg-ink" : "bg-ink-body",
-                      )}
-                    >
-                      {o.type === "Locataire" ? (
-                        <Home className="size-3" />
-                      ) : (
-                        <Plane className="size-3" />
-                      )}
-                      {o.type}
-                    </span>
-                  </td>
-                  <td className="px-3 py-4 text-sm text-ink">{o.logement}</td>
-                  <td className="px-3 py-4 text-sm text-ink-subtle">
-                    <p className="flex items-center gap-1.5">
-                      <Phone className="size-3" />
-                      {o.telephone}
-                    </p>
-                    <p className="flex items-center gap-1.5">
-                      <Mail className="size-3" />
-                      {o.email}
-                    </p>
-                  </td>
-                  <td className="px-3 py-4 text-sm text-ink-subtle">
-                    <p className="flex items-center gap-1.5">
-                      <span className="size-2 rounded-full bg-dot-arrivee" />
-                      Arrivée: {o.arrivee}
-                    </p>
-                    {o.depart && (
-                      <p className="flex items-center gap-1.5">
-                        <span className="size-2 rounded-full bg-dot-depart" />
-                        Départ: {o.depart}
-                      </p>
-                    )}
-                  </td>
-                  <td className="px-3 py-4">
-                    <span
-                      className={cn(
-                        "inline-flex h-7 items-center rounded-full px-3 text-xs text-white",
-                        o.statut === "Actif" ? "bg-ink-deep" : "bg-ink-status",
-                      )}
-                    >
-                      {o.statut}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-1">
-                      <IconeAction label="Voir" onClick={() => setFiche(o)}>
-                        <Eye className="size-4" />
-                      </IconeAction>
-                      <IconeAction label="Modifier" className="text-dot-edit">
-                        <Pencil className="size-4" />
-                      </IconeAction>
-                      <IconeAction label="Supprimer">
-                        <Trash2 className="size-4" />
-                      </IconeAction>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              <table className="w-full min-w-[860px] text-left">
+                <thead>
+                  <tr className="border-y border-line-table bg-surface text-xs font-medium uppercase tracking-[0.6px] text-ink-header">
+                    <th className="px-6 py-3 font-medium">Nom</th>
+                    <th className="px-3 py-3 font-medium">Type</th>
+                    <th className="px-3 py-3 font-medium">Logement</th>
+                    <th className="px-3 py-3 font-medium">Contact</th>
+                    <th className="px-3 py-3 font-medium">Dates</th>
+                    <th className="px-3 py-3 font-medium">Statut</th>
+                    <th className="px-6 py-3 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {occupants.map((o) => (
+                    <tr key={o.id} className="border-b border-surface-soft last:border-b-0">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <span className="flex size-10 items-center justify-center rounded-full bg-line text-sm text-ink-body">
+                            {o.initiales}
+                          </span>
+                          <span className="text-sm text-ink">{o.nom}</span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-4">
+                        <span
+                          className={cn(
+                            "inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-xs text-white",
+                            o.type === "Locataire" ? "bg-ink" : "bg-ink-body",
+                          )}
+                        >
+                          {o.type === "Locataire" ? (
+                            <Home className="size-3" />
+                          ) : (
+                            <Plane className="size-3" />
+                          )}
+                          {o.type}
+                        </span>
+                      </td>
+                      <td className="px-3 py-4 text-sm text-ink">{o.logement}</td>
+                      <td className="px-3 py-4 text-sm text-ink-subtle">
+                        <p className="flex items-center gap-1.5">
+                          <Phone className="size-3" />
+                          {o.telephone}
+                        </p>
+                        <p className="flex items-center gap-1.5">
+                          <Mail className="size-3" />
+                          {o.email}
+                        </p>
+                      </td>
+                      <td className="px-3 py-4 text-sm text-ink-subtle">
+                        <p className="flex items-center gap-1.5">
+                          <span className="size-2 rounded-full bg-dot-arrivee" />
+                          Arrivée: {formatJourFr(o.arrivee)}
+                        </p>
+                        {o.depart && (
+                          <p className="flex items-center gap-1.5">
+                            <span className="size-2 rounded-full bg-dot-depart" />
+                            Départ: {formatJourFr(o.depart)}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-3 py-4">
+                        <span
+                          className={cn(
+                            "inline-flex h-7 items-center rounded-full px-3 text-xs text-white",
+                            o.statut === "Actif" ? "bg-ink-deep" : "bg-ink-status",
+                          )}
+                        >
+                          {o.statut}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-1">
+                          <IconeAction label="Voir" onClick={() => setFiche(o)}>
+                            <Eye className="size-4" />
+                          </IconeAction>
+                          <IconeAction
+                            label="Modifier"
+                            className="text-dot-edit"
+                            onClick={() => ouvrirEditOccupant(o)}
+                          >
+                            <Pencil className="size-4" />
+                          </IconeAction>
+                          <IconeAction label="Supprimer" onClick={() => void retirerOccupant(o.id)}>
+                            <Trash2 className="size-4" />
+                          </IconeAction>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </ScrollHint>
           </>
         ) : (
@@ -303,10 +498,10 @@ export function ListeOccupants() {
                     <IconeAction label="Voir" onClick={() => setFiche(p)}>
                       <Eye className="size-4" />
                     </IconeAction>
-                    <IconeAction label="Modifier">
+                    <IconeAction label="Modifier" onClick={() => ouvrirEditPresta(p)}>
                       <Pencil className="size-4" />
                     </IconeAction>
-                    <IconeAction label="Supprimer">
+                    <IconeAction label="Supprimer" onClick={() => void supprimerPrestataire(p.id)}>
                       <Trash2 className="size-4" />
                     </IconeAction>
                   </div>
@@ -314,54 +509,57 @@ export function ListeOccupants() {
               ))}
             </div>
             <ScrollHint className="hidden md:block">
-          <table className="w-full min-w-[720px] text-left">
-            <thead>
-              <tr className="border-y border-surface-soft text-sm text-ink-subtle">
-                <th className="px-6 py-3 font-normal">Nom</th>
-                <th className="px-3 py-3 font-normal">Métier</th>
-                <th className="px-3 py-3 font-normal">Contact</th>
-                <th className="px-3 py-3 font-normal">Statut</th>
-                <th className="px-6 py-3 font-normal">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {prestataires.map((p) => (
-                <tr key={p.id} className="border-b border-surface-soft last:border-b-0">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <span className="flex size-10 items-center justify-center rounded-full bg-line text-sm text-ink-body">
-                        {p.initiales}
-                      </span>
-                      <span className="text-sm text-ink">{p.nom}</span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-4 text-sm text-ink-body">{p.metier}</td>
-                  <td className="px-3 py-4 text-sm text-ink-subtle">
-                    <p>{p.telephone}</p>
-                    <p>{p.email}</p>
-                  </td>
-                  <td className="px-3 py-4">
-                    <span className="inline-flex h-7 items-center rounded-full bg-ink px-3 text-xs text-white">
-                      {p.statut}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-1">
-                      <IconeAction label="Voir" onClick={() => setFiche(p)}>
-                        <Eye className="size-4" />
-                      </IconeAction>
-                      <IconeAction label="Modifier">
-                        <Pencil className="size-4" />
-                      </IconeAction>
-                      <IconeAction label="Supprimer">
-                        <Trash2 className="size-4" />
-                      </IconeAction>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              <table className="w-full min-w-[720px] text-left">
+                <thead>
+                  <tr className="border-y border-surface-soft text-sm text-ink-subtle">
+                    <th className="px-6 py-3 font-normal">Nom</th>
+                    <th className="px-3 py-3 font-normal">Métier</th>
+                    <th className="px-3 py-3 font-normal">Contact</th>
+                    <th className="px-3 py-3 font-normal">Statut</th>
+                    <th className="px-6 py-3 font-normal">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {prestataires.map((p) => (
+                    <tr key={p.id} className="border-b border-surface-soft last:border-b-0">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <span className="flex size-10 items-center justify-center rounded-full bg-line text-sm text-ink-body">
+                            {p.initiales}
+                          </span>
+                          <span className="text-sm text-ink">{p.nom}</span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-4 text-sm text-ink-body">{p.metier}</td>
+                      <td className="px-3 py-4 text-sm text-ink-subtle">
+                        <p>{p.telephone}</p>
+                        <p>{p.email}</p>
+                      </td>
+                      <td className="px-3 py-4">
+                        <span className="inline-flex h-7 items-center rounded-full bg-ink px-3 text-xs text-white">
+                          {p.statut}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-1">
+                          <IconeAction label="Voir" onClick={() => setFiche(p)}>
+                            <Eye className="size-4" />
+                          </IconeAction>
+                          <IconeAction label="Modifier" onClick={() => ouvrirEditPresta(p)}>
+                            <Pencil className="size-4" />
+                          </IconeAction>
+                          <IconeAction
+                            label="Supprimer"
+                            onClick={() => void supprimerPrestataire(p.id)}
+                          >
+                            <Trash2 className="size-4" />
+                          </IconeAction>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </ScrollHint>
           </>
         )}
@@ -372,16 +570,31 @@ export function ListeOccupants() {
           <CarteResume
             icone={Users}
             titre="Total locataires actifs"
-            valeur="3"
-            detail="3 locataires + 2 voyageurs"
+            valeur={String(locataires.filter((o) => o.statut === "Actif").length)}
+            detail={`${locataires.length} locataires · ${voyageurs.length} voyageurs`}
           />
-          <CarteResume icone={KeyRound} titre="Total à venir" valeur="1" detail="Arrivées prochaines" />
-          <CarteResume icone={Check} titre="Total voyageurs actifs" valeur="1" detail="À venir" />
+          <CarteResume
+            icone={KeyRound}
+            titre="Total à venir"
+            valeur={String(occupantsBase.filter((o) => o.statut === "À venir").length)}
+            detail="Arrivées prochaines"
+          />
+          <CarteResume
+            icone={Check}
+            titre="Total voyageurs actifs"
+            valeur={String(voyageurs.filter((o) => o.statut === "Actif").length)}
+            detail="Séjours en cours"
+          />
         </div>
       )}
 
       {fiche && (
-        <Dialog open onOpenChange={(ouvert) => { if (!ouvert) setFiche(null); }}>
+        <Dialog
+          open
+          onOpenChange={(ouvert) => {
+            if (!ouvert) setFiche(null);
+          }}
+        >
           <DialogContent className="max-w-md gap-0 rounded-card border-line p-5 sm:rounded-card">
             <div className="flex items-start justify-between">
               <div>
@@ -400,11 +613,132 @@ export function ListeOccupants() {
                 Fermer
               </button>
             </div>
-            <p className="mt-4 text-sm text-ink-body">{fiche.telephone}</p>
-            <p className="text-sm text-ink-body">{fiche.email}</p>
+            <p className="mt-4 text-sm text-ink-body">
+              <a href={`tel:${fiche.telephone.replace(/\s+/g, "")}`} className="text-accent-teal">
+                {fiche.telephone}
+              </a>
+            </p>
+            <p className="text-sm text-ink-body">
+              <a href={`mailto:${fiche.email}`} className="text-accent-teal">
+                {fiche.email}
+              </a>
+            </p>
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => copierTexte(fiche.email, "E-mail copié.")}
+                className="h-9 rounded-card border border-line px-3 text-xs text-ink-body"
+              >
+                Copier l'e-mail
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if ("type" in fiche) {
+                    const occ = fiche;
+                    setFiche(null);
+                    ouvrirEditOccupant(occ);
+                  } else {
+                    const pre = fiche;
+                    setFiche(null);
+                    ouvrirEditPresta(pre);
+                  }
+                }}
+                className="h-9 rounded-card bg-ink px-3 text-xs text-white"
+              >
+                Modifier
+              </button>
+            </div>
           </DialogContent>
         </Dialog>
       )}
+
+      <Dialog
+        open={formOuvert}
+        onOpenChange={(o) => {
+          if (!o) {
+            setFormOuvert(false);
+            setEditionOccupant(null);
+            setEditionPresta(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogTitle>
+            {editionOccupant || editionPresta
+              ? "Modifier"
+              : onglet === "residents"
+                ? "Ajouter un occupant"
+                : "Ajouter un prestataire"}
+          </DialogTitle>
+          <DialogDescription>Les informations apparaissent dans la liste.</DialogDescription>
+          <label className="mt-3 block text-xs text-ink-muted">
+            Nom
+            <input
+              value={form.nom}
+              onChange={(e) => setForm((f) => ({ ...f, nom: e.target.value }))}
+              className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
+            />
+          </label>
+          {onglet === "residents" || editionOccupant ? (
+            <>
+              <label className="mt-3 block text-xs text-ink-muted">
+                Type
+                <select
+                  value={form.type}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, type: e.target.value as TypeOccupantMo1 }))
+                  }
+                  className="mt-1 h-9 w-full rounded-card border border-line bg-white px-3 text-sm text-ink"
+                >
+                  <option>Locataire</option>
+                  <option>Voyageur</option>
+                </select>
+              </label>
+              <label className="mt-3 block text-xs text-ink-muted">
+                Logement
+                <input
+                  value={form.logement}
+                  onChange={(e) => setForm((f) => ({ ...f, logement: e.target.value }))}
+                  className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
+                />
+              </label>
+            </>
+          ) : (
+            <label className="mt-3 block text-xs text-ink-muted">
+              Métier
+              <input
+                value={form.metier}
+                onChange={(e) => setForm((f) => ({ ...f, metier: e.target.value }))}
+                className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
+              />
+            </label>
+          )}
+          <label className="mt-3 block text-xs text-ink-muted">
+            Téléphone
+            <input
+              value={form.telephone}
+              onChange={(e) => setForm((f) => ({ ...f, telephone: e.target.value }))}
+              className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
+            />
+          </label>
+          <label className="mt-3 block text-xs text-ink-muted">
+            E-mail
+            <input
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={enregistrerForm}
+            className="mt-4 h-10 w-full rounded-card bg-ink text-sm font-medium text-white"
+          >
+            Enregistrer
+          </button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -7,7 +7,8 @@ export type VueDocuments =
   | "proprio"
   | "inventaire-presta"
   | "etats"
-  | "fiches";
+  | "fiches"
+  | "factures";
 
 export type OngletResident = "locataires" | "voyageurs" | "prestataires";
 
@@ -23,12 +24,14 @@ export type DocMo1 = {
   photos: number;
   vue: Exclude<VueDocuments, "hub" | "etats" | "fiches">;
   occupant?: OngletResident;
+  fichier?: { nom: string; mime: string; base64: string };
 };
 
 export const ALERTES_DOCS = [
   {
     titre: "7 documents obligatoires manquants ou expirés",
-    detail: "Cliquez pour voir et compléter par logement — DPE, CREP, électricité, gaz, risques, bruit",
+    detail:
+      "Cliquez pour voir et compléter par logement — DPE, CREP, électricité, gaz, risques, bruit",
   },
   {
     titre: "3 diagnostics à renouveler cette année",
@@ -55,7 +58,7 @@ export const ACTIVITE_RECENTE = [
     id: "a2",
     titre: "Fiche d'accès — Villa Lavandrix",
     statut: "Créé" as const,
-    detail: "il y a 3 h · par Yannick Rath",
+    detail: "il y a 3 h · par Yannick Ratti",
   },
   {
     id: "a3",
@@ -67,7 +70,7 @@ export const ACTIVITE_RECENTE = [
     id: "a4",
     titre: "Quittance loyer — Mars 2026",
     statut: "Créé" as const,
-    detail: "Il y a 2 j · par Yannick Rath",
+    detail: "Il y a 2 j · par Yannick Ratti",
   },
 ];
 
@@ -93,7 +96,7 @@ export const DOCS_MO1: DocMo1[] = [
     logement: "Appartement Colette",
     date: "01 Mar 2026",
     taille: "128 KB",
-    modifiePar: "Yannick Rath",
+    modifiePar: "Yannick Ratti",
     photos: 0,
     vue: "logements",
     occupant: "locataires",
@@ -118,7 +121,7 @@ export const DOCS_MO1: DocMo1[] = [
     logement: "Appartement Colette",
     date: "10 Jan 2024",
     taille: "512 KB",
-    modifiePar: "Yannick Rath",
+    modifiePar: "Yannick Ratti",
     photos: 0,
     vue: "logements",
   },
@@ -143,7 +146,7 @@ export const DOCS_MO1: DocMo1[] = [
     logement: "Appartement Colette",
     date: "05 Jan 2026",
     taille: "95 KB",
-    modifiePar: "Yannick Rath",
+    modifiePar: "Yannick Ratti",
     photos: 0,
     vue: "logements",
   },
@@ -192,7 +195,7 @@ export const DOCS_MO1: DocMo1[] = [
     logement: "Villa Lavandrix",
     date: "12 Feb 2026",
     taille: "64 KB",
-    modifiePar: "Yannick Rath",
+    modifiePar: "Yannick Ratti",
     photos: 0,
     vue: "logements",
   },
@@ -217,7 +220,7 @@ export const DOCS_MO1: DocMo1[] = [
     logement: "Appartement Colette",
     date: "01 Mar 2026",
     taille: "128 KB",
-    modifiePar: "Yannick Rath",
+    modifiePar: "Yannick Ratti",
     photos: 0,
     vue: "residents",
     occupant: "locataires",
@@ -243,7 +246,7 @@ export const DOCS_MO1: DocMo1[] = [
     logement: "Appartement Colette",
     date: "01 Mar 2026",
     taille: "128 KB",
-    modifiePar: "Yannick Rath",
+    modifiePar: "Yannick Ratti",
     photos: 0,
     vue: "residents",
     occupant: "locataires",
@@ -282,7 +285,7 @@ export const DOCS_MO1: DocMo1[] = [
     logement: "Appartement Colette",
     date: "10 Mar 2026",
     taille: "210 KB",
-    modifiePar: "Yannick Rath",
+    modifiePar: "Yannick Ratti",
     photos: 0,
     vue: "residents",
     occupant: "locataires",
@@ -308,7 +311,7 @@ export const DOCS_MO1: DocMo1[] = [
     logement: "Studio Raclette",
     date: "18 Aug 2026",
     taille: "92 KB",
-    modifiePar: "Yannick Rath",
+    modifiePar: "Yannick Ratti",
     photos: 0,
     vue: "residents",
     occupant: "voyageurs",
@@ -347,7 +350,7 @@ export const DOCS_MO1: DocMo1[] = [
     logement: "Villa Lavandrix",
     date: "28 Jun 2026",
     taille: "88 KB",
-    modifiePar: "Yannick Rath",
+    modifiePar: "Yannick Ratti",
     photos: 0,
     vue: "residents",
     occupant: "voyageurs",
@@ -360,7 +363,7 @@ export const DOCS_MO1: DocMo1[] = [
     logement: "Appartement Colette",
     date: "03 Jan 2026",
     taille: "156 KB",
-    modifiePar: "Yannick Rath",
+    modifiePar: "Yannick Ratti",
     photos: 0,
     vue: "residents",
     occupant: "prestataires",
@@ -425,7 +428,7 @@ export const DOCS_MO1: DocMo1[] = [
     logement: "Villa Lavandrix",
     date: "15 Mar 2026",
     taille: "78 KB",
-    modifiePar: "Yannick Rath",
+    modifiePar: "Yannick Ratti",
     photos: 4,
     vue: "residents",
     occupant: "prestataires",
@@ -458,13 +461,13 @@ export const DOCS_MO1: DocMo1[] = [
   },
   {
     id: "o1",
-    titre: "CNI — Yannick Rath",
+    titre: "CNI — Yannick Ratti",
     type: "Pièce d'identité",
     filtre: "Pièce d'identité",
     logement: "Appartement Colette",
     date: "01 Nov 2024",
     taille: "1.2 MB",
-    modifiePar: "Yannick Rath",
+    modifiePar: "Yannick Ratti",
     photos: 0,
     vue: "proprio",
   },
@@ -476,7 +479,7 @@ export const DOCS_MO1: DocMo1[] = [
     logement: "Appartement Colette",
     date: "01 Nov 2024",
     taille: "320 KB",
-    modifiePar: "Yannick Rath",
+    modifiePar: "Yannick Ratti",
     photos: 0,
     vue: "proprio",
   },
@@ -488,7 +491,7 @@ export const DOCS_MO1: DocMo1[] = [
     logement: "Villa Lavandrix",
     date: "05 Feb 2026",
     taille: "450 KB",
-    modifiePar: "Yannick Rath",
+    modifiePar: "Yannick Ratti",
     photos: 0,
     vue: "proprio",
   },
@@ -500,7 +503,7 @@ export const DOCS_MO1: DocMo1[] = [
     logement: "Tous",
     date: "01 Jan 2026",
     taille: "85 KB",
-    modifiePar: "Yannick Rath",
+    modifiePar: "Yannick Ratti",
     photos: 0,
     vue: "proprio",
   },
@@ -682,7 +685,7 @@ export const LOGEMENTS_PATRIMOINE: LogementPatrimoine[] = [
     typologie: "Appartement",
     surface: "65 m²",
     meuble: true,
-    proprietaire: "Yannick Rath",
+    proprietaire: "Yannick Ratti",
     initiales: "YR",
     immeuble: "Résidence Centrale",
     adresse: "12 rue des Lilas, Lyon",
@@ -695,7 +698,7 @@ export const LOGEMENTS_PATRIMOINE: LogementPatrimoine[] = [
     typologie: "Villa",
     surface: "180 m²",
     meuble: true,
-    proprietaire: "Yannick Rath",
+    proprietaire: "Yannick Ratti",
     initiales: "YR",
     immeuble: "—",
     adresse: "45 chemin des Roses, Aix-en-Provence",
@@ -721,7 +724,7 @@ export const LOGEMENTS_PATRIMOINE: LogementPatrimoine[] = [
     typologie: "Studio",
     surface: "28 m²",
     meuble: true,
-    proprietaire: "Yannick Rath",
+    proprietaire: "Yannick Ratti",
     initiales: "YR",
     immeuble: "—",
     adresse: "8 rue du Fromage, Chamonix",
@@ -734,7 +737,7 @@ export const IMMEUBLES_PATRIMOINE = [
   {
     id: "i1",
     nom: "Résidence Centrale",
-    proprietaire: "Yannick Rath",
+    proprietaire: "Yannick Ratti",
     initiales: "YR",
     logements: 2,
     adresse: "12 rue des Lilas, Lyon",
@@ -1107,10 +1110,34 @@ export const DOCS_PROFIL = [
 ];
 
 export const PAIEMENTS_PROFIL = [
-  { date: "2026-05-01", montant: "1280 €", methode: "Virement", booking: "BK001234", statut: "Payé" as const },
-  { date: "2026-04-01", montant: "1280 €", methode: "Virement", booking: "BK001233", statut: "Payé" as const },
-  { date: "2026-03-01", montant: "1280 €", methode: "Chèque", booking: "BK001232", statut: "En attente" as const },
-  { date: "2026-02-15", montant: "850 €", methode: "Espèces", booking: "BK001231", statut: "Payé" as const },
+  {
+    date: "2026-05-01",
+    montant: "1280 €",
+    methode: "Virement",
+    booking: "BK001234",
+    statut: "Payé" as const,
+  },
+  {
+    date: "2026-04-01",
+    montant: "1280 €",
+    methode: "Virement",
+    booking: "BK001233",
+    statut: "Payé" as const,
+  },
+  {
+    date: "2026-03-01",
+    montant: "1280 €",
+    methode: "Chèque",
+    booking: "BK001232",
+    statut: "En attente" as const,
+  },
+  {
+    date: "2026-02-15",
+    montant: "850 €",
+    methode: "Espèces",
+    booking: "BK001231",
+    statut: "Payé" as const,
+  },
 ];
 
 export const DATES_BLOQUEES_INIT = [

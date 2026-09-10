@@ -52,8 +52,8 @@ async function deconnecter(page: Page) {
  */
 test.describe("cloisonnement par rôle", () => {
   const interdits: Record<string, string[]> = {
-    prestataire: ["/team", "/tarifs", "/reservations"],
-    lecteur: ["/team", "/tarifs", "/reservations/nouveau"],
+    prestataire: ["/team", "/tarifs", "/reservations", "/analyse", "/parametrage", "/prestataires/nouveau"],
+    lecteur: ["/team", "/tarifs", "/reservations/nouveau", "/analyse", "/parametrage", "/prestataires/nouveau"],
     gestionnaire: ["/team"],
   };
 
@@ -75,6 +75,8 @@ test.describe("cloisonnement par rôle", () => {
     await expect(page).toHaveURL(/\/reservations/);
     await page.goto("/tarifs");
     await expect(page).toHaveURL(/\/tarifs/);
+    await page.goto("/parametrage");
+    await expect(page).toHaveURL(/\/parametrage/);
   });
 });
 

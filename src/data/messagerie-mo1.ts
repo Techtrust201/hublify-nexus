@@ -9,6 +9,13 @@ export type SectionConversation = "inbox" | "prospections" | "prestataires" | "t
 
 export type TypeInterlocuteur = "voyageur" | "locataire" | "prestataire" | "team";
 
+export type DocumentLie = {
+  nom: string;
+  date: string;
+  mime?: string;
+  base64?: string;
+};
+
 export type Conversation = {
   id: string;
   section: SectionConversation;
@@ -21,11 +28,15 @@ export type Conversation = {
   ilYa: string;
   nonLu: boolean;
   archivee: boolean;
+  assigne?: string;
+  documents?: DocumentLie[];
 };
 
 export type PieceJointe = {
   nom: string;
   taille: string;
+  mime?: string;
+  base64?: string;
 };
 
 export type KindMessage = "systeme" | "recu" | "envoye";
@@ -42,19 +53,10 @@ export type MessageFil = {
   pieces?: PieceJointe[];
 };
 
-export type DocumentLie = {
-  nom: string;
-  date: string;
-};
-
 export type StatutMembre = "actif" | "externe" | "attente";
 
 export type RoleMembre =
-  | "Super-administrateur"
-  | "Administrateur"
-  | "Gestionnaire"
-  | "Prestataire"
-  | "Lecture";
+  "Super-administrateur" | "Administrateur" | "Gestionnaire" | "Prestataire" | "Lecture";
 
 export type MembreEquipe = {
   id: string;
@@ -347,6 +349,12 @@ export const DOCUMENTS_LIES: Record<string, DocumentLie[]> = {
   ],
 };
 
+export const MODELES_MESSAGE = [
+  "Bonjour, voici le code Wi-Fi : Hublify-Guest.",
+  "Votre check-in est prévu à 16h. Merci de prévenir en cas de retard.",
+  "Le ménage est confirmé pour le jour du départ.",
+];
+
 export const ASSIGNEES_CONVERSATION = [
   { id: "a-tl", nom: "Team Louisette", initiales: "TE" },
   { id: "a-ta", nom: "Team Arborio", initiales: "TE" },
@@ -437,9 +445,19 @@ export const MEMBRES_MO1: MembreEquipe[] = [
 ];
 
 export const ACTIONS_EN_COURS: ActionEnCours[] = [
-  { id: "ac-1", titre: "Invitation Clara Renard", quand: "Hier", detail: "En attente d'acceptation" },
+  {
+    id: "ac-1",
+    titre: "Invitation Clara Renard",
+    quand: "Hier",
+    detail: "En attente d'acceptation",
+  },
   { id: "ac-2", titre: "Invitation Lucas Dune", quand: "Hier", detail: "En attente d'acceptation" },
-  { id: "ac-3", titre: "Droit messagerie", quand: "Aujourd'hui", detail: "À valider pour Erik Dunnell" },
+  {
+    id: "ac-3",
+    titre: "Droit messagerie",
+    quand: "Aujourd'hui",
+    detail: "À valider pour Erik Dunnell",
+  },
 ];
 
 export const DROIT_PERSONNALISE_INITIAL: DroitPersonnalise = {

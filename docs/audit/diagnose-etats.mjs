@@ -58,7 +58,10 @@ const SCENARIOS = [
     action: async (page) => {
       await page.evaluate(() => {
         for (const el of document.querySelectorAll("*")) {
-          if (el.scrollWidth > el.clientWidth + 40 && getComputedStyle(el).overflowX !== "visible") {
+          if (
+            el.scrollWidth > el.clientWidth + 40 &&
+            getComputedStyle(el).overflowX !== "visible"
+          ) {
             el.scrollLeft = el.scrollWidth;
           }
         }
@@ -70,7 +73,10 @@ const SCENARIOS = [
     nom: "réservations — fiche occupant",
     route: "/occupants",
     action: async (page) => {
-      await page.getByRole("button", { name: /Voir|Fiche|Détail/ }).first().click();
+      await page
+        .getByRole("button", { name: /Voir|Fiche|Détail/ })
+        .first()
+        .click();
       await page.waitForTimeout(450);
     },
   },
@@ -82,7 +88,10 @@ const SCENARIOS = [
       await page.waitForTimeout(400);
       await page.evaluate(() => {
         for (const el of document.querySelectorAll("*")) {
-          if (el.scrollWidth > el.clientWidth + 40 && getComputedStyle(el).overflowX !== "visible") {
+          if (
+            el.scrollWidth > el.clientWidth + 40 &&
+            getComputedStyle(el).overflowX !== "visible"
+          ) {
             el.scrollLeft = el.scrollWidth;
           }
         }
@@ -120,7 +129,7 @@ await authPage.goto(`${BASE}/connexion`, { waitUntil: "load" });
 await authPage.waitForTimeout(2500);
 await authPage.getByLabel("Email").fill(process.env.DEMO_EMAIL ?? "contact@tech-trust.fr");
 await authPage
-  .getByLabel("Mot de passe")
+  .locator('input[name="password"]')
   .fill(process.env.DEMO_AUTH_PASSWORD ?? "Hublify-Demo-2026!");
 await authPage.getByRole("button", { name: "Se connecter" }).click();
 await authPage.waitForURL((u) => !u.pathname.includes("/connexion"), { timeout: 20_000 });

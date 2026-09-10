@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type { CanalMo1, EvenementMo1, LoyerMo1, MessageMo1 } from "@/data/planning-mo1";
-import { useKpiMo1 } from "@/data/session";
+import { useKpiMo1, useSession } from "@/data/session";
 import { cn, useSessionBool } from "@/lib/utils";
 
 export function KpiCards() {
@@ -26,7 +26,9 @@ export function KpiCards() {
         <CarteKpi
           icone={AlertTriangle}
           titre="Loyers en retard"
-          badge="Urgent"
+          titreDanger
+          badge={kpi.loyersRetard > 0 ? "Urgent" : "À jour"}
+          badgeUrgent={kpi.loyersRetard > 0}
           valeur={String(kpi.loyersRetard)}
           unite="en attente"
           detail={
@@ -55,13 +57,13 @@ export function KpiCards() {
         icone={Wrench}
         titre="Interventions"
         badge="Aujourd'hui"
-        valeur={String(kpi.interventionsEnCours)}
+        valeur={String(kpi.missionsJour)}
         unite="en cours"
         detail={
           <>
             Ménage : <span className="text-ink-body">{kpi.menage}</span>
-            {" · Réservation : "}
-            <span className="text-ink-body">{kpi.reservationsActives}</span>
+            {" · Plomberie : "}
+            <span className="text-ink-body">{kpi.plomberie}</span>
           </>
         }
       />
@@ -72,26 +74,42 @@ export function KpiCards() {
 function CarteKpi({
   icone: Icone,
   titre,
+  titreDanger,
   badge,
+  badgeUrgent,
   valeur,
   unite,
   detail,
 }: {
   icone: typeof AlertTriangle;
   titre: string;
+  titreDanger?: boolean;
   badge: string;
+  badgeUrgent?: boolean;
   valeur: string;
   unite: string;
   detail: ReactNode;
 }) {
   return (
-    <div className="rounded-card border border-line bg-white p-4">
+    <div className="min-h-[116px] rounded-card border border-line bg-white p-4">
       <div className="flex items-center justify-between">
-        <p className="flex items-center gap-2 text-sm text-ink-body">
+        <p
+          className={cn(
+            "flex items-center gap-2 text-sm",
+            titreDanger ? "text-danger-loyer" : "text-ink-body",
+          )}
+        >
           <Icone className="size-4" />
           {titre}
         </p>
-        <span className="rounded border border-line-strong px-2 py-0.5 text-xs text-ink-subtle">
+        <span
+          className={cn(
+            "rounded border px-2 py-0.5 text-xs text-ink-subtle",
+            badgeUrgent
+              ? "border-danger-loyer bg-danger-loyer/10 text-danger-loyer"
+              : "border-line-strong",
+          )}
+        >
           {badge}
         </span>
       </div>
@@ -105,9 +123,12 @@ function CarteKpi({
 }
 
 export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
+  const session = useSession();
   const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.messages", true);
   const [canal, setCanal] = useState<CanalMo1>("occupants");
   const filtres = messages.filter((m) => m.canal === canal);
+  const convDe = (auteur: string) =>
+    session.conversations.find((c) => c.nom.toLowerCase() === auteur.toLowerCase());
 
   return (
     <section className="mt-4 overflow-hidden rounded-card border border-line bg-white">
@@ -137,9 +158,7 @@ export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
             }}
             className={cn(
               "inline-flex h-11 min-h-11 items-center rounded border px-3 text-sm font-medium md:h-[26px] md:min-h-[26px] md:text-xs",
-              canal === c
-                ? "border-ink text-ink"
-                : "border-line-strong text-ink-body",
+              canal === c ? "border-ink text-ink" : "border-line-strong text-ink-body",
             )}
           >
             {c === "occupants" ? "Occupants" : c === "prestataires" ? "Prestataires" : "Team"}
@@ -152,19 +171,20 @@ export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
             <li key={m.id}>
               <Link
                 to="/messagerie"
+                search={convDe(m.auteur) ? { conv: convDe(m.auteur)!.id } : {}}
                 className="flex gap-3 border-b border-surface-soft px-4 py-3 last:border-b-0 hover:bg-surface"
               >
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-line text-xs text-ink-body">
-                {m.initiales}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-baseline gap-2">
-                  <span className="text-sm text-ink">{m.auteur}</span>
-                  {m.bienNom && <span className="text-xs text-ink-muted">{m.bienNom}</span>}
-                  <span className="ml-auto text-xs text-ink-muted">● {m.ilYa}</span>
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-line text-xs text-ink-body">
+                  {m.initiales}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span className="text-sm text-ink">{m.auteur}</span>
+                    {m.bienNom && <span className="text-xs text-ink-muted">{m.bienNom}</span>}
+                    <span className="ml-auto text-xs text-ink-muted">● {m.ilYa}</span>
+                  </div>
+                  <p className="truncate text-xs text-ink-subtle">{m.texte}</p>
                 </div>
-                <p className="truncate text-xs text-ink-subtle">{m.texte}</p>
-              </div>
               </Link>
             </li>
           ))}
@@ -184,19 +204,20 @@ export function LoyersSection({
   onQuittance: (id: string) => void;
 }) {
   const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.loyers", true);
+  const peutValider = useDroit("mod-finances");
   const total = loyers.reduce((s, l) => s + l.montant, 0);
 
   return (
     <section className="mt-4 overflow-hidden rounded-card border border-line bg-white">
       <button
         type="button"
-        className="flex w-full items-center justify-between border-b border-surface-soft px-4 py-3"
+        className="flex w-full items-start justify-between gap-2 border-b border-surface-soft px-4 py-3 text-left"
         onClick={() => setOuvert((o) => !o)}
       >
-        <span className="flex items-center gap-2 text-sm text-ink">
-          <FileCheck className="size-4" />
-          Les Loyers Payés Cette Semaine
-          <span className="text-xs text-ink-muted">
+        <span className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-ink">
+          <FileCheck className="size-4 shrink-0" />
+          Les Loyers et paiements en attente
+          <span className="basis-full text-xs text-ink-muted sm:basis-auto">
             {loyers.length} paiements totaux · {total.toLocaleString("fr-FR")} €
           </span>
         </span>
@@ -227,13 +248,15 @@ export function LoyersSection({
               </p>
               {!l.valide ? (
                 <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-                  <button
-                    type="button"
-                    onClick={() => onValider(l.id)}
-                    className="h-11 rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[26px]"
-                  >
-                    Valider paiement
-                  </button>
+                  {peutValider && (
+                    <button
+                      type="button"
+                      onClick={() => onValider(l.id)}
+                      className="h-11 rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[26px]"
+                    >
+                      Valider paiement
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => onQuittance(l.id)}
@@ -252,10 +275,14 @@ export function LoyersSection({
                     Validé
                   </span>
                   {l.quittance ? (
-                    <span className="inline-flex h-[26px] items-center gap-1 rounded border border-line bg-surface px-2 text-xs text-ink-muted">
+                    <button
+                      type="button"
+                      onClick={() => onQuittance(l.id)}
+                      className="inline-flex h-11 items-center gap-1 rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[26px]"
+                    >
                       <FileCheck className="size-2.5" />
-                      Quittance générée
-                    </span>
+                      Télécharger quittance
+                    </button>
                   ) : (
                     <button
                       type="button"
@@ -284,6 +311,9 @@ export function EvenementsSection({
   onAjouter: () => void;
 }) {
   const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.evenements", true);
+  const modResa = useDroit("mod-reservations");
+  const modFinances = useDroit("mod-finances");
+  const peutAjouter = modResa || modFinances;
 
   return (
     <section className="mt-4 overflow-hidden rounded-card border border-line bg-white">
@@ -301,14 +331,16 @@ export function EvenementsSection({
           </span>
         </button>
         <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={onAjouter}
-            className="inline-flex h-11 shrink-0 items-center gap-1 whitespace-nowrap rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[26px]"
-          >
-            <Plus className="size-2.5" />
-            Ajouter
-          </button>
+          {peutAjouter && (
+            <button
+              type="button"
+              onClick={onAjouter}
+              className="inline-flex h-11 shrink-0 items-center gap-1 whitespace-nowrap rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[26px]"
+            >
+              <Plus className="size-2.5" />
+              Ajouter
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setOuvert((o) => !o)}
@@ -359,8 +391,20 @@ export function EvenementsSection({
             ))}
           </ul>
           <p className="px-4 py-2 text-center text-xs text-ink-muted">
-            Ces événements sont détectés automatiquement via l'API d'Événements. Vous pouvez
-            personnaliser les alertes dans les paramètres.
+            Ces événements sont détectés automatiquement.
+            {peutAjouter ? (
+              <>
+                {" "}
+                Vous pouvez personnaliser les alertes dans le{" "}
+                <Link
+                  to="/parametrage"
+                  className="inline-flex min-h-6 items-center font-medium text-accent-teal"
+                >
+                  paramétrage
+                </Link>
+                .
+              </>
+            ) : null}
           </p>
         </>
       )}

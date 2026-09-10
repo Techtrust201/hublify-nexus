@@ -69,8 +69,7 @@ export const PROBE = () => {
       const deborde = el.scrollWidth - el.clientWidth;
       const parentCs = el.parentElement ? getComputedStyle(el.parentElement) : null;
       const parentFlexGrid =
-        parentCs &&
-        (parentCs.display.includes("flex") || parentCs.display.includes("grid"));
+        parentCs && (parentCs.display.includes("flex") || parentCs.display.includes("grid"));
       // Un enfant en position absolue (menu déroulant) déborde volontairement.
       const enfantFlottant = Array.from(el.children).some((c) => {
         const p = getComputedStyle(c).position;
@@ -119,7 +118,11 @@ export const PROBE = () => {
 
   // 3. superpositions entre éléments « feuilles » non apparentés
   const leaves = visible.filter(({ el, cs }) => {
-    if (!el.matches("button, a[href], input, select, textarea, [role=button], p, span, h1, h2, h3, h4, label, td, th, li"))
+    if (
+      !el.matches(
+        "button, a[href], input, select, textarea, [role=button], p, span, h1, h2, h3, h4, label, td, th, li",
+      )
+    )
       return false;
     // uniquement les feuilles de texte / contrôles
     if (el.querySelector("button, a[href], input, p, h1, h2, h3, td, li")) return false;
@@ -133,7 +136,8 @@ export const PROBE = () => {
   const positioned = (el) => {
     for (let p = el; p && p !== document.body; p = p.parentElement) {
       const cs = getComputedStyle(p);
-      if (cs.position === "absolute" || cs.position === "fixed" || cs.position === "sticky") return true;
+      if (cs.position === "absolute" || cs.position === "fixed" || cs.position === "sticky")
+        return true;
     }
     return false;
   };

@@ -35,7 +35,7 @@ function deps(
   }> = {},
 ) {
   const espion = sqlEspion(options.lignes ?? []);
-  const orgId = "orgId" in options ? options.orgId ?? null : ORG_A;
+  const orgId = "orgId" in options ? (options.orgId ?? null) : ORG_A;
   const d: DepsEtat = {
     sessionOrg: async () =>
       orgId
@@ -43,7 +43,14 @@ function deps(
             orgId,
             orgType: options.orgType ?? "gestionnaire",
             roleId: options.roleId ?? "administrateur",
-            droits: ["mod-reservations", "mod-finances", "gerer-equipe", "mod-missions", "messagerie", "mod-biens"],
+            droits: [
+              "mod-reservations",
+              "mod-finances",
+              "gerer-equipe",
+              "mod-missions",
+              "messagerie",
+              "mod-biens",
+            ],
           }
         : null,
     sql: () => (options.sansSql ? null : espion.tag),
@@ -93,7 +100,9 @@ describe("ecrireCollections", () => {
   it("écrit sur l'org de session, jamais une org tierce", async () => {
     const { d, espion } = deps();
     const patch: Partial<EtatSession> = {
-      evenements: [{ id: "e1", titre: "x", lieu: "", dates: "", impact: "Impact modéré", description: "" }],
+      evenements: [
+        { id: "e1", titre: "x", lieu: "", dates: "", impact: "Impact modéré", description: "" },
+      ],
     };
     expect(await ecrireCollections(d, patch)).toEqual({ ok: true });
     expect(espion.appels[0]?.valeurs[0]).toBe(ORG_A);

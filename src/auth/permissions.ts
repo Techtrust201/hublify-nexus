@@ -155,10 +155,7 @@ export function aLeDroit(droits: readonly string[], id: DroitId) {
   return droits.includes(id);
 }
 
-export function droitsEffectifs(
-  roleId: RoleId,
-  personnalises?: readonly string[] | null,
-) {
+export function droitsEffectifs(roleId: RoleId, personnalises?: readonly string[] | null) {
   if (roleId === "super-admin") {
     return [...DROITS_PAR_ROLE["super-admin"]];
   }
@@ -168,9 +165,7 @@ export function droitsEffectifs(
   return [...DROITS_PAR_ROLE[roleId]];
 }
 
-export const ROLES_EQUIPE = ROLES.filter(
-  (r) => r.id !== "prestataire" && r.id !== "super-admin",
-);
+export const ROLES_EQUIPE = ROLES.filter((r) => r.id !== "prestataire" && r.id !== "super-admin");
 
 export function droitRequisPourChemin(pathname: string): DroitId | undefined {
   const regles: Array<{ prefixe: string; droit: DroitId }> = [
@@ -178,8 +173,12 @@ export function droitRequisPourChemin(pathname: string): DroitId | undefined {
     { prefixe: "/tarifs", droit: "voir-finances" },
     { prefixe: "/reservations/nouveau", droit: "mod-reservations" },
     { prefixe: "/outils/debuter", droit: "mod-reservations" },
+    { prefixe: "/parametrage", droit: "mod-reservations" },
+    { prefixe: "/prestataires/nouveau", droit: "mod-biens" },
+    { prefixe: "/analyse", droit: "voir-finances" },
     { prefixe: "/messagerie", droit: "messagerie" },
     { prefixe: "/documents", droit: "voir-documents" },
+    { prefixe: "/outils/etats-des-lieux", droit: "voir-documents" },
     { prefixe: "/outils/modeles", droit: "voir-documents" },
     { prefixe: "/outils/vue-annuelle", droit: "voir-calendrier" },
     { prefixe: "/missions", droit: "voir-calendrier" },

@@ -1,6 +1,12 @@
 import { Eye, Pencil, Shield } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { DROITS_CATALOGUE, DROITS_PAR_ROLE, ROLES_EQUIPE, roleParLabel, type RoleLabel } from "@/auth/permissions";
+import {
+  DROITS_CATALOGUE,
+  DROITS_PAR_ROLE,
+  ROLES_EQUIPE,
+  roleParLabel,
+  type RoleLabel,
+} from "@/auth/permissions";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -64,11 +70,9 @@ export function DialogInviter({
     >
       <DialogContent className="max-h-[90vh] max-w-[600px] gap-0 overflow-y-auto rounded-card border-line p-0 sm:rounded-card">
         <DialogHeader className="border-b border-surface-soft px-6 py-4">
-          <DialogTitle className="text-base font-normal text-ink">
-            Inviter un membre
-          </DialogTitle>
+          <DialogTitle className="text-base font-normal text-ink">Inviter un membre</DialogTitle>
           <DialogDescription className="text-xs text-ink-subtle">
-            Le membre recevra un email d'invitation
+            Le compte est créé avec un mot de passe temporaire, transmis par e-mail.
           </DialogDescription>
         </DialogHeader>
 
@@ -139,13 +143,13 @@ export function DialogInviter({
               reset();
               onFermer();
             }}
-            className="h-[38px] flex-1 rounded-card border border-line text-xs font-medium text-ink-body"
+            className="h-11 flex-1 rounded-card border border-line text-xs font-medium text-ink-body md:h-[38px]"
           >
             Annuler
           </button>
           <button
             type="button"
-            disabled={!prenom.trim() || !email.trim()}
+            disabled={!prenom.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())}
             onClick={() => {
               onInviter({
                 prenom: prenom.trim(),
@@ -158,7 +162,7 @@ export function DialogInviter({
               reset();
               onFermer();
             }}
-            className="h-[38px] flex-1 rounded-card bg-ink text-xs font-medium text-white disabled:opacity-40"
+            className="h-11 flex-1 rounded-card bg-ink text-xs font-medium text-white disabled:opacity-40 md:h-[38px]"
           >
             Envoyer l'invitation
           </button>

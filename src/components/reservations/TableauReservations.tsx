@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router";
+import { useDroit } from "@/auth/auth-context";
 import { ScrollHint } from "@/components/layout/ScrollHint";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import {
   Calendar,
   ChevronRight,
@@ -12,7 +14,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AUJOURD_HUI_MO1,
   CODE_PLATEFORME,
@@ -23,34 +25,54 @@ import {
   type ReservationMo1,
   type StatutReservationMo1,
 } from "@/data/reservations-mo1";
-import { useSession } from "@/data/session";
-import { genererRecapReservationPdf } from "@/lib/documents.functions";
-import { telechargerBase64, telechargerDemo } from "@/lib/feedback";
+import { annulerReservation, modifierReservation, useSession, useStatutSync } from "@/data/session";
+import { telechargerDemo, toastErreur, toastOk } from "@/lib/feedback";
+import { telechargerFactureReservation } from "@/lib/exports-docs";
 import { cn } from "@/lib/utils";
 
 type FiltrePeriode = "tous" | "en_cours" | "a_venir" | "departs" | "passes";
 
 const PAGE = 8;
 
-export function TableauReservations() {
+export function TableauReservations({ focusId }: { focusId?: string }) {
   const session = useSession();
+  const sync = useStatutSync();
   const reservations = session.reservationsDossier;
+  const attendHydrate =
+    reservations.length === 0 && sync.etat !== "enregistre" && sync.etat !== "echec";
   const bienParId = (id: string) => session.biens.find((b) => b.id === id);
   const [recherche, setRecherche] = useState("");
   const [statut, setStatut] = useState<"tout" | StatutReservationMo1>("tout");
   const [periode, setPeriode] = useState<FiltrePeriode>("tous");
   const [page, setPage] = useState(1);
   const [detail, setDetail] = useState<ReservationMo1 | null>(null);
+  const [selection, setSelection] = useState<string[]>([]);
+  const detailLive = useMemo(
+    () => (detail ? (reservations.find((r) => r.id === detail.id) ?? null) : null),
+    [detail, reservations],
+  );
+
+  useEffect(() => {
+    if (!focusId) return;
+    setRecherche("");
+    setStatut("tout");
+    setPeriode("tous");
+  }, [focusId]);
+
+  useEffect(() => {
+    if (!focusId) return;
+    const index = reservations.findIndex((x) => x.id === focusId);
+    if (index < 0) return;
+    const r = reservations[index]!;
+    setDetail((actuel) => (actuel?.id === r.id ? actuel : r));
+    setPage(Math.floor(index / PAGE) + 1);
+  }, [focusId, reservations]);
 
   const filtrees = useMemo(() => {
     return reservations.filter((r) => {
       const bien = bienParId(r.bienId);
       const q = recherche.trim().toLowerCase();
-      if (
-        q &&
-        !r.occupant.toLowerCase().includes(q) &&
-        !bien?.nom.toLowerCase().includes(q)
-      ) {
+      if (q && !r.occupant.toLowerCase().includes(q) && !bien?.nom.toLowerCase().includes(q)) {
         return false;
       }
       if (statut !== "tout" && r.statut !== statut) return false;
@@ -65,7 +87,8 @@ export function TableauReservations() {
   const comptes = useMemo(() => {
     const base = reservations.filter((r) => r.statut !== "Annulé");
     return {
-      en_cours: base.filter((r) => r.arrivee <= AUJOURD_HUI_MO1 && r.depart > AUJOURD_HUI_MO1).length,
+      en_cours: base.filter((r) => r.arrivee <= AUJOURD_HUI_MO1 && r.depart > AUJOURD_HUI_MO1)
+        .length,
       a_venir: base.filter((r) => r.arrivee > AUJOURD_HUI_MO1).length,
       departs: base.filter((r) => r.depart === AUJOURD_HUI_MO1).length,
       passes: base.filter((r) => r.depart < AUJOURD_HUI_MO1).length,
@@ -78,6 +101,15 @@ export function TableauReservations() {
   const pages = Math.max(1, Math.ceil(filtrees.length / PAGE));
   const pageCourante = Math.min(page, pages);
   const visibles = filtrees.slice((pageCourante - 1) * PAGE, pageCourante * PAGE);
+  const idsVisibles = visibles.map((r) => r.id);
+  const toutSelectionne =
+    idsVisibles.length > 0 && idsVisibles.every((id) => selection.includes(id));
+  const aExporter =
+    selection.length > 0 ? filtrees.filter((r) => selection.includes(r.id)) : filtrees;
+
+  const basculerSelection = (id: string) => {
+    setSelection((liste) => (liste.includes(id) ? liste.filter((x) => x !== id) : [...liste, id]));
+  };
 
   return (
     <div className="flex min-h-[640px] gap-0">
@@ -177,36 +209,27 @@ export function TableauReservations() {
           <button
             type="button"
             onClick={() => {
-              void (async () => {
-                const lignes = [
-                  "Occupant;Bien;Arrivee;Depart;Statut;Montant",
-                  ...filtrees.map((r) => {
-                    const bien = bienParId(r.bienId);
-                    return `${r.occupant};${bien?.nom ?? r.bienId};${r.arrivee};${r.depart};${r.statut};${r.montant}`;
-                  }),
-                ];
-                try {
-                  const doc = await genererRecapReservationPdf({
-                    data: { titre: "Reservations Hublify", lignes },
-                  });
-                  telechargerBase64(doc.nom, doc.mime, doc.base64);
-                } catch {
-                  telechargerDemo("reservations-hublify.csv", lignes.join("\n"));
-                }
-              })();
+              const lignes = [
+                "Occupant;Bien;Arrivee;Depart;Statut;Montant",
+                ...aExporter.map((r) => {
+                  const bien = bienParId(r.bienId);
+                  return `${r.occupant};${bien?.nom ?? r.bienId};${r.arrivee};${r.depart};${r.statut};${r.montant}`;
+                }),
+              ];
+              telechargerDemo("reservations-hublify.csv", lignes.join("\n"));
             }}
             className="inline-flex h-11 items-center gap-1 rounded border border-line px-3 text-xs font-medium text-ink-body md:h-[30px]"
           >
             <Download className="size-3" />
-            Exporter
+            {selection.length > 0 ? `Exporter (${selection.length})` : "Exporter"}
           </button>
-          <button
-            type="button"
+          <Link
+            to="/outils/vue-annuelle"
             className="inline-flex h-11 items-center gap-1 rounded-card border border-line px-3 text-xs font-medium text-ink-body md:h-[34px]"
           >
             <Calendar className="size-3.5" />
             Année 2026
-          </button>
+          </Link>
         </div>
 
         <div className="flex flex-wrap gap-2 px-4 py-3 md:hidden">
@@ -284,7 +307,19 @@ export function TableauReservations() {
               <tr className="border-y border-surface-soft text-xs text-ink-subtle">
                 <th className="w-10 px-3 py-3 font-normal">
                   <label className="flex min-h-11 items-center md:min-h-0">
-                    <input type="checkbox" aria-label="Tout sélectionner" className="size-3.5" />
+                    <input
+                      type="checkbox"
+                      aria-label="Tout sélectionner"
+                      className="size-3.5"
+                      checked={toutSelectionne}
+                      onChange={() => {
+                        setSelection((liste) =>
+                          toutSelectionne
+                            ? liste.filter((id) => !idsVisibles.includes(id))
+                            : [...new Set([...liste, ...idsVisibles])],
+                        );
+                      }}
+                    />
                   </label>
                 </th>
                 <th className="px-3 py-3 font-normal">Statut</th>
@@ -313,7 +348,13 @@ export function TableauReservations() {
                   >
                     <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
                       <label className="flex min-h-11 items-center md:min-h-0">
-                        <input type="checkbox" aria-label={r.occupant} className="size-3.5" />
+                        <input
+                          type="checkbox"
+                          aria-label={r.occupant}
+                          className="size-3.5"
+                          checked={selection.includes(r.id)}
+                          onChange={() => basculerSelection(r.id)}
+                        />
                       </label>
                     </td>
                     <td className="px-3 py-3">
@@ -337,11 +378,11 @@ export function TableauReservations() {
                     <td className="px-3 py-3 text-xs text-ink">{r.occupant}</td>
                     <td className="px-3 py-3">
                       <p className="text-xs text-ink">{formatDateLongue(r.arrivee)}</p>
-                      <p className="text-[11px] text-ink-muted">00:00</p>
+                      <p className="text-[11px] text-ink-muted">{r.heureArrivee}</p>
                     </td>
                     <td className="px-3 py-3">
                       <span className="inline-flex h-[22px] items-center rounded bg-ink px-2 text-[11px] text-white">
-                        {CODE_PLATEFORME[r.plateforme]}
+                        {CODE_PLATEFORME[r.plateforme] ?? r.plateforme}
                       </span>
                     </td>
                     <td className="px-3 py-3">
@@ -359,7 +400,9 @@ export function TableauReservations() {
                           className={cn(
                             "size-2 rounded-full",
                             pct === 100 && "bg-ink-subtle",
-                            pct > 0 && pct < 100 && "border border-ink-subtle bg-[linear-gradient(90deg,var(--ink-subtle)_50%,transparent_50%)]",
+                            pct > 0 &&
+                              pct < 100 &&
+                              "border border-ink-subtle bg-[linear-gradient(90deg,var(--ink-subtle)_50%,transparent_50%)]",
                             pct === 0 && "border border-ink-muted",
                           )}
                         />
@@ -377,7 +420,11 @@ export function TableauReservations() {
         </ScrollHint>
 
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
-          <p className="text-xs text-ink-muted">Affichage de {filtrees.length} réservations</p>
+          <p className="text-xs text-ink-muted">
+            {attendHydrate
+              ? "Chargement des réservations…"
+              : `Affichage de ${filtrees.length} réservation${filtrees.length > 1 ? "s" : ""}`}
+          </p>
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -412,7 +459,7 @@ export function TableauReservations() {
         </div>
       </div>
 
-      {detail && <PanneauDetail reservation={detail} onFermer={() => setDetail(null)} />}
+      {detailLive && <PanneauDetail reservation={detailLive} onFermer={() => setDetail(null)} />}
     </div>
   );
 }
@@ -449,6 +496,16 @@ function FiltreLigne({
   );
 }
 
+function enregistrerPaiement(reservation: ReservationMo1, brut: number) {
+  const paye = Math.max(0, Math.min(reservation.montant, Math.round(brut)));
+  modifierReservation(reservation.id, { paye });
+  toastOk(
+    paye >= reservation.montant
+      ? "Réservation soldée."
+      : `Paiement enregistré : ${formatMontant(paye)}.`,
+  );
+}
+
 function PanneauDetail({
   reservation,
   onFermer,
@@ -457,32 +514,51 @@ function PanneauDetail({
   onFermer: () => void;
 }) {
   const session = useSession();
+  const peutMod = useDroit("mod-reservations");
   const bien = session.biens.find((b) => b.id === reservation.bienId);
   const pct = pourcentagePaiement(reservation);
   const nuits = nuitsEntre(reservation.arrivee, reservation.depart);
+  const [saisiePaye, setSaisiePaye] = useState(String(reservation.paye));
+  const [confirmer, setConfirmer] = useState(false);
+
+  useEffect(() => {
+    setSaisiePaye(String(reservation.paye));
+  }, [reservation.id, reservation.paye]);
 
   return (
-    <aside className="fixed inset-y-0 right-0 z-30 flex w-full max-w-[400px] flex-col border-l border-line bg-white shadow-xl">
+    <aside className="fixed inset-y-0 right-0 z-30 flex w-full max-w-[400px] flex-col border-l border-line bg-white pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-xl">
       <header className="flex items-center justify-between border-b border-surface-soft px-5 py-4">
         <p className="text-sm text-ink">Détail réservation</p>
-        <button type="button" onClick={onFermer} aria-label="Fermer">
+        <button
+          type="button"
+          onClick={onFermer}
+          aria-label="Fermer"
+          className="flex size-11 items-center justify-center md:size-8"
+        >
           <X className="size-4 text-ink-muted" />
         </button>
       </header>
       <div className="flex-1 space-y-3 overflow-y-auto px-5 py-5">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <span
             className={cn(
               "inline-flex h-6 items-center rounded px-2.5 text-xs",
               reservation.statut === "Confirmé"
                 ? "bg-ink text-white"
-                : "bg-surface-soft text-ink-body",
+                : reservation.statut === "Annulé"
+                  ? "border border-line text-ink-muted"
+                  : "bg-surface-soft text-ink-body",
             )}
           >
             {reservation.statut}
           </span>
-          <span className="inline-flex h-[19px] items-center rounded bg-ink px-2 text-[11px] text-white">
-            {CODE_PLATEFORME[reservation.plateforme]}
+          {reservation.type && (
+            <span className="inline-flex h-6 items-center rounded border border-line px-2 text-[11px] text-ink-body">
+              {reservation.type}
+            </span>
+          )}
+          <span className="inline-flex h-6 items-center rounded bg-ink px-2 text-[11px] text-white">
+            {CODE_PLATEFORME[reservation.plateforme] ?? reservation.plateforme}
           </span>
         </div>
         <div className="rounded-card border border-surface-soft p-3">
@@ -493,15 +569,29 @@ function PanneauDetail({
         <div className="rounded-card border border-surface-soft p-3">
           <p className="text-xs text-ink-muted">Occupant</p>
           <p className="mt-1 text-sm text-ink">{reservation.occupant}</p>
+          <a
+            href={`mailto:${reservation.email}`}
+            className="mt-1 block text-xs text-accent-teal underline-offset-2 hover:underline"
+          >
+            {reservation.email}
+          </a>
+          <a
+            href={`tel:${reservation.telephone.replace(/\s+/g, "")}`}
+            className="mt-0.5 block text-xs text-accent-teal underline-offset-2 hover:underline"
+          >
+            {reservation.telephone}
+          </a>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-card border border-surface-soft p-3">
             <p className="text-xs text-ink-muted">Check-in</p>
             <p className="mt-1 text-xs text-ink">{formatDateLongue(reservation.arrivee)}</p>
+            <p className="text-[11px] text-ink-muted">{reservation.heureArrivee}</p>
           </div>
           <div className="rounded-card border border-surface-soft p-3">
             <p className="text-xs text-ink-muted">Check-out</p>
             <p className="mt-1 text-xs text-ink">{formatDateLongue(reservation.depart)}</p>
+            <p className="text-[11px] text-ink-muted">{reservation.heureDepart}</p>
           </div>
         </div>
         <div className="flex gap-6 rounded-card border border-surface-soft p-3 text-xs">
@@ -531,22 +621,119 @@ function PanneauDetail({
             <span>Réglé : {formatMontant(reservation.paye)}</span>
             <span>Reste : {formatMontant(reservation.montant - reservation.paye)}</span>
           </div>
+          {peutMod && reservation.statut !== "Annulé" && (
+            <div className="mt-3 space-y-2">
+              <label className="block text-xs text-ink-muted">
+                Montant encaissé
+                <input
+                  value={saisiePaye}
+                  onChange={(e) => setSaisiePaye(e.target.value)}
+                  inputMode="decimal"
+                  className="mt-1 h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none md:h-9"
+                />
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const n = Number(saisiePaye.replace(",", "."));
+                    if (Number.isNaN(n)) {
+                      toastErreur("Indiquez un montant valide.");
+                      return;
+                    }
+                    enregistrerPaiement(reservation, n);
+                  }}
+                  className="inline-flex h-11 flex-1 items-center justify-center rounded-card border border-line px-3 text-xs font-medium text-ink-body md:h-9"
+                >
+                  Enregistrer
+                </button>
+                {pct < 100 && (
+                  <button
+                    type="button"
+                    onClick={() => enregistrerPaiement(reservation, reservation.montant)}
+                    className="inline-flex h-11 flex-1 items-center justify-center rounded-card bg-ink px-3 text-xs font-medium text-white md:h-9"
+                  >
+                    Marquer soldé
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
-      <footer className="flex gap-2 border-t border-surface-soft px-5 py-4">
-        <Link
-          to="/reservations/nouveau"
-          className="flex h-[34px] flex-1 items-center justify-center rounded-card border border-line text-sm font-medium text-ink-body"
-        >
-          Modifier
-        </Link>
+      <footer className="flex flex-col gap-2 border-t border-surface-soft px-5 py-4 sm:flex-row sm:flex-wrap">
+        {peutMod && (
+          <Link
+            to="/reservations/nouveau"
+            search={{ id: reservation.id }}
+            className="inline-flex h-11 flex-1 items-center justify-center rounded-card border border-ink bg-accent-teal px-3 text-sm font-medium text-white md:h-[34px]"
+          >
+            Modifier
+          </Link>
+        )}
         <button
           type="button"
-          className="h-[34px] flex-1 rounded-card bg-ink text-sm font-medium text-white"
+          onClick={() => void telechargerFactureReservation(reservation, bien?.nom)}
+          className="inline-flex h-11 flex-1 items-center justify-center rounded-card bg-accent-teal px-3 text-sm font-medium text-white md:h-[34px]"
         >
-          Générer facture
+          Télécharger la facture
         </button>
+        {session.parametrage.afficherEdl && (
+          <Link
+            to="/outils/etats-des-lieux"
+            className="inline-flex h-11 flex-1 items-center justify-center rounded-card border border-line px-3 text-sm font-medium text-ink-body md:h-[34px]"
+          >
+            État des lieux
+          </Link>
+        )}
+        {session.parametrage.afficherFichesAcces && (
+          <Link
+            to="/documents"
+            search={{ vue: "fiches" }}
+            className="inline-flex h-11 flex-1 items-center justify-center rounded-card border border-line px-3 text-sm font-medium text-ink-body md:h-[34px]"
+          >
+            Fiche d'accès
+          </Link>
+        )}
+        {peutMod && reservation.statut !== "Annulé" && (
+          <button
+            type="button"
+            onClick={() => setConfirmer(true)}
+            className="inline-flex h-11 flex-1 items-center justify-center rounded-card border border-line px-3 text-sm font-medium text-ink-body md:h-[34px]"
+          >
+            Annuler
+          </button>
+        )}
       </footer>
+      <Dialog open={confirmer} onOpenChange={(o) => !o && setConfirmer(false)}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>Annuler cette réservation ?</DialogTitle>
+          <DialogDescription>
+            {reservation.occupant} disparaît du planning. Elle restera visible dans la liste, au
+            statut Annulé.
+          </DialogDescription>
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setConfirmer(false)}
+              className="h-9 rounded-card border border-line px-3 text-xs text-ink-body"
+            >
+              Garder
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                annulerReservation(reservation.id);
+                setConfirmer(false);
+                toastOk("Réservation annulée.");
+              }}
+              className="h-9 rounded-card bg-accent-teal px-3 text-xs font-medium text-white"
+            >
+              Confirmer
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </aside>
   );
 }

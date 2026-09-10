@@ -20,9 +20,7 @@ export function DialogSupprimer({
     <Dialog open={Boolean(membre)} onOpenChange={(o) => !o && onFermer()}>
       <DialogContent className="max-w-[400px] gap-0 rounded-card border-line p-6 sm:rounded-card">
         <DialogHeader>
-          <DialogTitle className="text-sm font-normal text-ink">
-            Supprimer ce membre ?
-          </DialogTitle>
+          <DialogTitle className="text-sm font-normal text-ink">Supprimer ce membre ?</DialogTitle>
           <DialogDescription className="text-xs leading-4 text-ink-subtle">
             {membre
               ? `${nomComplet(membre)} sera retiré de l'équipe et perdra l'accès à Hublify.`

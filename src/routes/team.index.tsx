@@ -15,20 +15,18 @@ export const Route = createFileRoute("/team/")({
   },
   loader: async () => {
     const liste = await listerEquipe();
-    return liste.map(
-      (m): MembreEquipe => ({
-        id: m.id,
-        prenom: m.prenom,
-        nom: m.nom,
-        initiales: m.initiales,
-        statut: m.statut,
-        role: m.role,
-        affectation: m.affectation,
-        droits: m.droits,
-        email: m.email,
-        protege: m.protege,
-      }),
-    );
+    return liste.map((m): MembreEquipe => ({
+      id: m.id,
+      prenom: m.prenom,
+      nom: m.nom,
+      initiales: m.initiales,
+      statut: m.statut,
+      role: m.role,
+      affectation: m.affectation,
+      droits: m.droits,
+      email: m.email,
+      protege: m.protege,
+    }));
   },
   head: () => ({
     meta: [{ title: "Team Mate — Hublify" }],

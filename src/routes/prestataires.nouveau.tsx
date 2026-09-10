@@ -56,7 +56,10 @@ function AjoutPrestataire() {
   };
 
   return (
-    <AppShell titre="Ajouter un prestataire" sousTitre="Le prestataire est rattaché à votre organisation">
+    <AppShell
+      titre="Ajouter un prestataire"
+      sousTitre="Le prestataire est rattaché à votre organisation"
+    >
       <Link
         to="/prestataires"
         className="mb-2 inline-flex min-h-11 items-center gap-2 text-sm text-muted-foreground hover:text-foreground md:mb-4 md:min-h-0"

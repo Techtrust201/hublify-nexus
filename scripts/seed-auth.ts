@@ -1,11 +1,12 @@
 import "./charger-env.mjs";
 import { DROITS_PAR_ROLE, SUPER_ADMINS, type RoleId } from "../src/auth/permissions.ts";
 import { etatCanon } from "../src/data/etat-canon.ts";
+import { COLLECTIONS_METIER, type CollectionMetier } from "../src/data/etat-session.ts";
 import {
-  COLLECTIONS_METIER,
-  TABLE_COLLECTION,
-  type CollectionMetier,
-} from "../src/data/etat-session.ts";
+  ecrireParametrage,
+  remplacerCollection,
+  upsertLigne,
+} from "../src/data/metier.ts";
 import { auth, avecInscriptionInterne } from "../src/lib/auth.ts";
 import { ORG_LUCAS_ID, ORG_REDRIS_ID } from "../src/lib/orgs.ts";
 import { rattacherUtilisateur } from "../src/lib/rattacher.ts";
@@ -59,51 +60,23 @@ const emailsObsoletes = ["yannick.rath@hublify.app"];
 
 const MISSIONS_LUCAS = ["ms1", "ms6"];
 
-function extraireId(item: unknown, indice: number): string {
-  if (typeof item === "string") return item;
-  if (item && typeof item === "object" && "id" in item && typeof item.id === "string") {
-    return item.id;
-  }
-  return `ligne-${indice}`;
-}
-
 async function semerCollection(sql: Sql, orgId: string, collection: CollectionMetier, items: unknown[]) {
-  const table = TABLE_COLLECTION[collection];
-  await sql.query(`delete from public.${table} where org_id = $1::uuid`, [orgId]);
-  for (let i = 0; i < items.length; i += 1) {
-    const item = items[i];
-    const id = extraireId(item, i);
-    const payload = typeof item === "string" ? { id, date: item } : item;
-    if (table === "biens" && payload && typeof payload === "object" && "nom" in payload) {
-      const nom = String((payload as { nom?: string }).nom ?? id);
-      const base =
-        typeof (payload as { baseNuit?: number }).baseNuit === "number"
-          ? (payload as { baseNuit: number }).baseNuit
-          : 0;
-      await sql.query(
-        `insert into public.biens (org_id, id, nom, base_nuit, payload, updated_at)
-         values ($1::uuid, $2, $3, $4, $5::jsonb, now())`,
-        [orgId, id, nom, base, JSON.stringify(payload)],
-      );
-    } else if (table === "missions") {
-      const presta = MISSIONS_LUCAS.includes(id) ? ORG_LUCAS_ID : null;
-      const corps =
-        presta && payload && typeof payload === "object"
-          ? { ...(payload as object), assigne: "Lucas Ménage" }
-          : payload;
-      await sql.query(
-        `insert into public.missions (org_id, id, payload, org_prestataire_id, updated_at)
-         values ($1::uuid, $2, $3::jsonb, $4::uuid, now())`,
-        [orgId, id, JSON.stringify(corps), presta],
-      );
-    } else {
-      await sql.query(
-        `insert into public.${table} (org_id, id, payload, updated_at)
-         values ($1::uuid, $2, $3::jsonb, now())`,
-        [orgId, id, JSON.stringify(payload)],
-      );
+  // Les missions confiées à Lucas portent l'org du prestataire : c'est ce
+  // rattachement qui les rend visibles depuis son compte.
+  if (collection === "missions") {
+    const ids = (items as { id: string }[]).map((m) => m.id);
+    await sql.query(`delete from public.missions where org_id = $1::uuid and id <> all($2::text[])`, [
+      orgId,
+      ids,
+    ]);
+    for (const mission of items as { id: string; assigne?: string }[]) {
+      const presta = MISSIONS_LUCAS.includes(mission.id) ? ORG_LUCAS_ID : null;
+      const ligne = presta ? { ...mission, assigne: "Lucas Ménage" } : mission;
+      await upsertLigne(sql, orgId, "missions", ligne, presta);
     }
+    return;
   }
+  await remplacerCollection(sql, orgId, collection, items);
 }
 
 async function main() {
@@ -178,6 +151,7 @@ async function main() {
   for (const cle of COLLECTIONS_METIER) {
     await semerCollection(sql, ORG_REDRIS_ID, cle, canon[cle] as unknown[]);
   }
+  await ecrireParametrage(sql, ORG_REDRIS_ID, canon.parametrage);
 
   const n = await sql`select count(*)::int as n from public.org_membres`;
   const biens = await sql`select count(*)::int as n from public.biens where org_id = ${ORG_REDRIS_ID}::uuid`;

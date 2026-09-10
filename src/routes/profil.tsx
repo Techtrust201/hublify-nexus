@@ -8,20 +8,31 @@ import {
   Mail,
   Pencil,
   Phone,
-  Send,
+  Plus,
   Star,
   User,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/auth/auth-context";
 import { BtnNavy, BtnOutline, Champ } from "@/components/documents/ui";
 import { AppShell } from "@/components/layout/AppShell";
-import { telechargerBase64, toastErreur, toastOk } from "@/lib/feedback";
-import { genererRecapReservationPdf } from "@/lib/documents.functions";
+import { ScrollHint } from "@/components/layout/ScrollHint";
 import {
-  DOCS_PROFIL,
-  PAIEMENTS_PROFIL,
-  PROFIL_GESTIONNAIRE,
-} from "@/data/documents-mo1";
+  choisirFichierComplet,
+  telechargerBase64,
+  telechargerPdf,
+  toastErreur,
+  toastInfo,
+  toastOk,
+} from "@/lib/feedback";
+import { DOCS_PROFIL, PAIEMENTS_PROFIL, PROFIL_GESTIONNAIRE } from "@/data/documents-mo1";
+import {
+  chargerProfilDistant,
+  sauverDocumentsProfilDistants,
+  sauverIdentiteDistante,
+  type DocumentProfil,
+} from "@/data/profil-remote";
+import { formatJourFr, versIsoJour } from "@/data/reservations-mo1";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/profil")({
@@ -32,28 +43,101 @@ export const Route = createFileRoute("/profil")({
 });
 
 function PageProfil() {
+  const auth = useAuth();
   const [onglet, setOnglet] = useState<"info" | "edition">("info");
-  const [prenom, setPrenom] = useState(PROFIL_GESTIONNAIRE.prenom);
-  const [nom, setNom] = useState(PROFIL_GESTIONNAIRE.nom);
-  const [email, setEmail] = useState(PROFIL_GESTIONNAIRE.email);
+  const [prenom, setPrenom] = useState(auth?.prenom ?? PROFIL_GESTIONNAIRE.prenom);
+  const [nom, setNom] = useState(auth?.nom ?? PROFIL_GESTIONNAIRE.nom);
+  const [email, setEmail] = useState(auth?.email ?? PROFIL_GESTIONNAIRE.email);
   const [tel1, setTel1] = useState(PROFIL_GESTIONNAIRE.telephone1);
   const [tel2, setTel2] = useState(PROFIL_GESTIONNAIRE.telephone2);
   const [naissance, setNaissance] = useState(PROFIL_GESTIONNAIRE.naissance);
-  const [enregistre, setEnregistre] = useState(false);
+  const [docs, setDocs] = useState<DocumentProfil[]>([]);
+  const [filtreMethode, setFiltreMethode] = useState("tous");
+  const [filtreStatut, setFiltreStatut] = useState("tous");
 
-  const nomComplet = `${prenom} ${nom}`;
+  // Le profil vit en base : on l'hydrate après montage, le rendu serveur n'a
+  // pas encore la session applicative.
+  useEffect(() => {
+    let vivant = true;
+    void chargerProfilDistant().then((res) => {
+      if (!vivant || !res.ok) return;
+      const { identite, documents } = res.profil;
+      setPrenom(identite.prenom);
+      setNom(identite.nom);
+      setTel1(identite.telephone1);
+      setTel2(identite.telephone2);
+      setNaissance(identite.naissance ? formatJourFr(identite.naissance) : "");
+      setDocs(documents);
+    });
+    return () => {
+      vivant = false;
+    };
+  }, []);
+
+  const nomComplet = `${prenom} ${nom}`.trim();
+  const methodes = Array.from(new Set(PAIEMENTS_PROFIL.map((p) => p.methode)));
+  const paiements = PAIEMENTS_PROFIL.filter((p) => {
+    if (filtreMethode !== "tous" && p.methode !== filtreMethode) return false;
+    if (filtreStatut !== "tous" && p.statut !== filtreStatut) return false;
+    return true;
+  });
+  const euros = (valeur: string) => Number(valeur.replace(/[^\d]/g, "")) || 0;
+  // Le résumé suit les filtres du tableau : sinon les deux blocs se contredisent à l'écran.
+  const totalPaye = paiements
+    .filter((p) => p.statut === "Payé")
+    .reduce((s, p) => s + euros(p.montant), 0);
+  const totalAttente = paiements
+    .filter((p) => p.statut === "En attente")
+    .reduce((s, p) => s + euros(p.montant), 0);
+  const filtreActif = filtreMethode !== "tous" || filtreStatut !== "tous";
+
+  const majDocs = (liste: DocumentProfil[]) => {
+    setDocs(liste);
+    void sauverDocumentsProfilDistants({ data: { documents: liste } }).then((res) => {
+      if (!res.ok) toastErreur("Document non enregistré : la base est injoignable.");
+    });
+  };
+
+  const ajouterDocument = () => {
+    choisirFichierComplet((fichier) => {
+      majDocs([
+        ...docs,
+        {
+          id: `doc-${Date.now()}`,
+          titre: fichier.nom,
+          statut: "En attente",
+          fichier: { nom: fichier.nom, mime: fichier.mime, base64: fichier.base64 },
+        },
+      ]);
+      toastOk(`Document ajouté : ${fichier.nom}`);
+    });
+  };
+
+  const voirDocument = (d: (typeof docs)[number]) => {
+    if (d.fichier) {
+      telechargerBase64(d.fichier.nom, d.fichier.mime, d.fichier.base64);
+      return;
+    }
+    void telechargerPdf(d.titre, [`Statut : ${d.statut}`], {
+      prenom,
+      nom,
+      naissance,
+      email,
+      telephone: tel1,
+      identifiant: PROFIL_GESTIONNAIRE.id,
+      extra: [`Statut : ${d.statut}`],
+    });
+  };
 
   return (
-    <AppShell titre="Votre profil gestionnaire">
+    <AppShell titre={`Votre profil ${auth?.role?.toLowerCase() ?? "gestionnaire"}`}>
       <div className="mb-4 flex flex-wrap gap-2">
         <button
           type="button"
           onClick={() => setOnglet("info")}
           className={cn(
             "h-11 rounded-card px-4 text-sm",
-            onglet === "info"
-              ? "bg-ink text-white"
-              : "bg-surface-soft text-ink",
+            onglet === "info" ? "bg-ink text-white" : "bg-surface-soft text-ink",
           )}
         >
           Informations Profil Gestionnaire
@@ -63,9 +147,7 @@ function PageProfil() {
           onClick={() => setOnglet("edition")}
           className={cn(
             "h-11 rounded-card px-4 text-sm",
-            onglet === "edition"
-              ? "bg-ink text-white"
-              : "bg-surface-soft text-ink",
+            onglet === "edition" ? "bg-ink text-white" : "bg-surface-soft text-ink",
           )}
         >
           Mon Profil Gestionnaire (Édition)
@@ -156,12 +238,12 @@ function PageProfil() {
               <section className="rounded-card border border-line bg-white p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h3 className="text-lg text-ink">Documents obligatoires</h3>
-                  <BtnNavy>
-                    <Send className="size-4" /> Envoyer un document
+                  <BtnNavy onClick={ajouterDocument}>
+                    <Plus className="size-4" /> Ajouter un document
                   </BtnNavy>
                 </div>
                 <ul className="mt-4 divide-y divide-surface-soft text-sm">
-                  {DOCS_PROFIL.map((d) => (
+                  {docs.map((d) => (
                     <li
                       key={d.id}
                       className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-3"
@@ -187,8 +269,9 @@ function PageProfil() {
                         </span>
                         <button
                           type="button"
-                          aria-label="Voir"
+                          aria-label={`Voir ${d.titre}`}
                           className="flex size-11 shrink-0 items-center justify-center rounded-card text-ink-body md:size-8"
+                          onClick={() => voirDocument(d)}
                         >
                           <Eye className="size-4" />
                         </button>
@@ -202,11 +285,32 @@ function PageProfil() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h3 className="text-lg text-ink">Historique des paiements</h3>
                   <div className="flex gap-2">
-                    <span className="h-9 w-32 rounded-card border border-line bg-white" />
-                    <span className="h-9 w-20 rounded-card border border-line bg-white" />
+                    <select
+                      value={filtreMethode}
+                      onChange={(e) => setFiltreMethode(e.target.value)}
+                      aria-label="Filtrer par méthode"
+                      className="h-9 rounded-card border border-line bg-white px-2 text-xs text-ink outline-none"
+                    >
+                      <option value="tous">Toutes méthodes</option>
+                      {methodes.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={filtreStatut}
+                      onChange={(e) => setFiltreStatut(e.target.value)}
+                      aria-label="Filtrer par statut"
+                      className="h-9 rounded-card border border-line bg-white px-2 text-xs text-ink outline-none"
+                    >
+                      <option value="tous">Tous statuts</option>
+                      <option value="Payé">Payé</option>
+                      <option value="En attente">En attente</option>
+                    </select>
                   </div>
                 </div>
-                <div className="mt-4 overflow-x-auto">
+                <ScrollHint className="mt-4">
                   <table className="w-full min-w-[640px] text-left text-sm">
                     <thead className="text-xs text-ink-subtle">
                       <tr>
@@ -218,48 +322,61 @@ function PageProfil() {
                       </tr>
                     </thead>
                     <tbody>
-                      {PAIEMENTS_PROFIL.map((p) => (
-                        <tr key={p.booking} className="border-t border-surface-soft">
-                          <td className="px-4 py-3 text-ink">{p.date}</td>
-                          <td className="px-4 py-3 font-medium text-ink">{p.montant}</td>
-                          <td className="px-4 py-3 text-ink-body">{p.methode}</td>
-                          <td className="px-4 py-3 text-ink-body">{p.booking}</td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs",
-                                p.statut === "Payé"
-                                  ? "bg-chip-success text-chip-success-fg"
-                                  : "bg-chip-warning text-chip-warning-fg",
-                              )}
-                            >
-                              {p.statut === "Payé" ? (
-                                <CheckCircle2 className="size-3" />
-                              ) : (
-                                <Clock className="size-3" />
-                              )}
-                              {p.statut}
-                            </span>
+                      {paiements.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-6 text-sm text-ink-muted">
+                            Aucun paiement pour ces filtres.
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        paiements.map((p) => (
+                          <tr key={p.booking} className="border-t border-surface-soft">
+                            <td className="px-4 py-3 text-ink">{p.date}</td>
+                            <td className="px-4 py-3 font-medium text-ink">{p.montant}</td>
+                            <td className="px-4 py-3 text-ink-body">{p.methode}</td>
+                            <td className="px-4 py-3 text-ink-body">{p.booking}</td>
+                            <td className="px-4 py-3">
+                              <span
+                                className={cn(
+                                  "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs",
+                                  p.statut === "Payé"
+                                    ? "bg-chip-success text-chip-success-fg"
+                                    : "bg-chip-warning text-chip-warning-fg",
+                                )}
+                              >
+                                {p.statut === "Payé" ? (
+                                  <CheckCircle2 className="size-3" />
+                                ) : (
+                                  <Clock className="size-3" />
+                                )}
+                                {p.statut}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
-                </div>
+                </ScrollHint>
               </section>
             </div>
 
             <div className="min-w-0 space-y-4">
               <section className="rounded-card border border-line bg-white p-6">
                 <h3 className="text-lg text-ink">Résumé financier</h3>
+                {filtreActif && (
+                  <p className="mt-1 text-xs text-ink-muted">Calculé sur les filtres actifs.</p>
+                )}
                 <div className="mt-4 space-y-3">
                   <div className="rounded-card bg-chip-success p-4">
                     <p className="text-sm text-chip-success-fg">Total payé</p>
-                    <p className="mt-1 text-2xl text-ink">3,410 €</p>
+                    <p className="mt-1 text-2xl text-ink">{totalPaye.toLocaleString("fr-FR")} €</p>
                   </div>
                   <div className="rounded-card bg-chip-warning p-4">
                     <p className="text-sm text-chip-warning-fg">En attente</p>
-                    <p className="mt-1 text-2xl text-ink">1,280 €</p>
+                    <p className="mt-1 text-2xl text-ink">
+                      {totalAttente.toLocaleString("fr-FR")} €
+                    </p>
                   </div>
                   <div className="rounded-card bg-chip-danger p-4">
                     <p className="text-sm text-chip-danger-fg">Échoué</p>
@@ -271,28 +388,31 @@ function PageProfil() {
               <section className="rounded-card border border-line bg-white p-6">
                 <h3 className="text-lg text-ink">Actions rapides</h3>
                 <div className="mt-4 flex flex-col gap-3">
-                  <BtnNavy
-                    className="h-10 w-full justify-center"
-                    onClick={() => toastOk("Document envoyé (démo).")}
-                  >
-                    <Send className="size-4" /> Envoyer un document
+                  <BtnNavy className="h-10 w-full justify-center" onClick={ajouterDocument}>
+                    <Plus className="size-4" /> Ajouter un document
                   </BtnNavy>
                   <BtnOutline
                     className="h-10 w-full justify-center"
                     onClick={() => {
-                      void (async () => {
-                        try {
-                          const doc = await genererRecapReservationPdf({
-                            data: {
-                              titre: "Rapport gestionnaire Hublify",
-                              lignes: ["Rapport de gestion", new Date().toISOString().slice(0, 10)],
-                            },
-                          });
-                          telechargerBase64(doc.nom, doc.mime, doc.base64);
-                        } catch {
-                          toastErreur("Génération impossible.");
-                        }
-                      })();
+                      const extra = [
+                        `Gestionnaire : ${nomComplet}`,
+                        `E-mail : ${email}`,
+                        `Telephone : ${tel1}`,
+                        `Total paye : ${totalPaye.toLocaleString("fr-FR")} EUR`,
+                        `En attente : ${totalAttente.toLocaleString("fr-FR")} EUR`,
+                        ...paiements.map(
+                          (p) => `${p.date} — ${p.montant} — ${p.methode} — ${p.statut}`,
+                        ),
+                      ];
+                      void telechargerPdf("Rapport gestionnaire Hublify", extra, {
+                        prenom,
+                        nom,
+                        naissance,
+                        email,
+                        telephone: tel1,
+                        identifiant: PROFIL_GESTIONNAIRE.id,
+                        extra,
+                      });
                     }}
                   >
                     <FileText className="size-4" /> Générer un rapport
@@ -300,19 +420,19 @@ function PageProfil() {
                   <BtnOutline
                     className="h-10 w-full justify-center"
                     onClick={() => {
-                      void (async () => {
-                        try {
-                          const doc = await genererRecapReservationPdf({
-                            data: {
-                              titre: "Documents gestionnaire Hublify",
-                              lignes: ["Archive documents"],
-                            },
-                          });
-                          telechargerBase64(doc.nom, doc.mime, doc.base64);
-                        } catch {
-                          toastErreur("Téléchargement impossible.");
-                        }
-                      })();
+                      const extra = [
+                        "Archive documents gestionnaire",
+                        ...docs.map((d) => `${d.titre} — ${d.statut}`),
+                      ];
+                      void telechargerPdf("Documents gestionnaire Hublify", extra, {
+                        prenom,
+                        nom,
+                        naissance,
+                        email,
+                        telephone: tel1,
+                        identifiant: PROFIL_GESTIONNAIRE.id,
+                        extra,
+                      });
                     }}
                   >
                     <Download className="size-4" /> Télécharger les documents
@@ -347,9 +467,31 @@ function PageProfil() {
           className="mx-auto max-w-xl space-y-4 rounded-card border border-line bg-white p-6"
           onSubmit={(e) => {
             e.preventDefault();
-            setEnregistre(true);
-            setOnglet("info");
-            toastOk("Profil mis à jour.");
+            if (!prenom.trim() || !nom.trim()) {
+              toastErreur("Le prénom et le nom sont obligatoires.");
+              return;
+            }
+            const naissanceIso = versIsoJour(naissance.trim());
+            if (naissance.trim() && !/^\d{4}-\d{2}-\d{2}$/.test(naissanceIso)) {
+              toastErreur("Date de naissance attendue au format JJ/MM/AAAA.");
+              return;
+            }
+            void sauverIdentiteDistante({
+              data: {
+                prenom: prenom.trim(),
+                nom: nom.trim(),
+                telephone1: tel1.trim(),
+                telephone2: tel2.trim(),
+                naissance: naissanceIso,
+              },
+            }).then((res) => {
+              if (!res.ok) {
+                toastErreur("Profil non enregistré : la base est injoignable.");
+                return;
+              }
+              setOnglet("info");
+              toastOk("Profil mis à jour.");
+            });
           }}
         >
           <div className="flex items-center gap-3">
@@ -368,14 +510,24 @@ function PageProfil() {
             <Champ label="Prénom" value={prenom} onChange={setPrenom} />
             <Champ label="Nom" value={nom} onChange={setNom} />
           </div>
-          <Champ label="Email" value={email} onChange={setEmail} />
+          <div>
+            <label className="block text-xs uppercase tracking-[0.3px] text-ink-muted">Email</label>
+            <p className="mt-1 rounded-input border border-line bg-surface-soft px-3 py-2 text-sm text-ink-body">
+              {email}
+            </p>
+            <p className="mt-1 text-xs text-ink-muted">
+              L'adresse sert d'identifiant de connexion : sa modification passe par le support.
+            </p>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Champ label="Téléphone 1" value={tel1} onChange={setTel1} />
             <Champ label="Téléphone 2" value={tel2} onChange={setTel2} />
           </div>
           <Champ label="Date de naissance" value={naissance} onChange={setNaissance} />
           <BtnNavy type="submit">Enregistrer</BtnNavy>
-          {enregistre && <p className="text-xs text-ink-subtle">Profil mis à jour.</p>}
+          <p className="text-xs text-ink-subtle">
+            Enregistré sur votre compte : ces informations vous suivent sur tous vos appareils.
+          </p>
         </form>
       )}
     </AppShell>

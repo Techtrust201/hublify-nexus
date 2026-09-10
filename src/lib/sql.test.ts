@@ -8,7 +8,8 @@ function compiler(chaines: TemplateStringsArray, ...valeurs: unknown[]) {
 describe("compilerRequete", () => {
   it("place des placeholders sans interpoler les valeurs dans le SQL", () => {
     const id = "e9016520-9825-4a14-97bf-1642329da97c";
-    const { texte, valeurs } = compiler`select payload from public.evenements where org_id = ${id}::uuid`;
+    const { texte, valeurs } =
+      compiler`select payload from public.evenements where org_id = ${id}::uuid`;
     expect(texte).toBe("select payload from public.evenements where org_id = $1::uuid");
     expect(valeurs).toEqual([id]);
     expect(texte).not.toContain(id);

@@ -12,7 +12,7 @@ import {
   Star,
   Trash2,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { BadgeType, BtnNavy, BtnOutline, Champ, Chip } from "@/components/documents/ui";
 import { ScrollHint } from "@/components/layout/ScrollHint";
 import {
@@ -22,7 +22,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MODELES_DOCS, type ModeleDoc } from "@/data/documents-mo1";
+import { type ModeleDoc } from "@/data/documents-mo1";
+import { idNouveau, poserCollection, useSession } from "@/data/session";
+import { confirmer, telechargerDemo, telechargerPdf, toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
 const CATEGORIES = ["Tous", "Général", "Locataires", "Voyageurs", "Prestataires", "Propriétaires"];
@@ -38,15 +40,34 @@ const TYPES = [
   "Autre",
 ];
 
+function contenuModele(m: ModeleDoc) {
+  return [
+    `Modèle Hublify — ${m.designation}`,
+    `Type : ${m.type}`,
+    `Catégorie : ${m.categorie}`,
+    `Référence : ${m.reference}`,
+    `Dernière utilisation : ${m.derniere}`,
+    `Utilisations : ${m.utilisations}`,
+    "",
+    "Corps du modèle (à personnaliser à chaque génération).",
+  ].join("\n");
+}
+
 export function ModelesApp() {
   const [recherche, setRecherche] = useState("");
   const [categorie, setCategorie] = useState("Tous");
   const [cartes, setCartes] = useState(false);
   const [filtres, setFiltres] = useState(false);
-  const [creer, setCreer] = useState(false);
+  const [formOuvert, setFormOuvert] = useState(false);
+  const [edition, setEdition] = useState<ModeleDoc | null>(null);
   const [apercu, setApercu] = useState<ModeleDoc | null>(null);
   const [selection, setSelection] = useState<string[]>([]);
-  const [modeles, setModeles] = useState(MODELES_DOCS);
+  const modeles = useSession().modeles;
+  const setModeles = (maj: (liste: ModeleDoc[]) => ModeleDoc[]) => poserCollection("modeles", maj);
+
+  useEffect(() => {
+    if (window.matchMedia("(max-width: 767px)").matches) setCartes(true);
+  }, []);
 
   const list = useMemo(() => {
     let rows = modeles;
@@ -65,6 +86,76 @@ export function ModelesApp() {
 
   const favoris = modeles.filter((m) => m.favori);
 
+  const ouvrirCreation = () => {
+    setEdition(null);
+    setFormOuvert(true);
+  };
+
+  const ouvrirEdition = (m: ModeleDoc) => {
+    setEdition(m);
+    setFormOuvert(true);
+    setApercu(null);
+  };
+
+  const telecharger = (m: ModeleDoc) => {
+    const lignes = contenuModele(m).split("\n");
+    void telechargerPdf(m.designation, lignes, {
+      identifiant: m.reference,
+      extra: [`Type : Modèle`, ...lignes],
+    });
+  };
+
+  const dupliquer = (m: ModeleDoc) => {
+    const copie: ModeleDoc = {
+      ...m,
+      id: idNouveau("m"),
+      designation: `${m.designation} (copie)`,
+      reference: `INV-${Math.floor(1030 + Math.random() * 90)}`,
+      utilisations: 0,
+      derniere: "—",
+      favori: false,
+    };
+    setModeles((prev) => [copie, ...prev]);
+    toastOk("Modèle dupliqué.");
+    setApercu(copie);
+  };
+
+  const supprimerIds = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const ok = await confirmer({
+      titre: ids.length > 1 ? `Retirer ${ids.length} modèles ?` : "Retirer ce modèle ?",
+      description: "Le modèle ne sera plus proposé à la génération de documents.",
+      libelleConfirmer: "Retirer",
+      danger: true,
+    });
+    if (!ok) return;
+    setModeles((prev) => prev.filter((m) => !ids.includes(m.id)));
+    setSelection((s) => s.filter((id) => !ids.includes(id)));
+    setApercu((a) => (a && ids.includes(a.id) ? null : a));
+    toastOk(ids.length > 1 ? `${ids.length} modèles retirés.` : "Modèle retiré.");
+  };
+
+  const basculerFavori = (m: ModeleDoc) => {
+    setModeles((prev) => prev.map((x) => (x.id === m.id ? { ...x, favori: !x.favori } : x)));
+    setApercu((a) => (a && a.id === m.id ? { ...a, favori: !a.favori } : a));
+    toastOk(m.favori ? "Retiré des favoris." : "Ajouté aux favoris.");
+  };
+
+  const enregistrerModele = (m: ModeleDoc) => {
+    setModeles((prev) => {
+      const i = prev.findIndex((x) => x.id === m.id);
+      if (i >= 0) return prev.map((x) => (x.id === m.id ? m : x));
+      return [m, ...prev];
+    });
+    toastOk(edition ? "Modèle mis à jour." : "Modèle créé.");
+  };
+
+  const toggleSel = (id: string) =>
+    setSelection((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+
+  const uniqueSelection =
+    selection.length === 1 ? modeles.find((m) => m.id === selection[0]) : undefined;
+
   return (
     <div>
       <div className="mb-8 text-center">
@@ -72,7 +163,7 @@ export function ModelesApp() {
         <p className="mx-auto mt-2 max-w-lg text-sm text-ink-subtle">
           Créez et gérez vos modèles de factures, devis, quittances et contrats réutilisables.
         </p>
-        <BtnNavy className="mt-4 h-12 px-6 text-sm" onClick={() => setCreer(true)}>
+        <BtnNavy className="mt-4 h-12 px-6 text-sm" onClick={ouvrirCreation}>
           <Plus className="size-4" /> Créer un nouveau document
         </BtnNavy>
       </div>
@@ -92,27 +183,46 @@ export function ModelesApp() {
           <p className="mb-2 flex items-center gap-2 text-sm text-ink">
             <Star className="size-3.5 fill-ink text-ink" />
             Favoris
-            <span className="rounded bg-surface-soft px-1.5 text-xs text-ink-subtle">{favoris.length}</span>
+            <span className="rounded bg-surface-soft px-1.5 text-xs text-ink-subtle">
+              {favoris.length}
+            </span>
           </p>
           <div className="grid gap-3 md:grid-cols-3">
             {favoris.map((m) => (
-              <button
+              <div
                 key={m.id}
-                type="button"
-                onClick={() => setApercu(m)}
-                className="flex items-center gap-3 rounded-card border border-line bg-white px-4 py-3 text-left"
+                className="flex items-center gap-2 rounded-card border border-line bg-white pr-2"
               >
-                <span className="flex size-8 items-center justify-center rounded-[8px] bg-surface-soft">
-                  <FileText className="size-3.5 text-ink-body" />
-                </span>
-                <span>
-                  <span className="block text-xs text-ink">{m.designation}</span>
-                  <span className="block text-[10px] text-ink-muted">
-                    {m.type} · {m.reference}
+                <button
+                  type="button"
+                  onClick={() => setApercu(m)}
+                  className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left"
+                >
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-surface-soft">
+                    <FileText className="size-3.5 text-ink-body" />
                   </span>
-                </span>
-              </button>
+                  <span className="min-w-0">
+                    <span className="block truncate text-xs text-ink">{m.designation}</span>
+                    <span className="block text-[10px] text-ink-muted">
+                      {m.type} · {m.reference}
+                    </span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => basculerFavori(m)}
+                  aria-label={`Retirer ${m.designation} des favoris`}
+                  className="flex size-11 shrink-0 items-center justify-center rounded-card text-ink-body md:size-8"
+                >
+                  <Star className="size-3.5 fill-ink text-ink" />
+                </button>
+              </div>
             ))}
+            {favoris.length === 0 && (
+              <p className="text-xs text-ink-muted">
+                Marquez un modèle d'une étoile pour le retrouver ici.
+              </p>
+            )}
           </div>
         </section>
 
@@ -129,16 +239,33 @@ export function ModelesApp() {
               <BtnOutline onClick={() => setFiltres(true)}>
                 <SlidersHorizontal className="size-3" /> Filtres
               </BtnOutline>
-              <BtnOutline onClick={() => setCreer(true)}>
+              <BtnOutline onClick={ouvrirCreation}>
                 <Plus className="size-3" /> Ajouter
               </BtnOutline>
-              <BtnOutline disabled={selection.length === 0}>
+              <BtnOutline
+                disabled={!uniqueSelection}
+                onClick={() => uniqueSelection && ouvrirEdition(uniqueSelection)}
+              >
                 <Pencil className="size-3" /> Modifier
               </BtnOutline>
-              <BtnOutline disabled={selection.length === 0}>
+              <BtnOutline disabled={selection.length === 0} onClick={() => supprimerIds(selection)}>
                 <Trash2 className="size-3" /> Supprimer
               </BtnOutline>
-              <BtnOutline>
+              <BtnOutline
+                onClick={() => {
+                  const source = selection.length
+                    ? modeles.filter((m) => selection.includes(m.id))
+                    : list;
+                  const lignes = [
+                    "Designation;Type;Categorie;Reference;Utilisations",
+                    ...source.map(
+                      (m) =>
+                        `${m.designation};${m.type};${m.categorie};${m.reference};${m.utilisations}`,
+                    ),
+                  ];
+                  telechargerDemo("modeles-hublify.csv", lignes.join("\n"));
+                }}
+              >
                 <Download className="size-3" /> Télécharger modèle
               </BtnOutline>
               <button
@@ -170,11 +297,7 @@ export function ModelesApp() {
                       <input
                         type="checkbox"
                         checked={selection.includes(m.id)}
-                        onChange={() =>
-                          setSelection((s) =>
-                            s.includes(m.id) ? s.filter((x) => x !== m.id) : [...s, m.id],
-                          )
-                        }
+                        onChange={() => toggleSel(m.id)}
                         aria-label={`Sélectionner ${m.designation}`}
                       />
                     </label>
@@ -186,16 +309,21 @@ export function ModelesApp() {
                   <p className="mt-1 text-xs text-ink-subtle">
                     {m.derniere} · {m.utilisations} utilisations
                   </p>
-                  <div className="mt-3 flex gap-1">
-                    <button type="button" onClick={() => setApercu(m)} aria-label="Aperçu">
-                      <Eye className="size-3.5 text-ink-body" />
-                    </button>
-                    <Download className="size-3.5 text-ink-body" />
-                    <Copy className="size-3.5 text-ink-body" />
-                    <Trash2 className="size-3.5 text-ink-body" />
-                  </div>
+                  <ActionsModele
+                    modele={m}
+                    onApercu={() => setApercu(m)}
+                    onFavori={() => basculerFavori(m)}
+                    onTelecharger={() => telecharger(m)}
+                    onDupliquer={() => dupliquer(m)}
+                    onSupprimer={() => supprimerIds([m.id])}
+                  />
                 </article>
               ))}
+              {list.length === 0 && (
+                <p className="py-10 text-center text-sm text-ink-muted sm:col-span-2 lg:col-span-3">
+                  Aucun modèle pour cette recherche.
+                </p>
+              )}
             </div>
           ) : (
             <ScrollHint>
@@ -220,11 +348,7 @@ export function ModelesApp() {
                           <input
                             type="checkbox"
                             checked={selection.includes(m.id)}
-                            onChange={() =>
-                              setSelection((s) =>
-                                s.includes(m.id) ? s.filter((x) => x !== m.id) : [...s, m.id],
-                              )
-                            }
+                            onChange={() => toggleSel(m.id)}
                             aria-label={`Sélectionner ${m.designation}`}
                           />
                         </label>
@@ -249,22 +373,25 @@ export function ModelesApp() {
                       <td className="px-2 py-3 text-center text-ink-body">{m.utilisations}</td>
                       <td className="px-2 py-3 text-ink-body">{m.reference}</td>
                       <td className="px-2 py-3">
-                        <div className="flex justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setApercu(m)}
-                            aria-label="Aperçu"
-                            className="-my-3 flex size-11 shrink-0 items-center justify-center md:my-0 md:size-3.5"
-                          >
-                            <Eye className="size-3.5 text-ink-body" />
-                          </button>
-                          <Download className="size-3.5 text-ink-body" />
-                          <Copy className="size-3.5 text-ink-body" />
-                          <Trash2 className="size-3.5 text-ink-body" />
-                        </div>
+                        <ActionsModele
+                          modele={m}
+                          compact
+                          onApercu={() => setApercu(m)}
+                          onFavori={() => basculerFavori(m)}
+                          onTelecharger={() => telecharger(m)}
+                          onDupliquer={() => dupliquer(m)}
+                          onSupprimer={() => supprimerIds([m.id])}
+                        />
                       </td>
                     </tr>
                   ))}
+                  {list.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-10 text-center text-sm text-ink-muted">
+                        Aucun modèle pour cette recherche.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </ScrollHint>
@@ -273,12 +400,21 @@ export function ModelesApp() {
       </div>
 
       <CreateModeleDialog
-        ouvert={creer}
-        onClose={() => setCreer(false)}
-        onCreer={(m) => setModeles((prev) => [m, ...prev])}
+        ouvert={formOuvert}
+        edition={edition}
+        onClose={() => {
+          setFormOuvert(false);
+          setEdition(null);
+        }}
+        onEnregistrer={enregistrerModele}
       />
-      <PreviewModeleDialog modele={apercu} onClose={() => setApercu(null)} />
-      <Dialog open={filtres} onOpenChange={setFiltres}>
+      <PreviewModeleDialog
+        modele={apercu}
+        onClose={() => setApercu(null)}
+        onTelecharger={() => apercu && telecharger(apercu)}
+        onDupliquer={() => apercu && dupliquer(apercu)}
+      />
+      <Dialog open={filtres} onOpenChange={(o) => !o && setFiltres(false)}>
         <DialogContent className="max-w-sm rounded-card">
           <DialogHeader>
             <DialogTitle className="text-base">Filtres</DialogTitle>
@@ -304,25 +440,129 @@ export function ModelesApp() {
   );
 }
 
+function ActionsModele({
+  modele,
+  compact,
+  onApercu,
+  onFavori,
+  onTelecharger,
+  onDupliquer,
+  onSupprimer,
+}: {
+  modele: ModeleDoc;
+  compact?: boolean;
+  onApercu: () => void;
+  onFavori: () => void;
+  onTelecharger: () => void;
+  onDupliquer: () => void;
+  onSupprimer: () => void;
+}) {
+  return (
+    <div className={cn("flex gap-1", compact ? "justify-end" : "mt-3")}>
+      <BoutonIcone
+        label={`Aperçu ${modele.designation}`}
+        onClick={onApercu}
+        compact={Boolean(compact)}
+      >
+        <Eye className="size-3.5 text-ink-body" />
+      </BoutonIcone>
+      <BoutonIcone
+        label={
+          modele.favori
+            ? `Retirer ${modele.designation} des favoris`
+            : `Ajouter ${modele.designation} aux favoris`
+        }
+        onClick={onFavori}
+        compact={Boolean(compact)}
+      >
+        <Star className={cn("size-3.5", modele.favori ? "fill-ink text-ink" : "text-ink-body")} />
+      </BoutonIcone>
+      <BoutonIcone
+        label={`Télécharger ${modele.designation}`}
+        onClick={onTelecharger}
+        compact={Boolean(compact)}
+      >
+        <Download className="size-3.5 text-ink-body" />
+      </BoutonIcone>
+      <BoutonIcone
+        label={`Dupliquer ${modele.designation}`}
+        onClick={onDupliquer}
+        compact={Boolean(compact)}
+      >
+        <Copy className="size-3.5 text-ink-body" />
+      </BoutonIcone>
+      <BoutonIcone
+        label={`Supprimer ${modele.designation}`}
+        onClick={onSupprimer}
+        compact={Boolean(compact)}
+      >
+        <Trash2 className="size-3.5 text-ink-body" />
+      </BoutonIcone>
+    </div>
+  );
+}
+
+function BoutonIcone({
+  label,
+  onClick,
+  compact,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  compact?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className={
+        compact
+          ? "-my-3 flex size-11 shrink-0 items-center justify-center rounded-card hover:bg-surface-soft md:my-0 md:size-8"
+          : "flex size-11 items-center justify-center rounded-card border border-line md:size-8"
+      }
+    >
+      {children}
+    </button>
+  );
+}
+
 function CreateModeleDialog({
   ouvert,
+  edition,
   onClose,
-  onCreer,
+  onEnregistrer,
 }: {
   ouvert: boolean;
+  edition: ModeleDoc | null;
   onClose: () => void;
-  onCreer: (m: ModeleDoc) => void;
+  onEnregistrer: (m: ModeleDoc) => void;
 }) {
   const [nom, setNom] = useState("");
   const [type, setType] = useState("Quittance");
   const [categorie, setCategorie] = useState("Général");
+
+  useEffect(() => {
+    if (!ouvert) return;
+    if (edition) {
+      setNom(edition.designation);
+      setType(edition.type);
+      setCategorie(edition.categorie);
+    } else {
+      setNom("");
+      setType("Quittance");
+      setCategorie("Général");
+    }
+  }, [ouvert, edition]);
 
   return (
     <Dialog open={ouvert} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-[480px] rounded-card border-line p-0">
         <DialogHeader className="border-b border-surface-soft px-6 py-5">
           <DialogTitle className="text-base font-medium text-ink">
-            Créer un nouveau modèle
+            {edition ? "Modifier le modèle" : "Créer un nouveau modèle"}
           </DialogTitle>
           <DialogDescription className="text-xs text-ink-muted">
             Ce modèle sera archivé et disponible depuis la bibliothèque.
@@ -361,20 +601,20 @@ function CreateModeleDialog({
           <BtnNavy
             onClick={() => {
               if (!nom.trim()) return;
-              onCreer({
-                id: `m-${Date.now()}`,
+              onEnregistrer({
+                id: edition?.id ?? idNouveau("m"),
                 designation: nom.trim(),
                 type,
                 categorie,
-                derniere: "—",
-                utilisations: 0,
-                reference: `INV-${Math.floor(1030 + Math.random() * 50)}`,
+                derniere: edition?.derniere ?? "—",
+                utilisations: edition?.utilisations ?? 0,
+                reference: edition?.reference ?? `INV-${Math.floor(1030 + Math.random() * 50)}`,
+                ...(edition?.favori ? { favori: true } : {}),
               });
-              setNom("");
               onClose();
             }}
           >
-            Créer le modèle
+            {edition ? "Enregistrer" : "Créer le modèle"}
           </BtnNavy>
         </div>
       </DialogContent>
@@ -385,9 +625,13 @@ function CreateModeleDialog({
 function PreviewModeleDialog({
   modele,
   onClose,
+  onTelecharger,
+  onDupliquer,
 }: {
   modele: ModeleDoc | null;
   onClose: () => void;
+  onTelecharger: () => void;
+  onDupliquer: () => void;
 }) {
   return (
     <Dialog open={modele !== null} onOpenChange={(o) => !o && onClose()}>
@@ -404,58 +648,37 @@ function PreviewModeleDialog({
           <div className="flex flex-col gap-5 rounded-[14px] border border-line bg-white px-8 py-8">
             <div className="flex items-start justify-between">
               <div className="space-y-1.5">
-                <div className="h-3 w-28 rounded bg-line" />
-                <div className="h-2.5 w-20 rounded bg-surface-soft" />
-                <div className="h-2.5 w-24 rounded bg-surface-soft" />
+                <p className="text-sm font-medium text-ink">{modele?.designation}</p>
+                <p className="text-xs text-ink-muted">{modele?.type}</p>
+                <p className="text-xs text-ink-subtle">{modele?.categorie}</p>
               </div>
-              <div className="space-y-1.5">
-                <div className="h-4 w-24 rounded bg-ink" />
-                <div className="ml-8 h-2.5 w-16 rounded bg-surface-soft" />
+              <p className="text-sm font-medium text-ink">{modele?.reference}</p>
+            </div>
+            <p className="text-xs leading-5 text-ink-body">
+              Document type prêt à personnaliser. Téléchargez-le ou dupliquez-le pour une variante.
+            </p>
+            <div className="overflow-hidden rounded-card border border-line text-xs">
+              <div className="grid grid-cols-2 gap-3 bg-surface-soft px-4 py-2 font-medium text-ink-subtle sm:grid-cols-4">
+                <span>Désignation</span>
+                <span className="hidden sm:inline">Type</span>
+                <span className="hidden sm:inline">Catégorie</span>
+                <span>Réf.</span>
               </div>
-            </div>
-            <div className="space-y-2 border-t border-surface-soft pt-4">
-              <div className="h-2.5 w-64 rounded bg-line" />
-              <div className="h-2 w-96 max-w-full rounded bg-surface-soft" />
-              <div className="h-2 w-80 max-w-full rounded bg-surface-soft" />
-            </div>
-            <div className="overflow-hidden rounded-card border border-line">
-              <div className="flex gap-4 bg-surface-soft px-4 py-2">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-2 flex-1 rounded bg-line-strong" />
-                ))}
-              </div>
-              {Array.from({ length: 3 }).map((_, r) => (
-                <div key={r} className="flex gap-4 border-t border-surface-soft px-4 py-2">
-                  {Array.from({ length: 4 }).map((_, c) => (
-                    <div key={c} className="h-2 flex-1 rounded bg-surface-soft" />
-                  ))}
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-end">
-              <div className="w-40 space-y-1.5">
-                <div className="flex justify-between">
-                  <div className="h-2 w-12 rounded bg-surface-soft" />
-                  <div className="h-2 w-16 rounded bg-surface-soft" />
-                </div>
-                <div className="flex justify-between">
-                  <div className="h-2 w-8 rounded bg-surface-soft" />
-                  <div className="h-2 w-16 rounded bg-surface-soft" />
-                </div>
-                <div className="flex justify-between border-t border-line pt-1.5">
-                  <div className="h-2.5 w-10 rounded bg-ink" />
-                  <div className="h-2.5 w-16 rounded bg-ink" />
-                </div>
+              <div className="grid grid-cols-2 gap-3 border-t border-surface-soft px-4 py-2 text-ink-body sm:grid-cols-4">
+                <span>{modele?.designation}</span>
+                <span className="hidden sm:inline">{modele?.type}</span>
+                <span className="hidden sm:inline">{modele?.categorie}</span>
+                <span>{modele?.reference}</span>
               </div>
             </div>
           </div>
         </div>
         <div className="flex items-center justify-between border-t border-surface-soft px-6 py-4">
           <div className="flex gap-2">
-            <BtnOutline>
+            <BtnOutline onClick={onTelecharger}>
               <Download className="size-3" /> Télécharger
             </BtnOutline>
-            <BtnOutline>
+            <BtnOutline onClick={onDupliquer}>
               <Copy className="size-3" /> Dupliquer
             </BtnOutline>
           </div>

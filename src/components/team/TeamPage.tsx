@@ -13,16 +13,21 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
-import { useRouter } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 import {
-  DROIT_PERSONNALISE_INITIAL,
   nomComplet,
   type DroitPersonnalise,
   type MembreEquipe,
   type StatutMembre,
 } from "@/data/messagerie-mo1";
-import { ajouterNotif, modifierSession, useSession } from "@/data/session";
+import {
+  ajouterNotif,
+  idNouveau,
+  modifierSession,
+  poserCollection,
+  useSession,
+} from "@/data/session";
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { enregistrerDroitsMembre, inviterMembre, retirerMembre } from "@/lib/auth.functions";
 import { cn } from "@/lib/utils";
@@ -40,6 +45,7 @@ const BADGE: Record<StatutMembre, { label: string; classe: string }> = {
 export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
   const session = useSession();
   const router = useRouter();
+  const navigate = useNavigate();
   const actions = session.actions;
   const [recherche, setRecherche] = useState("");
   const [inviter, setInviter] = useState(false);
@@ -49,10 +55,12 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
   const [formDroit, setFormDroit] = useState(false);
   const [nomDroit, setNomDroit] = useState("");
   const [descDroit, setDescDroit] = useState("");
-  const [droitsPerso, setDroitsPerso] = useState<DroitPersonnalise[]>([
-    DROIT_PERSONNALISE_INITIAL,
-  ]);
+  const droitsPerso = session.droitsPersonnalises;
   const [selectMembres, setSelectMembres] = useState<string | null>(null);
+
+  const majDroits = (
+    next: DroitPersonnalise[] | ((liste: DroitPersonnalise[]) => DroitPersonnalise[]),
+  ) => poserCollection("droitsPersonnalises", next);
 
   const filtres = useMemo(() => {
     const q = recherche.trim().toLowerCase();
@@ -61,7 +69,8 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
       (m) =>
         nomComplet(m).toLowerCase().includes(q) ||
         m.affectation.toLowerCase().includes(q) ||
-        m.role.toLowerCase().includes(q),
+        m.role.toLowerCase().includes(q) ||
+        (m.email?.toLowerCase().includes(q) ?? false),
     );
   }, [membres, recherche]);
 
@@ -71,7 +80,8 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
         <div>
           <h2 className="text-xl text-ink">Team Mate</h2>
           <p className="mt-1 text-sm text-ink-subtle">
-            Constituez votre équipe afin de vous assister au quotidien
+            Constituez votre équipe afin de vous assister au quotidien. Actions en cours et
+            invitations restent visibles ci-dessous.
           </p>
         </div>
         <button
@@ -91,7 +101,10 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
               <Users className="size-3.5 text-ink-body" />
             </span>
             <div>
-              <p className="text-sm text-ink">Membres de l'équipe ({membres.length})</p>
+              <p className="text-sm text-ink">
+                Membres de l'équipe (
+                {recherche.trim() ? `${filtres.length}/${membres.length}` : membres.length})
+              </p>
               <p className="text-[10px] text-ink-muted">Gérez les accès et les permissions</p>
             </div>
           </div>
@@ -105,6 +118,13 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
             />
           </label>
         </header>
+        {filtres.length === 0 && (
+          <p className="px-5 py-10 text-center text-sm text-ink-muted">
+            {membres.length === 0
+              ? "Aucun membre pour l'instant. Utilisez « Inviter un membre »."
+              : "Aucun membre ne correspond à cette recherche."}
+          </p>
+        )}
         <ul>
           {filtres.map((m) => {
             const badge = BADGE[m.statut];
@@ -117,12 +137,7 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm text-ink">{nomComplet(m)}</p>
-                      <span
-                        className={cn(
-                          "rounded px-2 py-0.5 text-[10px]",
-                          badge.classe,
-                        )}
-                      >
+                      <span className={cn("rounded px-2 py-0.5 text-[10px]", badge.classe)}>
                         {badge.label}
                       </span>
                     </div>
@@ -151,22 +166,22 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
                     </button>
                     {!m.protege && (
                       <>
-                    <button
-                      type="button"
-                      aria-label="Modifier les droits"
-                      onClick={() => setEdition(m)}
-                      className="flex size-11 items-center justify-center rounded-card border border-line text-ink-body"
-                    >
-                      <Pencil className="size-3" />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="Supprimer le membre"
-                      onClick={() => setSuppression(m)}
-                      className="flex size-11 items-center justify-center rounded-card border border-line text-ink-body"
-                    >
-                      <Trash2 className="size-3" />
-                    </button>
+                        <button
+                          type="button"
+                          aria-label="Modifier les droits"
+                          onClick={() => setEdition(m)}
+                          className="flex size-11 items-center justify-center rounded-card border border-line text-ink-body"
+                        >
+                          <Pencil className="size-3" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Supprimer le membre"
+                          onClick={() => setSuppression(m)}
+                          className="flex size-11 items-center justify-center rounded-card border border-line text-ink-body"
+                        >
+                          <Trash2 className="size-3" />
+                        </button>
                       </>
                     )}
                   </div>
@@ -176,9 +191,69 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
                     <CarteMessage
                       membre={m}
                       onFermer={() => setMessagePour(null)}
-                      onEnvoyer={() => {
+                      onEnvoyer={(texte) => {
+                        const convId = `c-team-${m.id}`;
+                        const heure = new Date().toLocaleTimeString("fr-FR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        });
+                        modifierSession((e) => {
+                          const existe = e.conversations.some((c) => c.id === convId);
+                          return {
+                            ...e,
+                            conversations: existe
+                              ? e.conversations.map((c) =>
+                                  c.id === convId
+                                    ? {
+                                        ...c,
+                                        extrait: texte,
+                                        ilYa: "À l'instant",
+                                        archivee: false,
+                                        nonLu: false,
+                                      }
+                                    : c,
+                                )
+                              : [
+                                  {
+                                    id: convId,
+                                    section: "team" as const,
+                                    nom: nomComplet(m),
+                                    initiales: m.initiales,
+                                    type: "team" as const,
+                                    badge: "Team",
+                                    extrait: texte,
+                                    ilYa: "À l'instant",
+                                    nonLu: false,
+                                    archivee: false,
+                                  },
+                                  ...e.conversations,
+                                ],
+                            messagesFil: [
+                              ...e.messagesFil,
+                              {
+                                id: idNouveau("msg"),
+                                conversationId: convId,
+                                kind: "envoye" as const,
+                                texte,
+                                heure,
+                              },
+                            ],
+                            messagesDash: [
+                              {
+                                id: idNouveau("md"),
+                                canal: "team" as const,
+                                auteur: nomComplet(m),
+                                initiales: m.initiales,
+                                texte,
+                                ilYa: "À l'instant",
+                              },
+                              ...e.messagesDash,
+                            ],
+                          };
+                        });
                         toastOk(`Message envoyé à ${m.prenom}.`);
                         setMessagePour(null);
+                        void navigate({ to: "/messagerie", search: { conv: convId } });
                       }}
                     />
                   </div>
@@ -211,12 +286,13 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
                 <div className="mt-3 flex gap-2">
                   <button
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
                       modifierSession((e) => ({
                         ...e,
                         actions: e.actions.filter((x) => x.id !== a.id),
-                      }))
-                    }
+                      }));
+                      toastOk("Action validée.");
+                    }}
                     className="inline-flex h-11 flex-1 items-center justify-center gap-1 rounded-card bg-ink text-[10px] font-medium text-white md:h-[29px]"
                   >
                     <Check className="size-2.5" />
@@ -224,12 +300,15 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
                   </button>
                   <button
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
                       modifierSession((e) => ({
                         ...e,
-                        actions: e.actions.filter((x) => x.id !== a.id),
-                      }))
-                    }
+                        actions: e.actions.map((x) =>
+                          x.id === a.id ? { ...x, quand: "Reporté" } : x,
+                        ),
+                      }));
+                      toastOk("Action reportée — elle reste dans la liste.");
+                    }}
                     className="inline-flex h-11 flex-1 items-center justify-center gap-1 rounded-card border border-line text-[10px] font-medium text-ink-body md:h-[29px]"
                   >
                     <RotateCcw className="size-2.5" />
@@ -257,7 +336,8 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
         </header>
         <div className="space-y-4 p-5">
           <p className="text-xs text-ink-subtle">
-            Définissez vos propres droits et attribuez-les à un ou plusieurs membres de votre équipe.
+            Définissez vos propres droits et attribuez-les à un ou plusieurs membres de votre
+            équipe.
           </p>
 
           {droitsPerso.map((d) => (
@@ -270,7 +350,7 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
                 <button
                   type="button"
                   aria-label="Supprimer le droit"
-                  onClick={() => setDroitsPerso((liste) => liste.filter((x) => x.id !== d.id))}
+                  onClick={() => majDroits((liste) => liste.filter((x) => x.id !== d.id))}
                   className="-m-4 flex size-11 shrink-0 items-center justify-center text-ink-muted md:m-0 md:size-3"
                 >
                   <Trash2 className="size-3" />
@@ -292,7 +372,7 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
                         type="button"
                         aria-label={`Retirer ${m.prenom}`}
                         onClick={() =>
-                          setDroitsPerso((liste) =>
+                          majDroits((liste) =>
                             liste.map((x) =>
                               x.id === d.id
                                 ? { ...x, membresIds: x.membresIds.filter((mid) => mid !== id) }
@@ -324,14 +404,13 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
                             key={m.id}
                             type="button"
                             onClick={() => {
-                              setDroitsPerso((liste) =>
+                              majDroits((liste) =>
                                 liste.map((x) =>
-                                  x.id === d.id
-                                    ? { ...x, membresIds: [...x.membresIds, m.id] }
-                                    : x,
+                                  x.id === d.id ? { ...x, membresIds: [...x.membresIds, m.id] } : x,
                                 ),
                               );
                               setSelectMembres(null);
+                              toastOk(`${d.nom} attribué à ${nomComplet(m)}.`);
                             }}
                             className="flex w-full px-3 py-1.5 text-left text-xs text-ink-body hover:bg-surface"
                           >
@@ -381,7 +460,7 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
                   type="button"
                   disabled={!nomDroit.trim()}
                   onClick={() => {
-                    setDroitsPerso((liste) => [
+                    majDroits((liste) => [
                       ...liste,
                       {
                         id: `dp-${Date.now()}`,
@@ -393,6 +472,7 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
                     setFormDroit(false);
                     setNomDroit("");
                     setDescDroit("");
+                    toastOk("Droit d'accès ajouté. Assignez-le à un membre.");
                   }}
                   className="h-[34px] flex-1 rounded-card bg-ink text-xs font-medium text-white disabled:opacity-40"
                 >
@@ -423,11 +503,15 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
             });
             if (!result.ok) throw new Error("Invitation refusée");
             ajouterNotif({
-              titre: "Invitation envoyée",
+              titre: result.mailEnvoye ? "Invitation envoyée" : "Invitation créée",
               detail: `${prenom} ${nom}`,
               href: "/team",
             });
-            toastOk("Invitation envoyée par e-mail.");
+            toastOk(
+              result.mailEnvoye
+                ? "Invitation envoyée par e-mail."
+                : "Membre ajouté. L'e-mail partira dès que le service d'envoi sera configuré.",
+            );
             await router.invalidate();
           } catch {
             toastErreur("Impossible d'inviter ce membre.");

@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 
 import { AuthProvider } from "@/auth/auth-context";
 import { aLeDroit, droitRequisPourChemin, type AuthContexte } from "@/auth/permissions";
+import { DialogueConfirmation } from "@/components/ui/dialogue-confirmation";
 import { Toaster } from "@/components/ui/sonner";
 import { hydraterSession } from "@/data/session";
 import { getSession } from "@/lib/auth.functions";
@@ -54,6 +55,11 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <p className="mt-2 text-sm text-muted-foreground">
           Un problème est survenu. Vous pouvez réessayer ou revenir à l'accueil.
         </p>
+        {import.meta.env.DEV && error?.message ? (
+          <p className="mt-3 max-w-full break-words font-mono text-[11px] text-muted-foreground">
+            {error.message}
+          </p>
+        ) : null}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
@@ -168,7 +174,8 @@ function RootComponent() {
       <AuthProvider valeur={auth ?? null}>
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
-        <Toaster position="top-right" richColors closeButton />
+        <DialogueConfirmation />
+        <Toaster position="bottom-center" richColors closeButton />
       </AuthProvider>
     </QueryClientProvider>
   );

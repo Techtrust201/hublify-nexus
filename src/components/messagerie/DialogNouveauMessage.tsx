@@ -1,4 +1,4 @@
-import { Paperclip, Pencil, Send } from "lucide-react";
+import { File, Paperclip, Pencil, Send, X } from "lucide-react";
 import { useState } from "react";
 import {
   Dialog,
@@ -7,6 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import type { PieceJointe } from "@/data/messagerie-mo1";
+import { choisirFichierComplet } from "@/lib/feedback";
 
 export function DialogNouveauMessage({
   ouvert,
@@ -15,17 +17,21 @@ export function DialogNouveauMessage({
 }: {
   ouvert: boolean;
   onFermer: () => void;
-  onEnvoyer: (destinataire: string, objet: string, texte: string) => void;
+  onEnvoyer: (destinataire: string, objet: string, texte: string, pieces: PieceJointe[]) => void;
 }) {
   const [destinataire, setDestinataire] = useState("");
   const [objet, setObjet] = useState("");
   const [texte, setTexte] = useState("");
+  const [pieces, setPieces] = useState<PieceJointe[]>([]);
 
   const reset = () => {
     setDestinataire("");
     setObjet("");
     setTexte("");
+    setPieces([]);
   };
+
+  const peutEnvoyer = Boolean(destinataire.trim() && (texte.trim() || pieces.length));
 
   return (
     <Dialog
@@ -71,11 +77,49 @@ export function DialogNouveauMessage({
             rows={4}
             className="w-full resize-none bg-transparent text-xs text-ink outline-none placeholder:text-line-strong"
           />
+          {pieces.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {pieces.map((p) => (
+                <span
+                  key={p.nom}
+                  className="inline-flex items-center gap-1.5 rounded-card border border-line bg-surface px-2 py-1"
+                >
+                  <File className="size-3 text-ink-body" />
+                  <span className="max-w-[160px] truncate text-[11px] text-ink">{p.nom}</span>
+                  <button
+                    type="button"
+                    aria-label={`Retirer ${p.nom}`}
+                    onClick={() => setPieces((liste) => liste.filter((x) => x.nom !== p.nom))}
+                    className="text-ink-muted"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         <div className="flex items-center justify-between border-t border-surface-soft px-5 py-3">
           <button
             type="button"
             className="inline-flex items-center gap-1.5 text-xs text-ink-body"
+            onClick={() =>
+              choisirFichierComplet((fichier) =>
+                setPieces((liste) =>
+                  liste.some((p) => p.nom === fichier.nom)
+                    ? liste
+                    : [
+                        ...liste,
+                        {
+                          nom: fichier.nom,
+                          taille: fichier.taille,
+                          mime: fichier.mime,
+                          base64: fichier.base64,
+                        },
+                      ],
+                ),
+              )
+            }
           >
             <Paperclip className="size-3.5" />
             Joindre un fichier
@@ -87,19 +131,19 @@ export function DialogNouveauMessage({
                 reset();
                 onFermer();
               }}
-              className="h-[30px] rounded-card border border-line px-3 text-xs font-medium text-ink-body"
+              className="h-11 rounded-card border border-line px-3 text-xs font-medium text-ink-body md:h-[30px]"
             >
               Annuler
             </button>
             <button
               type="button"
-              disabled={!destinataire.trim() || !texte.trim()}
+              disabled={!peutEnvoyer}
               onClick={() => {
-                onEnvoyer(destinataire.trim(), objet.trim(), texte.trim());
+                onEnvoyer(destinataire.trim(), objet.trim(), texte.trim(), pieces);
                 reset();
                 onFermer();
               }}
-              className="inline-flex h-[30px] items-center gap-1.5 rounded-card bg-ink px-3 text-xs font-medium text-white disabled:opacity-40"
+              className="inline-flex h-11 items-center gap-1.5 rounded-card bg-ink px-3 text-xs font-medium text-white disabled:opacity-40 md:h-[30px]"
             >
               <Send className="size-2.5" />
               Envoyer

@@ -1,20 +1,23 @@
-// SOURCE: Maquette MO1 — sidebar gestionnaire (réutilisée desktop + drawer)
+// SOURCE: Maquette V1 — sidebar Accueil 2:18130 (Lieux, Analyse, Team mate, Je débute teal)
 
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { useState } from "react";
 import {
+  BarChart3,
   CalendarDays,
   ChevronDown,
   ChevronRight,
+  ClipboardCheck,
   ClipboardList,
   FileText,
   Home,
   Info,
   MessageSquare,
+  Settings,
   Users,
-  Wrench,
 } from "lucide-react";
 import { useAuth, useDroit } from "@/auth/auth-context";
-import { aLeDroit, type DroitId } from "@/auth/permissions";
+import { aLeDroit, initialesDe, SUPER_ADMINS, type DroitId } from "@/auth/permissions";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,18 +39,15 @@ type Entree = {
 const NAV: Entree[] = [
   { titre: "Réservations", url: "/reservations", icone: Users, droit: "voir-reservations" },
   { titre: "Documents", url: "/documents", icone: FileText, droit: "voir-documents" },
-  { titre: "Prestataires", url: "/prestataires", icone: Wrench, chevron: true, droit: "voir-biens" },
-  { titre: "Patrimoines", url: "/patrimoines", icone: Home, chevron: true, droit: "voir-biens" },
+  { titre: "Lieux", url: "/patrimoines", icone: Home, chevron: true, droit: "voir-biens" },
   { titre: "Messagerie", url: "/messagerie", icone: MessageSquare, droit: "messagerie" },
+  { titre: "Analyse", url: "/analyse", icone: BarChart3, droit: "voir-finances" },
 ];
 
-const SOUS_PRESTATAIRES = [
+const SOUS_LIEUX = [
+  { titre: "Lieux", url: "/patrimoines" },
   { titre: "Prestataires", url: "/prestataires" },
   { titre: "Occupants", url: "/occupants" },
-];
-
-const SOUS_PATRIMOINES = [
-  { titre: "Patrimoines", url: "/patrimoines" },
   { titre: "Inventaire", url: "/inventaire" },
 ];
 
@@ -60,9 +60,26 @@ const VUES = [
 
 const OUTILS: Array<{ titre: string; url: string; icone: typeof Info; droit?: DroitId }> = [
   { titre: "Tous les outils", url: "/outils", icone: Info },
-  { titre: "Modèles de documents", url: "/outils/modeles", icone: FileText, droit: "voir-documents" },
-  { titre: "Vue annuelle", url: "/outils/vue-annuelle", icone: CalendarDays, droit: "voir-calendrier" },
+  {
+    titre: "Modèles de documents",
+    url: "/outils/modeles",
+    icone: FileText,
+    droit: "voir-documents",
+  },
+  {
+    titre: "Vue annuelle",
+    url: "/outils/vue-annuelle",
+    icone: CalendarDays,
+    droit: "voir-calendrier",
+  },
   { titre: "Inventaire", url: "/inventaire", icone: ClipboardList, droit: "voir-biens" },
+  {
+    titre: "États des lieux",
+    url: "/outils/etats-des-lieux",
+    icone: ClipboardCheck,
+    droit: "voir-documents",
+  },
+  { titre: "Paramétrage", url: "/parametrage", icone: Settings, droit: "mod-reservations" },
 ];
 
 export function estActif(pathname: string, url: string) {
@@ -84,10 +101,16 @@ export function NavChrome({
   const navigate = useNavigate();
   const router = useRouter();
   const droits = auth?.droits ?? [];
-  const vuesVisibles = VUES.filter((v) => !v.droit || aLeDroit(droits, v.droit));
   const navVisible = NAV.filter((e) => !e.droit || aLeDroit(droits, e.droit));
   const outilsVisibles = OUTILS.filter((o) => !o.droit || aLeDroit(droits, o.droit));
   const mobile = densite === "mobile";
+  // Sur mobile les vues sont dépliées : on retire celles qui figurent déjà dans la nav principale.
+  const vuesVisibles = VUES.filter(
+    (v) =>
+      (!v.droit || aLeDroit(droits, v.droit)) &&
+      !(mobile && navVisible.some((e) => e.url === v.url)),
+  );
+  const [lieuxOuvert, setLieuxOuvert] = useState(false);
   const lien = mobile
     ? "flex min-h-11 items-center gap-3 rounded-card px-3 text-sm font-medium text-ink-body hover:bg-surface"
     : "flex h-9 items-center gap-3 rounded-card px-3 text-sm font-medium text-ink-body hover:bg-surface";
@@ -98,7 +121,11 @@ export function NavChrome({
   return (
     <>
       <div className="border-b border-surface-soft px-4 py-4">
-        <Link to="/profil" onClick={onNavigate} className={cn("flex items-center gap-3", mobile && "min-h-11")}>
+        <Link
+          to="/profil"
+          onClick={onNavigate}
+          className={cn("flex items-center gap-3", mobile && "min-h-11")}
+        >
           <span className="flex size-10 items-center justify-center rounded-full bg-line text-sm text-ink-body">
             {auth?.initiales ?? "?"}
           </span>
@@ -149,31 +176,44 @@ export function NavChrome({
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 pt-3">
         {navVisible.map((e) => {
-          const sous =
-            e.titre === "Prestataires"
-              ? SOUS_PRESTATAIRES
-              : e.titre === "Patrimoines"
-                ? SOUS_PATRIMOINES
-                : null;
+          const sous = e.titre === "Lieux" ? SOUS_LIEUX : null;
           const ouvert = Boolean(
-            sous?.some((s) => estActif(pathname, s.url)) || estActif(pathname, e.url),
+            sous?.some((s) => estActif(pathname, s.url)) ||
+            estActif(pathname, e.url) ||
+            (mobile && e.titre === "Lieux" && lieuxOuvert),
+          );
+          const interne = (
+            <>
+              <e.icone className="size-4 shrink-0" />
+              <span className="flex-1 truncate">{e.titre}</span>
+              {e.chevron &&
+                (ouvert ? (
+                  <ChevronDown className="size-3.5 text-ink-muted" />
+                ) : (
+                  <ChevronRight className="size-3.5 text-ink-muted" />
+                ))}
+            </>
           );
           return (
             <div key={e.titre}>
-              <Link
-                to={e.url}
-                onClick={onNavigate}
-                className={cn(lien, estActif(pathname, e.url) && "bg-surface-soft text-ink")}
-              >
-                <e.icone className="size-4 shrink-0" />
-                <span className="flex-1 truncate">{e.titre}</span>
-                {e.chevron &&
-                  (ouvert ? (
-                    <ChevronDown className="size-3.5 text-ink-muted" />
-                  ) : (
-                    <ChevronRight className="size-3.5 text-ink-muted" />
-                  ))}
-              </Link>
+              {mobile && sous ? (
+                <button
+                  type="button"
+                  aria-expanded={ouvert}
+                  onClick={() => setLieuxOuvert((v) => !v)}
+                  className={cn(lien, "w-full", ouvert && "bg-surface-soft text-ink")}
+                >
+                  {interne}
+                </button>
+              ) : (
+                <Link
+                  to={e.url}
+                  onClick={onNavigate}
+                  className={cn(lien, estActif(pathname, e.url) && "bg-surface-soft text-ink")}
+                >
+                  {interne}
+                </Link>
+              )}
               {e.chevron && ouvert && sous && (
                 <div className="mb-1 ml-7 mt-0.5 space-y-0.5">
                   {sous.map((s) => (
@@ -181,7 +221,10 @@ export function NavChrome({
                       key={s.url}
                       to={s.url}
                       onClick={onNavigate}
-                      className={cn(sousLien, estActif(pathname, s.url) && "bg-surface-soft text-ink")}
+                      className={cn(
+                        sousLien,
+                        estActif(pathname, s.url) && "bg-surface-soft text-ink",
+                      )}
                     >
                       {s.titre}
                     </Link>
@@ -193,18 +236,41 @@ export function NavChrome({
         })}
 
         {peutEquipe && (
-          <Link
-            to="/team"
-            onClick={onNavigate}
-            className="block px-3 pt-4 text-xs uppercase tracking-[0.3px] text-ink-muted hover:text-ink-body"
-          >
-            Team mate
-          </Link>
+          <div className="pt-4">
+            <Link
+              to="/team"
+              onClick={onNavigate}
+              className="flex min-h-6 items-center px-3 text-xs uppercase tracking-[0.3px] text-ink-muted hover:text-ink-body"
+            >
+              Team mate
+            </Link>
+            <div className="mt-1 space-y-0.5">
+              {SUPER_ADMINS.map((m) => (
+                <Link
+                  key={m.email}
+                  to="/team"
+                  onClick={onNavigate}
+                  className={cn(lien, "gap-2 pl-3")}
+                >
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-line text-[10px] font-medium text-ink-subtle">
+                    {initialesDe(m.prenom, m.nom)}
+                  </span>
+                  <span className="truncate">
+                    {m.prenom} {m.nom}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
         )}
 
-        <p className="px-3 pt-4 text-xs uppercase tracking-[0.3px] text-ink-muted">Tous les outils</p>
-        {(mobile ? outilsVisibles : [{ titre: "En savoir plus", url: "/outils", icone: Info, droit: undefined }]).map(
-          (o) => (
+        <p className="px-3 pt-4 text-xs uppercase tracking-[0.3px] text-ink-muted">
+          Tous les outils
+        </p>
+        {(mobile
+          ? outilsVisibles
+          : [{ titre: "En savoir plus", url: "/outils", icone: Info, droit: undefined }]
+        ).map((o) => (
           <Link
             key={o.url + o.titre}
             to={o.url}
@@ -223,7 +289,7 @@ export function NavChrome({
             to="/outils/debuter"
             onClick={onNavigate}
             className={cn(
-              "flex w-full items-center justify-center rounded-card bg-ink-deep text-sm font-medium text-white",
+              "flex w-full items-center justify-center rounded-card bg-accent-teal text-sm font-medium text-white",
               mobile ? "min-h-11" : "h-9",
             )}
           >
@@ -232,11 +298,13 @@ export function NavChrome({
         )}
         {auth?.roleId !== "prestataire" && (
           <Link
-            to="/"
+            to="/outils"
+            activeOptions={{ exact: true }}
             onClick={onNavigate}
             className={cn(
               "flex w-full items-center justify-center rounded-card border border-line text-sm font-medium text-ink-body",
               mobile ? "min-h-11" : "h-[38px]",
+              pathname === "/outils" && "bg-surface-soft text-ink",
             )}
           >
             Je découvre

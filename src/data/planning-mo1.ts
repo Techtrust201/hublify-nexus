@@ -99,12 +99,48 @@ export const BIENS_MO1: BienMo1[] = [
 ];
 
 export const RESERVATIONS_MO1: ReservationMo1[] = [
-  { id: "rs1", bienId: "suzette", voyageur: "Sophie Martin", arrivee: "2026-03-04", depart: "2026-03-07" },
-  { id: "rs2", bienId: "lavandrix", voyageur: "Jean Dupont", arrivee: "2026-03-04", depart: "2026-03-07" },
-  { id: "rs3", bienId: "colette", voyageur: "Pierre Bernard", arrivee: "2026-03-04", depart: "2026-03-06" },
-  { id: "rs4", bienId: "colette", voyageur: "Anna Schmidt", arrivee: "2026-03-06", depart: "2026-03-09" },
-  { id: "rs5", bienId: "lavandrix", voyageur: "Marie Curie", arrivee: "2026-03-07", depart: "2026-03-09" },
-  { id: "rs6", bienId: "raclette", voyageur: "Lucas Martin", arrivee: "2026-03-07", depart: "2026-03-09" },
+  {
+    id: "rs1",
+    bienId: "suzette",
+    voyageur: "Sophie Martin",
+    arrivee: "2026-03-04",
+    depart: "2026-03-07",
+  },
+  {
+    id: "rs2",
+    bienId: "lavandrix",
+    voyageur: "Jean Dupont",
+    arrivee: "2026-03-04",
+    depart: "2026-03-07",
+  },
+  {
+    id: "rs3",
+    bienId: "colette",
+    voyageur: "Pierre Bernard",
+    arrivee: "2026-03-04",
+    depart: "2026-03-06",
+  },
+  {
+    id: "rs4",
+    bienId: "colette",
+    voyageur: "Anna Schmidt",
+    arrivee: "2026-03-06",
+    depart: "2026-03-09",
+  },
+  {
+    id: "rs5",
+    bienId: "lavandrix",
+    voyageur: "Marie Curie",
+    arrivee: "2026-03-07",
+    depart: "2026-03-09",
+  },
+  {
+    id: "rs6",
+    bienId: "raclette",
+    voyageur: "Lucas Martin",
+    arrivee: "2026-03-07",
+    depart: "2026-03-09",
+  },
 ];
 
 export const MISSIONS_MO1: MissionMo1[] = [
@@ -295,7 +331,8 @@ export const MESSAGES_MO1: MessageMo1[] = [
     auteur: "John Doe",
     initiales: "JD",
     bienNom: "Villa Lavandrix",
-    texte: "Merci pour votre accueil. Petite question : où puis-je trouver des draps supplémentaires ?",
+    texte:
+      "Merci pour votre accueil. Petite question : où puis-je trouver des draps supplémentaires ?",
     ilYa: "Il y a 1h",
   },
   {
@@ -392,7 +429,8 @@ export const EVENEMENTS_MO1: EvenementMo1[] = [
     lieu: "Lyon Centre · à 500m du Studio Raclette",
     dates: "3 mai 2026",
     impact: "Impact modéré",
-    description: "Circulation perturbée le dimanche. Pensez à informer vos occupants des déviations.",
+    description:
+      "Circulation perturbée le dimanche. Pensez à informer vos occupants des déviations.",
   },
   {
     id: "ev3",
@@ -520,7 +558,12 @@ export function emojiType(type: TypeRegle) {
   return TYPES_REGLE.find((t) => t.id === type)?.emoji ?? "🎉";
 }
 
-export function prixDuJour(bien: BienMo1, jour: string, ensembles: EnsembleRegles[], regles: RegleTarif[]) {
+export function prixDuJour(
+  bien: BienMo1,
+  jour: string,
+  ensembles: EnsembleRegles[],
+  regles: RegleTarif[],
+) {
   const actives = regles.filter((r) => {
     const ens = ensembles.find((e) => e.id === r.ensembleId);
     return ens?.actif && r.debut <= jour && r.fin > jour;

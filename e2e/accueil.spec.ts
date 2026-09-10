@@ -18,7 +18,8 @@ test("un administrateur accède à la vue générale", async ({ page }) => {
   );
   await page.goto("/connexion");
   await page.getByLabel("Email").fill("contact@tech-trust.fr");
-  await page.getByLabel("Mot de passe").fill("Hublify-Demo-2026!");
+  // Le champ voisine un bouton « Afficher le mot de passe » : on vise l'input.
+  await page.locator('input[name="password"]').fill("Hublify-Demo-2026!");
   await page.getByRole("button", { name: "Se connecter" }).click();
   await expect(page).toHaveTitle(/Vue générale/, { timeout: 15_000 });
   await expect(page.getByRole("link", { name: "Réservations" }).first()).toBeVisible();

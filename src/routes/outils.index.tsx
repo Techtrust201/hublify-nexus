@@ -1,5 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CalendarDays, ClipboardList, FileText, Info, Wrench } from "lucide-react";
+import {
+  CalendarDays,
+  ClipboardCheck,
+  ClipboardList,
+  FileText,
+  Info,
+  Settings,
+  Wrench,
+} from "lucide-react";
+import { useDroit } from "@/auth/auth-context";
 import { AppShell } from "@/components/layout/AppShell";
 
 export const Route = createFileRoute("/outils/")({
@@ -29,6 +38,18 @@ const OUTILS = [
     vers: "/inventaire" as const,
   },
   {
+    titre: "États des lieux",
+    texte: "Entrée, sortie, photos par pièce, comparaison.",
+    icone: ClipboardCheck,
+    vers: "/outils/etats-des-lieux" as const,
+  },
+  {
+    titre: "Paramétrage",
+    texte: "Notifications, formulaires voyageurs et upsells.",
+    icone: Settings,
+    vers: "/parametrage" as const,
+  },
+  {
     titre: "Je débute",
     texte: "Parcours guidé : créer un bien, une réservation, puis une première mission.",
     icone: Info,
@@ -43,10 +64,21 @@ const OUTILS = [
 ];
 
 function PageOutils() {
+  const peutParametrer = useDroit("mod-reservations");
+  const voirDocs = useDroit("voir-documents");
+  const voirCal = useDroit("voir-calendrier");
+  const voirBiens = useDroit("voir-biens");
+  const outils = OUTILS.filter((o) => {
+    if (o.vers === "/parametrage" || o.vers === "/outils/debuter") return peutParametrer;
+    if (o.vers === "/outils/modeles" || o.vers === "/outils/etats-des-lieux") return voirDocs;
+    if (o.vers === "/outils/vue-annuelle") return voirCal;
+    if (o.vers === "/inventaire") return voirBiens;
+    return true;
+  });
   return (
     <AppShell titre="Outils" sousTitre="Tous les outils">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {OUTILS.map((o) => (
+        {outils.map((o) => (
           <article key={o.titre} className="rounded-card border border-line bg-white p-4">
             <o.icone className="size-4 text-ink-body" />
             <h2 className="mt-3 text-sm font-medium text-ink">{o.titre}</h2>

@@ -1,10 +1,5 @@
 import { getRequest } from "@tanstack/react-start/server";
-import {
-  droitsEffectifs,
-  labelDuRole,
-  type AuthContexte,
-  type RoleId,
-} from "@/auth/permissions";
+import { droitsEffectifs, labelDuRole, type AuthContexte, type RoleId } from "@/auth/permissions";
 import { auth } from "@/lib/auth";
 import type { OrgType } from "@/lib/orgs";
 import { getSql } from "@/lib/sql";

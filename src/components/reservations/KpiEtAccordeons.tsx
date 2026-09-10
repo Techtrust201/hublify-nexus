@@ -18,9 +18,7 @@ export function FiltreOnglet({
       onClick={onClick}
       className={cn(
         "inline-flex h-11 items-center rounded border px-2.5 text-xs font-medium md:h-[26px]",
-        actif
-          ? "border-ink bg-ink text-white"
-          : "border-line bg-white text-ink-body",
+        actif ? "border-ink bg-ink text-white" : "border-line bg-white text-ink-body",
       )}
     >
       {children}

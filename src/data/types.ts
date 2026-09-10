@@ -13,11 +13,7 @@ export type Bien = {
 };
 
 export type CategoriePrestataire =
-  | "Ménage"
-  | "Maintenance"
-  | "Blanchisserie"
-  | "Jardinage"
-  | "Accueil";
+  "Ménage" | "Maintenance" | "Blanchisserie" | "Jardinage" | "Accueil";
 
 export type Prestataire = {
   id: string;

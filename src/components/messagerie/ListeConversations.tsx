@@ -78,7 +78,12 @@ export function ListeConversations({
   const inbox = conversations.filter((c) => c.section === "inbox");
 
   return (
-    <aside className={cn("flex min-h-0 flex-col border-b border-line lg:w-[288px] lg:shrink-0 lg:border-b-0 lg:border-r", className)}>
+    <aside
+      className={cn(
+        "flex min-h-0 flex-col border-b border-line lg:w-[288px] lg:shrink-0 lg:border-b-0 lg:border-r",
+        className,
+      )}
+    >
       <div className="flex items-center gap-2 border-b border-surface-soft px-3 py-2.5">
         <label className="flex h-11 min-w-0 flex-1 items-center gap-1.5 rounded-card border border-line bg-white px-2.5">
           <Search className="size-3 shrink-0 text-ink-muted" />
@@ -99,6 +104,13 @@ export function ListeConversations({
         </button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
+        {conversations.length === 0 && (
+          <p className="px-4 py-10 text-center text-sm text-ink-muted">
+            {recherche.trim()
+              ? "Aucune conversation pour cette recherche."
+              : "Aucune conversation ici."}
+          </p>
+        )}
         {inbox.map((c) => (
           <LigneConversation
             key={c.id}
@@ -123,11 +135,7 @@ export function ListeConversations({
                   {s.label}
                   {aNonLu && <span className="size-1.5 rounded-full bg-ink" />}
                 </span>
-                {ouverte ? (
-                  <ChevronDown className="size-3" />
-                ) : (
-                  <ChevronRight className="size-3" />
-                )}
+                {ouverte ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
               </button>
               {ouverte &&
                 items.map((c) => (

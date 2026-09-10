@@ -54,9 +54,7 @@ const PROBE_OVERLAY = () => {
       if (cs.overflowX === "visible" && el.clientWidth > 0 && el.scrollWidth - el.clientWidth > 4) {
         const pcs = el.parentElement ? getComputedStyle(el.parentElement) : null;
         if (pcs && (pcs.display.includes("flex") || pcs.display.includes("grid"))) {
-          soucis.push(
-            `contenu écrasé ${desc(el)} ${el.clientWidth}px pour ${el.scrollWidth}px`,
-          );
+          soucis.push(`contenu écrasé ${desc(el)} ${el.clientWidth}px pour ${el.scrollWidth}px`);
         }
       }
     }
@@ -80,7 +78,7 @@ await authPage.goto(`${BASE}/connexion`, { waitUntil: "load" });
 await authPage.waitForTimeout(2500);
 await authPage.getByLabel("Email").fill(process.env.DEMO_EMAIL ?? "contact@tech-trust.fr");
 await authPage
-  .getByLabel("Mot de passe")
+  .locator('input[name="password"]')
   .fill(process.env.DEMO_AUTH_PASSWORD ?? "Hublify-Demo-2026!");
 await authPage.getByRole("button", { name: "Se connecter" }).click();
 await authPage.waitForURL((u) => !u.pathname.includes("/connexion"), { timeout: 20_000 });
@@ -98,18 +96,23 @@ for (const width of WIDTHS) {
     await page.goto(`${BASE}${route}`, { waitUntil: "load" });
     await page.waitForTimeout(600);
 
-    const noms = await page.evaluate((re) => {
-      const rx = new RegExp(re.source, re.flags);
-      const vus = new Set();
-      const out = [];
-      for (const b of document.querySelectorAll("button, [role=button]")) {
-        const t = (b.getAttribute("aria-label") ?? b.textContent ?? "").trim().replace(/\s+/g, " ");
-        if (!t || t.length > 48 || !rx.test(t) || vus.has(t)) continue;
-        vus.add(t);
-        out.push(t);
-      }
-      return out.slice(0, 14);
-    }, { source: DECLENCHEURS.source, flags: DECLENCHEURS.flags });
+    const noms = await page.evaluate(
+      (re) => {
+        const rx = new RegExp(re.source, re.flags);
+        const vus = new Set();
+        const out = [];
+        for (const b of document.querySelectorAll("button, [role=button]")) {
+          const t = (b.getAttribute("aria-label") ?? b.textContent ?? "")
+            .trim()
+            .replace(/\s+/g, " ");
+          if (!t || t.length > 48 || !rx.test(t) || vus.has(t)) continue;
+          vus.add(t);
+          out.push(t);
+        }
+        return out.slice(0, 14);
+      },
+      { source: DECLENCHEURS.source, flags: DECLENCHEURS.flags },
+    );
 
     for (const nom of noms) {
       try {

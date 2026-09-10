@@ -4,11 +4,7 @@ import { sessionDepuisRequete } from "@/lib/session-serveur.server";
 import { octetsVersBase64, pdfTexte } from "@/lib/pdf";
 import { getSql } from "@/lib/sql";
 
-async function enregistrerPdf(params: {
-  orgId: string;
-  nom: string;
-  octets: Uint8Array;
-}) {
+async function enregistrerPdf(params: { orgId: string; nom: string; octets: Uint8Array }) {
   const sql = getSql();
   if (!sql) throw new Error("Base indisponible");
   const id = `doc-${crypto.randomUUID()}`;
@@ -22,16 +18,18 @@ async function enregistrerPdf(params: {
 }
 
 export const genererQuittancePdf = createServerFn({ method: "POST" })
-  .validator((input: {
-    bailleur: string;
-    bailleurAdr: string;
-    locataire: string;
-    locAdr: string;
-    loyer: string;
-    charges: string;
-    mois: string;
-    faitA: string;
-  }) => input)
+  .validator(
+    (input: {
+      bailleur: string;
+      bailleurAdr: string;
+      locataire: string;
+      locAdr: string;
+      loyer: string;
+      charges: string;
+      mois: string;
+      faitA: string;
+    }) => input,
+  )
   .handler(async ({ data }) => {
     const moi = await sessionDepuisRequete();
     if (!moi || !aLeDroit(moi.droits, "voir-documents")) {
@@ -56,14 +54,16 @@ export const genererQuittancePdf = createServerFn({ method: "POST" })
   });
 
 export const genererAvisPdf = createServerFn({ method: "POST" })
-  .validator((input: {
-    bailleur: string;
-    locataire: string;
-    mois: string;
-    echeance: string;
-    loyer: string;
-    charges: string;
-  }) => input)
+  .validator(
+    (input: {
+      bailleur: string;
+      locataire: string;
+      mois: string;
+      echeance: string;
+      loyer: string;
+      charges: string;
+    }) => input,
+  )
   .handler(async ({ data }) => {
     const moi = await sessionDepuisRequete();
     if (!moi || !aLeDroit(moi.droits, "voir-documents")) {

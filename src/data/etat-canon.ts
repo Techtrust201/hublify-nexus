@@ -1,11 +1,26 @@
-import { DATES_BLOQUEES_INIT } from "@/data/documents-mo1";
-import { etatVide, type BienSession, type EtatSession } from "@/data/etat-session";
+import {
+  DATES_BLOQUEES_INIT,
+  DOCS_MO1,
+  IMMEUBLES_PATRIMOINE,
+  ITEMS_INVENTAIRE,
+  LOGEMENTS_PATRIMOINE,
+  MODELES_DOCS,
+} from "@/data/documents-mo1";
+import { DOSSIERS_EDL } from "@/data/edl-mo1";
+import {
+  etatVide,
+  type BienSession,
+  type EtatSession,
+  type ImmeubleSession,
+} from "@/data/etat-session";
 import {
   ACTIONS_EN_COURS,
   CONVERSATIONS_MO1,
+  DROIT_PERSONNALISE_INITIAL,
   MESSAGES_MO1 as FILS_MO1,
 } from "@/data/messagerie-mo1";
 import { PRESTATAIRES } from "@/data/mock";
+import { PARAMETRAGE_DEFAUT } from "@/data/parametrage-mo1";
 import {
   BIENS_MO1 as BIENS_PLANNING,
   ENSEMBLES_MO1,
@@ -19,7 +34,9 @@ import {
 import {
   BIENS_MO1 as BIENS_RESA,
   DATES_BLOQUEES_MO1,
+  OCCUPANTS_MO1,
   RESERVATIONS_MO1 as RESERVATIONS_DOSSIER,
+  versIsoJour,
 } from "@/data/reservations-mo1";
 
 const NOTIFS_INIT = [
@@ -46,14 +63,41 @@ const NOTIFS_INIT = [
   },
 ];
 
+export function immeublesCanon(): ImmeubleSession[] {
+  return IMMEUBLES_PATRIMOINE.map((i) => ({
+    id: i.id,
+    nom: i.nom,
+    proprietaire: i.proprietaire,
+    initiales: i.initiales,
+    adresse: i.adresse,
+    statut: i.statut,
+    logements: 0,
+  }));
+}
+
+/**
+ * Un bien porte toute sa fiche : tarif de la vue planning, adresse de la vue
+ * réservations et caractéristiques de la vue patrimoine, rapprochées par nom.
+ */
 export function biensCanon(): BienSession[] {
+  const parNomImmeuble = new Map(IMMEUBLES_PATRIMOINE.map((i) => [i.nom, i.id]));
   return BIENS_PLANNING.map((b) => {
-    const extra = BIENS_RESA.find((x) => x.id === b.id);
+    const resa = BIENS_RESA.find((x) => x.id === b.id);
+    const fiche = LOGEMENTS_PATRIMOINE.find((l) => l.nom.toLowerCase() === b.nom.toLowerCase());
+    const immeubleId = fiche ? parNomImmeuble.get(fiche.immeuble) : undefined;
     return {
       id: b.id,
       nom: b.nom,
       baseNuit: b.baseNuit,
-      ...(extra?.adresse ? { adresse: extra.adresse } : {}),
+      adresse: fiche?.adresse ?? resa?.adresse ?? "",
+      typologie: fiche?.typologie ?? "Logement",
+      immeubleId: immeubleId ?? null,
+      surface: fiche?.surface ?? "—",
+      meuble: fiche?.meuble ?? true,
+      proprietaire: fiche?.proprietaire ?? "",
+      initiales: fiche?.initiales ?? "",
+      note: fiche?.note ?? 5,
+      statut: fiche?.statut ?? "libre",
     };
   });
 }
@@ -63,7 +107,13 @@ export function etatCanon(): EtatSession {
   return {
     ...etatVide(),
     biens: biensCanon(),
+    immeubles: immeublesCanon(),
     prestataires: PRESTATAIRES,
+    occupants: OCCUPANTS_MO1.map((o) => ({
+      ...o,
+      arrivee: versIsoJour(o.arrivee),
+      ...(o.depart ? { depart: versIsoJour(o.depart) } : {}),
+    })),
     loyers: LOYERS_MO1,
     evenements: EVENEMENTS_MO1,
     messagesDash: MESSAGES_MO1,
@@ -78,5 +128,11 @@ export function etatCanon(): EtatSession {
     messagesFil: FILS_MO1,
     actions: ACTIONS_EN_COURS,
     notifications: NOTIFS_INIT,
+    documents: DOCS_MO1,
+    modeles: MODELES_DOCS,
+    inventaire: ITEMS_INVENTAIRE,
+    edl: DOSSIERS_EDL,
+    droitsPersonnalises: [DROIT_PERSONNALISE_INITIAL],
+    parametrage: PARAMETRAGE_DEFAUT,
   };
 }

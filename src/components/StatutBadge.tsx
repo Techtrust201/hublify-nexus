@@ -1,13 +1,7 @@
 import { CLASSE_STATUT, LIBELLE_STATUT, type StatutMission } from "@/data/statuts";
 import { cn } from "@/lib/utils";
 
-export function StatutBadge({
-  statut,
-  className,
-}: {
-  statut: StatutMission;
-  className?: string;
-}) {
+export function StatutBadge({ statut, className }: { statut: StatutMission; className?: string }) {
   return (
     <span
       className={cn(

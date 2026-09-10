@@ -1,10 +1,8 @@
+import { useDroit } from "@/auth/auth-context";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { useState } from "react";
-import {
-  CreateEventDialog,
-  QuittanceDialog,
-} from "@/components/dashboard/DashboardDialogs";
+import { CreateEventDialog, QuittanceDialog } from "@/components/dashboard/DashboardDialogs";
 import {
   EvenementsSection,
   LoyersSection,
@@ -23,16 +21,21 @@ import {
   useSession,
   validerLoyer,
 } from "@/data/session";
-import { toastOk } from "@/lib/feedback";
+import { toastErreur, toastOk } from "@/lib/feedback";
+import { telechargerQuittanceLoyer } from "@/lib/exports-docs";
 import { cn } from "@/lib/utils";
 
 type VuePage = "planning" | "liste";
 
 export const Route = createFileRoute("/reservations/")({
-  validateSearch: (search: Record<string, unknown>): { vue?: VuePage } => {
+  validateSearch: (search: Record<string, unknown>): { vue?: VuePage; resa?: string } => {
     const v = search["vue"];
-    if (v === "liste" || v === "planning") return { vue: v };
-    return {};
+    const resa = typeof search["resa"] === "string" ? search["resa"] : undefined;
+    const vue = v === "liste" || v === "planning" ? v : undefined;
+    return {
+      ...(vue ? { vue } : {}),
+      ...(resa ? { resa } : {}),
+    };
   },
   head: () => ({
     meta: [
@@ -47,13 +50,14 @@ export const Route = createFileRoute("/reservations/")({
 });
 
 function PageReservations() {
-  const { vue: vueUrl } = Route.useSearch();
+  const { vue: vueUrl, resa } = Route.useSearch();
   const navigate = useNavigate({ from: "/reservations/" });
-  const vue: VuePage = vueUrl ?? "planning";
+  const vue: VuePage = vueUrl ?? (resa ? "liste" : "planning");
   const setVue = (v: VuePage) => {
     void navigate({ search: { vue: v } });
   };
   const session = useSession();
+  const peutReserver = useDroit("mod-reservations");
   const [recherche, setRecherche] = useState("");
   const [loyerQuittance, setLoyerQuittance] = useState<LoyerMo1 | null>(null);
   const [creerEvent, setCreerEvent] = useState(false);
@@ -81,17 +85,19 @@ function PageReservations() {
             >
               Planning
             </button>
-            <Link
-              to="/reservations/nouveau"
-              className="inline-flex h-11 items-center gap-2 rounded-[14px] bg-ink px-4 text-sm font-medium text-white md:h-10"
-            >
-              <Plus className="size-3.5" />
-              Créer une réservation
-            </Link>
+            {peutReserver && (
+              <Link
+                to="/reservations/nouveau"
+                className="inline-flex h-11 items-center gap-2 rounded-[14px] bg-ink px-4 text-sm font-medium text-white md:h-10"
+              >
+                <Plus className="size-3.5" />
+                Créer une réservation
+              </Link>
+            )}
           </div>
         </div>
         <div className="overflow-hidden rounded-card border border-line bg-white">
-          <TableauReservations />
+          <TableauReservations {...(resa ? { focusId: resa } : {})} />
         </div>
       </AppShell>
     );
@@ -113,13 +119,15 @@ function PageReservations() {
           >
             Liste
           </button>
-          <Link
-            to="/reservations/nouveau"
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-[14px] bg-ink px-4 text-sm font-medium text-white"
-          >
-            <Plus className="size-3.5" />
-            Créer une réservation
-          </Link>
+          {peutReserver && (
+            <Link
+              to="/reservations/nouveau"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-[14px] bg-ink px-4 text-sm font-medium text-white"
+            >
+              <Plus className="size-3.5" />
+              Créer une réservation
+            </Link>
+          )}
         </div>
       </div>
 
@@ -147,9 +155,16 @@ function PageReservations() {
         onFermer={() => setLoyerQuittance(null)}
         onConfirmer={() => {
           if (!loyerQuittance) return;
-          marquerQuittance(loyerQuittance.id);
-          toastOk("Quittance générée.");
-          setLoyerQuittance(null);
+          const loyer = loyerQuittance;
+          void (async () => {
+            try {
+              await telechargerQuittanceLoyer(loyer);
+              marquerQuittance(loyer.id);
+              setLoyerQuittance(null);
+            } catch {
+              toastErreur("Impossible de générer la quittance.");
+            }
+          })();
         }}
       />
       <CreateEventDialog

@@ -1,9 +1,15 @@
 import { expect, test } from "@playwright/test";
 
+import { purgerComptesDeTest } from "./nettoyage";
+
 test.skip(
   !process.env["DATABASE_URL"],
   "DATABASE_URL absent : docker compose up -d && npm run db:prepare",
 );
+
+// Ces deux parcours créent de vrais comptes : on les retire pour que la base de
+// démonstration reste présentable après un passage de la suite.
+test.afterAll(purgerComptesDeTest);
 
 const MOT_DE_PASSE = process.env["DEMO_AUTH_PASSWORD"] ?? "Hublify-Demo-2026!";
 
@@ -49,7 +55,11 @@ test("l'invitation n'expose pas le mot de passe et envoie un mail capturé", asy
   await dialogue.getByRole("button", { name: "Envoyer l'invitation" }).click();
 
   await expect(page.getByText(/Mot de passe temporaire/)).toHaveCount(0);
-  await expect(page.getByText(/Invitation envoyée/)).toBeVisible({ timeout: 15_000 });
+  // Sans fournisseur d'envoi configuré, l'app annonce que le membre est ajouté et
+  // que l'e-mail suivra, plutôt que de prétendre un envoi qui n'a pas eu lieu.
+  await expect(page.getByText(/Invitation envoyée par e-mail|Membre ajouté/).first()).toBeVisible({
+    timeout: 15_000,
+  });
 
   const mails = await page.request.get(`/api/test/mails?destinataire=${encodeURIComponent(email)}`);
   expect(mails.ok()).toBeTruthy();

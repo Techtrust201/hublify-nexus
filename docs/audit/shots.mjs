@@ -3,7 +3,9 @@ import { mkdir } from "node:fs/promises";
 
 const BASE = process.env.BASE ?? "http://127.0.0.1:8080";
 const OUT = process.env.OUT ?? "docs/audit/shots";
-const ROUTES = (process.env.ROUTES ?? "/,/team,/tarifs,/inventaire,/profil,/outils/debuter").split(",");
+const ROUTES = (process.env.ROUTES ?? "/,/team,/tarifs,/inventaire,/profil,/outils/debuter").split(
+  ",",
+);
 const WIDTHS = (process.env.WIDTHS ?? "320,375,768,834").split(",").map(Number);
 const FULL = process.env.FULL !== "0";
 

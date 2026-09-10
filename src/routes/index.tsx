@@ -4,10 +4,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useDroit } from "@/auth/auth-context";
-import {
-  CreateEventDialog,
-  QuittanceDialog,
-} from "@/components/dashboard/DashboardDialogs";
+import { CreateEventDialog, QuittanceDialog } from "@/components/dashboard/DashboardDialogs";
 import {
   EvenementsSection,
   KpiCards,
@@ -15,6 +12,7 @@ import {
   MessagesSection,
 } from "@/components/dashboard/DashboardSections";
 import { PlanningGrid } from "@/components/dashboard/PlanningGrid";
+import { PanneauEnDetails } from "@/components/dashboard/PanneauEnDetails";
 import { AppShell } from "@/components/layout/AppShell";
 import { RechercheGlobale } from "@/components/layout/RechercheGlobale";
 import {
@@ -25,7 +23,8 @@ import {
   validerLoyer,
 } from "@/data/session";
 import type { LoyerMo1, OngletPlanning } from "@/data/planning-mo1";
-import { toastOk } from "@/lib/feedback";
+import { toastErreur, toastOk } from "@/lib/feedback";
+import { telechargerQuittanceLoyer } from "@/lib/exports-docs";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -66,7 +65,7 @@ function VueGenerale() {
         {peutReserver && (
           <Link
             to="/reservations/nouveau"
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-[14px] bg-ink px-4 text-sm font-medium text-white"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-[14px] bg-accent-teal px-4 text-sm font-medium text-white"
           >
             <Plus className="size-3.5" />
             Créer une réservation
@@ -81,6 +80,8 @@ function VueGenerale() {
           <PlanningGrid onglet={onglet} onOnglet={allerOnglet} />
         </div>
       )}
+
+      <PanneauEnDetails />
 
       {voirMessages && <MessagesSection messages={session.messagesDash} />}
       {voirFinances && (
@@ -104,9 +105,16 @@ function VueGenerale() {
         onFermer={() => setLoyerQuittance(null)}
         onConfirmer={() => {
           if (!loyerQuittance) return;
-          marquerQuittance(loyerQuittance.id);
-          toastOk("Quittance générée.");
-          setLoyerQuittance(null);
+          const loyer = loyerQuittance;
+          void (async () => {
+            try {
+              await telechargerQuittanceLoyer(loyer);
+              marquerQuittance(loyer.id);
+              setLoyerQuittance(null);
+            } catch {
+              toastErreur("Impossible de générer la quittance.");
+            }
+          })();
         }}
       />
       <CreateEventDialog

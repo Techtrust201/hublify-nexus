@@ -2,10 +2,13 @@ import { createServerFn } from "@tanstack/react-start";
 import {
   chargerEntite,
   ecrireCollections,
+  enregistrerAcces,
   estPayloadValide,
   insererEntite,
+  lireAcces,
   lireEtat,
   modifierEntite,
+  type AccesLieu,
   type DepsEtat,
 } from "@/data/etat-distant";
 import { estCollectionMetier, type CollectionMetier, type EtatSession } from "@/data/etat-session";
@@ -24,6 +27,7 @@ const deps: DepsEtat = {
     };
   },
   sql: () => getSql(),
+  cleChiffrement: () => process.env["APP_CRYPTO_KEY"],
 };
 
 export const chargerEtatDistant = createServerFn({ method: "GET" }).handler(() => lireEtat(deps));
@@ -67,3 +71,19 @@ export const chargerLigneMetier = createServerFn({ method: "POST" })
     if (!res.ok) return res;
     return { ok: true as const, json: JSON.stringify(res.entite) };
   });
+
+export const chargerAccesLieux = createServerFn({ method: "GET" }).handler(() => lireAcces(deps));
+
+export const sauverAccesLieu = createServerFn({ method: "POST" })
+  .validator((input: AccesLieu) => {
+    if (!input?.bienId) throw new Error("Bien requis");
+    return {
+      bienId: String(input.bienId),
+      wifi: String(input.wifi ?? ""),
+      consignes: String(input.consignes ?? ""),
+      codeCles: String(input.codeCles ?? ""),
+      wifiMdp: String(input.wifiMdp ?? ""),
+      alarme: String(input.alarme ?? ""),
+    } satisfies AccesLieu;
+  })
+  .handler(({ data }) => enregistrerAcces(deps, data));

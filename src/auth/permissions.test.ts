@@ -51,6 +51,10 @@ describe("permissions", () => {
     expect(droitRequisPourChemin("/team")).toBe("gerer-equipe");
     expect(droitRequisPourChemin("/reservations/nouveau")).toBe("mod-reservations");
     expect(droitRequisPourChemin("/reservations")).toBe("voir-reservations");
+    expect(droitRequisPourChemin("/analyse")).toBe("voir-finances");
+    expect(droitRequisPourChemin("/parametrage")).toBe("mod-reservations");
+    expect(droitRequisPourChemin("/prestataires/nouveau")).toBe("mod-biens");
+    expect(droitRequisPourChemin("/outils/etats-des-lieux")).toBe("voir-documents");
     expect(droitRequisPourChemin("/")).toBeUndefined();
   });
 });

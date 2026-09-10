@@ -16,9 +16,7 @@ export function Chip({
       onClick={onClick}
       className={cn(
         "inline-flex h-11 min-h-11 items-center rounded border px-3 text-sm font-medium md:h-[30px] md:min-h-[30px] md:text-xs",
-        actif
-          ? "border-ink bg-ink text-white"
-          : "border-line-strong bg-white text-ink-body",
+        actif ? "border-ink bg-ink text-white" : "border-line-strong bg-white text-ink-body",
       )}
     >
       {children}

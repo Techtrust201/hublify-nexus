@@ -25,11 +25,7 @@ const JOURS_MOIS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 type VuePlanning = "3jours" | "5jours" | "mois";
 type FiltrePlateforme = "tout" | PlateformeMo1;
 
-export function PlanningReservations({
-  onVoirListe,
-}: {
-  onVoirListe?: () => void;
-}) {
+export function PlanningReservations({ onVoirListe }: { onVoirListe?: () => void }) {
   const navigate = useNavigate();
   const session = useSession();
   const [vue, setVue] = useState<VuePlanning>("3jours");
@@ -66,27 +62,23 @@ export function PlanningReservations({
   }, [plateforme, session.reservationsDossier]);
 
   const biens = useMemo(() => {
-    const source = session.biens.map(
-      (b): BienMo1 => ({
-        id: b.id,
-        nom: b.nom,
-        adresse: b.adresse ?? "",
-        plateformes: {
-          Airbnb: "aucun",
-          "Booking.com": "aucun",
-          Direct: "actif",
-          Autre: "aucun",
-        },
-      }),
-    );
+    const source = session.biens.map((b): BienMo1 => ({
+      id: b.id,
+      nom: b.nom,
+      adresse: b.adresse ?? "",
+      plateformes: {
+        Airbnb: "aucun",
+        "Booking.com": "aucun",
+        Direct: "actif",
+        Autre: "aucun",
+      },
+    }));
     if (!bienLocalise) return source;
     return source.filter((b) => b.id === bienLocalise);
   }, [bienLocalise, session.biens]);
 
   const visiblePlanning = useMemo(() => {
-    const cles = new Set(
-      (vue === "mois" ? joursMois : jours).map((d) => isoJour(d)),
-    );
+    const cles = new Set((vue === "mois" ? joursMois : jours).map((d) => isoJour(d)));
     return reservations.filter((r) => [...cles].some((j) => reservationCouvre(r, j)));
   }, [reservations, jours, joursMois, vue]);
 
@@ -176,7 +168,9 @@ export function PlanningReservations({
             className="flex size-11 items-center justify-center rounded border border-line text-ink-body"
             onClick={() =>
               setAncre((d) =>
-                vue === "mois" ? new Date(d.getFullYear(), d.getMonth() - 1, 1) : ajouterJours(d, -nbJours),
+                vue === "mois"
+                  ? new Date(d.getFullYear(), d.getMonth() - 1, 1)
+                  : ajouterJours(d, -nbJours),
               )
             }
           >
@@ -191,7 +185,9 @@ export function PlanningReservations({
             className="flex size-11 items-center justify-center rounded border border-line text-ink-body"
             onClick={() =>
               setAncre((d) =>
-                vue === "mois" ? new Date(d.getFullYear(), d.getMonth() + 1, 1) : ajouterJours(d, nbJours),
+                vue === "mois"
+                  ? new Date(d.getFullYear(), d.getMonth() + 1, 1)
+                  : ajouterJours(d, nbJours),
               )
             }
           >
@@ -274,7 +270,7 @@ export function PlanningReservations({
           onFermer={() => setSelection(null)}
           onModifier={() => {
             setSelection(null);
-            navigate({ to: "/reservations/nouveau" });
+            void navigate({ to: "/reservations/nouveau", search: { id: selection.id } });
           }}
         />
       )}
@@ -293,48 +289,48 @@ function TableauLogements({
   return (
     <div className="mt-3 overflow-hidden rounded-card border border-line">
       <ScrollHint>
-      <div className="grid min-w-[520px] grid-cols-[1fr_80px_80px_80px_80px] border-b border-surface-soft bg-surface px-4 py-1.5 text-[11px] text-ink-muted">
-        <span>Bien</span>
-        <span className="text-center">Airbnb</span>
-        <span className="text-center">Booking.com</span>
-        <span className="text-center">Direct</span>
-        <span />
-      </div>
-      {session.biens.map((b) => (
-        <div
-          key={b.id}
-          className={cn(
-            "grid min-w-[520px] grid-cols-[1fr_80px_80px_80px_80px] items-center border-b border-surface-soft px-4 py-2.5 last:border-b-0",
-            actif === b.id && "bg-surface",
-          )}
-        >
-          <span className="flex items-center gap-2 text-xs text-ink-body">
-            <span className="flex size-6 items-center justify-center rounded border border-line bg-surface-soft">
-              <Home className="size-2.5" />
-            </span>
-            {b.nom}
-          </span>
-          <StatutPlateforme etat="aucun" />
-          <StatutPlateforme etat="aucun" />
-          <StatutPlateforme etat="actif" />
-          <button
-            type="button"
-            onClick={() => onLocaliser(actif === b.id ? null : b.id)}
-            className="justify-self-center rounded border border-line-strong px-2 py-0.5 text-[11px] text-ink-body"
-          >
-            Localiser
-          </button>
+        <div className="grid min-w-[520px] grid-cols-[1fr_80px_80px_80px_80px] border-b border-surface-soft bg-surface px-4 py-1.5 text-[11px] text-ink-muted">
+          <span>Bien</span>
+          <span className="text-center">Airbnb</span>
+          <span className="text-center">Booking.com</span>
+          <span className="text-center">Direct</span>
+          <span />
         </div>
-      ))}
-      <div className="flex flex-wrap gap-4 px-4 py-2 text-[11px] text-ink-muted">
-        <span className="flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-ink" /> Actif sur la plateforme
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="size-2 rounded-full border border-ink-muted" /> Inactif
-        </span>
-        <span className="flex items-center gap-1.5">— Non référencé</span>
-      </div>
+        {session.biens.map((b) => (
+          <div
+            key={b.id}
+            className={cn(
+              "grid min-w-[520px] grid-cols-[1fr_80px_80px_80px_80px] items-center border-b border-surface-soft px-4 py-2.5 last:border-b-0",
+              actif === b.id && "bg-surface",
+            )}
+          >
+            <span className="flex items-center gap-2 text-xs text-ink-body">
+              <span className="flex size-6 items-center justify-center rounded border border-line bg-surface-soft">
+                <Home className="size-2.5" />
+              </span>
+              {b.nom}
+            </span>
+            <StatutPlateforme etat="aucun" />
+            <StatutPlateforme etat="aucun" />
+            <StatutPlateforme etat="actif" />
+            <button
+              type="button"
+              onClick={() => onLocaliser(actif === b.id ? null : b.id)}
+              className="inline-flex h-11 min-h-11 items-center justify-self-center rounded border border-line-strong px-2 text-[11px] text-ink-body md:h-auto md:min-h-0 md:py-0.5"
+            >
+              Localiser
+            </button>
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-4 px-4 py-2 text-[11px] text-ink-muted">
+          <span className="flex items-center gap-1.5">
+            <span className="size-2 rounded-full bg-ink" /> Actif sur la plateforme
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="size-2 rounded-full border border-ink-muted" /> Inactif
+          </span>
+          <span className="flex items-center gap-1.5">— Non référencé</span>
+        </div>
       </ScrollHint>
     </div>
   );
@@ -453,20 +449,17 @@ function LigneBien({
               className={cn(
                 "relative min-h-[59px] border-r border-surface-soft",
                 key === AUJOURD_HUI_MO1 && "bg-surface/50",
-                bloquee && "bg-[repeating-linear-gradient(-45deg,var(--surface-soft),var(--surface-soft)_4px,var(--surface-elevated)_4px,var(--surface-elevated)_8px)]",
+                bloquee &&
+                  "bg-[repeating-linear-gradient(-45deg,var(--surface-soft),var(--surface-soft)_4px,var(--surface-elevated)_4px,var(--surface-elevated)_8px)]",
               )}
             >
               {!occupe && !bloquee && (
-                <div className="flex h-full items-center justify-center">
-                  <button
-                    type="button"
-                    className="flex size-5 items-center justify-center rounded-full border border-line-strong text-ink-muted"
-                    aria-label={`Ajouter ou bloquer — ${bien.nom}`}
-                    onClick={() => onBloquer(bien.id, key)}
-                  >
-                    <Plus className="size-2.5" />
-                  </button>
-                </div>
+                <ChoixCaseLibre
+                  bienId={bien.id}
+                  date={key}
+                  nomBien={bien.nom}
+                  onBloquer={onBloquer}
+                />
               )}
               {bloquee && !occupe && (
                 <button
@@ -574,7 +567,8 @@ function GrilleMois({
                   <div className="flex justify-center pt-2">
                     <Link
                       to="/reservations/nouveau"
-                      className="flex size-5 items-center justify-center rounded-full border border-line-strong text-ink-muted"
+                      search={{ arrivee: key }}
+                      className="flex size-11 items-center justify-center rounded-full border border-line-strong text-ink-muted md:size-5"
                       aria-label="Créer une réservation"
                     >
                       <Plus className="size-2.5" />
@@ -591,13 +585,63 @@ function GrilleMois({
   );
 }
 
+function ChoixCaseLibre({
+  bienId,
+  date,
+  nomBien,
+  onBloquer,
+}: {
+  bienId: string;
+  date: string;
+  nomBien: string;
+  onBloquer: (bienId: string, date: string) => void;
+}) {
+  const [ouvert, setOuvert] = useState(false);
+  return (
+    <div className="relative flex h-full items-center justify-center">
+      <button
+        type="button"
+        className="flex size-11 items-center justify-center rounded-full border border-line-strong text-ink-muted md:size-5"
+        aria-label={`Ajouter une réservation ou bloquer — ${nomBien}`}
+        aria-expanded={ouvert}
+        onClick={() => setOuvert((v) => !v)}
+      >
+        <Plus className="size-2.5" />
+      </button>
+      {ouvert && (
+        <div className="absolute top-full z-20 mt-1 w-44 overflow-hidden rounded-card border border-line bg-white py-1 shadow-md">
+          <Link
+            to="/reservations/nouveau"
+            search={{ bien: bienId, arrivee: date }}
+            className="block px-3 py-2 text-left text-xs text-ink hover:bg-surface"
+            onClick={() => setOuvert(false)}
+          >
+            Créer une réservation
+          </Link>
+          <button
+            type="button"
+            onClick={() => {
+              onBloquer(bienId, date);
+              setOuvert(false);
+            }}
+            className="block w-full px-3 py-2 text-left text-xs text-ink hover:bg-surface"
+          >
+            Bloquer cette date
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PointPaiement({ etat }: { etat: PaiementMo1 }) {
   return (
     <span
       className={cn(
         "ml-auto size-2 shrink-0 rounded-full",
         etat === "paye" && "bg-ink-subtle",
-        etat === "partiel" && "border border-ink-subtle bg-[linear-gradient(90deg,var(--ink-subtle)_50%,transparent_50%)]",
+        etat === "partiel" &&
+          "border border-ink-subtle bg-[linear-gradient(90deg,var(--ink-subtle)_50%,transparent_50%)]",
         etat === "impaye" && "border border-ink-muted bg-white",
       )}
     />

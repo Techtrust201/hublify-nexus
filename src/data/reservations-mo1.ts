@@ -11,11 +11,7 @@ export type PaiementMo1 = "paye" | "partiel" | "impaye";
 export type TypeOccupantMo1 = "Locataire" | "Voyageur";
 export type StatutOccupantMo1 = "Actif" | "À venir";
 export type TypeReservationMo1 =
-  | "Location saisonnière"
-  | "Bail nu"
-  | "Bail meublé"
-  | "Bail mobilité"
-  | "Bail étudiant";
+  "Location saisonnière" | "Bail nu" | "Bail meublé" | "Bail mobilité" | "Bail étudiant";
 
 export type BienMo1 = {
   id: string;
@@ -43,6 +39,9 @@ export type ReservationMo1 = {
   paye: number;
   statut: StatutReservationMo1;
   couleur: string;
+  type?: TypeReservationMo1;
+  upsellIds?: string[];
+  services?: string[];
 };
 
 export type DateBloqueeMo1 = {
@@ -272,7 +271,7 @@ export const RESERVATIONS_MO1: ReservationMo1[] = [
     telephone: "+33 6 12 34 56 78",
     arrivee: "2026-01-15",
     depart: "2026-02-15",
-    heureArrivee: "00:00",
+    heureArrivee: "16:00",
     heureDepart: "10:00",
     plateforme: "Direct",
     voyageurs: 2,
@@ -292,7 +291,7 @@ export const RESERVATIONS_MO1: ReservationMo1[] = [
     telephone: "+33 6 23 45 67 89",
     arrivee: "2026-01-20",
     depart: "2026-01-27",
-    heureArrivee: "00:00",
+    heureArrivee: "15:00",
     heureDepart: "10:00",
     plateforme: "Airbnb",
     voyageurs: 2,
@@ -312,7 +311,7 @@ export const RESERVATIONS_MO1: ReservationMo1[] = [
     telephone: "+33 6 34 56 78 90",
     arrivee: "2024-12-10",
     depart: "2026-12-10",
-    heureArrivee: "00:00",
+    heureArrivee: "14:00",
     heureDepart: "10:00",
     plateforme: "Direct",
     voyageurs: 1,
@@ -332,7 +331,7 @@ export const RESERVATIONS_MO1: ReservationMo1[] = [
     telephone: "+33 6 45 67 89 01",
     arrivee: "2026-01-25",
     depart: "2026-02-05",
-    heureArrivee: "00:00",
+    heureArrivee: "15:00",
     heureDepart: "10:00",
     plateforme: "Booking.com",
     voyageurs: 2,
@@ -352,7 +351,7 @@ export const RESERVATIONS_MO1: ReservationMo1[] = [
     telephone: "+33 6 56 78 90 12",
     arrivee: "2026-01-01",
     depart: "2026-02-01",
-    heureArrivee: "00:00",
+    heureArrivee: "17:00",
     heureDepart: "10:00",
     plateforme: "Airbnb",
     voyageurs: 2,
@@ -499,7 +498,10 @@ export const PRESTATAIRES_MO1: PrestataireMo1[] = [
 
 export const TYPES_RESERVATION: { groupe: string; options: TypeReservationMo1[] }[] = [
   { groupe: "Court séjour", options: ["Location saisonnière"] },
-  { groupe: "Bail longue durée", options: ["Bail nu", "Bail meublé", "Bail mobilité", "Bail étudiant"] },
+  {
+    groupe: "Bail longue durée",
+    options: ["Bail nu", "Bail meublé", "Bail mobilité", "Bail étudiant"],
+  },
 ];
 
 export const COULEURS_RESERVATION = [
@@ -534,8 +536,10 @@ export function paiementDe(r: ReservationMo1): PaiementMo1 {
 }
 
 export function pourcentagePaiement(r: ReservationMo1) {
-  if (r.montant <= 0) return 0;
-  return Math.round((r.paye / r.montant) * 100);
+  const montant = Number(r.montant) || 0;
+  const paye = Number(r.paye) || 0;
+  if (montant <= 0) return 0;
+  return Math.round((paye / montant) * 100);
 }
 
 export function bienParId(id: string) {
@@ -563,15 +567,32 @@ export function formatMontant(n: number) {
 }
 
 export function formatDateLongue(iso: string) {
+  if (!iso || !iso.includes("-")) return iso || "—";
   const [y, m, d] = iso.split("-").map(Number);
-  const date = new Date(y!, (m ?? 1) - 1, d);
+  if (!y || !m || !d) return iso;
+  const date = new Date(y, m - 1, d);
   return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
 }
 
 export function formatJourCourt(iso: string) {
+  if (!iso || !iso.includes("-")) return iso || "—";
   const [y, m, d] = iso.split("-").map(Number);
-  const date = new Date(y!, (m ?? 1) - 1, d);
+  if (!y || !m || !d) return iso;
+  const date = new Date(y, m - 1, d);
   return date.toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+}
+
+/** Accepte « 15/01/2026 » comme « 2026-01-15 » et renvoie toujours l'ISO stocké en base. */
+export function versIsoJour(valeur: string | undefined) {
+  const brut = (valeur ?? "").trim();
+  if (!brut) return "";
+  const fr = brut.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return fr ? `${fr[3]}-${fr[2]}-${fr[1]}` : brut.slice(0, 10);
+}
+
+export function formatJourFr(iso: string | undefined) {
+  const [y, m, d] = (iso ?? "").split("-");
+  return y && m && d ? `${d}/${m}/${y}` : (iso ?? "") || "—";
 }
 
 export function nuitsEntre(arrivee: string, depart: string) {

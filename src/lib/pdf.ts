@@ -1,5 +1,16 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
+export function textePdf(valeur: string) {
+  return valeur
+    .replaceAll("€", "EUR")
+    .replaceAll("œ", "oe")
+    .replaceAll("Œ", "OE")
+    .replace(/[\u2018\u2019\u02BC]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2013\u2014]/g, "-")
+    .replaceAll("…", "...");
+}
+
 export async function pdfTexte(titre: string, lignes: string[]): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   const page = doc.addPage([595, 842]);
@@ -13,7 +24,7 @@ export async function pdfTexte(titre: string, lignes: string[]): Promise<Uint8Ar
     font,
     color: rgb(0.4, 0.4, 0.4),
   });
-  page.drawText(titre, {
+  page.drawText(textePdf(titre).slice(0, 80), {
     x: 50,
     y: height - 80,
     size: 18,
@@ -22,7 +33,7 @@ export async function pdfTexte(titre: string, lignes: string[]): Promise<Uint8Ar
   });
   let y = height - 120;
   for (const ligne of lignes) {
-    page.drawText(ligne.slice(0, 110), {
+    page.drawText(textePdf(ligne).slice(0, 110), {
       x: 50,
       y,
       size: 11,

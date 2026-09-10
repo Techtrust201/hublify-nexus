@@ -12,13 +12,9 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import {
   ENSEMBLES_MO1,
   TYPES_REGLE,
@@ -35,6 +31,7 @@ import {
   type TypeRegle,
 } from "@/data/planning-mo1";
 import { useSession } from "@/data/session";
+import { nuitsEntre } from "@/data/reservations-mo1";
 import { cn } from "@/lib/utils";
 
 export function MissionsPlusPopover({
@@ -54,10 +51,9 @@ export function MissionsPlusPopover({
       <button
         type="button"
         onClick={() => setOuvert(true)}
-        className="flex h-6 w-full items-center gap-1 px-1 text-left text-[10px] font-medium text-ink-muted md:h-[19px]"
+        className="flex h-11 w-full items-center gap-1 px-1 text-left text-[10px] font-medium text-ink-muted md:h-[19px]"
       >
-        <Maximize2 className="size-[9px] shrink-0" />
-        +{missions.length - 1} voir plus
+        <Maximize2 className="size-[9px] shrink-0" />+{missions.length - 1} voir plus
       </button>
       <Dialog open={ouvert} onOpenChange={setOuvert}>
         <DialogContent className="max-w-[400px] gap-0 overflow-hidden rounded-card border border-line bg-white p-0 shadow-lg">
@@ -201,24 +197,22 @@ export function MissionInfoDialog({
               </div>
             </div>
             <div className="flex items-center justify-between border-t border-surface-soft px-5 py-3">
-              <button
-                type="button"
-                onClick={() => setDetails(true)}
-                className="h-[30px] rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body"
+              <Link
+                to="/missions/$missionId"
+                params={{ missionId: mission.id }}
+                onClick={onFermer}
+                className="inline-flex h-11 items-center rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[30px]"
               >
                 Plus de détails
-              </button>
+              </Link>
               <div className="flex gap-2">
                 {onStatut && mission.statut !== "terminee" && (
                   <button
                     type="button"
                     onClick={() =>
-                      onStatut(
-                        mission.id,
-                        mission.statut === "a_faire" ? "en_cours" : "terminee",
-                      )
+                      onStatut(mission.id, mission.statut === "a_faire" ? "en_cours" : "terminee")
                     }
-                    className="h-[30px] rounded bg-ink px-3 text-xs font-medium text-white"
+                    className="h-11 rounded bg-ink px-3 text-xs font-medium text-white md:h-[30px]"
                   >
                     {mission.statut === "a_faire" ? "Démarrer" : "Terminer"}
                   </button>
@@ -226,7 +220,7 @@ export function MissionInfoDialog({
                 <button
                   type="button"
                   onClick={onFermer}
-                  className="h-[30px] rounded border border-line-strong bg-white px-4 text-xs font-medium text-ink-body"
+                  className="h-11 rounded border border-line-strong bg-white px-4 text-xs font-medium text-ink-body md:h-[30px]"
                 >
                   Fermer
                 </button>
@@ -239,13 +233,7 @@ export function MissionInfoDialog({
   );
 }
 
-function DetailsMissionPanel({
-  mission,
-  onFermer,
-}: {
-  mission: MissionMo1;
-  onFermer: () => void;
-}) {
+function DetailsMissionPanel({ mission, onFermer }: { mission: MissionMo1; onFermer: () => void }) {
   const [ouvert, setOuvert] = useState({ desc: true, periode: true });
   return (
     <div>
@@ -563,10 +551,18 @@ export function CreateEventDialog({
                 onCreer({
                   id: `ev-${Date.now()}`,
                   titre: nom.trim(),
-                  lieu: lieu.trim() || "Non précisé",
+                  lieu:
+                    [lieu.trim(), biens.length ? biens.join(", ") : ""]
+                      .filter(Boolean)
+                      .join(" · ") || "Non précisé",
                   dates: fin ? `${debut} – ${fin}` : debut,
                   impact,
-                  description: notes.trim() || "Événement ajouté manuellement.",
+                  description: [
+                    notes.trim() || "Événement ajouté manuellement.",
+                    biens.length ? `Biens concernés : ${biens.join(", ")}` : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" "),
                 });
                 reset();
                 onFermer();
@@ -588,11 +584,15 @@ export function CreateRegleDialog({
   onFermer,
   onCreer,
   ensembles,
+  bienIdInitial,
+  dateInitiale,
 }: {
   ouvert: boolean;
   onFermer: () => void;
   onCreer: (r: RegleTarif, nouvelEnsemble?: string) => void;
   ensembles: EnsembleRegles[];
+  bienIdInitial?: string;
+  dateInitiale?: string;
 }) {
   const session = useSession();
   const [nom, setNom] = useState("");
@@ -604,6 +604,19 @@ export function CreateRegleDialog({
   const [valeur, setValeur] = useState(20);
   const [note, setNote] = useState("");
   const [ensembleId, setEnsembleId] = useState("en1");
+  const [nomEnsemble, setNomEnsemble] = useState("");
+  const [creerEnsemble, setCreerEnsemble] = useState(false);
+
+  useEffect(() => {
+    if (!ouvert) return;
+    setNom("");
+    setNote("");
+    setNomEnsemble("");
+    setCreerEnsemble(false);
+    setDebut(dateInitiale ?? "2026-03-13");
+    setFin(dateInitiale ?? "2026-03-13");
+    setBienId(bienIdInitial ?? session.biens[0]?.id ?? "");
+  }, [ouvert, dateInitiale, bienIdInitial]);
 
   const bien = session.biens.find((b) => b.id === bienId) ?? session.biens[0];
   const signe = modif === "reduction" ? -1 : 1;
@@ -637,7 +650,7 @@ export function CreateRegleDialog({
           </label>
           <div>
             <p className="text-xs text-ink-body">Type d'événement / condition</p>
-            <div className="mt-2 grid grid-cols-4 gap-1.5">
+            <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
               {TYPES_REGLE.map((t) => (
                 <button
                   key={t.id}
@@ -645,9 +658,7 @@ export function CreateRegleDialog({
                   onClick={() => setType(t.id)}
                   className={cn(
                     "flex h-[49px] flex-col items-center justify-center rounded-card border text-[10px]",
-                    type === t.id
-                      ? "border-ink bg-surface text-ink"
-                      : "border-line text-ink-body",
+                    type === t.id ? "border-ink bg-surface text-ink" : "border-line text-ink-body",
                   )}
                 >
                   <span>{t.emoji}</span>
@@ -710,9 +721,7 @@ export function CreateRegleDialog({
                   onClick={() => setModif(id)}
                   className={cn(
                     "h-14 rounded-card border text-xs",
-                    modif === id
-                      ? "border-ink bg-surface text-ink"
-                      : "border-line text-ink-body",
+                    modif === id ? "border-ink bg-surface text-ink" : "border-line text-ink-body",
                   )}
                 >
                   {label}
@@ -732,7 +741,8 @@ export function CreateRegleDialog({
               <p className="text-xs text-ink-subtle">
                 Base {bien?.baseNuit ?? 0}€ →{" "}
                 <span className="text-ink">
-                  {prix} €/nuit{modif !== "fixe" ? `(${variation > 0 ? "+" : ""}${variation}%)` : ""}
+                  {prix} €/nuit
+                  {modif !== "fixe" ? `(${variation > 0 ? "+" : ""}${variation}%)` : ""}
                 </span>
               </p>
             </div>
@@ -763,14 +773,32 @@ export function CreateRegleDialog({
                   <SlidersHorizontal className="size-3 text-ink-subtle" />
                   <span className="flex-1 text-ink">{e.nom}</span>
                   <span className="text-ink-muted">
-                    {ENSEMBLES_MO1.find((x) => x.id === e.id) ? (e.id === "en3" ? "1 règle" : "2 règles") : ""}
+                    {ENSEMBLES_MO1.find((x) => x.id === e.id)
+                      ? e.id === "en3"
+                        ? "1 règle"
+                        : "2 règles"
+                      : ""}
                   </span>
                 </label>
               ))}
-              <p className="flex items-center gap-2 px-2 py-2 text-xs text-ink-body">
+              <p
+                className="flex min-h-11 cursor-pointer items-center gap-2 px-2 py-2 text-xs text-ink-body md:min-h-0"
+                role="button"
+                tabIndex={0}
+                onClick={() => setCreerEnsemble(true)}
+                onKeyDown={(e) => e.key === "Enter" && setCreerEnsemble(true)}
+              >
                 <Plus className="size-3" />
                 Créer un nouvel ensemble
               </p>
+              {creerEnsemble && (
+                <input
+                  value={nomEnsemble}
+                  onChange={(e) => setNomEnsemble(e.target.value)}
+                  placeholder="Nom de l'ensemble"
+                  className="mt-1 h-11 w-full rounded-card border border-line px-3 text-xs outline-none md:h-[34px]"
+                />
+              )}
             </div>
           </div>
           <div className="rounded-card border border-line p-3">
@@ -787,7 +815,7 @@ export function CreateRegleDialog({
               </div>
               <div className="flex justify-between">
                 <dt className="text-ink-muted">Période</dt>
-                <dd>1 nuit · 13 mars → 13 mars</dd>
+                <dd>{debut && fin ? `${debut} → ${fin}` : debut || "Période à préciser"}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-ink-muted">Bien(s)</dt>
@@ -807,28 +835,31 @@ export function CreateRegleDialog({
           <button
             type="button"
             onClick={onFermer}
-            className="h-[30px] rounded border border-line-strong px-3 text-xs font-medium text-ink-body"
+            className="inline-flex h-11 items-center rounded border border-line-strong px-3 text-xs font-medium text-ink-body md:h-[30px]"
           >
             Annuler
           </button>
           <button
             type="button"
             onClick={() => {
-              onCreer({
-                id: `rg-${Date.now()}`,
-                ensembleId,
-                nom: nom.trim() || "Nouvelle règle",
-                type,
-                debut,
-                fin,
-                nuits: 1,
-                biens: bienId,
-                variation,
-                ...(note.trim() ? { note: note.trim() } : {}),
-              });
+              onCreer(
+                {
+                  id: `rg-${Date.now()}`,
+                  ensembleId,
+                  nom: nom.trim() || "Nouvelle règle",
+                  type,
+                  debut,
+                  fin,
+                  nuits: Math.max(1, nuitsEntre(debut, fin)),
+                  biens: bienId,
+                  variation,
+                  ...(note.trim() ? { note: note.trim() } : {}),
+                },
+                creerEnsemble && nomEnsemble.trim() ? nomEnsemble.trim() : undefined,
+              );
               onFermer();
             }}
-            className="inline-flex h-[30px] items-center gap-1 rounded bg-ink px-3 text-xs font-medium text-white"
+            className="inline-flex h-11 items-center gap-1 rounded bg-ink px-3 text-xs font-medium text-white md:h-[30px]"
           >
             <Tag className="size-[11px]" />
             Créer la règle
@@ -872,9 +903,7 @@ export function GererReglesPanel({
       <DialogContent className="max-h-[90vh] max-w-[400px] overflow-y-auto rounded-card border border-line bg-white p-0">
         <div className="flex items-center gap-2 border-b border-surface-soft px-5 py-5">
           <SlidersHorizontal className="size-[15px] text-ink-body" />
-          <DialogTitle className="text-sm font-medium text-ink">
-            Ensembles de règles
-          </DialogTitle>
+          <DialogTitle className="text-sm font-medium text-ink">Ensembles de règles</DialogTitle>
         </div>
         <div className="flex flex-wrap gap-x-3 gap-y-2 px-5 py-3 text-[10px] text-ink-subtle">
           {TYPES_REGLE.map((t) => (
@@ -890,18 +919,22 @@ export function GererReglesPanel({
                 <button
                   type="button"
                   onClick={() => onToggleEnsemble(e.id)}
-                  className={cn(
-                    "mt-0.5 h-5 w-9 shrink-0 rounded-full border",
-                    e.actif ? "border-ink bg-ink" : "border-line-strong bg-line",
-                  )}
+                  className="flex h-6 w-9 shrink-0 items-center"
                   aria-label={e.actif ? "Désactiver" : "Activer"}
                 >
                   <span
                     className={cn(
-                      "block size-4 rounded-full bg-white transition-transform",
-                      e.actif ? "translate-x-4" : "translate-x-0.5",
+                      "flex h-5 w-9 items-center rounded-full border",
+                      e.actif ? "border-ink bg-ink" : "border-line-strong bg-line",
                     )}
-                  />
+                  >
+                    <span
+                      className={cn(
+                        "block size-4 rounded-full bg-white transition-transform",
+                        e.actif ? "translate-x-4" : "translate-x-0.5",
+                      )}
+                    />
+                  </span>
                 </button>
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-2 text-xs text-ink">
@@ -921,12 +954,12 @@ export function GererReglesPanel({
                   type="button"
                   onClick={() => onSupprimerEnsemble(e.id)}
                   aria-label={`Supprimer ${e.nom}`}
-                  className="text-ink-muted"
+                  className="flex size-6 shrink-0 items-center justify-center text-ink-muted"
                 >
                   <Trash2 className="size-[13px]" />
                 </button>
               </div>
-              {(
+              {
                 <div className="border-t border-surface-soft">
                   {e.items.map((r) => (
                     <div
@@ -972,7 +1005,7 @@ export function GererReglesPanel({
                         type="button"
                         onClick={() => onSupprimerRegle(r.id)}
                         aria-label={`Supprimer ${r.nom}`}
-                        className="text-ink-muted"
+                        className="flex size-6 shrink-0 items-center justify-center text-ink-muted"
                       >
                         <Trash2 className="size-3" />
                       </button>
@@ -987,7 +1020,7 @@ export function GererReglesPanel({
                     Ajouter une règle
                   </button>
                 </div>
-              )}
+              }
             </div>
           ))}
         </div>

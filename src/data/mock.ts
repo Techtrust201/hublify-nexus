@@ -344,7 +344,8 @@ export const MESSAGES: Message[] = [
     auteur: "John Doe",
     initiales: "JD",
     bienNom: "Villa Lavandrix",
-    texte: "Merci pour votre accueil. Petite question : où puis-je trouver des draps supplémentaires ?",
+    texte:
+      "Merci pour votre accueil. Petite question : où puis-je trouver des draps supplémentaires ?",
     ilYa: "Il y a 1h",
   },
   {
@@ -447,8 +448,7 @@ export const EVENEMENTS: EvenementLocal[] = [
     lieu: "Paris Expo Porte de Versailles · à 4km",
     dates: "19-20 avril 2026",
     impact: "Opportunité",
-    description:
-      "Augmentation des réservations courtes durées, 3 demandes reçues cette semaine.",
+    description: "Augmentation des réservations courtes durées, 3 demandes reçues cette semaine.",
   },
 ];
 

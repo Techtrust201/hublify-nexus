@@ -27,7 +27,7 @@ function PageTarifs() {
         onglet={onglet}
         vueInitiale="mois"
         onOnglet={(v) => {
-          if (v === "missions") navigate({ to: "/" });
+          if (v === "missions") navigate({ to: "/missions" });
           else if (v === "reservations") navigate({ to: "/reservations" });
           else setOnglet(v);
         }}

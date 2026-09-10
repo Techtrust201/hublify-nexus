@@ -26,9 +26,14 @@
    * Tokens MO1 (source de vérité visuelle). Hex exacts de la maquette.
    * Utilitaires : bg-surface, text-ink, border-line, rounded-card, z-sticky…
    */
+  --color-canvas: var(--canvas);
   --color-surface: var(--surface);
   --color-surface-elevated: var(--surface-elevated);
   --color-surface-soft: var(--surface-soft);
+  --color-accent-teal: var(--accent-teal);
+  --color-danger-loyer: var(--danger-loyer);
+  --color-tab-active: var(--tab-active);
+  --color-chip-urgent: var(--chip-urgent);
   --color-ink: var(--ink);
   --color-ink-deep: var(--ink-deep);
   --color-ink-body: var(--ink-body);
@@ -128,9 +133,14 @@
    * Palette MO1 — hex exacts. Si un token oklch shadcn diverge, le hex gagne ici.
    * Ne pas réutiliser --primary / --border oklch dans les écrans maquette.
    */
+  --canvas: #eae7de;
   --surface: #f9fafb;
   --surface-elevated: #ffffff;
   --surface-soft: #f3f4f6;
+  --accent-teal: #5591a9;
+  --danger-loyer: #c22c12;
+  --tab-active: #f4eded;
+  --chip-urgent: #65cd91;
   --ink: #1e2939;
   --ink-deep: #101828;
   --ink-body: #4a5565;
@@ -250,7 +260,7 @@
 
   body {
     font-family: var(--font-sans);
-    background-color: var(--surface);
+    background-color: var(--canvas);
     color: var(--ink);
     overflow-wrap: break-word;
     min-height: 100dvh;
@@ -280,4 +290,14 @@
       scroll-behavior: auto;
     }
   }
+}
+
+/* Sonner dessine sa croix en 20px, sous le minimum tactile de 24px (WCAG 2.5.8).
+   Sa feuille de styles est injectée hors couche au montage : on ne peut pas la
+   corriger depuis `toastOptions`, d'où ce sélecteur plus spécifique que le sien.
+   26px plutôt que 24 : le toast entre en scale, et la cible doit rester
+   atteignable pendant l'animation, pas seulement une fois posée. */
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] {
+  width: 26px;
+  height: 26px;
 }
