@@ -130,7 +130,7 @@ function PageProfil() {
   };
 
   return (
-    <AppShell titre={`Votre profil ${auth?.role?.toLowerCase() ?? "gestionnaire"}`}>
+    <AppShell attendDonnees titre={`Votre profil ${auth?.role?.toLowerCase() ?? "gestionnaire"}`}>
       <div className="mb-4 flex flex-wrap gap-2">
         <button
           type="button"

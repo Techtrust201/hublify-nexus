@@ -38,6 +38,7 @@ function PageTeam() {
   const membres = Route.useLoaderData();
   return (
     <AppShell
+      attendDonnees
       titre="Team Mate"
       sousTitre="Constituez votre équipe afin de vous assister au quotidien"
     >

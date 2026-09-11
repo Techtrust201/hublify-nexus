@@ -87,6 +87,7 @@ function PageAnalyse() {
 
   return (
     <AppShell
+      attendDonnees
       titre="Analyses, revenus et paiements"
       sousTitre="Suivi détaillé de vos revenus et commissions"
     >

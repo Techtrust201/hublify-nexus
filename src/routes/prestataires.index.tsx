@@ -37,6 +37,7 @@ function ListePrestataires() {
 
   return (
     <AppShell
+      attendDonnees
       titre="Prestataires"
       sousTitre={`${prestataires.length} prestataires enregistrés`}
       actions={

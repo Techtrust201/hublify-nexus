@@ -151,7 +151,7 @@ function PageMessagerie() {
   const docsLies = actif ? (actif.documents ?? DOCUMENTS_LIES[actif.id] ?? []) : [];
 
   return (
-    <AppShell titre="Messagerie" sousTitre="Occupants, prestataires et équipe">
+    <AppShell attendDonnees titre="Messagerie" sousTitre="Occupants, prestataires et équipe">
       <div className="flex min-h-[calc(100dvh-10rem)] flex-col overflow-hidden rounded-card border border-line bg-white">
         <div className="flex items-center justify-between border-b border-line bg-[color-mix(in srgb, var(--surface) 50%, transparent)] px-4 py-3">
           <p className="flex items-center gap-2 text-sm text-ink">

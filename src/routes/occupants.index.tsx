@@ -17,7 +17,7 @@ export const Route = createFileRoute("/occupants/")({
 
 function PageOccupants() {
   return (
-    <AppShell>
+    <AppShell attendDonnees>
       <ListeOccupants />
     </AppShell>
   );

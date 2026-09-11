@@ -16,7 +16,7 @@ export const Route = createFileRoute("/patrimoines/")({
 function PagePatrimoines() {
   const { logement } = Route.useSearch();
   return (
-    <AppShell titre="Lieux" sousTitre="Logements, immeubles, lieux d'événements">
+    <AppShell attendDonnees titre="Lieux" sousTitre="Logements, immeubles, lieux d'événements">
       <PatrimoineApp {...(logement ? { logementCible: logement } : {})} />
     </AppShell>
   );

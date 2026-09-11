@@ -64,7 +64,7 @@ function PageReservations() {
 
   if (vue === "liste") {
     return (
-      <AppShell>
+      <AppShell attendDonnees>
         <div className="flex items-center gap-2 text-xs text-ink-muted">
           <Link to="/" className="inline-flex min-h-11 items-center hover:text-ink-body md:min-h-0">
             Tableau de bord
@@ -104,7 +104,11 @@ function PageReservations() {
   }
 
   return (
-    <AppShell titre="Réservations" sousTitre="Séjours planifiés, loyers et événements">
+    <AppShell
+      attendDonnees
+      titre="Réservations"
+      sousTitre="Séjours planifiés, loyers et événements"
+    >
       <KpiReservations />
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

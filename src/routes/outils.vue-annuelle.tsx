@@ -11,7 +11,7 @@ export const Route = createFileRoute("/outils/vue-annuelle")({
 
 function PageVueAnnuelle() {
   return (
-    <AppShell titre="Vue Annuelle" sousTitre="Disponibilités et blocages 2026">
+    <AppShell attendDonnees titre="Vue Annuelle" sousTitre="Disponibilités et blocages 2026">
       <VueAnnuelle />
     </AppShell>
   );

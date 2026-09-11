@@ -59,7 +59,7 @@ function VueGenerale() {
   };
 
   return (
-    <AppShell>
+    <AppShell attendDonnees>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <RechercheGlobale valeur={recherche} onChange={setRecherche} />
         {peutReserver && (

@@ -41,7 +41,7 @@ export const Route = createFileRoute("/reservations/nouveau")({
 function PageNouvelleReservation() {
   const { id, bien, arrivee } = Route.useSearch();
   return (
-    <AppShell>
+    <AppShell attendDonnees>
       <FormulaireReservation
         {...(id ? { reservationId: id } : {})}
         {...(bien ? { bienId: bien } : {})}

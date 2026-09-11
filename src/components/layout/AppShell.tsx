@@ -13,23 +13,33 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { marquerNotifsLues, useSession } from "@/data/session";
+import { CorpsEnAttente } from "@/components/layout/CorpsEnAttente";
+import { marquerNotifsLues, useSession, useSessionChargee } from "@/data/session";
 
 export function AppShell({
   titre,
   sousTitre,
   actions,
+  attendDonnees = false,
   children,
 }: {
   titre?: string;
   sousTitre?: string;
   actions?: ReactNode;
+  /**
+   * Retient le contenu tant que l'état métier n'est pas arrivé du serveur.
+   * Sans cela, une page d'indicateurs affirme « À jour · 0 en attente · 0 € »
+   * pendant les secondes qui précèdent l'arrivée des données, puis se contredit
+   * avec « Urgent · 2 050 € ». Mieux vaut ne rien annoncer que se dédire.
+   */
+  attendDonnees?: boolean;
   children: ReactNode;
 }) {
   const [mobileOuvert, setMobileOuvert] = useState(false);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const session = useSession();
+  const chargee = useSessionChargee();
   const auth = useAuth();
   const voirDocs = useDroit("voir-documents");
   const peutParametrer = useDroit("mod-reservations");
@@ -76,7 +86,12 @@ export function AppShell({
             ) : titre ? (
               <div className="min-w-0">
                 <h1 className="truncate text-sm font-medium text-ink">{titre}</h1>
-                {sousTitre && <p className="truncate text-xs text-ink-muted">{sousTitre}</p>}
+                {/* Certains sous-titres comptent des éléments (« 5 prestataires
+                    enregistrés »). Avant l'arrivée des données, ils annonceraient
+                    zéro : on préfère les taire jusque-là. */}
+                {sousTitre && !(attendDonnees && !chargee) && (
+                  <p className="truncate text-xs text-ink-muted">{sousTitre}</p>
+                )}
               </div>
             ) : (
               <div className="hidden h-8 w-16 lg:block" />
@@ -209,7 +224,7 @@ export function AppShell({
           id="contenu-principal"
           className="flex-1 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] lg:p-6"
         >
-          {children}
+          {attendDonnees && !chargee ? <CorpsEnAttente /> : children}
         </main>
       </div>
     </div>

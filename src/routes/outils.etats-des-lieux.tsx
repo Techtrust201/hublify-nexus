@@ -118,7 +118,11 @@ function PageEdl() {
   };
 
   return (
-    <AppShell titre="États des lieux" sousTitre="Entrée, sortie, salon, cuisine, chambre">
+    <AppShell
+      attendDonnees
+      titre="États des lieux"
+      sousTitre="Entrée, sortie, salon, cuisine, chambre"
+    >
       <div className="mb-4 flex gap-1 overflow-x-auto border-b border-line">
         {(["Tous", "Entrée", "Sortie", "Comparer"] as const).map((f) => (
           <button

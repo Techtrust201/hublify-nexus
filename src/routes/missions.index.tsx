@@ -22,7 +22,11 @@ function PageMissions() {
   const navigate = useNavigate();
 
   return (
-    <AppShell titre="Missions" sousTitre="Interventions planifiées, par bien et par jour">
+    <AppShell
+      attendDonnees
+      titre="Missions"
+      sousTitre="Interventions planifiées, par bien et par jour"
+    >
       <PlanningGrid
         onglet={onglet}
         onOnglet={(v) => {

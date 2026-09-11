@@ -57,6 +57,7 @@ function PageParametrage() {
 
   return (
     <AppShell
+      attendDonnees
       titre="Paramètres du compte"
       sousTitre="Configurez vos notifications, formulaires et services additionnels"
     >

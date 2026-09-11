@@ -11,7 +11,11 @@ export const Route = createFileRoute("/outils/modeles")({
 
 function PageModeles() {
   return (
-    <AppShell titre="Modèles de documents" sousTitre="Bibliothèque de modèles réutilisables">
+    <AppShell
+      attendDonnees
+      titre="Modèles de documents"
+      sousTitre="Bibliothèque de modèles réutilisables"
+    >
       <ModelesApp />
     </AppShell>
   );

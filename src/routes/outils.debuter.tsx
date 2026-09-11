@@ -117,7 +117,11 @@ function PageDebuter() {
   };
 
   return (
-    <AppShell titre="Je débute" sousTitre="Trois étapes pour lancer votre première location">
+    <AppShell
+      attendDonnees
+      titre="Je débute"
+      sousTitre="Trois étapes pour lancer votre première location"
+    >
       <div className="mx-auto max-w-[720px]">
         <section className="mb-4 rounded-card border border-line bg-white p-5">
           <h2 className="text-sm font-medium text-ink">Ma fiche</h2>

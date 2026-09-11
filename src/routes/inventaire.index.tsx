@@ -11,7 +11,7 @@ export const Route = createFileRoute("/inventaire/")({
 
 function PageInventaire() {
   return (
-    <AppShell titre="Inventaire" sousTitre="Tous les inventaires de la maison">
+    <AppShell attendDonnees titre="Inventaire" sousTitre="Tous les inventaires de la maison">
       <InventaireApp />
     </AppShell>
   );
