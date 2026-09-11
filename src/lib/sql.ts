@@ -83,6 +83,15 @@ export function obtenirPool(): PoolPg {
     pool = estUrlLocale(url)
       ? new PoolTcp({ connectionString: url, max: 4, ssl: false })
       : new PoolNeon({ connectionString: url, max: process.env["VERCEL"] ? 1 : 4 });
+    // Le pooler de Neon ouvre ses connexions avec un search_path vide, là où
+    // une connexion directe hérite de « "$user", public ». Nos requêtes maison
+    // nomment leur schéma, mais pas celles de Better Auth : sans ce réglage,
+    // l'authentification échoue sur « relation "user" does not exist ».
+    // Le passer en paramètre de démarrage est refusé par le pooler ; il faut
+    // donc l'appliquer à l'ouverture de chaque connexion.
+    pool.on("connect", (client: { query: (texte: string) => unknown }) => {
+      void client.query('set search_path to "$user", public');
+    });
   }
   return pool;
 }
