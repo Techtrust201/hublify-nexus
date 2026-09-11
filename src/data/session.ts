@@ -60,6 +60,13 @@ const INACTIF: StatutSync = { etat: "inactif" };
 
 let etat: EtatSession = etatVide();
 let hydrate = false;
+/**
+ * Le cache local peut être vide alors que le compte a des données : c'est le
+ * cas d'une première visite, ou d'une arrivée directe sur l'URL d'une fiche.
+ * Seule la fin du chargement distant permet d'affirmer qu'une fiche absente
+ * l'est réellement.
+ */
+let distantCharge = false;
 let ignorePush = false;
 let generation = 0;
 let userIdCourant: string | null = null;
@@ -179,6 +186,12 @@ function charger(userId: string | null): EtatSession {
   }
 }
 
+function marquerDistantCharge(gen: number) {
+  if (gen !== generation || distantCharge) return;
+  distantCharge = true;
+  abonnes.forEach((fn) => fn());
+}
+
 async function hydraterDistant() {
   const gen = generation;
   try {
@@ -212,6 +225,10 @@ async function hydraterDistant() {
       depuis: Date.now(),
       raison: e instanceof Error ? e.message : "reseau",
     });
+  } finally {
+    // Succès comme échec : l'attente est terminée. Un écran de détail qui
+    // patienterait indéfiniment serait pire qu'un écran qui conclut.
+    marquerDistantCharge(gen);
   }
 }
 
@@ -228,13 +245,18 @@ export function hydraterSession(userId?: string | null) {
     tentatives = 0;
     sales.clear();
     generation += 1;
+    distantCharge = false;
     poserStatut({ etat: "inactif" });
     oublierEtatsLocaux(prochain);
     etat = charger(prochain);
     abonnes.forEach((fn) => fn());
   }
 
-  if (!prochain) return;
+  if (!prochain) {
+    // Sans compte, il n'y a rien à attendre du serveur.
+    marquerDistantCharge(generation);
+    return;
+  }
   if (!ecouteReseau) {
     ecouteReseau = true;
     window.addEventListener("online", () => {
@@ -272,15 +294,16 @@ export function useSession(): EtatSession {
 }
 
 /**
- * Dit si l'état métier a été chargé. Avant cela — rendu serveur, puis tout
- * premier rendu client — les collections sont vides sans que cela signifie
+ * Dit si l'état métier a fini d'être chargé depuis le serveur. Tant que ce
+ * n'est pas le cas — rendu serveur, premier rendu client, arrivée directe sur
+ * l'URL d'une fiche — les collections peuvent être vides sans que cela signifie
  * qu'elles le soient vraiment. Un écran de détail qui conclurait « introuvable »
- * à cet instant afficherait une erreur pour une fiche qui existe.
+ * à cet instant annoncerait une page inexistante pour une fiche qui existe.
  */
 export function useSessionChargee(): boolean {
   return useSyncExternalStore(
     souscrire,
-    () => hydrate,
+    () => distantCharge,
     () => false,
   );
 }
