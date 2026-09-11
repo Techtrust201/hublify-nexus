@@ -22,7 +22,7 @@ function PageTarifs() {
   const navigate = useNavigate();
 
   return (
-    <AppShell>
+    <AppShell titre="Tarifs" sousTitre="Prix par nuit, règles et ensembles de règles">
       <PlanningGrid
         onglet={onglet}
         vueInitiale="mois"

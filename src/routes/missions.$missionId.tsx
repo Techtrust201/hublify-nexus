@@ -2,7 +2,13 @@ import { useDroit } from "@/auth/auth-context";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, CalendarDays, Clock, Home, User } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
-import { affecterMission, changerStatutMission, useSession } from "@/data/session";
+import { EcranAttente } from "@/components/layout/EcranAttente";
+import {
+  affecterMission,
+  changerStatutMission,
+  useSession,
+  useSessionChargee,
+} from "@/data/session";
 import type { StatutPastille } from "@/data/planning-mo1";
 
 export const Route = createFileRoute("/missions/$missionId")({
@@ -55,9 +61,15 @@ function DetailMission() {
   const { missionId } = Route.useParams();
   const { missions, biens, prestataires, reservationsDossier } = useSession();
   const peutMod = useDroit("mod-missions");
+  const chargee = useSessionChargee();
   const mission = missions.find((m) => m.id === missionId);
 
-  if (!mission) throw notFound();
+  // Avant le chargement de l'état, l'absence ne prouve rien : la mission existe
+  // peut-être. On attend d'en être sûr plutôt que d'annoncer une page inexistante.
+  if (!mission) {
+    if (!chargee) return <EcranAttente titre="Mission" />;
+    throw notFound();
+  }
 
   const bien = biens.find((b) => b.id === mission.bienId);
   const presta = prestataires.find((p) => p.nom === mission.assigne);

@@ -271,6 +271,20 @@ export function useSession(): EtatSession {
   );
 }
 
+/**
+ * Dit si l'état métier a été chargé. Avant cela — rendu serveur, puis tout
+ * premier rendu client — les collections sont vides sans que cela signifie
+ * qu'elles le soient vraiment. Un écran de détail qui conclurait « introuvable »
+ * à cet instant afficherait une erreur pour une fiche qui existe.
+ */
+export function useSessionChargee(): boolean {
+  return useSyncExternalStore(
+    souscrire,
+    () => hydrate,
+    () => false,
+  );
+}
+
 const CLES_ETAT = Object.keys(etatVide()) as Array<keyof EtatSession>;
 
 export function modifierSession(fn: (actuel: EtatSession) => EtatSession) {

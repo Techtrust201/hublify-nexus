@@ -2,7 +2,8 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, Mail, MapPin, Phone, Star } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
-import { useSession } from "@/data/session";
+import { EcranAttente } from "@/components/layout/EcranAttente";
+import { useSession, useSessionChargee } from "@/data/session";
 
 export const Route = createFileRoute("/prestataires/$prestataireId")({
   head: () => ({
@@ -26,9 +27,15 @@ export const Route = createFileRoute("/prestataires/$prestataireId")({
 function FichePrestataire() {
   const { prestataireId } = Route.useParams();
   const { prestataires, missions, biens } = useSession();
+  const chargee = useSessionChargee();
   const presta = prestataires.find((p) => p.id === prestataireId);
 
-  if (!presta) throw notFound();
+  // Avant le chargement de l'état, l'absence ne prouve rien : le prestataire
+  // existe peut-être. On attend d'en être sûr avant de conclure.
+  if (!presta) {
+    if (!chargee) return <EcranAttente titre="Prestataire" />;
+    throw notFound();
+  }
 
   const siennes = missions
     .filter((m) => m.assigne === presta.nom)
