@@ -182,7 +182,9 @@ function PageDebuter() {
                     value={nouveauBien}
                     onChange={(e) => setNouveauBien(e.target.value)}
                     placeholder="Nom du logement"
-                    className="h-[34px] flex-1 rounded-[8px] border border-line px-3 text-sm outline-none"
+                    // `min-w-0` : sans lui, le champ refuse de descendre sous la
+                    // largeur de son texte et pousse le bouton hors de l'écran.
+                    className="h-[34px] min-w-0 flex-1 rounded-[8px] border border-line px-3 text-sm outline-none"
                   />
                   <button
                     type="button"

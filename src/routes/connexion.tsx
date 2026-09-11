@@ -6,7 +6,14 @@ import { authClient } from "@/lib/auth-client";
 import { getSession } from "@/lib/auth.functions";
 import { toastErreur, toastOk } from "@/lib/feedback";
 
-const MDP_DEMO = "Hublify-Demo-2026!";
+/**
+ * Le mot de passe de démonstration vient de la configuration, jamais du code.
+ * Un littéral écrit ici partirait dans le fichier JavaScript envoyé au
+ * navigateur, où il resterait lisible par n'importe quel visiteur — y compris
+ * une fois le panneau ci-dessous masqué, car masquer un affichage ne retire
+ * rien du bundle. Absent de la configuration, il vaut la chaîne vide.
+ */
+const MDP_DEMO = import.meta.env["VITE_MDP_DEMO"] ?? "";
 
 export const Route = createFileRoute("/connexion")({
   beforeLoad: async () => {
@@ -22,9 +29,13 @@ export const Route = createFileRoute("/connexion")({
   component: PageConnexion,
 });
 
-// Recette : panneau des comptes de démo visible (iPhone / associés).
-// À masquer (`VITE_MODE_DEMO=0`) avant un déploiement client réel.
-const MODE_DEMO = import.meta.env["VITE_MODE_DEMO"] !== "0";
+/**
+ * Panneau d'aide listant les comptes de recette. Il s'active explicitement
+ * (`VITE_MODE_DEMO=1`) et reste absent partout ailleurs : un environnement
+ * publie la liste de ses comptes parce qu'on l'a demandé, jamais parce qu'on a
+ * oublié de la désactiver.
+ */
+const MODE_DEMO = import.meta.env["VITE_MODE_DEMO"] === "1";
 
 const COMPTES_FONDATEURS = SUPER_ADMINS.map((c) => ({
   email: c.email,
@@ -163,10 +174,12 @@ function PageConnexion() {
                 </li>
               ))}
             </ul>
-            <p className="mt-3 text-xs text-ink-body">
-              Mot de passe de tous ces comptes :{" "}
-              <span className="font-medium text-ink">{MDP_DEMO}</span>
-            </p>
+            {MDP_DEMO && (
+              <p className="mt-3 text-xs text-ink-body">
+                Mot de passe de tous ces comptes :{" "}
+                <span className="font-medium text-ink">{MDP_DEMO}</span>
+              </p>
+            )}
           </div>
         )}
       </div>

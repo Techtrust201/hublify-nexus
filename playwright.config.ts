@@ -25,6 +25,12 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   workers: 1,
+  // Les routes sont compilées à la demande : on les visite avant la suite pour
+  // qu'aucun test ne paie ce coût. Voir e2e/prechauffage.ts.
+  globalSetup: "./e2e/prechauffage.ts",
+  // Marge résiduelle : la compilation préchauffée reste plus lente qu'un accès
+  // ordinaire pendant les premières secondes.
+  expect: { timeout: 10_000 },
   use: {
     baseURL,
     trace: "on-first-retry",

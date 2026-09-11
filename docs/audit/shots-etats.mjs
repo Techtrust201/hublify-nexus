@@ -77,9 +77,7 @@ const authPage = await authCtx.newPage();
 await authPage.goto(`${BASE}/connexion`, { waitUntil: "load" });
 await authPage.waitForTimeout(2500);
 await authPage.getByLabel("Email").fill(process.env.DEMO_EMAIL ?? "contact@tech-trust.fr");
-await authPage
-  .getByLabel("Mot de passe")
-  .fill(process.env.DEMO_AUTH_PASSWORD ?? "Hublify-Demo-2026!");
+await authPage.getByLabel("Mot de passe").fill(process.env.DEMO_AUTH_PASSWORD ?? "");
 await authPage.getByRole("button", { name: "Se connecter" }).click();
 await authPage.waitForURL((u) => !u.pathname.includes("/connexion"), { timeout: 20_000 });
 const storageState = await authCtx.storageState();

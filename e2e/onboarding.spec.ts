@@ -11,7 +11,7 @@ test.skip(
 // démonstration reste présentable après un passage de la suite.
 test.afterAll(purgerComptesDeTest);
 
-const MOT_DE_PASSE = process.env["DEMO_AUTH_PASSWORD"] ?? "Hublify-Demo-2026!";
+const MOT_DE_PASSE = process.env["DEMO_AUTH_PASSWORD"] ?? "";
 
 test("une inscription crée un org vide, sans parc Redris", async ({ page }) => {
   test.setTimeout(90_000);

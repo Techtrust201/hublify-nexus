@@ -12,7 +12,12 @@ import { ORG_LUCAS_ID, ORG_REDRIS_ID } from "../src/lib/orgs.ts";
 import { rattacherUtilisateur } from "../src/lib/rattacher.ts";
 import { fermerPool, getSql, type Sql } from "../src/lib/sql.ts";
 
-const motDePasse = process.env.DEMO_AUTH_PASSWORD ?? "Hublify-Demo-2026!";
+const motDePasse = process.env.DEMO_AUTH_PASSWORD;
+if (!motDePasse) {
+  // Une valeur de repli écrite ici serait le mot de passe de tous les comptes
+  // créés par ce script, connu de quiconque lit le dépôt.
+  throw new Error("DEMO_AUTH_PASSWORD est obligatoire : renseignez-le dans .env.local");
+}
 
 const comptes: Array<{
   email: string;

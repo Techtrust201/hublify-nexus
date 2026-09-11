@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+const MOT_DE_PASSE = process.env["DEMO_AUTH_PASSWORD"] ?? "";
+
 test("sans session, l'app redirige vers la connexion", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle(/Connexion/);
@@ -19,7 +21,7 @@ test("un administrateur accède à la vue générale", async ({ page }) => {
   await page.goto("/connexion");
   await page.getByLabel("Email").fill("contact@tech-trust.fr");
   // Le champ voisine un bouton « Afficher le mot de passe » : on vise l'input.
-  await page.locator('input[name="password"]').fill("Hublify-Demo-2026!");
+  await page.locator('input[name="password"]').fill(MOT_DE_PASSE);
   await page.getByRole("button", { name: "Se connecter" }).click();
   await expect(page).toHaveTitle(/Vue générale/, { timeout: 15_000 });
   await expect(page.getByRole("link", { name: "Réservations" }).first()).toBeVisible();

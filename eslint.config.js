@@ -10,6 +10,9 @@ export default tseslint.config(
     ignores: [
       "dist",
       ".output",
+      // Sortie du build Vercel : deux cents fichiers générés, dont le bundle
+      // serveur concaténé. Les analyser fige le lint pendant plusieurs minutes.
+      ".vercel",
       ".vinxi",
       "e2e",
       "playwright.config.ts",

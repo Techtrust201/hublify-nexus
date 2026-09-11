@@ -83,7 +83,10 @@ export function AppShell({
             )}
           </div>
           <div className="flex min-w-0 items-center gap-2 sm:gap-4">
-            {actions ? <div className="flex min-w-0 shrink items-center">{actions}</div> : null}
+            {/* Le titre voisin sait se tronquer, pas un bouton : c'est donc lui
+                qui cède la place quand l'écran est étroit, plutôt que de rogner
+                l'action principale de la page. */}
+            {actions ? <div className="flex shrink-0 items-center">{actions}</div> : null}
             <DropdownMenu>
               <DropdownMenuTrigger className="hidden h-[34px] items-center gap-1 rounded-card border border-line px-3 text-sm font-medium text-ink-body lg:inline-flex">
                 Outils

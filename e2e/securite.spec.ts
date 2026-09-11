@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const MOT_DE_PASSE = process.env["DEMO_AUTH_PASSWORD"] ?? "Hublify-Demo-2026!";
+const MOT_DE_PASSE = process.env["DEMO_AUTH_PASSWORD"] ?? "";
 
 // Toute cette suite exige des comptes réels : sans base, elle est ignorée
 // explicitement plutôt que de rendre la CI rouge pour une raison d'environnement.

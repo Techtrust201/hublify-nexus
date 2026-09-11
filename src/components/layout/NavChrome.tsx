@@ -1,5 +1,6 @@
 // SOURCE: Maquette V1 — sidebar Accueil 2:18130 (Lieux, Analyse, Team mate, Je débute teal)
 
+import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import {
@@ -17,7 +18,7 @@ import {
   Users,
 } from "lucide-react";
 import { useAuth, useDroit } from "@/auth/auth-context";
-import { aLeDroit, initialesDe, SUPER_ADMINS, type DroitId } from "@/auth/permissions";
+import { aLeDroit, type DroitId } from "@/auth/permissions";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { oublierEtatsLocaux } from "@/data/session";
+import { listerEquipe } from "@/lib/auth.functions";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
@@ -110,6 +112,19 @@ export function NavChrome({
       (!v.droit || aLeDroit(droits, v.droit)) &&
       !(mobile && navVisible.some((e) => e.url === v.url)),
   );
+  // Les coéquipiers listés sont ceux de l'organisation connectée. La requête est
+  // partagée avec le reste de l'application via son cache : naviguer d'un écran
+  // à l'autre ne la relance pas.
+  const { data: coequipiers } = useQuery({
+    queryKey: ["equipe-navigation", auth?.orgId],
+    queryFn: () => listerEquipe(),
+    enabled: peutEquipe && Boolean(auth?.orgId),
+    staleTime: 5 * 60_000,
+  });
+  // Une invitation encore en attente n'est pas un coéquipier : la faire figurer
+  // dans la navigation laisserait croire à un accès déjà ouvert.
+  const equipe = (coequipiers ?? []).filter((m) => m.statut === "actif");
+
   const [lieuxOuvert, setLieuxOuvert] = useState(false);
   const lien = mobile
     ? "flex min-h-11 items-center gap-3 rounded-card px-3 text-sm font-medium text-ink-body hover:bg-surface"
@@ -245,15 +260,10 @@ export function NavChrome({
               Team mate
             </Link>
             <div className="mt-1 space-y-0.5">
-              {SUPER_ADMINS.map((m) => (
-                <Link
-                  key={m.email}
-                  to="/team"
-                  onClick={onNavigate}
-                  className={cn(lien, "gap-2 pl-3")}
-                >
+              {equipe.map((m) => (
+                <Link key={m.id} to="/team" onClick={onNavigate} className={cn(lien, "gap-2 pl-3")}>
                   <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-line text-[10px] font-medium text-ink-subtle">
-                    {initialesDe(m.prenom, m.nom)}
+                    {m.initiales}
                   </span>
                   <span className="truncate">
                     {m.prenom} {m.nom}

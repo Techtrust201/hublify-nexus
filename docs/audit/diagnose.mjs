@@ -50,9 +50,7 @@ if (!process.env.ANONYME) {
   await authPage.goto(`${BASE}/connexion`, { waitUntil: "load" });
   await authPage.waitForTimeout(2500); // l'app doit être hydratée avant de soumettre
   await authPage.getByLabel("Email").fill(process.env.EMAIL ?? "contact@tech-trust.fr");
-  await authPage
-    .locator('input[name="password"]')
-    .fill(process.env.DEMO_AUTH_PASSWORD ?? "Hublify-Demo-2026!");
+  await authPage.locator('input[name="password"]').fill(process.env.DEMO_AUTH_PASSWORD ?? "");
   await authPage.getByRole("button", { name: "Se connecter" }).click();
   await authPage.waitForURL((u) => !u.pathname.includes("/connexion"), { timeout: 20_000 });
   storageState = await authCtx.storageState();

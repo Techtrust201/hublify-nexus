@@ -26,7 +26,9 @@ jobs:
       DATABASE_URL: postgresql://hublify:hublify@127.0.0.1:5432/hublify
       BETTER_AUTH_SECRET: ci-uniquement-32-caracteres-min!!
       BETTER_AUTH_URL: http://127.0.0.1:8080
-      DEMO_AUTH_PASSWORD: Hublify-Demo-2026!
+      # Base jetable, recréée à chaque exécution : cette valeur ne donne accès à
+      # rien et n'a aucun rapport avec les mots de passe des environnements réels.
+      DEMO_AUTH_PASSWORD: mot-de-passe-jetable-ci-2026
       CI: true
     steps:
       - uses: actions/checkout@v4

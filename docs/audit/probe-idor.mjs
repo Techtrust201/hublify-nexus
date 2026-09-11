@@ -7,7 +7,7 @@
 import { chromium } from "playwright";
 
 const BASE = process.env["BASE"] ?? "http://127.0.0.1:8080";
-const MDP = process.env["DEMO_AUTH_PASSWORD"] ?? "Hublify-Demo-2026!";
+const MDP = process.env["DEMO_AUTH_PASSWORD"] ?? "";
 const ADMIN = "contact@tech-trust.fr";
 const LECTEUR = "claire.lecture@hublify.app";
 
