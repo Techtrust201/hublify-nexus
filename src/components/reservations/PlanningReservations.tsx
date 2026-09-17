@@ -555,14 +555,14 @@ function LigneBien({
               )}
             >
               {!occupe && !bloquee && (
-                <ChoixCaseLibre
-                  bienId={bien.id}
-                  date={key}
-                  nomBien={bien.nom}
-                  onBloquer={onBloquer}
-                  onOuverture={onOuverture}
-                  onNote={onNote}
-                />
+                <Link
+                  to="/reservations/nouveau"
+                  search={{ bien: bien.id, arrivee: key }}
+                  className="absolute inset-0 flex items-center justify-center text-ink-muted hover:bg-white/70"
+                  aria-label={`Ajouter une réservation — ${bien.nom}`}
+                >
+                  <Plus className="size-3.5" />
+                </Link>
               )}
               {occupe && (
                 <MenuCaseOccupee
@@ -686,79 +686,6 @@ function GrilleMois({
         })}
       </div>
       <LegendePlanning />
-    </div>
-  );
-}
-
-function ChoixCaseLibre({
-  bienId,
-  date,
-  nomBien,
-  onBloquer,
-  onOuverture,
-  onNote,
-}: {
-  bienId: string;
-  date: string;
-  nomBien: string;
-  onBloquer: (bienId: string, date: string) => void;
-  onOuverture: (bienId: string, date: string) => void;
-  onNote: (bienId: string, date: string) => void;
-}) {
-  const [ouvert, setOuvert] = useState(false);
-  return (
-    <div className="relative flex h-full items-center justify-center">
-      <button
-        type="button"
-        className="flex size-11 items-center justify-center rounded-full border border-line-strong text-ink-muted md:size-5"
-        aria-label={`Ajouter une réservation, une note ou une période — ${nomBien}`}
-        aria-expanded={ouvert}
-        onClick={() => setOuvert((v) => !v)}
-      >
-        <Plus className="size-2.5" />
-      </button>
-      {ouvert && (
-        <div className="absolute top-full z-20 mt-1 w-48 overflow-hidden rounded-card border border-line bg-white py-1 shadow-md">
-          <Link
-            to="/reservations/nouveau"
-            search={{ bien: bienId, arrivee: date }}
-            className="block px-3 py-2 text-left text-xs text-ink hover:bg-surface"
-            onClick={() => setOuvert(false)}
-          >
-            Créer une réservation
-          </Link>
-          <button
-            type="button"
-            onClick={() => {
-              onOuverture(bienId, date);
-              setOuvert(false);
-            }}
-            className="block w-full px-3 py-2 text-left text-xs text-ink hover:bg-surface"
-          >
-            Période d'ouverture
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onNote(bienId, date);
-              setOuvert(false);
-            }}
-            className="block w-full px-3 py-2 text-left text-xs text-ink hover:bg-surface"
-          >
-            Note / événement
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onBloquer(bienId, date);
-              setOuvert(false);
-            }}
-            className="block w-full px-3 py-2 text-left text-xs text-ink hover:bg-surface"
-          >
-            Bloquer cette date
-          </button>
-        </div>
-      )}
     </div>
   );
 }

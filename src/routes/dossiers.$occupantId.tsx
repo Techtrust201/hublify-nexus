@@ -9,6 +9,7 @@ import {
   useSession,
   useSessionChargee,
   validerCandidature,
+  validerDepartDossier,
 } from "@/data/session";
 import { formatMontant } from "@/data/reservations-mo1";
 import { telechargerPdf, toastOk } from "@/lib/feedback";
@@ -63,7 +64,9 @@ function PageDossierLocataire() {
             type="button"
             className="mt-2 h-9 rounded-card bg-ink px-3 text-xs font-medium text-white"
             onClick={() => {
-              upsertDossierLocation({ ...dossier, departValide: true });
+              if (!validerDepartDossier(dossier.id, dossier.departDeclare ?? "")) {
+                return;
+              }
               const date = new Date().toLocaleDateString("fr-FR");
               ajouterDocument({
                 id: idNouveau("doc"),
@@ -96,7 +99,7 @@ function PageDossierLocataire() {
                 `Date de départ : ${dossier.departDeclare}`,
                 occupant.logement,
               ]);
-              toastOk("Départ validé. Documents de sortie enregistrés.");
+              toastOk("Départ validé. Documents de sortie et les deux calendriers sont à jour.");
             }}
           >
             Valider et générer les documents de sortie
@@ -171,6 +174,35 @@ function PageDossierLocataire() {
           ))}
           {loyers.length === 0 && <p className="mt-2 text-sm text-ink-muted">Aucun loyer.</p>}
         </section>
+        {dossier && (
+          <section className="rounded-card border border-line bg-white p-4 lg:col-span-2">
+            <h2 className="text-sm font-medium text-ink">Pièces du dossier</h2>
+            {dossier.pieces.map((p) => (
+              <p key={p.id} className="mt-2 text-sm">
+                {p.titre} · {p.present ? "déposée" : "manquante"}
+                {p.filigrane ? " · filigranée" : ""}
+                {p.numero2dDoc ? ` · 2D-DOC ${p.numero2dDoc}` : ""}
+              </p>
+            ))}
+            {dossier.pieces.length === 0 && (
+              <p className="mt-2 text-sm text-ink-muted">Aucune pièce déposée.</p>
+            )}
+          </section>
+        )}
+        {session.partagesDossier.filter((p) => !dossier || p.dossierId === dossier.id).length > 0 && (
+          <section className="rounded-card border border-line bg-white p-4 lg:col-span-2">
+            <h2 className="text-sm font-medium text-ink">Partages et autorisations</h2>
+            {session.partagesDossier
+              .filter((p) => !dossier || p.dossierId === dossier.id)
+              .map((p) => (
+                <p key={p.id} className="mt-2 text-sm">
+                  {p.destinataire} ·{" "}
+                  {p.autorise === true ? "autorisé" : p.autorise === false ? "refusé" : "en attente"}
+                  {p.expireLe ? ` · expire ${p.expireLe}` : ""}
+                </p>
+              ))}
+          </section>
+        )}
         {!historiqueSeul && (
           <section className="rounded-card border border-line bg-white p-4 lg:col-span-2">
             <h2 className="text-sm font-medium text-ink">Documents</h2>

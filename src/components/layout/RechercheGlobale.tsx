@@ -24,11 +24,7 @@ export function RechercheGlobale({
     for (const b of session.biens) {
       const adresse = b.adresse ?? "";
       const proprio = b.proprietaire ?? "";
-      if (
-        b.nom.toLowerCase().includes(q) ||
-        adresse.toLowerCase().includes(q) ||
-        proprio.toLowerCase().includes(q)
-      ) {
+      if (b.nom.toLowerCase().includes(q) || proprio.toLowerCase().includes(q)) {
         liste.push({
           id: `bien-${b.id}`,
           label: b.nom,
@@ -39,11 +35,7 @@ export function RechercheGlobale({
     }
 
     for (const i of session.immeubles) {
-      if (
-        i.nom.toLowerCase().includes(q) ||
-        i.proprietaire.toLowerCase().includes(q) ||
-        i.adresse.toLowerCase().includes(q)
-      ) {
+      if (i.proprietaire.toLowerCase().includes(q)) {
         liste.push({
           id: `imm-${i.id}`,
           label: i.proprietaire,

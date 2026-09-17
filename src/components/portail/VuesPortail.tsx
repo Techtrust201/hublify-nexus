@@ -279,12 +279,21 @@ export function MissionsPortail() {
 export function MessagesPortail() {
   const session = useSession();
   const [texte, setTexte] = useState("");
-  const conv = session.conversations[0];
+  const conv =
+    session.conversations.find((c) => c.type === "team" || c.section === "team") ??
+    session.conversations.find((c) => /gestion/i.test(c.nom)) ??
+    session.conversations[0];
 
   return (
     <div className="rounded-card border border-line bg-white p-4">
-      <h2 className="text-sm font-medium text-ink">{conv?.nom ?? "Gestionnaire du logement"}</h2>
-      <p className="text-xs text-ink-muted">Contact du gestionnaire — même fil pour le logement.</p>
+      <h2 className="text-sm font-medium text-ink">Gestionnaire du logement</h2>
+      <p className="text-xs text-ink-muted">
+        {conv?.nom && conv.type !== "locataire" ? `${conv.nom} · ` : ""}
+        Contact principal du logement — même fil que Messages.
+      </p>
+      <Link to="/espace/contacts" className="text-xs text-accent-teal">
+        Voir la fiche contact
+      </Link>
       <ul className="mt-3 max-h-80 space-y-2 overflow-y-auto text-sm">
         {session.messagesFil
           .filter((m) => !conv || m.conversationId === conv.id)
@@ -345,9 +354,10 @@ export function DocumentsPortail() {
       </p>
     );
   }
+  const docs = session.documents.filter((d) => !/bail/i.test(d.type) && !/bail/i.test(d.titre));
   return (
     <ul className="space-y-2">
-      {session.documents.map((d) => (
+      {docs.map((d) => (
         <li key={d.id} className="flex items-center justify-between rounded-card border border-line bg-white px-4 py-3">
           <span>
             <span className="block text-sm text-ink">{d.titre}</span>
@@ -366,7 +376,7 @@ export function DocumentsPortail() {
           </button>
         </li>
       ))}
-      {session.documents.length === 0 && (
+      {docs.length === 0 && (
         <li className="rounded-card border border-line bg-white p-4 text-sm text-ink-muted">
           Aucun document partagé.
         </li>
@@ -475,6 +485,13 @@ export function LogementPortail() {
       </section>
       <section className="rounded-card border border-line bg-white p-4">
         <h2 className="text-sm font-medium text-ink">Bail et quittances</h2>
+        {dossierArchiveSeuleLigne(
+          session.dossiersLocation.find(
+            (d) => d.email.toLowerCase() === (auth?.email ?? "").toLowerCase(),
+          ),
+        ) ? (
+          <p className="mt-2 text-sm text-ink-muted">Archive expirée : seule la ligne d'historique reste.</p>
+        ) : (
         <ul className="mt-2 space-y-1 text-sm">
           {session.documents
             .filter((d) => /bail|quittance/i.test(d.type) || /bail|quittance/i.test(d.titre))
@@ -482,7 +499,13 @@ export function LogementPortail() {
               <li key={d.id}>{d.titre}</li>
             ))}
         </ul>
-        {loyers.map((l) => (
+        )}
+        {!dossierArchiveSeuleLigne(
+          session.dossiersLocation.find(
+            (d) => d.email.toLowerCase() === (auth?.email ?? "").toLowerCase(),
+          ),
+        ) &&
+          loyers.map((l) => (
           <p key={l.id} className="mt-2 text-sm">
             {l.echeance} · {formatMontant(l.montant)} {l.valide ? "payé" : "en attente"}
           </p>
@@ -666,9 +689,7 @@ function CodesProteges({
   enfants: { wifi?: string; wifiMdp?: string; codeCles?: string };
 }) {
   const [pin, setPin] = useState("");
-  const [ok, setOk] = useState(() =>
-    typeof sessionStorage === "undefined" ? false : sessionStorage.getItem("hublify.pin.ok") === "1",
-  );
+  const [ok, setOk] = useState(false);
   if (ok) {
     return (
       <div className="mt-2 space-y-1 text-xs text-ink-body">
@@ -680,7 +701,11 @@ function CodesProteges({
   return (
     <div className="mt-2 rounded-card bg-surface p-3">
       <p className="text-xs text-ink-muted">
-        Infos sensibles : confirmez votre session (PIN à 4 chiffres). Pas de biométrie native.
+        Infos sensibles :{" "}
+        {typeof sessionStorage !== "undefined" && sessionStorage.getItem("hublify.pin.code")
+          ? "confirmez votre PIN à 4 chiffres."
+          : "choisissez un PIN à 4 chiffres pour cette session."}{" "}
+        Pas de biométrie native.
       </p>
       <div className="mt-2 flex gap-2">
         <input
@@ -697,7 +722,18 @@ function CodesProteges({
               toastErreur("Indiquez 4 chiffres.");
               return;
             }
-            sessionStorage.setItem("hublify.pin.ok", "1");
+            const attendu =
+              typeof sessionStorage === "undefined" ? "" : sessionStorage.getItem("hublify.pin.code");
+            if (!attendu) {
+              sessionStorage.setItem("hublify.pin.code", pin);
+              setOk(true);
+              toastOk("PIN enregistré pour cette session. Codes visibles.");
+              return;
+            }
+            if (pin !== attendu) {
+              toastErreur("PIN incorrect.");
+              return;
+            }
             setOk(true);
             toastOk("Session confirmée. Codes visibles.");
           }}
@@ -1231,39 +1267,87 @@ export function CandidaturePortail() {
         Prorata {formatMontant(estimation.prorata)} + commissions {formatMontant(estimation.commissions)}{" "}
         = {formatMontant(estimation.total)}
       </p>
-      <button
-        type="button"
-        onClick={() => {
-          if (!dossier) {
-            toastErreur("Enregistrez votre dossier avant de candidater.");
-            return;
-          }
-          if (!arrivee || !depart || depart <= arrivee) {
-            toastErreur("Indiquez des dates cohérentes.");
-            return;
-          }
-          ajouterCandidature({
-            id: idNouveau("cand"),
-            dossierId: dossier.id,
-            bienId,
-            arrivee,
-            depart,
-            montant: estimation.total,
-            statut: "proposee",
-            commissionIncluse: estimation.commissions,
-          });
-          ouvrirConversationProspect({
-            nom: `${auth?.prenom ?? ""} ${auth?.nom ?? ""}`.trim() || "Candidat",
-            extrait: `Candidature ${arrivee} → ${depart} · ${formatMontant(estimation.total)}`,
-            bienNom: bien?.nom,
-            type: "locataire",
-          });
-          toastOk("Candidature envoyée. Messagerie Prospect et calendriers à valider.");
-        }}
-        className="h-10 w-full rounded-card bg-ink text-sm font-medium text-white"
-      >
-        Proposer ma candidature
-      </button>
+      <div className="flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            if (!dossier) {
+              toastErreur("Enregistrez votre dossier avant de candidater.");
+              return;
+            }
+            if (!arrivee || !depart || depart <= arrivee) {
+              toastErreur("Indiquez des dates cohérentes.");
+              return;
+            }
+            ajouterCandidature({
+              id: idNouveau("cand"),
+              dossierId: dossier.id,
+              bienId,
+              arrivee,
+              depart,
+              montant: estimation.total,
+              statut: "brouillon",
+              commissionIncluse: estimation.commissions,
+            });
+            toastOk("Brouillon enregistré. Vous pourrez le proposer plus tard.");
+          }}
+          className="h-10 w-full rounded-card border border-line text-sm font-medium text-ink"
+        >
+          Enregistrer le brouillon
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (!dossier) {
+              toastErreur("Enregistrez votre dossier avant de candidater.");
+              return;
+            }
+            if (!arrivee || !depart || depart <= arrivee) {
+              toastErreur("Indiquez des dates cohérentes.");
+              return;
+            }
+            ajouterCandidature({
+              id: idNouveau("cand"),
+              dossierId: dossier.id,
+              bienId,
+              arrivee,
+              depart,
+              montant: estimation.total,
+              statut: "proposee",
+              commissionIncluse: estimation.commissions,
+            });
+            ouvrirConversationProspect({
+              nom: `${auth?.prenom ?? ""} ${auth?.nom ?? ""}`.trim() || "Candidat",
+              extrait: `Candidature ${arrivee} → ${depart} · ${formatMontant(estimation.total)}`,
+              bienNom: bien?.nom,
+              type: "locataire",
+            });
+            toastOk("Candidature envoyée. Messagerie Prospect et calendriers à valider.");
+          }}
+          className="h-10 w-full rounded-card bg-ink text-sm font-medium text-white"
+        >
+          Proposer ma candidature
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (!arrivee || !depart) {
+              toastErreur("Indiquez la période à partager.");
+              return;
+            }
+            ouvrirConversationProspect({
+              nom: `${auth?.prenom ?? ""} ${auth?.nom ?? ""}`.trim() || "Candidat",
+              extrait: `Partage candidature ${arrivee} → ${depart} · ${formatMontant(estimation.total)}`,
+              bienNom: bien?.nom,
+              type: "locataire",
+            });
+            toastOk("Candidature partagée dans la messagerie Prospect.");
+          }}
+          className="h-10 w-full text-sm text-accent-teal"
+        >
+          Partager cette candidature
+        </button>
+      </div>
       <ul className="space-y-2 text-sm">
         {session.candidatures.map((c) => (
           <li key={c.id} className="rounded-card border border-surface-soft p-2">

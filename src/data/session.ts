@@ -699,6 +699,20 @@ export function upsertDossierLocation(dossier: DossierLocation) {
   void pousserLigne("dossiersLocation", dossier).then((ok) => !ok && programmerReprise());
 }
 
+/** Valide un départ : dossier + date de fin sur les deux calendriers. */
+export function validerDepartDossier(dossierId: string, dateDepart: string) {
+  const dossier = etat.dossiersLocation.find((d) => d.id === dossierId);
+  if (!dossier) return false;
+  upsertDossierLocation({ ...dossier, departDeclare: dateDepart, departValide: true });
+  const cible = etat.reservationsDossier.find(
+    (r) =>
+      r.email.toLowerCase() === dossier.email.toLowerCase() ||
+      r.occupant.toLowerCase() === dossier.occupantNom.toLowerCase(),
+  );
+  if (cible) modifierReservation(cible.id, { depart: dateDepart });
+  return true;
+}
+
 export function upsertPartageDossier(partage: PartageDossier) {
   appliquerLocal((e) => {
     const i = e.partagesDossier.findIndex((p) => p.id === partage.id);

@@ -146,11 +146,6 @@ export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
               {nonLus}
             </span>
           )}
-          {!ouvert && messages[0] && (
-            <span className="truncate text-xs font-normal text-ink-muted">
-              {messages[0].auteur} · {messages[0].texte}
-            </span>
-          )}
         </span>
         {ouvert ? (
           <ChevronUp className="size-4 text-ink-muted" />

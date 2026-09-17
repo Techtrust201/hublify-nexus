@@ -49,9 +49,6 @@ function LigneConversation({
           <Icone className="size-2.5 shrink-0 text-ink-deep" aria-hidden />
           <span className="ml-auto shrink-0 text-[10px] text-ink-muted">{conversation.ilYa}</span>
         </span>
-        <span className="mt-0.5 block truncate text-[11px] leading-[16.5px] text-ink-muted">
-          {conversation.extrait}
-        </span>
         {conversation.section === "prospections" && (
           <span className="mt-0.5 block text-[10px] text-ink-muted">
             Volume {volume ?? 0} · {conversation.nonLu ? "activité récente" : "suivi"}

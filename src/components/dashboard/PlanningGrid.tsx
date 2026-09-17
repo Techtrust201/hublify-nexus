@@ -645,7 +645,9 @@ function LigneBien({
                 "relative border-r border-surface-soft",
                 ligneHaute ? "min-h-[104px]" : "min-h-[52px]",
                 key === AUJOURD_HUI_MO1 && "bg-surface/60",
+                onAjouterPrestation && "cursor-pointer",
               )}
+              onClick={() => onAjouterPrestation?.(bien.id, key)}
             >
               <div
                 className={cn(
@@ -658,6 +660,7 @@ function LigneBien({
                   search={{ bien: bien.id, arrivee: key }}
                   className="flex size-11 items-center justify-center md:size-5"
                   aria-label={`Ajouter une réservation — ${bien.nom}`}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <span
                     className={cn(
@@ -673,7 +676,10 @@ function LigneBien({
                 <div className="absolute inset-x-0 top-[52px] z-[2] space-y-0.5 border-t border-line bg-[color-mix(in srgb, var(--surface) 40%, transparent)] p-1">
                   <button
                     type="button"
-                    onClick={() => onAjouterPrestation?.(bien.id, key)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAjouterPrestation?.(bien.id, key);
+                    }}
                     className="flex h-6 w-full items-center justify-center rounded border border-dashed border-line text-[10px] text-ink-muted hover:bg-white"
                     aria-label={`Ajouter une prestation — ${bien.nom}`}
                   >
@@ -689,10 +695,12 @@ function LigneBien({
                     </button>
                   )}
                   {visible && (
+                    <div onClick={(e) => e.stopPropagation()}>
                     <Pastille
                       mission={visible}
                       onClick={() => onMission(visible)}
                     />
+                    </div>
                   )}
                   {duJour.length > 1 && (
                     <MissionsPlusPopover
