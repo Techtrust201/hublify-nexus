@@ -1,4 +1,5 @@
 import { ChevronDown, ChevronRight, Home, Plane, Plus, Search, Users, Wrench } from "lucide-react";
+import { useSession } from "@/data/session";
 import { cn } from "@/lib/utils";
 import type { Conversation, SectionConversation, TypeInterlocuteur } from "@/data/messagerie-mo1";
 
@@ -19,10 +20,12 @@ function LigneConversation({
   conversation,
   active,
   onSelect,
+  volume,
 }: {
   conversation: Conversation;
   active: boolean;
   onSelect: () => void;
+  volume?: number;
 }) {
   const Icone = ICONE_TYPE[conversation.type];
   return (
@@ -49,6 +52,11 @@ function LigneConversation({
         <span className="mt-0.5 block truncate text-[11px] leading-[16.5px] text-ink-muted">
           {conversation.extrait}
         </span>
+        {conversation.section === "prospections" && (
+          <span className="mt-0.5 block text-[10px] text-ink-muted">
+            Volume {volume ?? 0} · {conversation.nonLu ? "activité récente" : "suivi"}
+          </span>
+        )}
       </span>
     </button>
   );
@@ -75,7 +83,9 @@ export function ListeConversations({
   onToggleSection: (s: SectionConversation) => void;
   className?: string;
 }) {
+  const session = useSession();
   const inbox = conversations.filter((c) => c.section === "inbox");
+  const volumeDe = (id: string) => session.messagesFil.filter((m) => m.conversationId === id).length;
 
   return (
     <aside
@@ -120,9 +130,19 @@ export function ListeConversations({
           />
         ))}
         {SECTIONS.map((s) => {
-          const items = conversations.filter((c) => c.section === s.id);
+          const items = conversations
+            .filter((c) => c.section === s.id)
+            .slice()
+            .sort((a, b) => {
+              if (s.id !== "prospections") return 0;
+              const vol = volumeDe(b.id) - volumeDe(a.id);
+              if (vol !== 0) return vol;
+              if (a.nonLu !== b.nonLu) return a.nonLu ? -1 : 1;
+              return 0;
+            });
           if (items.length === 0) return null;
           const aNonLu = items.some((c) => c.nonLu);
+          const volumeSection = items.reduce((s0, c) => s0 + volumeDe(c.id), 0);
           const ouverte = sectionsOuvertes[s.id];
           return (
             <div key={s.id}>
@@ -133,6 +153,11 @@ export function ListeConversations({
               >
                 <span className="flex items-center gap-1.5">
                   {s.label}
+                  {s.id === "prospections" && (
+                    <span className="text-[10px] text-ink-muted">
+                      {items.length} · {volumeSection} msg
+                    </span>
+                  )}
                   {aNonLu && <span className="size-1.5 rounded-full bg-ink" />}
                 </span>
                 {ouverte ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
@@ -144,6 +169,7 @@ export function ListeConversations({
                     conversation={c}
                     active={selectionId === c.id}
                     onSelect={() => onSelection(c.id)}
+                    {...(s.id === "prospections" ? { volume: volumeDe(c.id) } : {})}
                   />
                 ))}
             </div>

@@ -11,6 +11,7 @@ const VUES_DOC: VueDocuments[] = [
   "etats",
   "fiches",
   "factures",
+  "syndic",
 ];
 
 export const Route = createFileRoute("/documents/")({

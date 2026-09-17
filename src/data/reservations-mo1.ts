@@ -2,6 +2,8 @@
 // Noms, adresses, montants et libellés relevés dans les frames Dashboard/Calendar
 // et Vision Occupations / Visions Liste occupants.
 
+import type { PrecheckinStatut, RemboursementReservation } from "@/data/v1-metier";
+
 export const AUJOURD_HUI_MO1 = "2026-03-05";
 export const ANCRE_PLANNING_MO1 = "2026-03-04";
 
@@ -42,6 +44,22 @@ export type ReservationMo1 = {
   type?: TypeReservationMo1;
   upsellIds?: string[];
   services?: string[];
+  taxeSejour?: number;
+  commissionPourcent?: number;
+  commissionMontant?: number;
+  caution?: number;
+  fraisMenage?: number;
+  reductionPourcent?: number;
+  reductionMontant?: number;
+  fraisPlateforme?: number;
+  montantVoyageur?: number;
+  attributionCommission?: string;
+  precheckinStatut?: PrecheckinStatut;
+  precheckinIdentite?: string;
+  precheckinNbPersonnes?: number;
+  precheckinHeureArrivee?: string;
+  precheckinNote?: string;
+  remboursements?: RemboursementReservation[];
 };
 
 export type DateBloqueeMo1 = {
@@ -107,7 +125,7 @@ export const RESERVATIONS_MO1: ReservationMo1[] = [
     bienId: "suzette",
     occupant: "Sophie Martin",
     initiales: "SM",
-    email: "sophie.martin@email.fr",
+    email: "sophie.martin@hublify.app",
     telephone: "+33 6 12 34 56 78",
     arrivee: "2026-03-03",
     depart: "2026-03-10",
@@ -121,6 +139,15 @@ export const RESERVATIONS_MO1: ReservationMo1[] = [
     paye: 1260,
     statut: "Confirmé",
     couleur: "#e5e7eb",
+    taxeSejour: 21,
+    commissionPourcent: 15,
+    commissionMontant: 189,
+    caution: 1700,
+    precheckinStatut: "fait",
+    precheckinIdentite: "Sophie Martin",
+    precheckinNbPersonnes: 3,
+    precheckinHeureArrivee: "16:00",
+    precheckinNote: "Arrivée en taxi, 2 adultes et 1 enfant.",
   },
   {
     id: "r-jean",
@@ -307,7 +334,7 @@ export const RESERVATIONS_MO1: ReservationMo1[] = [
     bienId: "colette",
     occupant: "Jean Martin",
     initiales: "JM",
-    email: "jean@email.com",
+    email: "jean.martin@hublify.app",
     telephone: "+33 6 34 56 78 90",
     arrivee: "2024-12-10",
     depart: "2026-12-10",
@@ -321,6 +348,8 @@ export const RESERVATIONS_MO1: ReservationMo1[] = [
     paye: 9600,
     statut: "Confirmé",
     couleur: "#d1d5dc",
+    type: "Bail meublé",
+    caution: 1700,
   },
   {
     id: "r-slaure",
@@ -419,7 +448,7 @@ export const OCCUPANTS_MO1: OccupantMo1[] = [
     type: "Locataire",
     logement: "Appartement Colette",
     telephone: "+33 6 34 56 78 90",
-    email: "jean@email.com",
+    email: "jean.martin@hublify.app",
     arrivee: "10/12/2025",
     statut: "Actif",
   },

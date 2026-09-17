@@ -3,6 +3,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { CreateEventDialog, QuittanceDialog } from "@/components/dashboard/DashboardDialogs";
+import { AppShell } from "@/components/layout/AppShell";
+import { RetourVueGenerale } from "@/components/layout/RetourVueGenerale";
 import {
   EvenementsSection,
   LoyersSection,
@@ -11,7 +13,7 @@ import {
 import { KpiReservations } from "@/components/reservations/KpiEtAccordeons";
 import { PlanningReservations } from "@/components/reservations/PlanningReservations";
 import { TableauReservations } from "@/components/reservations/TableauReservations";
-import { AppShell } from "@/components/layout/AppShell";
+import { PanneauEnDetails } from "@/components/dashboard/PanneauEnDetails";
 import { RechercheGlobale } from "@/components/layout/RechercheGlobale";
 import type { LoyerMo1 } from "@/data/planning-mo1";
 import {
@@ -23,6 +25,7 @@ import {
 } from "@/data/session";
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { telechargerQuittanceLoyer } from "@/lib/exports-docs";
+import { paiementViaPlateforme } from "@/data/v1-metier";
 import { cn } from "@/lib/utils";
 
 type VuePage = "planning" | "liste";
@@ -61,16 +64,13 @@ function PageReservations() {
   const [recherche, setRecherche] = useState("");
   const [loyerQuittance, setLoyerQuittance] = useState<LoyerMo1 | null>(null);
   const [creerEvent, setCreerEvent] = useState(false);
+  const [resaId, setResaId] = useState<string | null>(resa ?? null);
 
   if (vue === "liste") {
     return (
       <AppShell attendDonnees>
-        <div className="flex items-center gap-2 text-xs text-ink-muted">
-          <Link to="/" className="inline-flex min-h-11 items-center hover:text-ink-body md:min-h-0">
-            Tableau de bord
-          </Link>
-          <span>›</span>
-          <span>Réservations</span>
+        <div className="mb-3">
+          <RetourVueGenerale />
         </div>
         <div className="mt-3 mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -97,8 +97,12 @@ function PageReservations() {
           </div>
         </div>
         <div className="overflow-hidden rounded-card border border-line bg-white">
-          <TableauReservations {...(resa ? { focusId: resa } : {})} />
+          <TableauReservations
+            {...(resa ? { focusId: resa } : {})}
+            onSelectReservation={setResaId}
+          />
         </div>
+        <PanneauEnDetails reservationId={resaId ?? resa ?? null} />
       </AppShell>
     );
   }
@@ -136,15 +140,43 @@ function PageReservations() {
       </div>
 
       <div className="mt-4">
-        <PlanningReservations onVoirListe={() => setVue("liste")} />
+        <PlanningReservations
+          onVoirListe={() => setVue("liste")}
+          onSelectReservation={setResaId}
+        />
       </div>
+
+      <PanneauEnDetails reservationId={resaId} />
 
       <MessagesSection messages={session.messagesDash} />
       <LoyersSection
         loyers={session.loyers}
+        viaPlateforme={(l) =>
+          paiementViaPlateforme(
+            session.reservationsDossier.find(
+              (r) => r.occupant.toLowerCase() === l.locataire.toLowerCase(),
+            )?.plateforme,
+          )
+        }
         onValider={(id) => {
+          const l = session.loyers.find((x) => x.id === id);
+          const via = paiementViaPlateforme(
+            session.reservationsDossier.find(
+              (r) => r.occupant.toLowerCase() === (l?.locataire ?? "").toLowerCase(),
+            )?.plateforme,
+          );
           validerLoyer(id);
-          toastOk("Paiement validé.");
+          if (via && l) {
+            void telechargerQuittanceLoyer(l)
+              .then(() => {
+                marquerQuittance(id);
+                toastOk("Paiement plateforme : quittance générée automatiquement.");
+              })
+              .catch(() => toastErreur("Impossible de générer la quittance."));
+            return;
+          }
+          toastOk("Paiement validé. Saisissez le montant pour la quittance.");
+          if (l) setLoyerQuittance(l);
         }}
         onQuittance={(id) => {
           const l = session.loyers.find((x) => x.id === id);
@@ -157,14 +189,21 @@ function PageReservations() {
         loyer={loyerQuittance}
         ouvert={Boolean(loyerQuittance)}
         onFermer={() => setLoyerQuittance(null)}
-        onConfirmer={() => {
+        saisirMontant
+        viaPlateforme={paiementViaPlateforme(
+          session.reservationsDossier.find(
+            (r) => r.occupant.toLowerCase() === (loyerQuittance?.locataire ?? "").toLowerCase(),
+          )?.plateforme,
+        )}
+        onConfirmer={(montant) => {
           if (!loyerQuittance) return;
-          const loyer = loyerQuittance;
+          const loyer = { ...loyerQuittance, montant };
           void (async () => {
             try {
               await telechargerQuittanceLoyer(loyer);
               marquerQuittance(loyer.id);
               setLoyerQuittance(null);
+              toastOk("Quittance enregistrée.");
             } catch {
               toastErreur("Impossible de générer la quittance.");
             }

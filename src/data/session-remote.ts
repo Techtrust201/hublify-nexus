@@ -24,6 +24,9 @@ const deps: DepsEtat = {
       orgType: s.orgType,
       roleId: s.roleId,
       droits: s.droits,
+      email: s.email,
+      prenom: s.prenom,
+      nom: s.nom,
     };
   },
   sql: () => getSql(),

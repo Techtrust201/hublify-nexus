@@ -2,6 +2,10 @@
 
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Bell, ChevronDown, Menu, X } from "lucide-react";
+import {
+  estPagePlanningHorsAccueil,
+  RetourVueGenerale,
+} from "@/components/layout/RetourVueGenerale";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth, useDroit } from "@/auth/auth-context";
 import { BandeauSync } from "@/components/layout/BandeauSync";
@@ -15,6 +19,7 @@ import {
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { CorpsEnAttente } from "@/components/layout/CorpsEnAttente";
 import { marquerNotifsLues, useSession, useSessionChargee } from "@/data/session";
+import { cn } from "@/lib/utils";
 
 export function AppShell({
   titre,
@@ -42,7 +47,7 @@ export function AppShell({
   const chargee = useSessionChargee();
   const auth = useAuth();
   const voirDocs = useDroit("voir-documents");
-  const peutParametrer = useDroit("mod-reservations");
+  const peutParametrer = useDroit("mod-biens");
   const notifsNonLues = session.notifications.filter((n) => !n.lu).length;
 
   useEffect(() => {
@@ -66,7 +71,8 @@ export function AppShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-sticky flex min-h-[73px] items-center justify-between border-b border-line bg-canvas px-4 pt-[env(safe-area-inset-top)] lg:px-6">
+        <header className="sticky top-0 z-sticky border-b border-line bg-white/90 px-4 pt-[env(safe-area-inset-top)] backdrop-blur-sm lg:px-6">
+          <div className="flex min-h-[80px] items-center justify-between gap-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
             <button
               ref={hamburgerRef}
@@ -80,36 +86,46 @@ export function AppShell({
               <Menu className="size-4" />
             </button>
             {pathname === "/" && auth ? (
-              <h1 className="truncate text-lg font-medium text-ink-deep sm:text-xl">
-                Bonjour {auth.prenom}
-              </h1>
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-ink-muted">Vue générale</p>
+                <h1 className="truncate text-xl font-medium leading-tight text-ink-deep">
+                  Bonjour {auth.prenom}
+                </h1>
+              </div>
             ) : titre ? (
               <div className="min-w-0">
-                <h1 className="truncate text-sm font-medium text-ink">{titre}</h1>
-                {/* Certains sous-titres comptent des éléments (« 5 prestataires
-                    enregistrés »). Avant l'arrivée des données, ils annonceraient
-                    zéro : on préfère les taire jusque-là. */}
+                <h1 className="truncate text-lg font-medium leading-tight text-ink-deep">{titre}</h1>
                 {sousTitre && !(attendDonnees && !chargee) && (
-                  <p className="truncate text-xs text-ink-muted">{sousTitre}</p>
+                  <p className="mt-0.5 truncate text-sm text-ink-muted">{sousTitre}</p>
                 )}
               </div>
             ) : (
               <div className="hidden h-8 w-16 lg:block" />
             )}
+            {estPagePlanningHorsAccueil(pathname) && (
+              <RetourVueGenerale className="shrink-0" />
+            )}
           </div>
-          <div className="flex min-w-0 items-center gap-2 sm:gap-4">
-            {/* Le titre voisin sait se tronquer, pas un bouton : c'est donc lui
-                qui cède la place quand l'écran est étroit, plutôt que de rogner
-                l'action principale de la page. */}
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             {actions ? <div className="flex shrink-0 items-center">{actions}</div> : null}
-            <DropdownMenu>
-              <DropdownMenuTrigger className="hidden h-[34px] items-center gap-1 rounded-card border border-line px-3 text-sm font-medium text-ink-body lg:inline-flex">
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger className="hidden h-10 shrink-0 items-center gap-1 rounded-card border border-line bg-canvas px-3 text-sm font-medium text-ink outline-none lg:inline-flex">
                 Outils
-                <ChevronDown className="size-3.5" />
+                <ChevronDown className="size-3.5 shrink-0" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuContent
+                align="end"
+                className="w-52"
+                onCloseAutoFocus={(e) => e.preventDefault()}
+              >
                 <DropdownMenuItem asChild>
                   <Link to="/outils">Tous les outils</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/outils/debuter">Je débute</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/outils/baux">Créer un bail</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/outils/modeles">Modèles de documents</Link>
@@ -133,22 +149,32 @@ export function AppShell({
               </DropdownMenuContent>
             </DropdownMenu>
             <DropdownMenu
+              modal={false}
               onOpenChange={(ouvert) => {
-                if (ouvert && notifsNonLues > 0) marquerNotifsLues();
+                if (!ouvert && notifsNonLues > 0) marquerNotifsLues();
               }}
             >
               <DropdownMenuTrigger
-                className="relative flex size-11 items-center justify-center rounded-card border border-line text-ink-body lg:size-8"
+                className="relative inline-flex h-11 w-[7.5rem] shrink-0 items-center justify-center gap-2 rounded-card border border-line bg-canvas px-3 text-sm text-ink outline-none sm:w-[8.25rem] lg:h-10"
                 aria-label="Notifications"
               >
-                <Bell className="size-4" />
-                {notifsNonLues > 0 && (
-                  <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-ink text-[9px] text-white">
-                    {notifsNonLues}
-                  </span>
-                )}
+                <Bell className="size-4 shrink-0" />
+                <span className="hidden sm:inline">Alertes</span>
+                <span
+                  className={cn(
+                    "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px]",
+                    notifsNonLues > 0 ? "bg-ink text-white" : "bg-transparent text-transparent",
+                  )}
+                  aria-hidden={notifsNonLues === 0}
+                >
+                  {notifsNonLues > 0 ? notifsNonLues : "0"}
+                </span>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[min(20rem,calc(100vw-1.5rem))] p-0">
+              <DropdownMenuContent
+                align="end"
+                className="w-[min(20rem,calc(100vw-1.5rem))] p-0"
+                onCloseAutoFocus={(e) => e.preventDefault()}
+              >
                 <p className="border-b border-surface-soft px-3 py-2 text-xs font-medium text-ink">
                   Notifications
                 </p>
@@ -174,10 +200,11 @@ export function AppShell({
             </DropdownMenu>
             <Link
               to="/profil"
-              className="hidden min-h-8 items-center text-sm font-medium text-ink-body lg:inline-flex"
+              className="hidden min-h-10 items-center rounded-card border border-line bg-canvas px-3 text-sm font-medium text-ink lg:inline-flex"
             >
-              Compte {auth?.role?.toLowerCase() ?? "utilisateur"}
+              {auth ? `${auth.prenom} · ${auth.role}` : "Compte"}
             </Link>
+          </div>
           </div>
         </header>
 

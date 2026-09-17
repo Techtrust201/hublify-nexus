@@ -5,6 +5,7 @@ import {
   DROITS_PAR_ROLE,
   ROLES_EQUIPE,
   roleParLabel,
+  type DroitId,
   type RoleLabel,
 } from "@/auth/permissions";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -172,6 +173,46 @@ export function DialogInviter({
   );
 }
 
+const BLOCS_TEAMMATE: Array<{
+  titre: string;
+  detail?: string;
+  lignes: Array<{ label: string; id: DroitId }>;
+}> = [
+  {
+    titre: "Messagerie résident",
+    lignes: [{ label: "Accès", id: "messagerie" }],
+  },
+  {
+    titre: "Calendrier réservation",
+    lignes: [
+      { label: "Vision", id: "voir-reservations" },
+      { label: "Édition", id: "mod-reservations" },
+    ],
+  },
+  {
+    titre: "Calendrier prestation",
+    lignes: [
+      { label: "Vision", id: "voir-calendrier" },
+      { label: "Édition", id: "mod-missions" },
+    ],
+  },
+  {
+    titre: "Résumé financier",
+    detail: "Autorise à extraire les tableaux de paiements",
+    lignes: [
+      { label: "Vision", id: "voir-finances" },
+      { label: "Édition", id: "mod-finances" },
+    ],
+  },
+  {
+    titre: "Paramétrage",
+    detail: "Photos, biens et événements",
+    lignes: [{ label: "Modification", id: "mod-biens" }],
+  },
+];
+
+const IDS_TEAMMATE = new Set(BLOCS_TEAMMATE.flatMap((b) => b.lignes.map((l) => l.id)));
+
 export function ListeDroits({
   selection,
   onToggle,
@@ -181,31 +222,79 @@ export function ListeDroits({
 }) {
   return (
     <div className="space-y-5">
-      {GROUPES.map(({ nom, icone: Icone }) => (
-        <div key={nom}>
-          <p className="mb-2 flex items-center gap-1.5 text-[10px] text-ink-muted">
-            <Icone className="size-2.5" />
-            {nom}
-          </p>
-          <ul className="space-y-2">
-            {DROITS_CATALOGUE.filter((d) => d.groupe === nom).map((d) => (
-              <li key={d.id}>
-                <label className="flex cursor-pointer items-start gap-3">
-                  <Checkbox
-                    checked={selection.includes(d.id)}
-                    onCheckedChange={() => onToggle(d.id)}
-                    className="mt-0.5 border-line-strong data-[state=checked]:border-ink data-[state=checked]:bg-ink"
-                  />
-                  <span>
-                    <span className="block text-xs text-ink">{d.titre}</span>
-                    <span className="block text-[10px] text-ink-muted">{d.description}</span>
+      {BLOCS_TEAMMATE.map((bloc) => (
+        <div key={bloc.titre} className="rounded-card border border-line p-3">
+          <p className="text-xs font-medium text-ink">{bloc.titre}</p>
+          {bloc.detail && <p className="mt-0.5 text-[10px] text-ink-muted">{bloc.detail}</p>}
+          <ul className="mt-2 space-y-2">
+            {bloc.lignes.map((ligne) => {
+              const oui = selection.includes(ligne.id);
+              return (
+                <li key={ligne.id} className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-ink-body">{ligne.label}</span>
+                  <span className="inline-flex rounded-card border border-line p-0.5">
+                    <button
+                      type="button"
+                      aria-pressed={oui}
+                      onClick={() => {
+                        if (!oui) onToggle(ligne.id);
+                      }}
+                      className={cn(
+                        "h-7 min-w-8 rounded-[10px] px-2 text-[11px] font-medium",
+                        oui ? "bg-ink text-white" : "text-ink-muted",
+                      )}
+                    >
+                      Y
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={!oui}
+                      onClick={() => {
+                        if (oui) onToggle(ligne.id);
+                      }}
+                      className={cn(
+                        "h-7 min-w-8 rounded-[10px] px-2 text-[11px] font-medium",
+                        !oui ? "bg-ink text-white" : "text-ink-muted",
+                      )}
+                    >
+                      N
+                    </button>
                   </span>
-                </label>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         </div>
       ))}
+      {GROUPES.map(({ nom, icone: Icone }) => {
+        const reste = DROITS_CATALOGUE.filter((d) => d.groupe === nom && !IDS_TEAMMATE.has(d.id));
+        if (reste.length === 0) return null;
+        return (
+          <div key={nom}>
+            <p className="mb-2 flex items-center gap-1.5 text-[10px] text-ink-muted">
+              <Icone className="size-2.5" />
+              Autres accès · {nom}
+            </p>
+            <ul className="space-y-2">
+              {reste.map((d) => (
+                <li key={d.id}>
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <Checkbox
+                      checked={selection.includes(d.id)}
+                      onCheckedChange={() => onToggle(d.id)}
+                      className="mt-0.5 border-line-strong data-[state=checked]:border-ink data-[state=checked]:bg-ink"
+                    />
+                    <span>
+                      <span className="block text-xs text-ink">{d.titre}</span>
+                      <span className="block text-[10px] text-ink-muted">{d.description}</span>
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })}
     </div>
   );
 }

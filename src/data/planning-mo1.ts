@@ -103,8 +103,8 @@ export const RESERVATIONS_MO1: ReservationMo1[] = [
     id: "rs1",
     bienId: "suzette",
     voyageur: "Sophie Martin",
-    arrivee: "2026-03-04",
-    depart: "2026-03-07",
+    arrivee: "2026-03-03",
+    depart: "2026-03-10",
   },
   {
     id: "rs2",
@@ -411,6 +411,16 @@ export const LOYERS_MO1: LoyerMo1[] = [
     valide: true,
     quittance: true,
   },
+  {
+    id: "ly4",
+    locataire: "Jean Martin",
+    initiales: "JM",
+    bienNom: "Appartement Colette",
+    echeance: "01 mars 2026",
+    montant: 850,
+    valide: true,
+    quittance: true,
+  },
 ];
 
 export const EVENEMENTS_MO1: EvenementMo1[] = [
@@ -544,8 +554,34 @@ export function ajouterJours(d: Date, n: number) {
   return c;
 }
 
-export function reservationCouvre(r: ReservationMo1, jour: string) {
+export function reservationCouvre(r: { arrivee: string; depart: string }, jour: string) {
   return r.arrivee <= jour && r.depart > jour;
+}
+
+/** Inclut le jour de départ (matin) pour dessiner la barre au milieu du jour. */
+export function reservationTouche(r: { arrivee: string; depart: string }, jour: string) {
+  return r.arrivee <= jour && r.depart >= jour;
+}
+
+export function styleBarreResa(r: { arrivee: string; depart: string }, jours: Date[]) {
+  const keys = jours.map(isoJour);
+  const start = keys.findIndex((j) => reservationTouche(r, j));
+  if (start < 0) return null;
+  let span = 0;
+  for (let i = start; i < keys.length; i++) {
+    if (!reservationTouche(r, keys[i]!)) break;
+    span += 1;
+  }
+  const cell = 100 / jours.length;
+  const startKey = keys[start]!;
+  const endKey = keys[start + span - 1]!;
+  const leftFrac = start + (startKey === r.arrivee ? 0.5 : 0);
+  const endFrac = start + span - (endKey === r.depart ? 0.5 : 0);
+  const largeur = Math.max(endFrac - leftFrac, 0.28);
+  return {
+    left: `calc(${leftFrac * cell}% + 2px)`,
+    width: `calc(${largeur * cell}% - 4px)`,
+  };
 }
 
 export function libelleStatut(s: StatutPastille) {

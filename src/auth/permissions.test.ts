@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   aLeDroit,
+  accueilPourRole,
   droitRequisPourChemin,
   droitsEffectifs,
   DROITS_PAR_ROLE,
+  estRolePortail,
   estSuperAdmin,
   roleParLabel,
 } from "@/auth/permissions";
@@ -47,14 +49,35 @@ describe("permissions", () => {
     expect(roleParLabel("Inconnu")).toBe("lecteur");
   });
 
+  it("oriente les rôles portail vers /espace", () => {
+    expect(estRolePortail("prestataire")).toBe(true);
+    expect(estRolePortail("locataire")).toBe(true);
+    expect(estRolePortail("voyageur")).toBe(true);
+    expect(estRolePortail("proprietaire")).toBe(true);
+    expect(estRolePortail("gestionnaire")).toBe(false);
+    expect(accueilPourRole("prestataire")).toBe("/espace");
+    expect(accueilPourRole("locataire")).toBe("/espace");
+    expect(accueilPourRole("gestionnaire")).toBe("/");
+  });
+
+  it("limite locataire, voyageur et propriétaire au portail", () => {
+    expect(aLeDroit(DROITS_PAR_ROLE.locataire, "voir-finances")).toBe(false);
+    expect(aLeDroit(DROITS_PAR_ROLE.voyageur, "mod-reservations")).toBe(false);
+    expect(aLeDroit(DROITS_PAR_ROLE.proprietaire, "voir-finances")).toBe(true);
+    expect(aLeDroit(DROITS_PAR_ROLE.proprietaire, "gerer-equipe")).toBe(false);
+  });
+
   it("associe les chemins aux droits requis", () => {
     expect(droitRequisPourChemin("/team")).toBe("gerer-equipe");
     expect(droitRequisPourChemin("/reservations/nouveau")).toBe("mod-reservations");
     expect(droitRequisPourChemin("/reservations")).toBe("voir-reservations");
     expect(droitRequisPourChemin("/analyse")).toBe("voir-finances");
-    expect(droitRequisPourChemin("/parametrage")).toBe("mod-reservations");
+    expect(droitRequisPourChemin("/parametrage")).toBe("mod-biens");
     expect(droitRequisPourChemin("/prestataires/nouveau")).toBe("mod-biens");
     expect(droitRequisPourChemin("/outils/etats-des-lieux")).toBe("voir-documents");
+    expect(droitRequisPourChemin("/outils/baux")).toBe("voir-documents");
+    expect(droitRequisPourChemin("/espace")).toBe("messagerie");
+    expect(droitRequisPourChemin("/dossiers/o3")).toBe("voir-reservations");
     expect(droitRequisPourChemin("/")).toBeUndefined();
   });
 });

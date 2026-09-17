@@ -129,6 +129,7 @@ export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
   const filtres = messages.filter((m) => m.canal === canal);
   const convDe = (auteur: string) =>
     session.conversations.find((c) => c.nom.toLowerCase() === auteur.toLowerCase());
+  const nonLus = session.conversations.filter((c) => c.nonLu).length;
 
   return (
     <section className="mt-4 overflow-hidden rounded-card border border-line bg-white">
@@ -137,9 +138,19 @@ export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
         className="flex w-full items-center justify-between border-b border-surface-soft px-4 py-3"
         onClick={() => setOuvert((o) => !o)}
       >
-        <span className="flex items-center gap-2 text-sm text-ink">
-          <MessageSquare className="size-4" />
+        <span className="flex min-w-0 items-center gap-2 text-sm text-ink">
+          <MessageSquare className="size-4 shrink-0" />
           Les Messages
+          {nonLus > 0 && (
+            <span className="rounded-full bg-ink px-1.5 py-0.5 text-[10px] text-white">
+              {nonLus}
+            </span>
+          )}
+          {!ouvert && messages[0] && (
+            <span className="truncate text-xs font-normal text-ink-muted">
+              {messages[0].auteur} · {messages[0].texte}
+            </span>
+          )}
         </span>
         {ouvert ? (
           <ChevronUp className="size-4 text-ink-muted" />
@@ -147,6 +158,8 @@ export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
           <ChevronDown className="size-4 text-ink-muted" />
         )}
       </button>
+      {ouvert && (
+        <>
       <div className="flex flex-wrap gap-2 border-b border-surface-soft px-4 py-2">
         {(["occupants", "prestataires", "team"] as const).map((c) => (
           <button
@@ -165,7 +178,6 @@ export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
           </button>
         ))}
       </div>
-      {ouvert && (
         <ul>
           {filtres.map((m) => (
             <li key={m.id}>
@@ -189,6 +201,7 @@ export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
             </li>
           ))}
         </ul>
+        </>
       )}
     </section>
   );
@@ -198,10 +211,12 @@ export function LoyersSection({
   loyers,
   onValider,
   onQuittance,
+  viaPlateforme,
 }: {
   loyers: LoyerMo1[];
   onValider: (id: string) => void;
   onQuittance: (id: string) => void;
+  viaPlateforme?: (l: LoyerMo1) => boolean;
 }) {
   const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.loyers", true);
   const peutValider = useDroit("mod-finances");
@@ -254,7 +269,7 @@ export function LoyersSection({
                       onClick={() => onValider(l.id)}
                       className="h-11 rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[26px]"
                     >
-                      Valider paiement
+                      {viaPlateforme?.(l) ? "Valider + quittance auto" : "Valider paiement"}
                     </button>
                   )}
                   <button
@@ -263,7 +278,7 @@ export function LoyersSection({
                     className="inline-flex h-11 items-center gap-1 rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[26px]"
                   >
                     <FileCheck className="size-2.5" />
-                    Générer quittance
+                    {viaPlateforme?.(l) ? "Télécharger quittance" : "Saisir montant → quittance"}
                   </button>
                 </div>
               ) : (

@@ -17,6 +17,7 @@ import {
   COULEURS_RESERVATION,
   TYPES_RESERVATION,
   ajouterJours,
+  formatMontant,
   isoJour,
   nuitsEntre,
   type PlateformeMo1,
@@ -32,6 +33,7 @@ import {
 } from "@/data/session";
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
+import { netPercu } from "@/data/v1-metier";
 
 const champ =
   "h-11 w-full rounded-[8px] border border-line bg-white px-3 text-base text-ink outline-none placeholder:text-ink-muted md:h-[34px] md:text-sm";
@@ -47,7 +49,7 @@ export function FormulaireReservation({
 }) {
   const navigate = useNavigate();
   const session = useSession();
-  const peutParametrer = useDroit("mod-reservations");
+  const peutParametrer = useDroit("mod-biens");
   const edition = Boolean(reservationId);
   const prefillId = useRef<string | null>(null);
   const heuresInit = useRef(false);
@@ -71,6 +73,19 @@ export function FormulaireReservation({
   const [prixNuit, setPrixNuit] = useState("250");
   const [duree, setDuree] = useState("4");
   const [dejaEncaisse, setDejaEncaisse] = useState("0");
+  const [taxeSejour, setTaxeSejour] = useState("0");
+  const [commissionPct, setCommissionPct] = useState("0");
+  const [commissionMontant, setCommissionMontant] = useState("0");
+  const [caution, setCaution] = useState("0");
+  const [fraisMenage, setFraisMenage] = useState("0");
+  const [reductionPct, setReductionPct] = useState("0");
+  const [fraisPlateforme, setFraisPlateforme] = useState("0");
+  const [montantVoyageur, setMontantVoyageur] = useState("0");
+  const [attribution, setAttribution] = useState("");
+  const [rembourse, setRembourse] = useState(false);
+  const [rembMotif, setRembMotif] = useState("");
+  const [rembMontant, setRembMontant] = useState("");
+  const [rembNote, setRembNote] = useState("");
   const [plateforme, setPlateforme] = useState("Canal Direct");
   const [services, setServices] = useState<string[]>([]);
   const [creerOccupant, setCreerOccupant] = useState(false);
@@ -142,6 +157,15 @@ export function FormulaireReservation({
     setDuree(String(nuits));
     setPrixNuit(String(Math.round(r.montant / nuits) || r.montant));
     setDejaEncaisse(String(r.paye));
+    setTaxeSejour(String(r.taxeSejour ?? 0));
+    setCommissionPct(String(r.commissionPourcent ?? 0));
+    setCommissionMontant(String(r.commissionMontant ?? 0));
+    setCaution(String(r.caution ?? 0));
+    setFraisMenage(String(r.fraisMenage ?? 0));
+    setReductionPct(String(r.reductionPourcent ?? 0));
+    setFraisPlateforme(String(r.fraisPlateforme ?? 0));
+    setMontantVoyageur(String(r.montantVoyageur ?? r.montant));
+    setAttribution(r.attributionCommission ?? "");
     setPlateforme(
       r.plateforme === "Direct"
         ? "Canal Direct"
@@ -193,6 +217,15 @@ export function FormulaireReservation({
     const nuits = Math.max(1, Number(duree) || nuitsEntre(checkIn, checkOut));
     const prix = Number(prixNuit) || 0;
     const total = prix * nuits;
+    const taxe = Math.max(0, Number(taxeSejour.replace(",", ".")) || 0);
+    const commPct = Math.max(0, Number(commissionPct.replace(",", ".")) || 0);
+    const commSaisie = Number(commissionMontant.replace(",", ".")) || 0;
+    const cautionN = Math.max(0, Number(caution.replace(",", ".")) || 0);
+    const menageN = Math.max(0, Number(fraisMenage.replace(",", ".")) || 0);
+    const reducPct = Math.max(0, Number(reductionPct.replace(",", ".")) || 0);
+    const fraisPlat = Math.max(0, Number(fraisPlateforme.replace(",", ".")) || 0);
+    const voyageurN = Math.max(0, Number(montantVoyageur.replace(",", ".")) || 0);
+    const commMontant = commSaisie > 0 ? commSaisie : Math.round((total * commPct) / 100);
     const paye = Math.max(0, Math.min(total, Number(dejaEncaisse.replace(",", ".")) || 0));
     const servicesFinaux = [...services];
     if (occupant2.trim()) servicesFinaux.push(`Occupant 2 : ${occupant2.trim()}`);
@@ -229,6 +262,16 @@ export function FormulaireReservation({
         type,
         services: servicesFinaux,
         upsellIds,
+        taxeSejour: taxe,
+        commissionPourcent: commPct,
+        commissionMontant: commMontant,
+        caution: cautionN,
+        fraisMenage: menageN,
+        reductionPourcent: reducPct,
+        reductionMontant: Math.round((total * reducPct) / 100),
+        fraisPlateforme: fraisPlat,
+        montantVoyageur: voyageurN || total + taxe + menageN + fraisPlat,
+        attributionCommission: attribution.trim(),
       });
       ajouterNotif({
         titre: "Réservation mise à jour",
@@ -263,6 +306,16 @@ export function FormulaireReservation({
         type,
         services: servicesFinaux,
         upsellIds,
+        taxeSejour: taxe,
+        commissionPourcent: commPct,
+        commissionMontant: commMontant,
+        caution: cautionN,
+        fraisMenage: menageN,
+        reductionPourcent: reducPct,
+        reductionMontant: Math.round((total * reducPct) / 100),
+        fraisPlateforme: fraisPlat,
+        montantVoyageur: voyageurN || total + taxe + menageN + fraisPlat,
+        attributionCommission: attribution.trim(),
       },
       calendrier: {
         id: `cal-${id}`,
@@ -630,6 +683,133 @@ export function FormulaireReservation({
               )}
             </section>
 
+            <section className="rounded-card border border-line bg-white p-5">
+              <h2 className="text-sm font-medium text-ink">Taxes, commission et encaissement</h2>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <label className="block text-xs text-ink-subtle">
+                  Taxe de séjour
+                  <span className="relative mt-1 block">
+                    <input
+                      value={taxeSejour}
+                      onChange={(e) => setTaxeSejour(e.target.value)}
+                      inputMode="decimal"
+                      className={champ}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
+                      €
+                    </span>
+                  </span>
+                </label>
+                <label className="block text-xs text-ink-subtle">
+                  Commission plateforme (%)
+                  <input
+                    value={commissionPct}
+                    onChange={(e) => {
+                      setCommissionPct(e.target.value);
+                      const pct = Number(e.target.value.replace(",", ".")) || 0;
+                      const nuits = Math.max(1, Number(duree) || 1);
+                      const total = (Number(prixNuit) || 0) * nuits;
+                      setCommissionMontant(String(Math.round((total * pct) / 100)));
+                    }}
+                    inputMode="decimal"
+                    className={cn(champ, "mt-1")}
+                  />
+                </label>
+                <label className="block text-xs text-ink-subtle">
+                  Commission (montant)
+                  <span className="relative mt-1 block">
+                    <input
+                      value={commissionMontant}
+                      onChange={(e) => setCommissionMontant(e.target.value)}
+                      inputMode="decimal"
+                      className={champ}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
+                      €
+                    </span>
+                  </span>
+                </label>
+                <p className="flex items-end text-sm text-ink">
+                  Net perçu :{" "}
+                  {formatMontant(
+                    netPercu({
+                      montant: (Number(prixNuit) || 0) * (Math.max(1, Number(duree) || 1)),
+                      taxeSejour: Number(taxeSejour.replace(",", ".")) || 0,
+                      commissionMontant: Number(commissionMontant.replace(",", ".")) || 0,
+                    }),
+                  )}
+                </p>
+                <label className="block text-xs text-ink-subtle">
+                  Caution
+                  <span className="relative mt-1 block">
+                    <input
+                      value={caution}
+                      onChange={(e) => setCaution(e.target.value)}
+                      inputMode="decimal"
+                      className={champ}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
+                      €
+                    </span>
+                  </span>
+                </label>
+                <label className="block text-xs text-ink-subtle">
+                  Frais de ménage
+                  <input
+                    value={fraisMenage}
+                    onChange={(e) => setFraisMenage(e.target.value)}
+                    inputMode="decimal"
+                    className={cn(champ, "mt-1")}
+                  />
+                </label>
+                <label className="block text-xs text-ink-subtle">
+                  Réduction (%)
+                  <input
+                    value={reductionPct}
+                    onChange={(e) => setReductionPct(e.target.value)}
+                    inputMode="decimal"
+                    className={cn(champ, "mt-1")}
+                  />
+                </label>
+                <label className="block text-xs text-ink-subtle">
+                  Frais plateforme
+                  <input
+                    value={fraisPlateforme}
+                    onChange={(e) => setFraisPlateforme(e.target.value)}
+                    inputMode="decimal"
+                    className={cn(champ, "mt-1")}
+                  />
+                </label>
+                <label className="block text-xs text-ink-subtle">
+                  Montant voyageur
+                  <input
+                    value={montantVoyageur}
+                    onChange={(e) => setMontantVoyageur(e.target.value)}
+                    inputMode="decimal"
+                    className={cn(champ, "mt-1")}
+                  />
+                </label>
+                <label className="block text-xs text-ink-subtle sm:col-span-2">
+                  Attribution commission
+                  <input
+                    value={attribution}
+                    onChange={(e) => setAttribution(e.target.value)}
+                    placeholder="Vérifier attribution — qui encaisse la commission"
+                    className={cn(champ, "mt-1")}
+                  />
+                </label>
+              </div>
+              {edition && reservationId && (
+                <button
+                  type="button"
+                  onClick={() => setRembourse(true)}
+                  className="mt-4 inline-flex h-11 items-center rounded-card border border-line px-3 text-xs font-medium text-ink-body md:h-9"
+                >
+                  Remboursement
+                </button>
+              )}
+            </section>
+
             <div className="flex justify-center">
               <button
                 type="button"
@@ -727,6 +907,92 @@ export function FormulaireReservation({
               className="inline-flex h-11 items-center rounded-card bg-ink px-3 text-xs font-medium text-white md:h-[30px]"
             >
               Ajouter
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={rembourse} onOpenChange={(o) => !o && setRembourse(false)}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>Remboursement</DialogTitle>
+          <DialogDescription>
+            Le montant est déduit de l'encaissé. Un motif est obligatoire.
+          </DialogDescription>
+          <div className="mt-3 space-y-2">
+            <label className="block text-xs text-ink-muted">
+              Motif *
+              <input
+                value={rembMotif}
+                onChange={(e) => setRembMotif(e.target.value)}
+                className={cn(champ, "mt-1")}
+              />
+            </label>
+            <label className="block text-xs text-ink-muted">
+              Montant *
+              <input
+                value={rembMontant}
+                onChange={(e) => setRembMontant(e.target.value)}
+                inputMode="decimal"
+                className={cn(champ, "mt-1")}
+              />
+            </label>
+            <label className="block text-xs text-ink-muted">
+              Note
+              <textarea
+                value={rembNote}
+                onChange={(e) => setRembNote(e.target.value)}
+                rows={2}
+                className="mt-1 w-full rounded-card border border-line px-3 py-2 text-sm outline-none"
+              />
+            </label>
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setRembourse(false)}
+              className="h-9 rounded-card border border-line px-3 text-xs"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!reservationId) return;
+                const actuel = session.reservationsDossier.find((r) => r.id === reservationId);
+                if (!actuel) return;
+                if (!rembMotif.trim()) {
+                  toastErreur("Indiquez le motif du remboursement.");
+                  return;
+                }
+                const montant = Number(rembMontant.replace(",", ".")) || 0;
+                if (montant <= 0) {
+                  toastErreur("Indiquez un montant positif.");
+                  return;
+                }
+                const paye = Math.max(0, actuel.paye - Math.round(montant));
+                modifierReservation(reservationId, {
+                  paye,
+                  remboursements: [
+                    ...(actuel.remboursements ?? []),
+                    {
+                      id: idNouveau("rb"),
+                      date: new Date().toISOString().slice(0, 10),
+                      motif: rembMotif.trim(),
+                      montant: Math.round(montant),
+                      note: rembNote.trim(),
+                    },
+                  ],
+                });
+                setDejaEncaisse(String(paye));
+                setRembourse(false);
+                setRembMotif("");
+                setRembMontant("");
+                setRembNote("");
+                toastOk(`Remboursement de ${formatMontant(Math.round(montant))} enregistré.`);
+              }}
+              className="h-9 rounded-card bg-ink px-3 text-xs font-medium text-white"
+            >
+              Confirmer
             </button>
           </div>
         </DialogContent>

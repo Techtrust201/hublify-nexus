@@ -14,7 +14,21 @@ const COMPTES = {
   gestionnaire: "amelie.dubois@hublify.app",
   prestataire: "lucas.menage@hublify.app",
   lecteur: "claire.lecture@hublify.app",
+  locataire: "jean.martin@hublify.app",
+  voyageur: "sophie.martin@hublify.app",
+  proprietaire: "pierre.moreau@hublify.app",
 } as const;
+
+function accueilAttendu(email: string) {
+  return (
+    email === COMPTES.prestataire ||
+    email === COMPTES.locataire ||
+    email === COMPTES.voyageur ||
+    email === COMPTES.proprietaire
+  )
+    ? "/espace"
+    : "/";
+}
 
 /**
  * Connexion par l'API : le parcours du formulaire est déjà couvert par
@@ -35,7 +49,10 @@ async function connecter(page: Page, email: string) {
   }
   expect(statut, `connexion refusée pour ${email}`).toBeLessThan(400);
   await page.goto("/");
-  await page.waitForURL((u) => u.pathname === "/", { timeout: 20_000 });
+  const cible = accueilAttendu(email);
+  await page.waitForURL((u) => u.pathname === cible || u.pathname.startsWith(`${cible}/`), {
+    timeout: 20_000,
+  });
 }
 
 /** Par l'interface : c'est ce chemin qui purge aussi les copies locales. */
@@ -55,19 +72,46 @@ test.describe("cloisonnement par rôle", () => {
     prestataire: ["/team", "/tarifs", "/reservations", "/analyse", "/parametrage", "/prestataires/nouveau"],
     lecteur: ["/team", "/tarifs", "/reservations/nouveau", "/analyse", "/parametrage", "/prestataires/nouveau"],
     gestionnaire: ["/team"],
+    locataire: ["/tarifs", "/team", "/analyse", "/parametrage"],
+    voyageur: ["/tarifs", "/team", "/analyse", "/parametrage"],
+    proprietaire: ["/team", "/parametrage", "/reservations"],
   };
 
   for (const [role, chemins] of Object.entries(interdits)) {
     test(`un compte ${role} n'atteint pas ses routes interdites`, async ({ page }) => {
       await connecter(page, COMPTES[role as keyof typeof COMPTES]);
+      const accueil = accueilAttendu(COMPTES[role as keyof typeof COMPTES]);
       for (const chemin of chemins) {
         await page.goto(chemin);
         await expect(page, `${role} ne doit pas ouvrir ${chemin}`).toHaveURL(
-          (u) => u.pathname === "/",
+          (u) => u.pathname === accueil || u.pathname.startsWith(`${accueil}/`),
         );
       }
     });
   }
+
+  test("un prestataire atterrit sur le portail", async ({ page }) => {
+    await connecter(page, COMPTES.prestataire);
+    await expect(page).toHaveURL(/\/espace/);
+    await expect(page.getByText(/Prestataire/i).first()).toBeVisible();
+  });
+
+  test("un locataire n'ouvre pas /tarifs", async ({ page }) => {
+    await connecter(page, COMPTES.locataire);
+    await page.goto("/tarifs");
+    await expect(page).toHaveURL(/\/espace/);
+  });
+
+  test("un voyageur atterrit sur le portail", async ({ page }) => {
+    await connecter(page, COMPTES.voyageur);
+    await expect(page).toHaveURL(/\/espace/);
+  });
+
+  test("un propriétaire n'ouvre pas /reservations gestionnaire", async ({ page }) => {
+    await connecter(page, COMPTES.proprietaire);
+    await page.goto("/reservations");
+    await expect(page).toHaveURL(/\/espace/);
+  });
 
   test("un gestionnaire garde ses routes métier", async ({ page }) => {
     await connecter(page, COMPTES.gestionnaire);

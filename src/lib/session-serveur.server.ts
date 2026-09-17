@@ -17,11 +17,17 @@ type MembreRow = {
 };
 
 export async function sessionDepuisRequete(): Promise<AuthContexte | null> {
-  const session = await auth.api.getSession({ headers: getRequest().headers });
+  let session: Awaited<ReturnType<typeof auth.api.getSession>> | null = null;
+  try {
+    session = await auth.api.getSession({ headers: getRequest().headers });
+  } catch {
+    return null;
+  }
   if (!session?.user) return null;
   const sql = getSql();
   if (!sql) return null;
-  const rows = (await sql`
+  try {
+    const rows = (await sql`
     select
       p.prenom,
       p.nom,
@@ -38,21 +44,24 @@ export async function sessionDepuisRequete(): Promise<AuthContexte | null> {
     where m.user_id = ${session.user.id}::uuid
     limit 1
   `) as MembreRow[];
-  const ligne = rows[0];
-  if (!ligne) return null;
-  const roleId = ligne.role_id;
-  return {
-    userId: session.user.id,
-    email: session.user.email,
-    prenom: ligne.prenom,
-    nom: ligne.nom,
-    initiales: ligne.initiales,
-    roleId,
-    role: labelDuRole(roleId),
-    droits: droitsEffectifs(roleId, ligne.droits),
-    affectation: ligne.affectation,
-    orgId: ligne.org_id,
-    orgType: ligne.org_type,
-    orgNom: ligne.org_nom,
-  };
+    const ligne = rows[0];
+    if (!ligne) return null;
+    const roleId = ligne.role_id;
+    return {
+      userId: session.user.id,
+      email: session.user.email,
+      prenom: ligne.prenom,
+      nom: ligne.nom,
+      initiales: ligne.initiales,
+      roleId,
+      role: labelDuRole(roleId),
+      droits: droitsEffectifs(roleId, ligne.droits),
+      affectation: ligne.affectation,
+      orgId: ligne.org_id,
+      orgType: ligne.org_type,
+      orgNom: ligne.org_nom,
+    };
+  } catch {
+    return null;
+  }
 }

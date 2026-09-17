@@ -2,12 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { useState } from "react";
 import {
   BarChart3,
   CalendarDays,
   ChevronDown,
-  ChevronRight,
   ClipboardCheck,
   ClipboardList,
   FileText,
@@ -16,6 +14,7 @@ import {
   MessageSquare,
   Settings,
   Users,
+  Wrench,
 } from "lucide-react";
 import { useAuth, useDroit } from "@/auth/auth-context";
 import { aLeDroit, type DroitId } from "@/auth/permissions";
@@ -41,27 +40,25 @@ type Entree = {
 const NAV: Entree[] = [
   { titre: "Réservations", url: "/reservations", icone: Users, droit: "voir-reservations" },
   { titre: "Documents", url: "/documents", icone: FileText, droit: "voir-documents" },
-  { titre: "Lieux", url: "/patrimoines", icone: Home, chevron: true, droit: "voir-biens" },
+  { titre: "Lieux", url: "/patrimoines", icone: Home, droit: "voir-biens" },
+  { titre: "Prestataires", url: "/prestataires", icone: Wrench, droit: "voir-biens" },
+  { titre: "Occupants", url: "/occupants", icone: Users, droit: "voir-reservations" },
   { titre: "Messagerie", url: "/messagerie", icone: MessageSquare, droit: "messagerie" },
   { titre: "Analyse", url: "/analyse", icone: BarChart3, droit: "voir-finances" },
 ];
 
-const SOUS_LIEUX = [
-  { titre: "Lieux", url: "/patrimoines" },
-  { titre: "Prestataires", url: "/prestataires" },
-  { titre: "Occupants", url: "/occupants" },
-  { titre: "Inventaire", url: "/inventaire" },
-];
-
 const VUES = [
   { titre: "Vue générale", url: "/", droit: undefined as DroitId | undefined },
-  { titre: "Missions", url: "/missions", droit: "voir-calendrier" as const },
-  { titre: "Réservations", url: "/reservations", droit: "voir-reservations" as const },
-  { titre: "Tarifs", url: "/tarifs", droit: "voir-finances" as const },
 ];
 
 const OUTILS: Array<{ titre: string; url: string; icone: typeof Info; droit?: DroitId }> = [
   { titre: "Tous les outils", url: "/outils", icone: Info },
+  {
+    titre: "Créer un bail",
+    url: "/outils/baux",
+    icone: FileText,
+    droit: "voir-documents",
+  },
   {
     titre: "Modèles de documents",
     url: "/outils/modeles",
@@ -81,7 +78,7 @@ const OUTILS: Array<{ titre: string; url: string; icone: typeof Info; droit?: Dr
     icone: ClipboardCheck,
     droit: "voir-documents",
   },
-  { titre: "Paramétrage", url: "/parametrage", icone: Settings, droit: "mod-reservations" },
+  { titre: "Paramétrage", url: "/parametrage", icone: Settings, droit: "mod-biens" },
 ];
 
 export function estActif(pathname: string, url: string) {
@@ -125,13 +122,9 @@ export function NavChrome({
   // dans la navigation laisserait croire à un accès déjà ouvert.
   const equipe = (coequipiers ?? []).filter((m) => m.statut === "actif");
 
-  const [lieuxOuvert, setLieuxOuvert] = useState(false);
   const lien = mobile
     ? "flex min-h-11 items-center gap-3 rounded-card px-3 text-sm font-medium text-ink-body hover:bg-surface"
     : "flex h-9 items-center gap-3 rounded-card px-3 text-sm font-medium text-ink-body hover:bg-surface";
-  const sousLien = mobile
-    ? "flex min-h-11 items-center rounded-[8px] px-2 text-sm font-medium text-ink-subtle hover:bg-surface"
-    : "flex h-8 items-center rounded-[8px] px-2 text-xs font-medium text-ink-subtle hover:bg-surface";
 
   return (
     <>
@@ -173,12 +166,16 @@ export function NavChrome({
             </div>
           </>
         ) : (
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger className="mt-4 flex h-[38px] w-full items-center justify-center rounded-card border border-line bg-white text-sm font-medium text-ink-body">
               Vue générale
               <ChevronDown className="ml-1 size-3.5" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuContent
+              align="start"
+              className="w-56"
+              onCloseAutoFocus={(e) => e.preventDefault()}
+            >
               {vuesVisibles.map((v) => (
                 <DropdownMenuItem key={v.url + v.titre} asChild>
                   <Link to={v.url}>{v.titre}</Link>
@@ -190,65 +187,17 @@ export function NavChrome({
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 pt-3">
-        {navVisible.map((e) => {
-          const sous = e.titre === "Lieux" ? SOUS_LIEUX : null;
-          const ouvert = Boolean(
-            sous?.some((s) => estActif(pathname, s.url)) ||
-            estActif(pathname, e.url) ||
-            (mobile && e.titre === "Lieux" && lieuxOuvert),
-          );
-          const interne = (
-            <>
-              <e.icone className="size-4 shrink-0" />
-              <span className="flex-1 truncate">{e.titre}</span>
-              {e.chevron &&
-                (ouvert ? (
-                  <ChevronDown className="size-3.5 text-ink-muted" />
-                ) : (
-                  <ChevronRight className="size-3.5 text-ink-muted" />
-                ))}
-            </>
-          );
-          return (
-            <div key={e.titre}>
-              {mobile && sous ? (
-                <button
-                  type="button"
-                  aria-expanded={ouvert}
-                  onClick={() => setLieuxOuvert((v) => !v)}
-                  className={cn(lien, "w-full", ouvert && "bg-surface-soft text-ink")}
-                >
-                  {interne}
-                </button>
-              ) : (
-                <Link
-                  to={e.url}
-                  onClick={onNavigate}
-                  className={cn(lien, estActif(pathname, e.url) && "bg-surface-soft text-ink")}
-                >
-                  {interne}
-                </Link>
-              )}
-              {e.chevron && ouvert && sous && (
-                <div className="mb-1 ml-7 mt-0.5 space-y-0.5">
-                  {sous.map((s) => (
-                    <Link
-                      key={s.url}
-                      to={s.url}
-                      onClick={onNavigate}
-                      className={cn(
-                        sousLien,
-                        estActif(pathname, s.url) && "bg-surface-soft text-ink",
-                      )}
-                    >
-                      {s.titre}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {navVisible.map((e) => (
+          <Link
+            key={e.titre}
+            to={e.url}
+            onClick={onNavigate}
+            className={cn(lien, estActif(pathname, e.url) && "bg-surface-soft text-ink")}
+          >
+            <e.icone className="size-4 shrink-0" />
+            <span className="flex-1 truncate">{e.titre}</span>
+          </Link>
+        ))}
 
         {peutEquipe && (
           <div className="pt-4">

@@ -1,4 +1,4 @@
-import { aLeDroit, type DroitId, type RoleId } from "@/auth/permissions";
+import { aLeDroit, estRolePortail, type DroitId, type RoleId } from "@/auth/permissions";
 import {
   assemblerEtat,
   ecrireAccesLieu,
@@ -6,6 +6,7 @@ import {
   lireAccesLieux,
   lireLigne,
   majLigneVisible,
+  orgCibleEcriture,
   remplacerCollection,
   upsertLigne,
   type AccesLieu,
@@ -49,10 +50,31 @@ const DROIT_COLLECTION: Partial<Record<CollectionMetier, DroitId>> = {
   modeles: "voir-documents",
   edl: "voir-documents",
   droitsPersonnalises: "gerer-equipe",
+  rapportsIntervention: "mod-missions",
 };
 
 function peutEcrire(org: OrgSession, collection: CollectionMetier) {
   if (org.roleId === "lecteur") return false;
+  if (org.roleId === "voyageur") {
+    return (
+      collection === "reservationsDossier" ||
+      collection === "messagesFil" ||
+      collection === "conversations"
+    );
+  }
+  if (org.roleId === "locataire") {
+    return (
+      collection === "dossiersLocation" ||
+      collection === "partagesDossier" ||
+      collection === "candidatures" ||
+      collection === "messagesFil" ||
+      collection === "conversations" ||
+      collection === "notifications"
+    );
+  }
+  if (org.roleId === "proprietaire") {
+    return collection === "messagesFil" || collection === "conversations";
+  }
   const besoin = DROIT_COLLECTION[collection];
   if (!besoin) return true;
   return aLeDroit(org.droits, besoin);
@@ -106,7 +128,7 @@ export async function insererEntite(
   if (!peutEcrire(org, collection)) return { ok: false, raison: "interdit" };
   const sql = deps.sql();
   if (!sql) return { ok: false, raison: "non_configure" };
-  await upsertLigne(sql, org.orgId, collection, item);
+  await upsertLigne(sql, await orgCibleEcriture(sql, org, collection), collection, item);
   return { ok: true };
 }
 
@@ -121,7 +143,11 @@ export async function modifierEntite(
   if (!peutEcrire(org, collection)) return { ok: false, raison: "interdit" };
   const sql = deps.sql();
   if (!sql) return { ok: false, raison: "non_configure" };
-  const ok = await majLigneVisible(sql, org, collection, id, patch);
+  const orgMaj =
+    collection === "missions"
+      ? org
+      : { ...org, orgId: await orgCibleEcriture(sql, org, collection) };
+  const ok = await majLigneVisible(sql, orgMaj, collection, id, patch);
   if (!ok) return { ok: false, raison: "introuvable" };
   return { ok: true };
 }
@@ -152,7 +178,9 @@ export async function lireAcces(
 ): Promise<{ ok: true; acces: AccesLieu[] } | { ok: false; raison: RaisonEchec }> {
   const org = await deps.sessionOrg();
   if (!org) return { ok: false, raison: "non_authentifie" };
-  if (!aLeDroit(org.droits, "voir-biens")) return { ok: false, raison: "interdit" };
+  if (!aLeDroit(org.droits, "voir-biens") && !estRolePortail(org.roleId)) {
+    return { ok: false, raison: "interdit" };
+  }
   const sql = deps.sql();
   if (!sql) return { ok: false, raison: "non_configure" };
   const cle = cleOuRien(deps);

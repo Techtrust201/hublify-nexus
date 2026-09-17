@@ -1,14 +1,19 @@
-import { useDroit } from "@/auth/auth-context";
+import { useDroit, useAuth } from "@/auth/auth-context";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, CalendarDays, Clock, Home, User } from "lucide-react";
+import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { EcranAttente } from "@/components/layout/EcranAttente";
 import {
   affecterMission,
+  ajouterRapport,
   changerStatutMission,
+  idNouveau,
   useSession,
   useSessionChargee,
 } from "@/data/session";
+import { toastErreur, toastOk } from "@/lib/feedback";
+import type { RapportIntervention } from "@/data/v1-metier";
 import type { StatutPastille } from "@/data/planning-mo1";
 
 export const Route = createFileRoute("/missions/$missionId")({
@@ -59,7 +64,7 @@ function Ligne({
 
 function DetailMission() {
   const { missionId } = Route.useParams();
-  const { missions, biens, prestataires, reservationsDossier } = useSession();
+  const { missions, biens, prestataires, reservationsDossier, rapportsIntervention } = useSession();
   const peutMod = useDroit("mod-missions");
   const chargee = useSessionChargee();
   const mission = missions.find((m) => m.id === missionId);
@@ -207,8 +212,78 @@ function DetailMission() {
               </div>
             </section>
           )}
+          <RapportMissionBloc missionId={mission.id} rapports={rapportsIntervention} />
         </div>
       </div>
     </AppShell>
+  );
+}
+
+function RapportMissionBloc({
+  missionId,
+  rapports,
+}: {
+  missionId: string;
+  rapports: RapportIntervention[];
+}) {
+  const auth = useAuth();
+  const peutMod = useDroit("mod-missions");
+  const [texte, setTexte] = useState("");
+  const existants = rapports.filter((r) => r.missionId === missionId);
+
+  return (
+    <section className="rounded-card border border-line bg-white p-4">
+      <h2 className="text-sm font-semibold text-ink">Rapport d'intervention</h2>
+      {existants.length === 0 ? (
+        <p className="mt-2 text-xs text-ink-muted">Aucun rapport pour cette mission.</p>
+      ) : (
+        <ul className="mt-2 space-y-2">
+          {existants.map((r) => (
+            <li key={r.id} className="rounded-card border border-surface-soft p-2.5 text-sm">
+              <p className="text-xs text-ink-muted">
+                {r.auteur} · {r.date}
+              </p>
+              <p className="mt-1 text-ink-body">{r.texte}</p>
+              {r.photos.length > 0 && (
+                <p className="mt-1 text-xs text-ink-muted">{r.photos.length} photo(s)</p>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {peutMod && (
+        <div className="mt-3">
+          <textarea
+            value={texte}
+            onChange={(e) => setTexte(e.target.value)}
+            rows={3}
+            placeholder="Compte-rendu, observations, photos à joindre…"
+            className="w-full rounded-card border border-line px-3 py-2 text-sm outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              if (!texte.trim()) {
+                toastErreur("Rédigez le rapport avant d'enregistrer.");
+                return;
+              }
+              ajouterRapport({
+                id: idNouveau("rp"),
+                missionId,
+                texte: texte.trim(),
+                photos: [],
+                auteur: auth ? `${auth.prenom} ${auth.nom}` : "Équipe",
+                date: new Date().toISOString().slice(0, 10),
+              });
+              setTexte("");
+              toastOk("Rapport enregistré.");
+            }}
+            className="mt-2 h-9 rounded-card bg-ink px-3 text-xs font-medium text-white"
+          >
+            Enregistrer le rapport
+          </button>
+        </div>
+      )}
+    </section>
   );
 }

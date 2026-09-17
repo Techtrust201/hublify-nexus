@@ -8,7 +8,8 @@ export type VueDocuments =
   | "inventaire-presta"
   | "etats"
   | "fiches"
-  | "factures";
+  | "factures"
+  | "syndic";
 
 export type OngletResident = "locataires" | "voyageurs" | "prestataires";
 
@@ -76,16 +77,16 @@ export const ACTIVITE_RECENTE = [
 
 export const DOCS_MO1: DocMo1[] = [
   {
-    id: "d1",
-    titre: "Bail — Dupont Jean",
+    id: "d-bail-jean",
+    titre: "Bail meublé — Jean Martin",
     type: "Bail",
     filtre: "Bail",
     logement: "Appartement Colette",
-    date: "15 Jan 2026",
-    taille: "245 KB",
-    modifiePar: "Erik Dunnell",
+    date: "10 Dec 2025",
+    taille: "198 KB",
+    modifiePar: "Amélie Dubois",
     photos: 0,
-    vue: "logements",
+    vue: "residents",
     occupant: "locataires",
   },
   {
@@ -102,6 +103,32 @@ export const DOCS_MO1: DocMo1[] = [
     occupant: "locataires",
   },
   {
+    id: "d-courrier-colette",
+    titre: "Courrier libre — Relance charges Colette",
+    type: "Courrier",
+    filtre: "Courrier libre",
+    logement: "Appartement Colette",
+    date: "12 Mar 2026",
+    taille: "64 KB",
+    modifiePar: "Amélie Dubois",
+    photos: 0,
+    vue: "logements",
+    occupant: "locataires",
+  },
+  {
+    id: "d-corresp-jean",
+    titre: "Correspondance — Dossier Jean Martin",
+    type: "Correspondance",
+    filtre: "Correspondances",
+    logement: "Appartement Colette",
+    date: "08 Mar 2026",
+    taille: "42 KB",
+    modifiePar: "Amélie Dubois",
+    photos: 0,
+    vue: "logements",
+    occupant: "locataires",
+  },
+  {
     id: "d3",
     titre: "Fiche intervention — Plomberie",
     type: "Fiche intervention",
@@ -112,6 +139,18 @@ export const DOCS_MO1: DocMo1[] = [
     modifiePar: "Erik Gunsel",
     photos: 3,
     vue: "logements",
+  },
+  {
+    id: "d-syndic-1",
+    titre: "Règlement de copropriété — Résidence Centrale",
+    type: "Copropriété",
+    filtre: "Syndic",
+    logement: "Résidence Centrale",
+    date: "12 Jan 2026",
+    taille: "1,2 MB",
+    modifiePar: "Yannick Ratti",
+    photos: 0,
+    vue: "syndic",
   },
   {
     id: "d4",
@@ -161,19 +200,6 @@ export const DOCS_MO1: DocMo1[] = [
     modifiePar: "Erik Dunnell",
     photos: 12,
     vue: "logements",
-  },
-  {
-    id: "d8",
-    titre: "Bail — Martin Sophie",
-    type: "Bail",
-    filtre: "Bail",
-    logement: "Appartement Colette",
-    date: "15 Mar 2026",
-    taille: "320 KB",
-    modifiePar: "Emily Smith",
-    photos: 0,
-    vue: "logements",
-    occupant: "locataires",
   },
   {
     id: "d9",

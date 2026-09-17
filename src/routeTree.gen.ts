@@ -17,12 +17,24 @@ import { Route as ProfilRouteImport } from './routes/profil'
 import { Route as ReinitialiserMotDePasseRouteImport } from './routes/reinitialiser-mot-de-passe'
 import { Route as AnalyseIndexRouteImport } from './routes/analyse.index'
 import { Route as DocumentsIndexRouteImport } from './routes/documents.index'
+import { Route as DossiersOccupantIdRouteImport } from './routes/dossiers.$occupantId'
+import { Route as EspaceIndexRouteImport } from './routes/espace.index'
+import { Route as EspaceCalendrierRouteImport } from './routes/espace.calendrier'
+import { Route as EspaceCandidatureRouteImport } from './routes/espace.candidature'
+import { Route as EspaceContactsRouteImport } from './routes/espace.contacts'
+import { Route as EspaceDocumentsRouteImport } from './routes/espace.documents'
+import { Route as EspaceDossierRouteImport } from './routes/espace.dossier'
+import { Route as EspaceLogementRouteImport } from './routes/espace.logement'
+import { Route as EspaceMessagesRouteImport } from './routes/espace.messages'
+import { Route as EspaceMissionsRouteImport } from './routes/espace.missions'
+import { Route as EspacePrecheckinRouteImport } from './routes/espace.precheckin'
 import { Route as InventaireIndexRouteImport } from './routes/inventaire.index'
 import { Route as MessagerieIndexRouteImport } from './routes/messagerie.index'
 import { Route as MissionsIndexRouteImport } from './routes/missions.index'
 import { Route as MissionsMissionIdRouteImport } from './routes/missions.$missionId'
 import { Route as OccupantsIndexRouteImport } from './routes/occupants.index'
 import { Route as OutilsIndexRouteImport } from './routes/outils.index'
+import { Route as OutilsBauxRouteImport } from './routes/outils.baux'
 import { Route as OutilsDebuterRouteImport } from './routes/outils.debuter'
 import { Route as OutilsEtatsDesLieuxRouteImport } from './routes/outils.etats-des-lieux'
 import { Route as OutilsModelesRouteImport } from './routes/outils.modeles'
@@ -79,6 +91,61 @@ const DocumentsIndexRoute = DocumentsIndexRouteImport.update({
   path: '/documents/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DossiersOccupantIdRoute = DossiersOccupantIdRouteImport.update({
+  id: '/dossiers/$occupantId',
+  path: '/dossiers/$occupantId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EspaceIndexRoute = EspaceIndexRouteImport.update({
+  id: '/espace/',
+  path: '/espace/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EspaceCalendrierRoute = EspaceCalendrierRouteImport.update({
+  id: '/espace/calendrier',
+  path: '/espace/calendrier',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EspaceCandidatureRoute = EspaceCandidatureRouteImport.update({
+  id: '/espace/candidature',
+  path: '/espace/candidature',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EspaceContactsRoute = EspaceContactsRouteImport.update({
+  id: '/espace/contacts',
+  path: '/espace/contacts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EspaceDocumentsRoute = EspaceDocumentsRouteImport.update({
+  id: '/espace/documents',
+  path: '/espace/documents',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EspaceDossierRoute = EspaceDossierRouteImport.update({
+  id: '/espace/dossier',
+  path: '/espace/dossier',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EspaceLogementRoute = EspaceLogementRouteImport.update({
+  id: '/espace/logement',
+  path: '/espace/logement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EspaceMessagesRoute = EspaceMessagesRouteImport.update({
+  id: '/espace/messages',
+  path: '/espace/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EspaceMissionsRoute = EspaceMissionsRouteImport.update({
+  id: '/espace/missions',
+  path: '/espace/missions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EspacePrecheckinRoute = EspacePrecheckinRouteImport.update({
+  id: '/espace/precheckin',
+  path: '/espace/precheckin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InventaireIndexRoute = InventaireIndexRouteImport.update({
   id: '/inventaire/',
   path: '/inventaire/',
@@ -107,6 +174,11 @@ const OccupantsIndexRoute = OccupantsIndexRouteImport.update({
 const OutilsIndexRoute = OutilsIndexRouteImport.update({
   id: '/outils/',
   path: '/outils/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OutilsBauxRoute = OutilsBauxRouteImport.update({
+  id: '/outils/baux',
+  path: '/outils/baux',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OutilsDebuterRoute = OutilsDebuterRouteImport.update({
@@ -193,7 +265,18 @@ export interface FileRoutesByFullPath {
   '/mot-de-passe-oublie': typeof MotDePasseOublieRoute
   '/profil': typeof ProfilRoute
   '/reinitialiser-mot-de-passe': typeof ReinitialiserMotDePasseRoute
+  '/dossiers/$occupantId': typeof DossiersOccupantIdRoute
+  '/espace/calendrier': typeof EspaceCalendrierRoute
+  '/espace/candidature': typeof EspaceCandidatureRoute
+  '/espace/contacts': typeof EspaceContactsRoute
+  '/espace/documents': typeof EspaceDocumentsRoute
+  '/espace/dossier': typeof EspaceDossierRoute
+  '/espace/logement': typeof EspaceLogementRoute
+  '/espace/messages': typeof EspaceMessagesRoute
+  '/espace/missions': typeof EspaceMissionsRoute
+  '/espace/precheckin': typeof EspacePrecheckinRoute
   '/missions/$missionId': typeof MissionsMissionIdRoute
+  '/outils/baux': typeof OutilsBauxRoute
   '/outils/debuter': typeof OutilsDebuterRoute
   '/outils/etats-des-lieux': typeof OutilsEtatsDesLieuxRoute
   '/outils/modeles': typeof OutilsModelesRoute
@@ -203,6 +286,7 @@ export interface FileRoutesByFullPath {
   '/reservations/nouveau': typeof ReservationsNouveauRoute
   '/analyse/': typeof AnalyseIndexRoute
   '/documents/': typeof DocumentsIndexRoute
+  '/espace/': typeof EspaceIndexRoute
   '/inventaire/': typeof InventaireIndexRoute
   '/messagerie/': typeof MessagerieIndexRoute
   '/missions/': typeof MissionsIndexRoute
@@ -224,7 +308,18 @@ export interface FileRoutesByTo {
   '/mot-de-passe-oublie': typeof MotDePasseOublieRoute
   '/profil': typeof ProfilRoute
   '/reinitialiser-mot-de-passe': typeof ReinitialiserMotDePasseRoute
+  '/dossiers/$occupantId': typeof DossiersOccupantIdRoute
+  '/espace/calendrier': typeof EspaceCalendrierRoute
+  '/espace/candidature': typeof EspaceCandidatureRoute
+  '/espace/contacts': typeof EspaceContactsRoute
+  '/espace/documents': typeof EspaceDocumentsRoute
+  '/espace/dossier': typeof EspaceDossierRoute
+  '/espace/logement': typeof EspaceLogementRoute
+  '/espace/messages': typeof EspaceMessagesRoute
+  '/espace/missions': typeof EspaceMissionsRoute
+  '/espace/precheckin': typeof EspacePrecheckinRoute
   '/missions/$missionId': typeof MissionsMissionIdRoute
+  '/outils/baux': typeof OutilsBauxRoute
   '/outils/debuter': typeof OutilsDebuterRoute
   '/outils/etats-des-lieux': typeof OutilsEtatsDesLieuxRoute
   '/outils/modeles': typeof OutilsModelesRoute
@@ -234,6 +329,7 @@ export interface FileRoutesByTo {
   '/reservations/nouveau': typeof ReservationsNouveauRoute
   '/analyse': typeof AnalyseIndexRoute
   '/documents': typeof DocumentsIndexRoute
+  '/espace': typeof EspaceIndexRoute
   '/inventaire': typeof InventaireIndexRoute
   '/messagerie': typeof MessagerieIndexRoute
   '/missions': typeof MissionsIndexRoute
@@ -256,7 +352,18 @@ export interface FileRoutesById {
   '/mot-de-passe-oublie': typeof MotDePasseOublieRoute
   '/profil': typeof ProfilRoute
   '/reinitialiser-mot-de-passe': typeof ReinitialiserMotDePasseRoute
+  '/dossiers/$occupantId': typeof DossiersOccupantIdRoute
+  '/espace/calendrier': typeof EspaceCalendrierRoute
+  '/espace/candidature': typeof EspaceCandidatureRoute
+  '/espace/contacts': typeof EspaceContactsRoute
+  '/espace/documents': typeof EspaceDocumentsRoute
+  '/espace/dossier': typeof EspaceDossierRoute
+  '/espace/logement': typeof EspaceLogementRoute
+  '/espace/messages': typeof EspaceMessagesRoute
+  '/espace/missions': typeof EspaceMissionsRoute
+  '/espace/precheckin': typeof EspacePrecheckinRoute
   '/missions/$missionId': typeof MissionsMissionIdRoute
+  '/outils/baux': typeof OutilsBauxRoute
   '/outils/debuter': typeof OutilsDebuterRoute
   '/outils/etats-des-lieux': typeof OutilsEtatsDesLieuxRoute
   '/outils/modeles': typeof OutilsModelesRoute
@@ -266,6 +373,7 @@ export interface FileRoutesById {
   '/reservations/nouveau': typeof ReservationsNouveauRoute
   '/analyse/': typeof AnalyseIndexRoute
   '/documents/': typeof DocumentsIndexRoute
+  '/espace/': typeof EspaceIndexRoute
   '/inventaire/': typeof InventaireIndexRoute
   '/messagerie/': typeof MessagerieIndexRoute
   '/missions/': typeof MissionsIndexRoute
@@ -289,7 +397,18 @@ export interface FileRouteTypes {
     | '/mot-de-passe-oublie'
     | '/profil'
     | '/reinitialiser-mot-de-passe'
+    | '/dossiers/$occupantId'
+    | '/espace/calendrier'
+    | '/espace/candidature'
+    | '/espace/contacts'
+    | '/espace/documents'
+    | '/espace/dossier'
+    | '/espace/logement'
+    | '/espace/messages'
+    | '/espace/missions'
+    | '/espace/precheckin'
     | '/missions/$missionId'
+    | '/outils/baux'
     | '/outils/debuter'
     | '/outils/etats-des-lieux'
     | '/outils/modeles'
@@ -299,6 +418,7 @@ export interface FileRouteTypes {
     | '/reservations/nouveau'
     | '/analyse/'
     | '/documents/'
+    | '/espace/'
     | '/inventaire/'
     | '/messagerie/'
     | '/missions/'
@@ -320,7 +440,18 @@ export interface FileRouteTypes {
     | '/mot-de-passe-oublie'
     | '/profil'
     | '/reinitialiser-mot-de-passe'
+    | '/dossiers/$occupantId'
+    | '/espace/calendrier'
+    | '/espace/candidature'
+    | '/espace/contacts'
+    | '/espace/documents'
+    | '/espace/dossier'
+    | '/espace/logement'
+    | '/espace/messages'
+    | '/espace/missions'
+    | '/espace/precheckin'
     | '/missions/$missionId'
+    | '/outils/baux'
     | '/outils/debuter'
     | '/outils/etats-des-lieux'
     | '/outils/modeles'
@@ -330,6 +461,7 @@ export interface FileRouteTypes {
     | '/reservations/nouveau'
     | '/analyse'
     | '/documents'
+    | '/espace'
     | '/inventaire'
     | '/messagerie'
     | '/missions'
@@ -351,7 +483,18 @@ export interface FileRouteTypes {
     | '/mot-de-passe-oublie'
     | '/profil'
     | '/reinitialiser-mot-de-passe'
+    | '/dossiers/$occupantId'
+    | '/espace/calendrier'
+    | '/espace/candidature'
+    | '/espace/contacts'
+    | '/espace/documents'
+    | '/espace/dossier'
+    | '/espace/logement'
+    | '/espace/messages'
+    | '/espace/missions'
+    | '/espace/precheckin'
     | '/missions/$missionId'
+    | '/outils/baux'
     | '/outils/debuter'
     | '/outils/etats-des-lieux'
     | '/outils/modeles'
@@ -361,6 +504,7 @@ export interface FileRouteTypes {
     | '/reservations/nouveau'
     | '/analyse/'
     | '/documents/'
+    | '/espace/'
     | '/inventaire/'
     | '/messagerie/'
     | '/missions/'
@@ -383,7 +527,18 @@ export interface RootRouteChildren {
   MotDePasseOublieRoute: typeof MotDePasseOublieRoute
   ProfilRoute: typeof ProfilRoute
   ReinitialiserMotDePasseRoute: typeof ReinitialiserMotDePasseRoute
+  DossiersOccupantIdRoute: typeof DossiersOccupantIdRoute
+  EspaceCalendrierRoute: typeof EspaceCalendrierRoute
+  EspaceCandidatureRoute: typeof EspaceCandidatureRoute
+  EspaceContactsRoute: typeof EspaceContactsRoute
+  EspaceDocumentsRoute: typeof EspaceDocumentsRoute
+  EspaceDossierRoute: typeof EspaceDossierRoute
+  EspaceLogementRoute: typeof EspaceLogementRoute
+  EspaceMessagesRoute: typeof EspaceMessagesRoute
+  EspaceMissionsRoute: typeof EspaceMissionsRoute
+  EspacePrecheckinRoute: typeof EspacePrecheckinRoute
   MissionsMissionIdRoute: typeof MissionsMissionIdRoute
+  OutilsBauxRoute: typeof OutilsBauxRoute
   OutilsDebuterRoute: typeof OutilsDebuterRoute
   OutilsEtatsDesLieuxRoute: typeof OutilsEtatsDesLieuxRoute
   OutilsModelesRoute: typeof OutilsModelesRoute
@@ -393,6 +548,7 @@ export interface RootRouteChildren {
   ReservationsNouveauRoute: typeof ReservationsNouveauRoute
   AnalyseIndexRoute: typeof AnalyseIndexRoute
   DocumentsIndexRoute: typeof DocumentsIndexRoute
+  EspaceIndexRoute: typeof EspaceIndexRoute
   InventaireIndexRoute: typeof InventaireIndexRoute
   MessagerieIndexRoute: typeof MessagerieIndexRoute
   MissionsIndexRoute: typeof MissionsIndexRoute
@@ -466,6 +622,83 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocumentsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dossiers/$occupantId': {
+      id: '/dossiers/$occupantId'
+      path: '/dossiers/$occupantId'
+      fullPath: '/dossiers/$occupantId'
+      preLoaderRoute: typeof DossiersOccupantIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/espace/': {
+      id: '/espace/'
+      path: '/espace'
+      fullPath: '/espace/'
+      preLoaderRoute: typeof EspaceIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/espace/calendrier': {
+      id: '/espace/calendrier'
+      path: '/espace/calendrier'
+      fullPath: '/espace/calendrier'
+      preLoaderRoute: typeof EspaceCalendrierRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/espace/candidature': {
+      id: '/espace/candidature'
+      path: '/espace/candidature'
+      fullPath: '/espace/candidature'
+      preLoaderRoute: typeof EspaceCandidatureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/espace/contacts': {
+      id: '/espace/contacts'
+      path: '/espace/contacts'
+      fullPath: '/espace/contacts'
+      preLoaderRoute: typeof EspaceContactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/espace/documents': {
+      id: '/espace/documents'
+      path: '/espace/documents'
+      fullPath: '/espace/documents'
+      preLoaderRoute: typeof EspaceDocumentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/espace/dossier': {
+      id: '/espace/dossier'
+      path: '/espace/dossier'
+      fullPath: '/espace/dossier'
+      preLoaderRoute: typeof EspaceDossierRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/espace/logement': {
+      id: '/espace/logement'
+      path: '/espace/logement'
+      fullPath: '/espace/logement'
+      preLoaderRoute: typeof EspaceLogementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/espace/messages': {
+      id: '/espace/messages'
+      path: '/espace/messages'
+      fullPath: '/espace/messages'
+      preLoaderRoute: typeof EspaceMessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/espace/missions': {
+      id: '/espace/missions'
+      path: '/espace/missions'
+      fullPath: '/espace/missions'
+      preLoaderRoute: typeof EspaceMissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/espace/precheckin': {
+      id: '/espace/precheckin'
+      path: '/espace/precheckin'
+      fullPath: '/espace/precheckin'
+      preLoaderRoute: typeof EspacePrecheckinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/inventaire/': {
       id: '/inventaire/'
       path: '/inventaire'
@@ -506,6 +739,13 @@ declare module '@tanstack/react-router' {
       path: '/outils'
       fullPath: '/outils/'
       preLoaderRoute: typeof OutilsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/outils/baux': {
+      id: '/outils/baux'
+      path: '/outils/baux'
+      fullPath: '/outils/baux'
+      preLoaderRoute: typeof OutilsBauxRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/outils/debuter': {
@@ -623,7 +863,18 @@ const rootRouteChildren: RootRouteChildren = {
   MotDePasseOublieRoute: MotDePasseOublieRoute,
   ProfilRoute: ProfilRoute,
   ReinitialiserMotDePasseRoute: ReinitialiserMotDePasseRoute,
+  DossiersOccupantIdRoute: DossiersOccupantIdRoute,
+  EspaceCalendrierRoute: EspaceCalendrierRoute,
+  EspaceCandidatureRoute: EspaceCandidatureRoute,
+  EspaceContactsRoute: EspaceContactsRoute,
+  EspaceDocumentsRoute: EspaceDocumentsRoute,
+  EspaceDossierRoute: EspaceDossierRoute,
+  EspaceLogementRoute: EspaceLogementRoute,
+  EspaceMessagesRoute: EspaceMessagesRoute,
+  EspaceMissionsRoute: EspaceMissionsRoute,
+  EspacePrecheckinRoute: EspacePrecheckinRoute,
   MissionsMissionIdRoute: MissionsMissionIdRoute,
+  OutilsBauxRoute: OutilsBauxRoute,
   OutilsDebuterRoute: OutilsDebuterRoute,
   OutilsEtatsDesLieuxRoute: OutilsEtatsDesLieuxRoute,
   OutilsModelesRoute: OutilsModelesRoute,
@@ -633,6 +884,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReservationsNouveauRoute: ReservationsNouveauRoute,
   AnalyseIndexRoute: AnalyseIndexRoute,
   DocumentsIndexRoute: DocumentsIndexRoute,
+  EspaceIndexRoute: EspaceIndexRoute,
   InventaireIndexRoute: InventaireIndexRoute,
   MessagerieIndexRoute: MessagerieIndexRoute,
   MissionsIndexRoute: MissionsIndexRoute,

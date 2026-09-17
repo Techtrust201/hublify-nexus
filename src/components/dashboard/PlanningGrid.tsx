@@ -1,6 +1,10 @@
 // SOURCE: Maquette MO1 — grille biens × jours (Missions / Tarifs, 3 jours / 5 jours / mois)
 
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
+import {
+  estPagePlanningHorsAccueil,
+  RetourVueGenerale,
+} from "@/components/layout/RetourVueGenerale";
 import {
   ChevronLeft,
   ChevronRight,
@@ -11,12 +15,15 @@ import {
   Tag,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { CreatePrestationDialog } from "@/components/dashboard/CreatePrestationDialog";
 import {
+  CreateEventDialog,
   CreateRegleDialog,
   GererReglesPanel,
   MissionInfoDialog,
   MissionsPlusPopover,
 } from "@/components/dashboard/DashboardDialogs";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { ScrollHint } from "@/components/layout/ScrollHint";
 import {
   ANCRE_MO1,
@@ -26,6 +33,7 @@ import {
   isoJour,
   prixDuJour,
   reservationCouvre,
+  styleBarreResa,
   type BienMo1,
   type EnsembleRegles,
   type FiltreMission,
@@ -35,7 +43,16 @@ import {
   type ReservationMo1,
   type VuePlanning,
 } from "@/data/planning-mo1";
-import { modifierSession, useSession } from "@/data/session";
+import {
+  ajouterEvenement,
+  ajouterNotif,
+  modifierSession,
+  poserOuverturesBail,
+  retirerMission,
+  useSession,
+} from "@/data/session";
+import { confirmer, toastOk } from "@/lib/feedback";
+import { idDossierPourCalendrier } from "@/data/v1-metier";
 import { cn } from "@/lib/utils";
 
 const JOURS_SEM = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"];
@@ -44,12 +61,16 @@ export function PlanningGrid({
   onglet,
   onOnglet,
   vueInitiale = "3jours",
+  onReservation,
 }: {
   onglet: OngletPlanning;
   onOnglet: (v: OngletPlanning) => void;
   vueInitiale?: VuePlanning;
+  onReservation?: (id: string) => void;
 }) {
   const session = useSession();
+  const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const retourAccueil = estPagePlanningHorsAccueil(pathname);
   const missions = session.missions;
   const sejoursCal = session.reservationsCalendrier;
   const biens: BienMo1[] = session.biens.map((b) => ({
@@ -61,6 +82,12 @@ export function PlanningGrid({
   const [ancre, setAncre] = useState(() => new Date(ANCRE_MO1));
   const [filtre, setFiltre] = useState<FiltreMission>("tous");
   const [missionOuverte, setMissionOuverte] = useState<MissionMo1 | null>(null);
+  const [prestation, setPrestation] = useState<{
+    bienId: string;
+    date: string;
+    mission?: MissionMo1;
+  } | null>(null);
+  const [note, setNote] = useState<{ date: string; bienNom: string } | null>(null);
   const ensembles = session.ensembles;
   const regles = session.regles;
   const setEnsembles = (
@@ -78,6 +105,8 @@ export function PlanningGrid({
   const [gererRegles, setGererRegles] = useState(false);
   const [ensembleCible, setEnsembleCible] = useState("en1");
   const [filtreBienTarif, setFiltreBienTarif] = useState<string>("tous");
+  const [periode, setPeriode] = useState<{ bienId: string; debut: string } | null>(null);
+  const [finPeriode, setFinPeriode] = useState("");
 
   const nbJours = vue === "3jours" ? 3 : vue === "5jours" ? 5 : 0;
   const jours = useMemo(
@@ -107,6 +136,9 @@ export function PlanningGrid({
     <div className="overflow-hidden rounded-card border border-line bg-white">
       <div className="flex min-w-0 items-center justify-between border-b border-line px-4">
         <div className="min-w-0 flex-1 overflow-x-auto">
+          {retourAccueil && (
+            <RetourVueGenerale className="mr-3 mt-2 h-9 border-line md:mt-0" />
+          )}
           {(
             [
               ["missions", "Missions"],
@@ -255,6 +287,18 @@ export function PlanningGrid({
               <LogOut className="size-2.5" />
               CheckOut
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                const bienId = biens[0]?.id ?? "";
+                const debut = isoJour(ancre);
+                setPeriode({ bienId, debut });
+                setFinPeriode(debut);
+              }}
+              className="inline-flex h-11 min-h-11 items-center rounded border border-line bg-white px-2.5 text-xs font-medium text-ink-body md:h-[26px] md:min-h-[26px]"
+            >
+              Période d'ouverture BAIL
+            </button>
           </div>
         )}
       </div>
@@ -292,6 +336,9 @@ export function PlanningGrid({
           ancre={ancre}
           missions={missionsFiltrees}
           onMission={setMissionOuverte}
+          onAjouter={(date) =>
+            setPrestation({ bienId: biens[0]?.id ?? "", date })
+          }
         />
       ) : (
         <JoursMissions
@@ -300,6 +347,14 @@ export function PlanningGrid({
           missions={missionsFiltrees}
           sejours={sejoursCal}
           onMission={setMissionOuverte}
+          onReservation={(sejour) => {
+            const id = idDossierPourCalendrier(sejour, session.reservationsDossier);
+            if (id) onReservation?.(id);
+          }}
+          onAjouterPrestation={(bienId, date) => setPrestation({ bienId, date })}
+          onAjouterNote={(bienId, date) =>
+            setNote({ date, bienNom: biens.find((b) => b.id === bienId)?.nom ?? "" })
+          }
         />
       )}
 
@@ -324,6 +379,108 @@ export function PlanningGrid({
             missions: e.missions.map((m) => (m.id === id ? { ...m, statut } : m)),
           }));
           setMissionOuverte((m) => (m && m.id === id ? { ...m, statut } : m));
+        }}
+        onModifier={(m) => {
+          setMissionOuverte(null);
+          setPrestation({ bienId: m.bienId, date: m.date, mission: m });
+        }}
+        onSupprimer={async (m) => {
+          const ok = await confirmer({
+            titre: "Supprimer cette prestation ?",
+            description: `${m.titre} disparaît du calendrier.`,
+            libelleConfirmer: "Supprimer",
+            danger: true,
+          });
+          if (!ok) return;
+          retirerMission(m.id);
+          setMissionOuverte(null);
+          toastOk("Prestation supprimée.");
+        }}
+      />
+      <CreatePrestationDialog
+        ouvert={Boolean(prestation)}
+        onFermer={() => setPrestation(null)}
+        bienId={prestation?.bienId}
+        date={prestation?.date}
+        mission={prestation?.mission}
+      />
+      <Dialog
+        open={Boolean(periode)}
+        onOpenChange={(o) => {
+          if (!o) setPeriode(null);
+        }}
+      >
+        <DialogContent className="max-w-md rounded-card border border-line bg-white p-5">
+          <DialogTitle className="text-sm font-medium text-ink">
+            Période d'ouverture type bail
+          </DialogTitle>
+          <DialogDescription className="text-xs text-ink-muted">
+            Depuis le calendrier général : les jours s'alignent sur les deux plannings.
+          </DialogDescription>
+          <label className="mt-3 block text-xs text-ink-muted">
+            Logement
+            <select
+              value={periode?.bienId ?? ""}
+              onChange={(e) => setPeriode((p) => (p ? { ...p, bienId: e.target.value } : p))}
+              className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm"
+            >
+              {biens.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.nom}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="mt-3 block text-xs text-ink-muted">
+            Début
+            <input
+              type="date"
+              value={periode?.debut ?? ""}
+              onChange={(e) => setPeriode((p) => (p ? { ...p, debut: e.target.value } : p))}
+              className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm"
+            />
+          </label>
+          <label className="mt-3 block text-xs text-ink-muted">
+            Fin
+            <input
+              type="date"
+              value={finPeriode}
+              onChange={(e) => setFinPeriode(e.target.value)}
+              className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm"
+            />
+          </label>
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setPeriode(null)}
+              className="h-9 rounded-card border border-line px-3 text-xs"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!periode?.bienId || !periode.debut || !finPeriode) return;
+                const n = poserOuverturesBail(periode.bienId, periode.debut, finPeriode);
+                setPeriode(null);
+                toastOk(`Période d'ouverture type bail posée (${n} jour${n > 1 ? "s" : ""}).`);
+              }}
+              className="h-9 rounded-card bg-ink px-3 text-xs font-medium text-white"
+            >
+              Enregistrer
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <CreateEventDialog
+        ouvert={Boolean(note)}
+        onFermer={() => setNote(null)}
+        debutInitial={note?.date}
+        bienInitial={note?.bienNom}
+        onCreer={(e) => {
+          ajouterEvenement(e);
+          ajouterNotif({ titre: "Note calendrier", detail: e.titre, href: "/" });
+          toastOk("Note enregistrée.");
         }}
       />
       <CreateRegleDialog
@@ -378,12 +535,18 @@ function JoursMissions({
   missions,
   sejours,
   onMission,
+  onReservation,
+  onAjouterPrestation,
+  onAjouterNote,
 }: {
   jours: Date[];
   biens: BienMo1[];
   missions: MissionMo1[];
   sejours: ReservationMo1[];
   onMission: (m: MissionMo1) => void;
+  onReservation?: (r: ReservationMo1) => void;
+  onAjouterPrestation?: (bienId: string, date: string) => void;
+  onAjouterNote?: (bienId: string, date: string) => void;
 }) {
   return (
     <ScrollHint snap>
@@ -425,6 +588,9 @@ function JoursMissions({
             missions={missions.filter((m) => m.bienId === bien.id)}
             sejours={sejours.filter((r) => r.bienId === bien.id)}
             onMission={onMission}
+            {...(onReservation ? { onReservation } : {})}
+            {...(onAjouterPrestation ? { onAjouterPrestation } : {})}
+            {...(onAjouterNote ? { onAjouterNote } : {})}
           />
         ))}
       </div>
@@ -438,12 +604,18 @@ function LigneBien({
   missions,
   sejours,
   onMission,
+  onReservation,
+  onAjouterPrestation,
+  onAjouterNote,
 }: {
   bien: BienMo1;
   jours: Date[];
   missions: MissionMo1[];
   sejours: ReservationMo1[];
   onMission: (m: MissionMo1) => void;
+  onReservation?: (r: ReservationMo1) => void;
+  onAjouterPrestation?: (bienId: string, date: string) => void;
+  onAjouterNote?: (bienId: string, date: string) => void;
 }) {
   const aUneResa = sejours.some((r) => jours.some((d) => reservationCouvre(r, isoJour(d))));
   const aUneMission = missions.some((m) => jours.some((d) => isoJour(d) === m.date));
@@ -475,28 +647,53 @@ function LigneBien({
                 key === AUJOURD_HUI_MO1 && "bg-surface/60",
               )}
             >
-              {!reserve && (
-                <div
-                  className={cn(
-                    "flex items-center justify-center",
-                    ligneHaute ? "h-[52px]" : "h-full",
-                  )}
+              <div
+                className={cn(
+                  "flex items-center justify-center",
+                  ligneHaute ? "h-[52px]" : "h-full",
+                )}
+              >
+                <Link
+                  to="/reservations/nouveau"
+                  search={{ bien: bien.id, arrivee: key }}
+                  className="flex size-11 items-center justify-center md:size-5"
+                  aria-label={`Ajouter une réservation — ${bien.nom}`}
                 >
-                  <Link
-                    to="/reservations/nouveau"
-                    search={{ bien: bien.id, arrivee: key }}
-                    className="flex size-11 items-center justify-center md:size-5"
-                    aria-label={`Ajouter une réservation — ${bien.nom}`}
+                  <span
+                    className={cn(
+                      "flex size-5 items-center justify-center rounded-full border text-ink-muted",
+                      reserve ? "border-dashed border-line bg-white/80" : "border-line-strong",
+                    )}
                   >
-                    <span className="flex size-5 items-center justify-center rounded-full border border-line-strong text-ink-muted">
-                      <Plus className="size-2.5" />
-                    </span>
-                  </Link>
-                </div>
-              )}
+                    <Plus className="size-2.5" />
+                  </span>
+                </Link>
+              </div>
               {ligneHaute && (
-                <div className="absolute inset-x-0 top-[52px] space-y-0.5 border-t border-line bg-[color-mix(in srgb, var(--surface) 40%, transparent)] p-1">
-                  {visible && <Pastille mission={visible} onClick={() => onMission(visible)} />}
+                <div className="absolute inset-x-0 top-[52px] z-[2] space-y-0.5 border-t border-line bg-[color-mix(in srgb, var(--surface) 40%, transparent)] p-1">
+                  <button
+                    type="button"
+                    onClick={() => onAjouterPrestation?.(bien.id, key)}
+                    className="flex h-6 w-full items-center justify-center rounded border border-dashed border-line text-[10px] text-ink-muted hover:bg-white"
+                    aria-label={`Ajouter une prestation — ${bien.nom}`}
+                  >
+                    <Plus className="size-2.5" />
+                  </button>
+                  {onAjouterNote && (
+                    <button
+                      type="button"
+                      onClick={() => onAjouterNote(bien.id, key)}
+                      className="flex h-5 w-full items-center justify-center rounded text-[10px] text-ink-muted hover:bg-white"
+                    >
+                      Note
+                    </button>
+                  )}
+                  {visible && (
+                    <Pastille
+                      mission={visible}
+                      onClick={() => onMission(visible)}
+                    />
+                  )}
                   {duJour.length > 1 && (
                     <MissionsPlusPopover
                       bienNom={bien.nom}
@@ -511,33 +708,48 @@ function LigneBien({
                   )}
                 </div>
               )}
+              {!ligneHaute && onAjouterPrestation && (
+                <div className="absolute bottom-1 right-1 flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onAjouterPrestation(bien.id, key)}
+                    className="flex size-6 items-center justify-center rounded-full border border-line bg-white text-ink-muted"
+                    aria-label={`Ajouter une prestation — ${bien.nom}`}
+                  >
+                    <Plus className="size-2.5" />
+                  </button>
+                  {onAjouterNote && (
+                    <button
+                      type="button"
+                      onClick={() => onAjouterNote(bien.id, key)}
+                      className="flex h-6 items-center rounded-full border border-line bg-white px-1.5 text-[9px] text-ink-muted"
+                    >
+                      Note
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
 
         {aUneResa &&
           sejours.map((r) => {
-            const start = jours.findIndex((d) => reservationCouvre(r, isoJour(d)));
-            if (start < 0) return null;
-            let span = 0;
-            for (let i = start; i < jours.length; i++) {
-              if (!reservationCouvre(r, isoJour(jours[i]!))) break;
-              span += 1;
-            }
+            const barre = styleBarreResa(r, jours);
+            if (!barre) return null;
             return (
-              <div
+              <button
                 key={r.id}
-                className="pointer-events-none absolute top-1.5 z-[1] flex h-10 items-center justify-between rounded-lg border border-line-strong bg-surface-soft px-2.5 opacity-60"
-                style={{
-                  left: `calc(${(start / jours.length) * 100}% + 2px)`,
-                  width: `calc(${(span / jours.length) * 100}% - 4px)`,
-                }}
+                type="button"
+                onClick={() => onReservation?.(r)}
+                className="absolute top-1.5 z-[1] flex h-10 items-center justify-between rounded-lg border border-line-strong bg-surface-soft px-2.5 text-left hover:bg-white"
+                style={barre}
               >
                 <span className="truncate text-xs text-ink-subtle">{r.voyageur}</span>
                 <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-ink-muted text-[9px] font-semibold text-ink-subtle">
                   i
                 </span>
-              </div>
+              </button>
             );
           })}
       </div>
@@ -572,11 +784,13 @@ function MoisMissions({
   ancre,
   missions,
   onMission,
+  onAjouter,
 }: {
   jours: Date[];
   ancre: Date;
   missions: MissionMo1[];
   onMission: (m: MissionMo1) => void;
+  onAjouter?: (date: string) => void;
 }) {
   return (
     <div>
@@ -604,7 +818,19 @@ function MoisMissions({
                 key === AUJOURD_HUI_MO1 && "bg-surface",
               )}
             >
-              <p className="mb-1 text-center text-xs text-ink-body">{d.getDate()}</p>
+              <div className="mb-1 flex items-center justify-between">
+                <p className="text-center text-xs text-ink-body">{d.getDate()}</p>
+                {onAjouter && (
+                  <button
+                    type="button"
+                    onClick={() => onAjouter(key)}
+                    className="flex size-6 items-center justify-center rounded-full text-ink-muted hover:bg-white"
+                    aria-label={`Ajouter une prestation le ${key}`}
+                  >
+                    <Plus className="size-2.5" />
+                  </button>
+                )}
+              </div>
               <div className="space-y-1">
                 {list.slice(0, 2).map((m) => (
                   <Pastille key={m.id} mission={m} onClick={() => onMission(m)} />

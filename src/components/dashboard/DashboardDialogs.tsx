@@ -122,12 +122,16 @@ export function MissionInfoDialog({
   ouvert,
   onFermer,
   onStatut,
+  onModifier,
+  onSupprimer,
 }: {
   mission: MissionMo1 | null;
   bienNom: string;
   ouvert: boolean;
   onFermer: () => void;
   onStatut?: (id: string, statut: StatutPastille) => void;
+  onModifier?: (m: MissionMo1) => void;
+  onSupprimer?: (m: MissionMo1) => void;
 }) {
   const [details, setDetails] = useState(false);
 
@@ -205,7 +209,25 @@ export function MissionInfoDialog({
               >
                 Plus de détails
               </Link>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap justify-end gap-2">
+                {onModifier && (
+                  <button
+                    type="button"
+                    onClick={() => onModifier(mission)}
+                    className="h-11 rounded border border-line px-3 text-xs font-medium text-ink-body md:h-[30px]"
+                  >
+                    Modifier
+                  </button>
+                )}
+                {onSupprimer && (
+                  <button
+                    type="button"
+                    onClick={() => onSupprimer(mission)}
+                    className="h-11 rounded border border-line px-3 text-xs font-medium text-ink-body md:h-[30px]"
+                  >
+                    Supprimer
+                  </button>
+                )}
                 {onStatut && mission.statut !== "terminee" && (
                   <button
                     type="button"
@@ -351,23 +373,45 @@ export function QuittanceDialog({
   ouvert,
   onFermer,
   onConfirmer,
+  saisirMontant = false,
+  viaPlateforme = false,
 }: {
   loyer: LoyerMo1 | null;
   ouvert: boolean;
   onFermer: () => void;
-  onConfirmer: () => void;
+  onConfirmer: (montant: number) => void;
+  saisirMontant?: boolean;
+  viaPlateforme?: boolean;
 }) {
+  const [montant, setMontant] = useState(String(loyer?.montant ?? 0));
+  useEffect(() => {
+    setMontant(String(loyer?.montant ?? 0));
+  }, [loyer?.id, loyer?.montant]);
   if (!loyer) return null;
   return (
     <Dialog open={ouvert} onOpenChange={(o) => !o && onFermer()}>
       <DialogContent className="max-w-[320px] gap-0 rounded-card border border-line bg-white p-0 shadow-lg">
         <DialogTitle className="px-6 pt-6 text-sm font-medium text-ink">
-          Générer une quittance
+          {viaPlateforme ? "Quittance automatique" : "Générer une quittance"}
         </DialogTitle>
         <div className="space-y-1 px-6 py-3 text-xs text-ink-body">
           <p>Locataire : {loyer.locataire}</p>
           <p>Bien : {loyer.bienNom}</p>
-          <p>Montant : {loyer.montant.toLocaleString("fr-FR")} €</p>
+          {viaPlateforme ? (
+            <p>Paiement plateforme : quittance générée sur le montant encaissé.</p>
+          ) : saisirMontant ? (
+            <label className="mt-2 block text-xs text-ink-muted">
+              Montant encaissé hors plateforme
+              <input
+                value={montant}
+                onChange={(e) => setMontant(e.target.value)}
+                inputMode="decimal"
+                className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
+              />
+            </label>
+          ) : (
+            <p>Montant : {loyer.montant.toLocaleString("fr-FR")} €</p>
+          )}
         </div>
         <div className="flex justify-end gap-2 px-6 pb-6">
           <button
@@ -379,7 +423,7 @@ export function QuittanceDialog({
           </button>
           <button
             type="button"
-            onClick={onConfirmer}
+            onClick={() => onConfirmer(Number(montant.replace(",", ".")) || loyer.montant)}
             className="h-[30px] rounded bg-ink px-3 text-xs font-medium text-white"
           >
             Confirmer & Générer
@@ -394,10 +438,14 @@ export function CreateEventDialog({
   ouvert,
   onFermer,
   onCreer,
+  debutInitial,
+  bienInitial,
 }: {
   ouvert: boolean;
   onFermer: () => void;
   onCreer: (e: EvenementMo1) => void;
+  debutInitial?: string | undefined;
+  bienInitial?: string | undefined;
 }) {
   const session = useSession();
   const [nom, setNom] = useState("");
@@ -407,6 +455,12 @@ export function CreateEventDialog({
   const [impact, setImpact] = useState<ImpactEvenement>("Impact modéré");
   const [biens, setBiens] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
+
+  useEffect(() => {
+    if (!ouvert) return;
+    if (debutInitial) setDebut(debutInitial);
+    if (bienInitial) setBiens([bienInitial]);
+  }, [ouvert, debutInitial, bienInitial]);
 
   const reset = () => {
     setNom("");

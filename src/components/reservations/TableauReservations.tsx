@@ -26,7 +26,7 @@ import {
   type StatutReservationMo1,
 } from "@/data/reservations-mo1";
 import { annulerReservation, modifierReservation, useSession, useStatutSync } from "@/data/session";
-import { telechargerDemo, toastErreur, toastOk } from "@/lib/feedback";
+import { confirmer, telechargerDemo, toastErreur, toastOk } from "@/lib/feedback";
 import { telechargerFactureReservation } from "@/lib/exports-docs";
 import { cn } from "@/lib/utils";
 
@@ -34,9 +34,16 @@ type FiltrePeriode = "tous" | "en_cours" | "a_venir" | "departs" | "passes";
 
 const PAGE = 8;
 
-export function TableauReservations({ focusId }: { focusId?: string }) {
+export function TableauReservations({
+  focusId,
+  onSelectReservation,
+}: {
+  focusId?: string;
+  onSelectReservation?: (id: string) => void;
+}) {
   const session = useSession();
   const sync = useStatutSync();
+  const peutMod = useDroit("mod-reservations");
   const reservations = session.reservationsDossier;
   const attendHydrate =
     reservations.length === 0 && sync.etat !== "enregistre" && sync.etat !== "echec";
@@ -66,7 +73,13 @@ export function TableauReservations({ focusId }: { focusId?: string }) {
     const r = reservations[index]!;
     setDetail((actuel) => (actuel?.id === r.id ? actuel : r));
     setPage(Math.floor(index / PAGE) + 1);
-  }, [focusId, reservations]);
+    onSelectReservation?.(r.id);
+  }, [focusId, reservations, onSelectReservation]);
+
+  const ouvrir = (r: ReservationMo1) => {
+    setDetail(r);
+    onSelectReservation?.(r.id);
+  };
 
   const filtrees = useMemo(() => {
     return reservations.filter((r) => {
@@ -272,7 +285,7 @@ export function TableauReservations({ focusId }: { focusId?: string }) {
               <button
                 key={r.id}
                 type="button"
-                onClick={() => setDetail(r)}
+                onClick={() => ouvrir(r)}
                 className="flex w-full flex-col gap-1 px-4 py-4 text-left"
               >
                 <div className="flex items-center justify-between gap-2">
@@ -330,7 +343,7 @@ export function TableauReservations({ focusId }: { focusId?: string }) {
                 <th className="px-3 py-3 font-normal">Voyageurs</th>
                 <th className="px-3 py-3 font-normal">Montant</th>
                 <th className="px-3 py-3 font-normal">Paiement</th>
-                <th className="w-10" />
+                <th className="px-3 py-3 font-normal">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -344,7 +357,7 @@ export function TableauReservations({ focusId }: { focusId?: string }) {
                       "cursor-pointer border-b border-surface-soft hover:bg-surface",
                       detail?.id === r.id && "bg-surface",
                     )}
-                    onClick={() => setDetail(r)}
+                    onClick={() => ouvrir(r)}
                   >
                     <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
                       <label className="flex min-h-11 items-center md:min-h-0">
@@ -409,8 +422,40 @@ export function TableauReservations({ focusId }: { focusId?: string }) {
                         {pct}%
                       </span>
                     </td>
-                    <td className="px-3 py-3">
-                      <ChevronRight className="size-3.5 text-ink-muted" />
+                    <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex flex-wrap items-center gap-1">
+                        {peutMod && (
+                          <Link
+                            to="/reservations/nouveau"
+                            search={{ id: r.id }}
+                            className="inline-flex h-8 items-center rounded border border-line px-2 text-[11px] text-ink-body"
+                          >
+                            Modifier
+                          </Link>
+                        )}
+                        {peutMod && r.statut !== "Annulé" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void (async () => {
+                                const ok = await confirmer({
+                                  titre: "Annuler cette réservation ?",
+                                  description: `${r.occupant} disparaît du planning et passe au statut Annulé.`,
+                                  libelleConfirmer: "Annuler la réservation",
+                                  danger: true,
+                                });
+                                if (!ok) return;
+                                annulerReservation(r.id);
+                                toastOk("Réservation annulée.");
+                              })();
+                            }}
+                            className="inline-flex h-8 items-center rounded border border-line px-2 text-[11px] text-ink-body"
+                          >
+                            Annuler
+                          </button>
+                        )}
+                        <ChevronRight className="size-3.5 text-ink-muted" />
+                      </div>
                     </td>
                   </tr>
                 );
@@ -459,7 +504,9 @@ export function TableauReservations({ focusId }: { focusId?: string }) {
         </div>
       </div>
 
-      {detailLive && <PanneauDetail reservation={detailLive} onFermer={() => setDetail(null)} />}
+      {detailLive && !onSelectReservation && (
+        <PanneauDetail reservation={detailLive} onFermer={() => setDetail(null)} />
+      )}
     </div>
   );
 }

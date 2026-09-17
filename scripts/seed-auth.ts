@@ -6,6 +6,7 @@ import {
   ecrireParametrage,
   remplacerCollection,
   upsertLigne,
+  ecrireAccesLieu,
 } from "../src/data/metier.ts";
 import { auth, avecInscriptionInterne } from "../src/lib/auth.ts";
 import { ORG_LUCAS_ID, ORG_REDRIS_ID } from "../src/lib/orgs.ts";
@@ -58,6 +59,30 @@ const comptes: Array<{
     roleId: "prestataire",
     affectation: "Interventions",
     orgId: ORG_LUCAS_ID,
+  },
+  {
+    email: "jean.martin@hublify.app",
+    prenom: "Jean",
+    nom: "Martin",
+    roleId: "locataire",
+    affectation: "Locataire Colette",
+    orgId: ORG_REDRIS_ID,
+  },
+  {
+    email: "sophie.martin@hublify.app",
+    prenom: "Sophie",
+    nom: "Martin",
+    roleId: "voyageur",
+    affectation: "Séjour Suzette",
+    orgId: ORG_REDRIS_ID,
+  },
+  {
+    email: "pierre.moreau@hublify.app",
+    prenom: "Pierre",
+    nom: "Moreau",
+    roleId: "proprietaire",
+    affectation: "Immeuble des Arts",
+    orgId: ORG_REDRIS_ID,
   },
 ];
 
@@ -157,6 +182,26 @@ async function main() {
     await semerCollection(sql, ORG_REDRIS_ID, cle, canon[cle] as unknown[]);
   }
   await ecrireParametrage(sql, ORG_REDRIS_ID, canon.parametrage);
+
+  const cleAcces = process.env.APP_CRYPTO_KEY;
+  if (cleAcces) {
+    await ecrireAccesLieu(sql, ORG_REDRIS_ID, cleAcces, {
+      bienId: "colette",
+      wifi: "Hublify-Colette",
+      wifiMdp: "Colette2026",
+      codeCles: "4412",
+      alarme: "",
+      consignes: "Boîte à clés à gauche de l'entrée. Code porte A-18.",
+    });
+    await ecrireAccesLieu(sql, ORG_REDRIS_ID, cleAcces, {
+      bienId: "suzette",
+      wifi: "Hublify-Suzette",
+      wifiMdp: "Suzette2026",
+      codeCles: "8821",
+      alarme: "",
+      consignes: "Digicode 8821 puis clé dans la boîte.",
+    });
+  }
 
   const n = await sql`select count(*)::int as n from public.org_membres`;
   const biens = await sql`select count(*)::int as n from public.biens where org_id = ${ORG_REDRIS_ID}::uuid`;

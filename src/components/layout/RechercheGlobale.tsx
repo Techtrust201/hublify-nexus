@@ -8,7 +8,7 @@ type Resultat = { id: string; label: string; detail: string; to: string };
 export function RechercheGlobale({
   valeur,
   onChange,
-  placeholder = "Rechercher par prestataire ou appartement...",
+  placeholder = "Rechercher un propriétaire ou un appartement...",
 }: {
   valeur: string;
   onChange: (v: string) => void;
@@ -23,51 +23,38 @@ export function RechercheGlobale({
 
     for (const b of session.biens) {
       const adresse = b.adresse ?? "";
-      if (b.nom.toLowerCase().includes(q) || adresse.toLowerCase().includes(q)) {
+      const proprio = b.proprietaire ?? "";
+      if (
+        b.nom.toLowerCase().includes(q) ||
+        adresse.toLowerCase().includes(q) ||
+        proprio.toLowerCase().includes(q)
+      ) {
         liste.push({
           id: `bien-${b.id}`,
           label: b.nom,
-          detail: adresse || "Patrimoine",
+          detail: proprio ? `${proprio} · ${adresse || "Patrimoine"}` : adresse || "Patrimoine",
           to: `/patrimoines?logement=${encodeURIComponent(b.id)}`,
         });
       }
     }
 
-    for (const p of session.prestataires) {
-      if (p.nom.toLowerCase().includes(q) || p.categorie.toLowerCase().includes(q)) {
+    for (const i of session.immeubles) {
+      if (
+        i.nom.toLowerCase().includes(q) ||
+        i.proprietaire.toLowerCase().includes(q) ||
+        i.adresse.toLowerCase().includes(q)
+      ) {
         liste.push({
-          id: `presta-${p.id}`,
-          label: p.nom,
-          detail: p.categorie,
-          to: `/prestataires/${p.id}`,
-        });
-      }
-    }
-
-    for (const r of session.reservationsDossier) {
-      if (r.occupant.toLowerCase().includes(q)) {
-        liste.push({
-          id: `resa-${r.id}`,
-          label: r.occupant,
-          detail: `Réservation · ${r.arrivee} → ${r.depart}`,
-          to: `/reservations?vue=liste&resa=${encodeURIComponent(r.id)}`,
-        });
-      }
-    }
-
-    for (const m of session.missions) {
-      if (m.titre.toLowerCase().includes(q) || m.assigne.toLowerCase().includes(q)) {
-        liste.push({
-          id: `ms-${m.id}`,
-          label: m.titre,
-          detail: `${m.assigne} · ${m.date}`,
-          to: `/missions/${m.id}`,
+          id: `imm-${i.id}`,
+          label: i.proprietaire,
+          detail: `Propriétaire · ${i.nom}`,
+          to: `/patrimoines?immeuble=${encodeURIComponent(i.id)}`,
         });
       }
     }
 
     return liste.slice(0, 12);
-  }, [q, session.biens, session.prestataires, session.missions, session.reservationsDossier]);
+  }, [q, session.biens, session.immeubles]);
 
   return (
     <div className="relative w-full max-w-[448px]">

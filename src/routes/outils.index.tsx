@@ -20,6 +20,12 @@ export const Route = createFileRoute("/outils/")({
 
 const OUTILS = [
   {
+    titre: "Créer un bail",
+    texte: "Du logement au PDF, puis au calendrier si besoin.",
+    icone: FileText,
+    vers: "/outils/baux" as const,
+  },
+  {
     titre: "Modèles de documents",
     texte: "Créez et gérez vos modèles de factures, devis, quittances et contrats.",
     icone: FileText,
@@ -64,13 +70,16 @@ const OUTILS = [
 ];
 
 function PageOutils() {
-  const peutParametrer = useDroit("mod-reservations");
+  const peutParametrer = useDroit("mod-biens");
+  const peutReserver = useDroit("mod-reservations");
   const voirDocs = useDroit("voir-documents");
   const voirCal = useDroit("voir-calendrier");
   const voirBiens = useDroit("voir-biens");
   const outils = OUTILS.filter((o) => {
-    if (o.vers === "/parametrage" || o.vers === "/outils/debuter") return peutParametrer;
-    if (o.vers === "/outils/modeles" || o.vers === "/outils/etats-des-lieux") return voirDocs;
+    if (o.vers === "/parametrage") return peutParametrer;
+    if (o.vers === "/outils/debuter") return peutReserver;
+    if (o.vers === "/outils/modeles" || o.vers === "/outils/etats-des-lieux" || o.vers === "/outils/baux")
+      return voirDocs;
     if (o.vers === "/outils/vue-annuelle") return voirCal;
     if (o.vers === "/inventaire") return voirBiens;
     return true;

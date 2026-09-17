@@ -11,7 +11,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import { AuthProvider } from "@/auth/auth-context";
-import { aLeDroit, droitRequisPourChemin, type AuthContexte } from "@/auth/permissions";
+import { aLeDroit, accueilPourRole, droitRequisPourChemin, estRolePortail, type AuthContexte } from "@/auth/permissions";
 import { DialogueConfirmation } from "@/components/ui/dialogue-confirmation";
 import { Toaster } from "@/components/ui/sonner";
 import { hydraterSession } from "@/data/session";
@@ -98,9 +98,19 @@ export const Route = createRootRouteWithContext<{
     if (!auth) {
       throw redirect({ to: "/connexion" });
     }
+    if (estRolePortail(auth.roleId)) {
+      const portail =
+        location.pathname === "/espace" ||
+        location.pathname.startsWith("/espace/") ||
+        location.pathname === "/profil";
+      if (!portail) {
+        throw redirect({ to: "/espace" });
+      }
+      return { auth };
+    }
     const besoin = droitRequisPourChemin(location.pathname);
     if (besoin && !aLeDroit(auth.droits, besoin)) {
-      throw redirect({ to: "/" });
+      throw redirect({ to: accueilPourRole(auth.roleId) });
     }
     return { auth };
   },

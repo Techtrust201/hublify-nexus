@@ -440,7 +440,7 @@ function TableauPaiements({
             onClick={onExporter}
             className="inline-flex h-11 items-center justify-center gap-1 rounded-card border border-line px-3 text-xs text-ink-body md:h-8"
           >
-            <Download className="size-3" /> Exporter
+            <Download className="size-3" /> Extraire les tableaux de paiements
           </button>
         </div>
       </header>

@@ -17,6 +17,15 @@ import {
 } from "@/data/planning-mo1";
 import type { ReservationMo1 as ReservationCalendrier } from "@/data/planning-mo1";
 import type { OccupantMo1, ReservationMo1 as ReservationDossier } from "@/data/reservations-mo1";
+import type { Conversation } from "@/data/messagerie-mo1";
+import type {
+  CandidatureLocation,
+  ContactCopro,
+  DossierLocation,
+  PartageDossier,
+  RapportIntervention,
+} from "@/data/v1-metier";
+import { joursPlage, poserPeriodesOuverture } from "@/data/v1-metier";
 import {
   chargerEtatDistant,
   insererLigneMetier,
@@ -351,6 +360,42 @@ export function idNouveau(prefixe: string) {
   return `${prefixe}-${Date.now().toString(36)}`;
 }
 
+export function poserOuverturesBail(bienId: string, debut: string, fin: string) {
+  const jours = joursPlage(debut, fin);
+  poserCollection("datesBloquees", (liste) => poserPeriodesOuverture(liste, bienId, debut, fin));
+  return jours.length;
+}
+
+export function ouvrirConversationProspect(params: {
+  nom: string;
+  extrait: string;
+  bienNom?: string | undefined;
+  type?: Conversation["type"] | undefined;
+}) {
+  const id = idNouveau("c");
+  const initiales = params.nom
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
+  const ligne: Conversation = {
+    id,
+    section: "prospections",
+    nom: params.nom,
+    initiales: initiales || "??",
+    type: params.type ?? "locataire",
+    badge: "Prospect",
+    extrait: params.extrait,
+    ilYa: "À l'instant",
+    nonLu: true,
+    archivee: false,
+    ...(params.bienNom ? { bienNom: params.bienNom } : {}),
+  };
+  appliquerLocal((e) => ({ ...e, conversations: [ligne, ...e.conversations] }));
+  void pousserLigne("conversations", ligne).then((ok) => !ok && programmerReprise());
+  return id;
+}
+
 async function pousserLigne(collection: CollectionMetier, item: { id: string }): Promise<boolean> {
   poserStatut({ etat: "en-cours" });
   try {
@@ -446,6 +491,22 @@ export function changerStatutMission(id: string, statut: StatutPastille) {
 export function ajouterMission(mission: MissionMo1) {
   appliquerLocal((e) => ({ ...e, missions: [mission, ...e.missions] }));
   void pousserLigne("missions", mission).then((ok) => !ok && programmerReprise());
+}
+
+export function modifierMission(id: string, patch: Partial<MissionMo1>) {
+  appliquerLocal((e) => ({
+    ...e,
+    missions: e.missions.map((m) => (m.id === id ? { ...m, ...patch, id } : m)),
+  }));
+  void pousserPatch("missions", id, { ...patch } as Record<string, unknown>).then(
+    (ok) => !ok && programmerReprise(),
+  );
+}
+
+export function retirerMission(id: string) {
+  appliquerLocal((e) => ({ ...e, missions: e.missions.filter((m) => m.id !== id) }));
+  sales.add("missions");
+  persister();
 }
 
 export function affecterMission(id: string, assigne: string) {
@@ -598,4 +659,117 @@ export function marquerNotifsLues() {
 
 export function useKpiMo1() {
   return calculerKpi(useSession(), AUJOURD_HUI_MO1);
+}
+
+export function ajouterRapport(rapport: RapportIntervention) {
+  appliquerLocal((e) => ({
+    ...e,
+    rapportsIntervention: [rapport, ...e.rapportsIntervention.filter((r) => r.id !== rapport.id)],
+  }));
+  void pousserLigne("rapportsIntervention", rapport).then((ok) => !ok && programmerReprise());
+}
+
+export function upsertContactCopro(contact: ContactCopro) {
+  poserCollection("contactsCopro", (liste) => {
+    const i = liste.findIndex((c) => c.id === contact.id);
+    return i >= 0 ? liste.map((c, idx) => (idx === i ? contact : c)) : [contact, ...liste];
+  });
+}
+
+export function retirerContactCopro(id: string) {
+  appliquerLocal((e) => ({
+    ...e,
+    contactsCopro: e.contactsCopro.filter((c) => c.id !== id),
+  }));
+  sales.add("contactsCopro");
+  persister();
+}
+
+export function upsertDossierLocation(dossier: DossierLocation) {
+  appliquerLocal((e) => {
+    const i = e.dossiersLocation.findIndex((d) => d.id === dossier.id);
+    return {
+      ...e,
+      dossiersLocation:
+        i >= 0
+          ? e.dossiersLocation.map((d, idx) => (idx === i ? dossier : d))
+          : [dossier, ...e.dossiersLocation],
+    };
+  });
+  void pousserLigne("dossiersLocation", dossier).then((ok) => !ok && programmerReprise());
+}
+
+export function upsertPartageDossier(partage: PartageDossier) {
+  appliquerLocal((e) => {
+    const i = e.partagesDossier.findIndex((p) => p.id === partage.id);
+    return {
+      ...e,
+      partagesDossier:
+        i >= 0
+          ? e.partagesDossier.map((p, idx) => (idx === i ? partage : p))
+          : [partage, ...e.partagesDossier],
+    };
+  });
+  void pousserLigne("partagesDossier", partage).then((ok) => !ok && programmerReprise());
+}
+
+export function ajouterCandidature(candidature: CandidatureLocation) {
+  appliquerLocal((e) => ({ ...e, candidatures: [candidature, ...e.candidatures] }));
+  void pousserLigne("candidatures", candidature).then((ok) => !ok && programmerReprise());
+}
+
+export function modifierCandidature(id: string, patch: Partial<CandidatureLocation>) {
+  appliquerLocal((e) => ({
+    ...e,
+    candidatures: e.candidatures.map((c) => (c.id === id ? { ...c, ...patch, id } : c)),
+  }));
+  void pousserPatch("candidatures", id, { ...patch } as Record<string, unknown>).then(
+    (ok) => !ok && programmerReprise(),
+  );
+}
+
+/** Accepte une candidature et pose la réservation sur les deux calendriers. */
+export function validerCandidature(id: string) {
+  const candidature = etat.candidatures.find((c) => c.id === id);
+  if (!candidature) return false;
+  modifierCandidature(id, { statut: "acceptee" });
+  const doss = etat.dossiersLocation.find((d) => d.id === candidature.dossierId);
+  if (!doss) return true;
+  const reservaId = idNouveau("r");
+  const initiales = doss.occupantNom
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
+  ajouterReservation({
+    dossier: {
+      id: reservaId,
+      bienId: candidature.bienId,
+      occupant: doss.occupantNom,
+      initiales: initiales || "??",
+      email: doss.email,
+      telephone: "",
+      arrivee: candidature.arrivee,
+      depart: candidature.depart,
+      heureArrivee: "16:00",
+      heureDepart: "10:00",
+      plateforme: "Direct",
+      voyageurs: 1,
+      adultes: 1,
+      enfants: 0,
+      montant: candidature.montant,
+      paye: 0,
+      statut: "Confirmé",
+      couleur: "#e5e7eb",
+      type: "Bail meublé",
+    },
+    calendrier: {
+      id: `cal-${reservaId}`,
+      bienId: candidature.bienId,
+      voyageur: doss.occupantNom,
+      arrivee: candidature.arrivee,
+      depart: candidature.depart,
+    },
+  });
+  return true;
 }

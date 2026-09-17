@@ -14,6 +14,7 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ScrollHint } from "@/components/layout/ScrollHint";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -66,6 +67,7 @@ export function ListeOccupants() {
   const session = useSession();
   const [onglet, setOnglet] = useState<Onglet>("residents");
   const [filtre, setFiltre] = useState<FiltreOccupant>("tous");
+  const [logementFiltre, setLogementFiltre] = useState("tous");
   const [recherche, setRecherche] = useState("");
   const [fiche, setFiche] = useState<OccupantMo1 | PrestataireMo1 | null>(null);
   const occupantsBase = session.occupants;
@@ -82,14 +84,21 @@ export function ListeOccupants() {
     metier: "",
   });
 
+  const logementsOptions = useMemo(() => {
+    const noms = new Set(session.biens.map((b) => b.nom));
+    for (const o of occupantsBase) if (o.logement) noms.add(o.logement);
+    return [...noms].sort();
+  }, [session.biens, occupantsBase]);
+
   const occupants = useMemo(() => {
     return occupantsBase.filter((o) => {
       if (filtre !== "tous" && o.type !== filtre) return false;
+      if (logementFiltre !== "tous" && o.logement !== logementFiltre) return false;
       const q = recherche.trim().toLowerCase();
       if (!q) return true;
       return o.nom.toLowerCase().includes(q) || o.logement.toLowerCase().includes(q);
     });
-  }, [filtre, recherche, occupantsBase]);
+  }, [filtre, recherche, occupantsBase, logementFiltre]);
 
   const prestataires = useMemo(() => {
     const q = recherche.trim().toLowerCase();
@@ -212,7 +221,7 @@ export function ListeOccupants() {
         toastOk("Prestataire mis à jour.");
       } else {
         ajouterPrestataire(payload);
-        toastOk("Prestataire ajouté. Il apparaît aussi dans Lieux → Prestataires.");
+        toastOk("Prestataire ajouté.");
       }
     }
     setFormOuvert(false);
@@ -271,7 +280,20 @@ export function ListeOccupants() {
             />
           </label>
           {onglet === "residents" && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={logementFiltre}
+                onChange={(e) => setLogementFiltre(e.target.value)}
+                className="h-11 rounded-card border border-line bg-white px-3 text-sm text-ink outline-none md:h-9"
+                aria-label="Filtrer par logement"
+              >
+                <option value="tous">Tous les logements</option>
+                {logementsOptions.map((nom) => (
+                  <option key={nom} value={nom}>
+                    {nom}
+                  </option>
+                ))}
+              </select>
               {(
                 [
                   ["tous", "Tous"],
@@ -336,7 +358,11 @@ export function ListeOccupants() {
           <>
             <div className="divide-y divide-surface-soft md:hidden">
               {occupants.map((o) => (
-                <article key={o.id} className="flex flex-col gap-3 px-4 py-4">
+                <article
+                  key={o.id}
+                  className="flex cursor-pointer flex-col gap-3 px-4 py-4"
+                  onClick={() => setFiche(o)}
+                >
                   <div className="flex items-center gap-3">
                     <span className="flex size-10 items-center justify-center rounded-full bg-line text-sm text-ink-body">
                       {o.initiales}
@@ -361,7 +387,7 @@ export function ListeOccupants() {
                     Arrivée {formatJourFr(o.arrivee)}
                     {o.depart ? ` · Départ ${formatJourFr(o.depart)}` : ""}
                   </p>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                     <IconeAction label="Voir" onClick={() => setFiche(o)}>
                       <Eye className="size-4" />
                     </IconeAction>
@@ -394,13 +420,23 @@ export function ListeOccupants() {
                 </thead>
                 <tbody>
                   {occupants.map((o) => (
-                    <tr key={o.id} className="border-b border-surface-soft last:border-b-0">
+                    <tr
+                      key={o.id}
+                      className="cursor-pointer border-b border-surface-soft last:border-b-0"
+                      onClick={() => setFiche(o)}
+                    >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <span className="flex size-10 items-center justify-center rounded-full bg-line text-sm text-ink-body">
                             {o.initiales}
                           </span>
-                          <span className="text-sm text-ink">{o.nom}</span>
+                          <button
+                            type="button"
+                            onClick={() => setFiche(o)}
+                            className="text-left text-sm text-ink hover:underline"
+                          >
+                            {o.nom}
+                          </button>
                         </div>
                       </td>
                       <td className="px-3 py-4">
@@ -451,7 +487,7 @@ export function ListeOccupants() {
                           {o.statut}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex gap-1">
                           <IconeAction label="Voir" onClick={() => setFiche(o)}>
                             <Eye className="size-4" />
@@ -623,7 +659,7 @@ export function ListeOccupants() {
                 {fiche.email}
               </a>
             </p>
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => copierTexte(fiche.email, "E-mail copié.")}
@@ -631,6 +667,16 @@ export function ListeOccupants() {
               >
                 Copier l'e-mail
               </button>
+              {"type" in fiche && fiche.type === "Locataire" && (
+                <Link
+                  to="/dossiers/$occupantId"
+                  params={{ occupantId: fiche.id }}
+                  onClick={() => setFiche(null)}
+                  className="inline-flex h-9 items-center rounded-card border border-line px-3 text-xs text-ink-body"
+                >
+                  Dossier locataire
+                </Link>
+              )}
               <button
                 type="button"
                 onClick={() => {

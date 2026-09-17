@@ -1,8 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
+import { RetourVueGenerale } from "@/components/layout/RetourVueGenerale";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Home, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ScrollHint } from "@/components/layout/ScrollHint";
-import { InfosOccupants } from "@/components/reservations/InfosOccupants";
 import { FiltreOnglet } from "@/components/reservations/KpiEtAccordeons";
 import {
   ANCRE_PLANNING_MO1,
@@ -17,7 +17,17 @@ import {
   type PlateformeMo1,
   type ReservationMo1,
 } from "@/data/reservations-mo1";
-import { modifierSession, useSession } from "@/data/session";
+import { reservationTouche, styleBarreResa } from "@/data/planning-mo1";
+import { CreateEventDialog } from "@/components/dashboard/DashboardDialogs";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import {
+  ajouterEvenement,
+  ajouterNotif,
+  modifierSession,
+  poserOuverturesBail,
+  useSession,
+} from "@/data/session";
+import { toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
 const JOURS_MOIS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
@@ -25,7 +35,13 @@ const JOURS_MOIS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 type VuePlanning = "3jours" | "5jours" | "mois";
 type FiltrePlateforme = "tout" | PlateformeMo1;
 
-export function PlanningReservations({ onVoirListe }: { onVoirListe?: () => void }) {
+export function PlanningReservations({
+  onVoirListe,
+  onSelectReservation,
+}: {
+  onVoirListe?: () => void;
+  onSelectReservation?: (id: string) => void;
+}) {
   const navigate = useNavigate();
   const session = useSession();
   const [vue, setVue] = useState<VuePlanning>("3jours");
@@ -42,6 +58,15 @@ export function PlanningReservations({ onVoirListe }: { onVoirListe?: () => void
     modifierSession((e) => ({ ...e, datesBloquees: resolu }));
   };
   const [voirBloquees, setVoirBloquees] = useState(true);
+  const [periode, setPeriode] = useState<{ bienId: string; debut: string } | null>(null);
+  const [finPeriode, setFinPeriode] = useState("");
+  const [note, setNote] = useState<{ date: string; bienNom: string } | null>(null);
+
+  const poserOuverture = (bienId: string, debut: string, fin: string) => {
+    const n = poserOuverturesBail(bienId, debut, fin);
+    setVoirBloquees(true);
+    toastOk(`Période d'ouverture type bail posée (${n} jour${n > 1 ? "s" : ""}).`);
+  };
 
   const nbJours = vue === "3jours" ? 3 : vue === "5jours" ? 5 : 0;
   const jours = useMemo(
@@ -79,7 +104,7 @@ export function PlanningReservations({ onVoirListe }: { onVoirListe?: () => void
 
   const visiblePlanning = useMemo(() => {
     const cles = new Set((vue === "mois" ? joursMois : jours).map((d) => isoJour(d)));
-    return reservations.filter((r) => [...cles].some((j) => reservationCouvre(r, j)));
+    return reservations.filter((r) => [...cles].some((j) => reservationTouche(r, j)));
   }, [reservations, jours, joursMois, vue]);
 
   const totalVisible = visiblePlanning.reduce((s, r) => s + r.montant, 0);
@@ -101,6 +126,7 @@ export function PlanningReservations({ onVoirListe }: { onVoirListe?: () => void
   return (
     <div className="overflow-hidden rounded-card border border-line bg-white">
       <div className="flex min-w-0 items-center overflow-x-auto border-b border-line px-4">
+        <RetourVueGenerale className="mr-3 h-9 shrink-0 border-line" />
         {(
           [
             ["missions", "Missions"],
@@ -251,7 +277,10 @@ export function PlanningReservations({ onVoirListe }: { onVoirListe?: () => void
           jours={joursMois}
           ancre={ancre}
           reservations={reservations}
-          onSelect={setSelection}
+          onSelect={(r) => {
+            setSelection(r);
+            onSelectReservation?.(r.id);
+          }}
         />
       ) : (
         <GrilleJours
@@ -259,21 +288,79 @@ export function PlanningReservations({ onVoirListe }: { onVoirListe?: () => void
           jours={jours}
           reservations={reservations}
           datesBloquees={voirBloquees ? datesBloquees : []}
-          onSelect={setSelection}
+          onSelect={(r) => {
+            setSelection(r);
+            onSelectReservation?.(r.id);
+          }}
           onBloquer={bloquerJour}
-        />
-      )}
-
-      {selection && (
-        <InfosOccupants
-          reservation={selection}
-          onFermer={() => setSelection(null)}
-          onModifier={() => {
-            setSelection(null);
-            void navigate({ to: "/reservations/nouveau", search: { id: selection.id } });
+          onOuverture={(bienId, date) => {
+            setPeriode({ bienId, debut: date });
+            setFinPeriode(date);
+          }}
+          onNote={(bienId, date) => {
+            const nom = session.biens.find((b) => b.id === bienId)?.nom ?? "";
+            setNote({ date, bienNom: nom });
           }}
         />
       )}
+      <Dialog
+        open={Boolean(periode)}
+        onOpenChange={(o) => {
+          if (!o) setPeriode(null);
+        }}
+      >
+        <DialogContent className="max-w-md rounded-card border border-line bg-white p-5">
+          <DialogTitle className="text-sm font-medium text-ink">Période d'ouverture type bail</DialogTitle>
+          <DialogDescription className="text-xs text-ink-muted">
+            Fenêtre type bail : les jours sont marqués sur le calendrier et alignent les réservations.
+          </DialogDescription>
+          <label className="mt-3 block text-xs text-ink-muted">
+            Début
+            <input
+              type="date"
+              value={periode?.debut ?? ""}
+              onChange={(e) => setPeriode((p) => (p ? { ...p, debut: e.target.value } : p))}
+              className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm"
+            />
+          </label>
+          <label className="mt-3 block text-xs text-ink-muted">
+            Fin
+            <input
+              type="date"
+              value={finPeriode}
+              onChange={(e) => setFinPeriode(e.target.value)}
+              className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm"
+            />
+          </label>
+          <div className="mt-4 flex justify-end gap-2">
+            <button type="button" onClick={() => setPeriode(null)} className="h-9 rounded-card border border-line px-3 text-xs">
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!periode?.debut || !finPeriode) return;
+                poserOuverture(periode.bienId, periode.debut, finPeriode);
+                setPeriode(null);
+              }}
+              className="h-9 rounded-card bg-ink px-3 text-xs font-medium text-white"
+            >
+              Enregistrer
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <CreateEventDialog
+        ouvert={Boolean(note)}
+        onFermer={() => setNote(null)}
+        debutInitial={note?.date}
+        bienInitial={note?.bienNom}
+        onCreer={(e) => {
+          ajouterEvenement(e);
+          ajouterNotif({ titre: "Note calendrier", detail: e.titre, href: "/reservations" });
+          toastOk("Note enregistrée.");
+        }}
+      />
     </div>
   );
 }
@@ -359,13 +446,17 @@ function GrilleJours({
   datesBloquees,
   onSelect,
   onBloquer,
+  onOuverture,
+  onNote,
 }: {
   biens: BienMo1[];
   jours: Date[];
   reservations: ReservationMo1[];
-  datesBloquees: { id: string; bienId: string; date: string }[];
+  datesBloquees: { id: string; bienId: string; date: string; motif?: string }[];
   onSelect: (r: ReservationMo1) => void;
   onBloquer: (bienId: string, date: string) => void;
+  onOuverture: (bienId: string, date: string) => void;
+  onNote: (bienId: string, date: string) => void;
 }) {
   return (
     <ScrollHint snap>
@@ -404,6 +495,8 @@ function GrilleJours({
             bloquees={datesBloquees.filter((d) => d.bienId === bien.id)}
             onSelect={onSelect}
             onBloquer={onBloquer}
+            onOuverture={onOuverture}
+            onNote={onNote}
           />
         ))}
       </div>
@@ -419,13 +512,17 @@ function LigneBien({
   bloquees,
   onSelect,
   onBloquer,
+  onOuverture,
+  onNote,
 }: {
   bien: BienMo1;
   jours: Date[];
   sejours: ReservationMo1[];
-  bloquees: { id: string; date: string }[];
+  bloquees: { id: string; date: string; motif?: string }[];
   onSelect: (r: ReservationMo1) => void;
   onBloquer: (bienId: string, date: string) => void;
+  onOuverture: (bienId: string, date: string) => void;
+  onNote: (bienId: string, date: string) => void;
 }) {
   return (
     <div className="contents">
@@ -442,7 +539,9 @@ function LigneBien({
         {jours.map((d) => {
           const key = isoJour(d);
           const occupe = sejours.some((r) => reservationCouvre(r, key));
-          const bloquee = bloquees.some((b) => b.date === key);
+          const bloc = bloquees.find((b) => b.date === key);
+          const bloquee = Boolean(bloc);
+          const ouverture = bloc?.motif === "Ouverture" || bloc?.motif === "Ouverture BAIL";
           return (
             <div
               key={key}
@@ -450,7 +549,9 @@ function LigneBien({
                 "relative min-h-[59px] border-r border-surface-soft",
                 key === AUJOURD_HUI_MO1 && "bg-surface/50",
                 bloquee &&
-                  "bg-[repeating-linear-gradient(-45deg,var(--surface-soft),var(--surface-soft)_4px,var(--surface-elevated)_4px,var(--surface-elevated)_8px)]",
+                  (ouverture
+                    ? "bg-[color-mix(in_srgb,var(--accent-teal)_12%,white)]"
+                    : "bg-[repeating-linear-gradient(-45deg,var(--surface-soft),var(--surface-soft)_4px,var(--surface-elevated)_4px,var(--surface-elevated)_8px)]"),
               )}
             >
               {!occupe && !bloquee && (
@@ -459,6 +560,16 @@ function LigneBien({
                   date={key}
                   nomBien={bien.nom}
                   onBloquer={onBloquer}
+                  onOuverture={onOuverture}
+                  onNote={onNote}
+                />
+              )}
+              {occupe && (
+                <MenuCaseOccupee
+                  bienId={bien.id}
+                  date={key}
+                  onOuverture={onOuverture}
+                  onNote={onNote}
                 />
               )}
               {bloquee && !occupe && (
@@ -467,7 +578,7 @@ function LigneBien({
                   onClick={() => onBloquer(bien.id, key)}
                   className="flex h-full w-full items-center justify-center text-[10px] font-medium text-ink-muted"
                 >
-                  Bloqué
+                  {ouverture ? "Ouverture" : "Bloqué"}
                 </button>
               )}
             </div>
@@ -475,13 +586,8 @@ function LigneBien({
         })}
 
         {sejours.map((r) => {
-          const start = jours.findIndex((d) => reservationCouvre(r, isoJour(d)));
-          if (start < 0) return null;
-          let span = 0;
-          for (let i = start; i < jours.length; i++) {
-            if (!reservationCouvre(r, isoJour(jours[i]!))) break;
-            span += 1;
-          }
+          const barre = styleBarreResa(r, jours);
+          if (!barre) return null;
           const paiement = paiementDe(r);
           return (
             <button
@@ -490,8 +596,7 @@ function LigneBien({
               onClick={() => onSelect(r)}
               className="absolute top-1.5 z-[1] flex h-[47px] items-center gap-1.5 rounded-lg border-2 px-2.5"
               style={{
-                left: `calc(${(start / jours.length) * 100}% + 2px)`,
-                width: `calc(${(span / jours.length) * 100}% - 4px)`,
+                ...barre,
                 backgroundColor: r.couleur,
                 borderColor: paiement === "impaye" ? "var(--line-strong)" : "var(--ink-subtle)",
               }}
@@ -590,11 +695,15 @@ function ChoixCaseLibre({
   date,
   nomBien,
   onBloquer,
+  onOuverture,
+  onNote,
 }: {
   bienId: string;
   date: string;
   nomBien: string;
   onBloquer: (bienId: string, date: string) => void;
+  onOuverture: (bienId: string, date: string) => void;
+  onNote: (bienId: string, date: string) => void;
 }) {
   const [ouvert, setOuvert] = useState(false);
   return (
@@ -602,14 +711,14 @@ function ChoixCaseLibre({
       <button
         type="button"
         className="flex size-11 items-center justify-center rounded-full border border-line-strong text-ink-muted md:size-5"
-        aria-label={`Ajouter une réservation ou bloquer — ${nomBien}`}
+        aria-label={`Ajouter une réservation, une note ou une période — ${nomBien}`}
         aria-expanded={ouvert}
         onClick={() => setOuvert((v) => !v)}
       >
         <Plus className="size-2.5" />
       </button>
       {ouvert && (
-        <div className="absolute top-full z-20 mt-1 w-44 overflow-hidden rounded-card border border-line bg-white py-1 shadow-md">
+        <div className="absolute top-full z-20 mt-1 w-48 overflow-hidden rounded-card border border-line bg-white py-1 shadow-md">
           <Link
             to="/reservations/nouveau"
             search={{ bien: bienId, arrivee: date }}
@@ -621,12 +730,82 @@ function ChoixCaseLibre({
           <button
             type="button"
             onClick={() => {
+              onOuverture(bienId, date);
+              setOuvert(false);
+            }}
+            className="block w-full px-3 py-2 text-left text-xs text-ink hover:bg-surface"
+          >
+            Période d'ouverture
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onNote(bienId, date);
+              setOuvert(false);
+            }}
+            className="block w-full px-3 py-2 text-left text-xs text-ink hover:bg-surface"
+          >
+            Note / événement
+          </button>
+          <button
+            type="button"
+            onClick={() => {
               onBloquer(bienId, date);
               setOuvert(false);
             }}
             className="block w-full px-3 py-2 text-left text-xs text-ink hover:bg-surface"
           >
             Bloquer cette date
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MenuCaseOccupee({
+  bienId,
+  date,
+  onOuverture,
+  onNote,
+}: {
+  bienId: string;
+  date: string;
+  onOuverture: (bienId: string, date: string) => void;
+  onNote: (bienId: string, date: string) => void;
+}) {
+  const [ouvert, setOuvert] = useState(false);
+  return (
+    <div className="absolute bottom-0.5 right-0.5 z-[3]">
+      <button
+        type="button"
+        onClick={() => setOuvert((v) => !v)}
+        className="flex size-5 items-center justify-center rounded-full border border-line bg-white text-ink-muted"
+        aria-label="Ajouter une note ou une période d'ouverture"
+      >
+        <Plus className="size-2.5" />
+      </button>
+      {ouvert && (
+        <div className="absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-card border border-line bg-white py-1 shadow-md">
+          <button
+            type="button"
+            onClick={() => {
+              onNote(bienId, date);
+              setOuvert(false);
+            }}
+            className="block w-full px-3 py-2 text-left text-xs text-ink hover:bg-surface"
+          >
+            Note / événement
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onOuverture(bienId, date);
+              setOuvert(false);
+            }}
+            className="block w-full px-3 py-2 text-left text-xs text-ink hover:bg-surface"
+          >
+            Période d'ouverture
           </button>
         </div>
       )}

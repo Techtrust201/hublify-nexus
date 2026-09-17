@@ -15,6 +15,9 @@ export type OrgSession = {
   orgType: OrgType;
   roleId: RoleId;
   droits: readonly DroitId[];
+  email?: string;
+  prenom?: string;
+  nom?: string;
 };
 
 /**
@@ -138,6 +141,22 @@ const CHAMPS: Record<CollectionMetier, Champs> = {
     ["type_sejour", "type"],
     ["upsell_ids", "upsellIds"],
     ["services", "services"],
+    ["taxe_sejour", "taxeSejour"],
+    ["commission_pourcent", "commissionPourcent"],
+    ["commission_montant", "commissionMontant"],
+    ["caution", "caution"],
+    ["frais_menage", "fraisMenage"],
+    ["reduction_pourcent", "reductionPourcent"],
+    ["reduction_montant", "reductionMontant"],
+    ["frais_plateforme", "fraisPlateforme"],
+    ["montant_voyageur", "montantVoyageur"],
+    ["attribution_commission", "attributionCommission"],
+    ["precheckin_statut", "precheckinStatut"],
+    ["precheckin_identite", "precheckinIdentite"],
+    ["precheckin_nb_personnes", "precheckinNbPersonnes"],
+    ["precheckin_heure_arrivee", "precheckinHeureArrivee"],
+    ["precheckin_note", "precheckinNote"],
+    ["remboursements", "remboursements"],
   ],
   datesBloquees: [
     ["id", "id"],
@@ -245,6 +264,61 @@ const CHAMPS: Record<CollectionMetier, Champs> = {
     ["nom", "nom"],
     ["description", "description"],
   ],
+  rapportsIntervention: [
+    ["id", "id"],
+    ["mission_id", "missionId"],
+    ["texte", "texte"],
+    ["photos", "photos"],
+    ["auteur", "auteur"],
+    ["date_rapport", "date"],
+  ],
+  contactsCopro: [
+    ["id", "id"],
+    ["nom", "nom"],
+    ["copropriete", "copropriete"],
+    ["email", "email"],
+    ["telephone", "telephone"],
+    ["relance", "relance"],
+  ],
+  dossiersLocation: [
+    ["id", "id"],
+    ["occupant_id", "occupantId"],
+    ["occupant_nom", "occupantNom"],
+    ["email", "email"],
+    ["statut", "statut"],
+    ["pieces", "pieces"],
+    ["garants", "garants"],
+    ["duree_acces_mois", "dureeAccesMois"],
+    ["archive_le", "archiveLe"],
+    ["depart_declare", "departDeclare"],
+    ["depart_valide", "departValide"],
+    ["revenus", "revenus"],
+    ["rfr", "rfr"],
+    ["situation_professionnelle", "situationProfessionnelle"],
+    ["situation_familiale", "situationFamiliale"],
+    ["a_propos", "aPropos"],
+  ],
+  partagesDossier: [
+    ["id", "id"],
+    ["dossier_id", "dossierId"],
+    ["destinataire", "destinataire"],
+    ["autorise", "autorise"],
+    ["demande_le", "demandeLe"],
+    ["expire_le", "expireLe"],
+    ["lien_externe", "lienExterne"],
+    ["note_personnelle", "notePersonnelle"],
+    ["telephone", "telephone"],
+  ],
+  candidatures: [
+    ["id", "id"],
+    ["dossier_id", "dossierId"],
+    ["bien_id", "bienId"],
+    ["arrivee", "arrivee"],
+    ["depart", "depart"],
+    ["montant", "montant"],
+    ["statut", "statut"],
+    ["commission_incluse", "commissionIncluse"],
+  ],
 };
 
 type Ligne = Record<string, unknown>;
@@ -284,16 +358,32 @@ function valeursEtPlaceholders(champs: Champs, item: Ligne, decalage: number) {
     if (item[cle] === undefined) {
       place.push("default");
     } else {
-      params.push(item[cle]);
+      const brut = item[cle];
+      params.push(
+        brut !== null && typeof brut === "object" && !Array.isArray(brut)
+          ? JSON.stringify(brut)
+          : Array.isArray(brut) && brut.some((x) => x && typeof x === "object")
+            ? JSON.stringify(brut)
+            : brut,
+      );
       place.push(`$${decalage + params.length}`);
     }
   }
   return { colonnes, place, params };
 }
 
+const CLES_JSON = new Set(["remboursements", "pieces", "garants"]);
+
 function nettoyer<T extends Ligne>(ligne: T): T {
   for (const cle of Object.keys(ligne)) {
     if (ligne[cle] === null) delete ligne[cle];
+    else if (CLES_JSON.has(cle) && typeof ligne[cle] === "string") {
+      try {
+        ligne[cle as keyof T] = JSON.parse(String(ligne[cle])) as T[keyof T];
+      } catch {
+        ligne[cle as keyof T] = [] as T[keyof T];
+      }
+    }
   }
   return ligne;
 }
@@ -521,7 +611,7 @@ export async function lireParametrage(sql: Sql, orgId: string): Promise<Parametr
 export async function assemblerEtat(sql: Sql, org: OrgSession): Promise<EtatSession> {
   const etat: EtatSession = etatVide();
 
-  // Un prestataire ne voit que ses missions, ses notifications et ses actions.
+  // Un prestataire ne voit que ses missions, ses documents d'intervention et ses messages.
   if (org.orgType === "prestataire") {
     const missions = (await sql.query(
       `select ${selection("missions")} from public.missions
@@ -535,6 +625,42 @@ export async function assemblerEtat(sql: Sql, org: OrgSession): Promise<EtatSess
       org.orgId,
     )) as EtatSession["notifications"];
     etat.actions = (await listerCollection(sql, "actions", org.orgId)) as EtatSession["actions"];
+    etat.rapportsIntervention = (await listerCollection(
+      sql,
+      "rapportsIntervention",
+      org.orgId,
+    )) as EtatSession["rapportsIntervention"];
+    const bienIds = [...new Set(etat.missions.map((m) => m.bienId))];
+    const liens = (await sql.query(
+      `select org_gestionnaire_id as id from public.liens_org
+        where org_prestataire_id = $1::uuid limit 1`,
+      [org.orgId],
+    )) as { id: string }[];
+    const gestId = liens[0]?.id;
+    if (gestId) {
+      if (bienIds.length > 0) {
+        const biens = (await sql.query(
+          `select ${selection("biens")} from public.biens
+            where org_id = $1::uuid and id = any($2::text[]) order by id`,
+          [gestId, bienIds],
+        )) as Ligne[];
+        etat.biens = biens.map((b) => nettoyer(b)) as EtatSession["biens"];
+      }
+      const missionIds = new Set(etat.missions.map((m) => m.id));
+      const rapports = (await listerCollection(
+        sql,
+        "rapportsIntervention",
+        gestId,
+      )) as EtatSession["rapportsIntervention"];
+      etat.rapportsIntervention = rapports.filter((r) => missionIds.has(r.missionId));
+      const conv = (await listerCollection(sql, "conversations", gestId)) as EtatSession["conversations"];
+      etat.conversations = conv.filter((c) => c.type === "prestataire");
+      const convIds = new Set(etat.conversations.map((c) => c.id));
+      const fils = (await listerCollection(sql, "messagesFil", gestId)) as EtatSession["messagesFil"];
+      etat.messagesFil = fils.filter((m) => convIds.has(m.conversationId));
+      const docs = (await listerCollection(sql, "documents", gestId)) as EtatSession["documents"];
+      etat.documents = docs.filter((d) => d.vue === "inventaire-presta");
+    }
     etat.parametrage = await lireParametrage(sql, org.orgId);
     return etat;
   }
@@ -543,6 +669,104 @@ export async function assemblerEtat(sql: Sql, org: OrgSession): Promise<EtatSess
     (etat[cle] as unknown[]) = await listerCollection(sql, cle, org.orgId);
   }
   etat.parametrage = await lireParametrage(sql, org.orgId);
+  return filtrerEtatPortail(etat, org);
+}
+
+function nomComplet(org: OrgSession) {
+  return `${org.prenom ?? ""} ${org.nom ?? ""}`.trim().toLowerCase();
+}
+
+function filtrerEtatPortail(etat: EtatSession, org: OrgSession): EtatSession {
+  const email = (org.email ?? "").trim().toLowerCase();
+  const nom = nomComplet(org);
+  if (!email && !nom) return etat;
+
+  if (org.roleId === "locataire") {
+    const occupants = etat.occupants.filter(
+      (o) => o.email.toLowerCase() === email || o.nom.toLowerCase() === nom,
+    );
+    const noms = new Set(occupants.map((o) => o.nom.toLowerCase()));
+    const logements = new Set(occupants.map((o) => o.logement.toLowerCase()));
+    const biens = etat.biens.filter((b) => logements.has((b.nom ?? "").toLowerCase()));
+    const bienIds = new Set(biens.map((b) => b.id));
+    const resas = etat.reservationsDossier.filter(
+      (r) => noms.has(r.occupant.toLowerCase()) || r.email.toLowerCase() === email,
+    );
+    const dossiers = etat.dossiersLocation.filter(
+      (d) => d.email.toLowerCase() === email || noms.has(d.occupantNom.toLowerCase()),
+    );
+    const dossierIds = new Set(dossiers.map((d) => d.id));
+    const conversations = etat.conversations.filter((c) => noms.has(c.nom.toLowerCase()));
+    const convIds = new Set(conversations.map((c) => c.id));
+    return {
+      ...etat,
+      occupants,
+      biens,
+      reservationsDossier: resas,
+      reservationsCalendrier: etat.reservationsCalendrier.filter((r) => bienIds.has(r.bienId)),
+      documents: etat.documents.filter(
+        (d) =>
+          logements.has(d.logement.toLowerCase()) ||
+          biens.some((b) => d.logement.toLowerCase().includes(b.nom.toLowerCase())),
+      ),
+      loyers: etat.loyers.filter((l) => noms.has(l.locataire.toLowerCase())),
+      conversations,
+      messagesFil: etat.messagesFil.filter((m) => convIds.has(m.conversationId)),
+      dossiersLocation: dossiers,
+      partagesDossier: etat.partagesDossier.filter((p) => dossierIds.has(p.dossierId)),
+      candidatures: etat.candidatures.filter((c) => dossierIds.has(c.dossierId)),
+      missions: [],
+    };
+  }
+
+  if (org.roleId === "voyageur") {
+    const resas = etat.reservationsDossier.filter(
+      (r) => r.email.toLowerCase() === email || r.occupant.toLowerCase() === nom,
+    );
+    const bienIds = new Set(resas.map((r) => r.bienId));
+    const biens = etat.biens.filter((b) => bienIds.has(b.id));
+    const noms = new Set(resas.map((r) => r.occupant.toLowerCase()));
+    const conversations = etat.conversations.filter((c) => noms.has(c.nom.toLowerCase()));
+    const convIds = new Set(conversations.map((c) => c.id));
+    return {
+      ...etat,
+      reservationsDossier: resas,
+      reservationsCalendrier: etat.reservationsCalendrier.filter((r) => bienIds.has(r.bienId)),
+      biens,
+      occupants: etat.occupants.filter(
+        (o) => o.email.toLowerCase() === email || noms.has(o.nom.toLowerCase()),
+      ),
+      documents: etat.documents.filter((d) =>
+        biens.some((b) => d.logement.toLowerCase().includes(b.nom.toLowerCase())),
+      ),
+      conversations,
+      messagesFil: etat.messagesFil.filter((m) => convIds.has(m.conversationId)),
+      missions: [],
+    };
+  }
+
+  if (org.roleId === "proprietaire") {
+    const biens = etat.biens.filter((b) => (b.proprietaire ?? "").toLowerCase() === nom);
+    const immeubles = etat.immeubles.filter((i) => i.proprietaire.toLowerCase() === nom);
+    const bienIds = new Set(biens.map((b) => b.id));
+    const nomsBiens = new Set(biens.map((b) => b.nom.toLowerCase()));
+    const conversations = etat.conversations.filter((c) => c.type === "team" || c.nom.toLowerCase() === nom);
+    const convIds = new Set(conversations.map((c) => c.id));
+    return {
+      ...etat,
+      biens,
+      immeubles,
+      reservationsDossier: etat.reservationsDossier.filter((r) => bienIds.has(r.bienId)),
+      loyers: etat.loyers.filter((l) => nomsBiens.has(l.bienNom.toLowerCase())),
+      documents: etat.documents.filter(
+        (d) => d.vue === "proprio" || nomsBiens.has(d.logement.toLowerCase()),
+      ),
+      conversations,
+      messagesFil: etat.messagesFil.filter((m) => convIds.has(m.conversationId)),
+      missions: [],
+    };
+  }
+
   return etat;
 }
 
@@ -706,6 +930,28 @@ async function ecrireImbriques(sql: Sql, orgId: string, collection: CollectionMe
   }
 }
 
+export async function orgCibleEcriture(
+  sql: Sql,
+  org: OrgSession,
+  collection: CollectionMetier,
+): Promise<string> {
+  if (
+    org.orgType === "prestataire" &&
+    (collection === "rapportsIntervention" ||
+      collection === "messagesFil" ||
+      collection === "conversations" ||
+      collection === "documents")
+  ) {
+    const liens = (await sql.query(
+      `select org_gestionnaire_id as id from public.liens_org
+        where org_prestataire_id = $1::uuid limit 1`,
+      [org.orgId],
+    )) as { id: string }[];
+    return liens[0]?.id ?? org.orgId;
+  }
+  return org.orgId;
+}
+
 export async function upsertLigne(
   sql: Sql,
   orgId: string,
@@ -808,7 +1054,9 @@ export async function majLigneVisible(
     if (cle === "id" || valeur === undefined) continue;
     const col = colonneDe(collection, cle);
     if (!col) continue;
-    params.push(valeur);
+    params.push(
+      valeur !== null && typeof valeur === "object" ? JSON.stringify(valeur) : valeur,
+    );
     affectations.push(`"${col}" = $${params.length}`);
   }
 

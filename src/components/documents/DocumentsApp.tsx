@@ -44,6 +44,7 @@ import {
   GenerateQuittanceDialog,
   PhotosPreuvesDialog,
 } from "./Dialogs";
+import { VueSyndic } from "@/components/documents/VueSyndic";
 import { BadgeType, BtnNavy, BtnOutline, Chip } from "./ui";
 
 const FILTRES_LOGEMENT = [
@@ -56,6 +57,8 @@ const FILTRES_LOGEMENT = [
   "Fiches intervention",
   "Syndic / Copro",
   "Fiches accès",
+  "Correspondances",
+  "Courrier libre",
 ];
 
 const FILTRES_LOCATAIRES = [
@@ -118,7 +121,19 @@ export function DocumentsApp({
     else if (vue === "fiches") list = list.filter((d) => d.filtre === "Fiches accès");
     else list = list.filter((d) => d.vue === vue);
     if (vue === "residents") list = list.filter((d) => d.occupant === onglet);
-    if (typeFiltre !== "Tous") list = list.filter((d) => d.filtre === typeFiltre);
+    if (vue === "logements") list = list.filter((d) => !/bail/i.test(d.type) && !/bail/i.test(d.filtre));
+    if (typeFiltre !== "Tous") {
+      list = list.filter((d) => {
+        if (d.filtre === typeFiltre) return true;
+        if (typeFiltre === "Correspondances") {
+          return /correspondance|courrier/i.test(d.titre) || /correspondance|courrier/i.test(d.type);
+        }
+        if (typeFiltre === "Courrier libre") {
+          return /courrier libre|courrier/i.test(d.filtre) || /courrier/i.test(d.titre);
+        }
+        return false;
+      });
+    }
     if (logementFiltre !== "Tous") list = list.filter((d) => d.logement === logementFiltre);
     const q = recherche.trim().toLowerCase();
     if (q) {
@@ -142,8 +157,6 @@ export function DocumentsApp({
 
   const importerDoc = () => {
     choisirFichierComplet((fichier) => {
-      const vueCible: DocMo1["vue"] =
-        vue === "residents" || vue === "proprio" || vue === "logements" ? vue : "logements";
       const filtre =
         vue === "etats"
           ? "États des lieux"
@@ -152,11 +165,17 @@ export function DocumentsApp({
             : typeFiltre !== "Tous"
               ? typeFiltre
               : "Bail";
+      const estBail = /bail/i.test(fichier.nom) || (typeFiltre !== "Tous" && /bail/i.test(typeFiltre));
+      const vueCible: DocMo1["vue"] = estBail
+        ? "residents"
+        : vue === "residents" || vue === "proprio" || vue === "logements" || vue === "syndic"
+          ? vue
+          : "logements";
       const ligne: DocMo1 = {
         id: `imp-${Date.now()}`,
         titre: fichier.nom,
-        type: "Import",
-        filtre,
+        type: estBail ? "Bail" : "Import",
+        filtre: estBail ? "Bail" : filtre,
         logement: logementFiltre === "Tous" ? "—" : logementFiltre,
         date: new Date().toLocaleDateString("fr-FR"),
         taille: fichier.taille,
@@ -164,11 +183,15 @@ export function DocumentsApp({
         photos: 0,
         vue: vueCible,
         fichier: { nom: fichier.nom, mime: fichier.mime, base64: fichier.base64 },
-        ...(vue === "residents" ? { occupant: onglet } : {}),
+        ...(vueCible === "residents" ? { occupant: vue === "residents" ? onglet : "locataires" } : {}),
       };
       ajouterDocument(ligne);
-      toastOk(`Document ajouté : ${fichier.nom}`);
-      if (vue === "hub") aller("logements");
+      toastOk(
+        estBail
+          ? `Bail enregistré une seule fois, côté locataire : ${fichier.nom}`
+          : `Document ajouté : ${fichier.nom}`,
+      );
+      if (vue === "hub") aller(estBail ? "residents" : "logements");
     });
   };
 
@@ -462,6 +485,8 @@ export function DocumentsApp({
         </section>
       )}
 
+      {vue === "syndic" && <VueSyndic docs={docsFiltres} onRetour={() => aller("hub")} onImporter={importerDoc} />}
+
       <GenerateQuittanceDialog
         ouvert={quittance}
         onClose={() => setQuittance(false)}
@@ -509,6 +534,7 @@ function FilAriane({ vue, onHub }: { vue: VueDocuments; onHub: () => void }) {
     etats: "États des lieux",
     fiches: "Fiches d'accès",
     factures: "Factures et comptabilité",
+    syndic: "Syndic / copropriété",
   };
   return (
     <p className="mb-4 flex items-center gap-2 text-xs text-ink-muted">
@@ -573,14 +599,14 @@ function Hub({
   }> = [
     {
       titre: "Documents Logements",
-      desc: "Bail, factures, quittances…",
-      n: nb((d) => d.vue === "logements"),
+      desc: "Factures, diagnostics, quittances — le bail est côté locataire",
+      n: nb((d) => d.vue === "logements" && !/bail/i.test(d.type) && !/bail/i.test(d.filtre)),
       icone: Home,
       vue: "logements",
     },
     {
       titre: "Résidents & Prestataires",
-      desc: "Dossiers locataires, voyageurs, contrats et factures prestataires",
+      desc: "Baux (une seule fois), dossiers locataires, voyageurs et prestataires",
       n: nb((d) => d.vue === "residents"),
       icone: Users,
       vue: "residents",
@@ -620,6 +646,13 @@ function Hub({
       n: nb((d) => d.vue === "inventaire-presta"),
       icone: Camera,
       vue: "inventaire-presta",
+    },
+    {
+      titre: "Syndic / copropriété",
+      desc: "Règlements, appels de fonds, contacts copropriété",
+      n: nb((d) => d.vue === "syndic"),
+      icone: Home,
+      vue: "syndic",
     },
   ];
   const cartesVisibles = q
@@ -714,7 +747,16 @@ function Hub({
         {cartesVisibles.map((c) => (
           <article
             key={c.titre}
-            className="flex flex-col rounded-2xl border border-line bg-white p-5"
+            className="flex cursor-pointer flex-col rounded-2xl border border-line bg-white p-5 text-left hover:border-line-strong"
+            onClick={() => onOuvrirCarte(c)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onOuvrirCarte(c);
+              }
+            }}
+            role="button"
+            tabIndex={0}
           >
             <div className="flex items-start justify-between">
               <span className="flex size-10 items-center justify-center rounded-[14px] bg-surface-soft">
@@ -728,17 +770,16 @@ function Hub({
             <h2 className="mt-4 text-sm font-medium text-ink">{c.titre}</h2>
             <p className="mt-1 text-xs text-ink-subtle">{c.desc}</p>
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => onOuvrirCarte(c)}
-                className="inline-flex min-h-11 items-center gap-1 text-xs text-ink-body md:min-h-0"
-              >
+              <span className="inline-flex min-h-11 items-center gap-1 text-xs text-ink-body md:min-h-0">
                 Accéder <ArrowRight className="size-2.5" />
-              </button>
+              </span>
               {c.href && c.vue && (
                 <button
                   type="button"
-                  onClick={() => onAcceder(c.vue!)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAcceder(c.vue!);
+                  }}
                   className="inline-flex min-h-11 items-center text-xs text-ink-muted hover:text-ink-body md:min-h-0"
                 >
                   Liste documents

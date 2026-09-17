@@ -22,6 +22,11 @@ import {
 import { PRESTATAIRES } from "@/data/mock";
 import { PARAMETRAGE_DEFAUT } from "@/data/parametrage-mo1";
 import {
+  PIECES_DOSSIER_DEFAUT,
+  type ContactCopro,
+  type DossierLocation,
+} from "@/data/v1-metier";
+import {
   BIENS_MO1 as BIENS_PLANNING,
   ENSEMBLES_MO1,
   EVENEMENTS_MO1,
@@ -102,6 +107,38 @@ export function biensCanon(): BienSession[] {
   });
 }
 
+const CONTACTS_COPRO: ContactCopro[] = [
+  {
+    id: "copro-1",
+    nom: "Cabinet Martin Syndic",
+    copropriete: "Résidence Centrale",
+    email: "syndic@centrale.fr",
+    telephone: "04 72 00 00 00",
+    relance: "Appel de fonds T2 — à relancer le 15/04",
+  },
+];
+
+const DOSSIER_JEAN: DossierLocation = {
+  id: "dos-jean",
+  occupantId: "o3",
+  occupantNom: "Jean Martin",
+  email: "jean.martin@hublify.app",
+  statut: "complet",
+  pieces: PIECES_DOSSIER_DEFAUT.map((p) => ({ ...p, present: true })),
+  garants: [
+    {
+      id: "g-visale",
+      type: "institutionnel",
+      nom: "Visale",
+      email: "contact@visale.fr",
+      telephone: "09 69 32 50 50",
+      organisme: "Action Logement",
+      numeroDossier: "VIS-2026-441",
+    },
+  ],
+  dureeAccesMois: 24,
+};
+
 /** Parc Redris — uniquement pour le seed de l'org démo, jamais pour un nouvel adhérent. */
 export function etatCanon(): EtatSession {
   return {
@@ -133,6 +170,11 @@ export function etatCanon(): EtatSession {
     inventaire: ITEMS_INVENTAIRE,
     edl: DOSSIERS_EDL,
     droitsPersonnalises: [DROIT_PERSONNALISE_INITIAL],
+    rapportsIntervention: [],
+    contactsCopro: CONTACTS_COPRO,
+    dossiersLocation: [DOSSIER_JEAN],
+    partagesDossier: [],
+    candidatures: [],
     parametrage: PARAMETRAGE_DEFAUT,
   };
 }

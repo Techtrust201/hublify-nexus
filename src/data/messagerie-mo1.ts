@@ -56,7 +56,14 @@ export type MessageFil = {
 export type StatutMembre = "actif" | "externe" | "attente";
 
 export type RoleMembre =
-  "Super-administrateur" | "Administrateur" | "Gestionnaire" | "Prestataire" | "Lecture";
+  | "Super-administrateur"
+  | "Administrateur"
+  | "Gestionnaire"
+  | "Prestataire"
+  | "Locataire"
+  | "Voyageur"
+  | "Propriétaire"
+  | "Lecture";
 
 export type MembreEquipe = {
   id: string;
@@ -116,6 +123,32 @@ export const CONVERSATIONS_MO1: Conversation[] = [
     bienNom: "Suzette",
     extrait: "Pouvez-vous m'envoyer le règlement intérieur ?",
     ilYa: "Il y a 1j",
+    nonLu: false,
+    archivee: false,
+  },
+  {
+    id: "c-jean-martin",
+    section: "inbox",
+    nom: "Jean Martin",
+    initiales: "JM",
+    type: "locataire",
+    badge: "Locataire",
+    bienNom: "Appartement Colette",
+    extrait: "Pouvez-vous me confirmer le montant des charges ?",
+    ilYa: "Il y a 2h",
+    nonLu: false,
+    archivee: false,
+  },
+  {
+    id: "c-sophie-martin",
+    section: "inbox",
+    nom: "Sophie Martin",
+    initiales: "SM",
+    type: "voyageur",
+    badge: "Voyageur",
+    bienNom: "Suzette",
+    extrait: "Le pré-checkin est envoyé, merci.",
+    ilYa: "Il y a 3h",
     nonLu: false,
     archivee: false,
   },
@@ -213,6 +246,27 @@ export const CONVERSATIONS_MO1: Conversation[] = [
 ];
 
 export const MESSAGES_MO1: MessageFil[] = [
+  {
+    id: "m-jm-1",
+    conversationId: "c-jean-martin",
+    kind: "recu",
+    heure: "09h10",
+    texte: "Bonjour, pouvez-vous me confirmer le montant des charges de mars ?",
+  },
+  {
+    id: "m-jm-2",
+    conversationId: "c-jean-martin",
+    kind: "envoye",
+    heure: "09h40",
+    texte: "Les charges de mars s'élèvent à 50 €, incluses dans l'échéance. La quittance est dans Documents.",
+  },
+  {
+    id: "m-sm-1",
+    conversationId: "c-sophie-martin",
+    kind: "recu",
+    heure: "16h05",
+    texte: "Le pré-checkin est envoyé, merci. Nous arriverons vers 16h.",
+  },
   {
     id: "m-bg-1",
     conversationId: "c-brian",

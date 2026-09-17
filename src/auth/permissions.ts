@@ -128,6 +128,21 @@ export const ROLES = [
     description: "Missions, documents d'intervention et messagerie",
   },
   {
+    id: "locataire",
+    label: "Locataire",
+    description: "Espace résident : logement, bail, quittances et messages",
+  },
+  {
+    id: "voyageur",
+    label: "Voyageur",
+    description: "Espace voyageur : séjours, pré-checkin et documents d'accès",
+  },
+  {
+    id: "proprietaire",
+    label: "Propriétaire",
+    description: "Espace propriétaire : biens, loyers, documents et messages",
+  },
+  {
     id: "lecteur",
     label: "Lecture",
     description: "Consultation seule, sans modification",
@@ -144,6 +159,9 @@ export const DROITS_PAR_ROLE: Record<RoleId, readonly DroitId[]> = {
   administrateur: TOUS,
   gestionnaire: TOUS.filter((id) => id !== "gerer-equipe"),
   prestataire: ["voir-calendrier", "voir-documents", "messagerie", "mod-missions"],
+  locataire: ["voir-reservations", "voir-documents", "messagerie"],
+  voyageur: ["voir-reservations", "voir-documents", "messagerie"],
+  proprietaire: ["voir-biens", "voir-finances", "voir-documents", "messagerie"],
   lecteur: ["voir-reservations", "voir-biens", "voir-documents", "voir-calendrier"],
 };
 
@@ -165,7 +183,19 @@ export function droitsEffectifs(roleId: RoleId, personnalises?: readonly string[
   return [...DROITS_PAR_ROLE[roleId]];
 }
 
-export const ROLES_EQUIPE = ROLES.filter((r) => r.id !== "prestataire" && r.id !== "super-admin");
+export const ROLES_PORTAIL: RoleId[] = ["prestataire", "locataire", "voyageur", "proprietaire"];
+
+export function estRolePortail(roleId: RoleId) {
+  return ROLES_PORTAIL.includes(roleId);
+}
+
+export function accueilPourRole(roleId: RoleId) {
+  return estRolePortail(roleId) ? "/espace" : "/";
+}
+
+export const ROLES_EQUIPE = ROLES.filter(
+  (r) => r.id !== "prestataire" && r.id !== "super-admin" && !estRolePortail(r.id),
+);
 
 export function droitRequisPourChemin(pathname: string): DroitId | undefined {
   const regles: Array<{ prefixe: string; droit: DroitId }> = [
@@ -173,20 +203,23 @@ export function droitRequisPourChemin(pathname: string): DroitId | undefined {
     { prefixe: "/tarifs", droit: "voir-finances" },
     { prefixe: "/reservations/nouveau", droit: "mod-reservations" },
     { prefixe: "/outils/debuter", droit: "mod-reservations" },
-    { prefixe: "/parametrage", droit: "mod-reservations" },
+    { prefixe: "/parametrage", droit: "mod-biens" },
     { prefixe: "/prestataires/nouveau", droit: "mod-biens" },
     { prefixe: "/analyse", droit: "voir-finances" },
     { prefixe: "/messagerie", droit: "messagerie" },
     { prefixe: "/documents", droit: "voir-documents" },
-    { prefixe: "/outils/etats-des-lieux", droit: "voir-documents" },
+    { prefixe: "/outils/baux", droit: "voir-documents" },
     { prefixe: "/outils/modeles", droit: "voir-documents" },
+    { prefixe: "/outils/etats-des-lieux", droit: "voir-documents" },
     { prefixe: "/outils/vue-annuelle", droit: "voir-calendrier" },
     { prefixe: "/missions", droit: "voir-calendrier" },
     { prefixe: "/reservations", droit: "voir-reservations" },
     { prefixe: "/occupants", droit: "voir-reservations" },
+    { prefixe: "/dossiers", droit: "voir-reservations" },
     { prefixe: "/patrimoines", droit: "voir-biens" },
     { prefixe: "/prestataires", droit: "voir-biens" },
     { prefixe: "/inventaire", droit: "voir-biens" },
+    { prefixe: "/espace", droit: "messagerie" },
   ];
   return [...regles]
     .sort((a, b) => b.prefixe.length - a.prefixe.length)

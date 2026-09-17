@@ -155,17 +155,23 @@ function PageDebuter() {
         <ol className="mb-6 flex flex-wrap gap-2">
           {ETAPES.map((e) => (
             <li key={e.n} className="flex min-w-0 flex-1 basis-full items-center gap-2 sm:basis-0">
-              <span
-                className={cn(
-                  "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-medium",
-                  etape >= e.n ? "bg-ink text-white" : "bg-surface-soft text-ink-muted",
-                )}
+              <button
+                type="button"
+                onClick={() => setEtape(e.n)}
+                className="flex min-w-0 flex-1 items-center gap-2 text-left"
               >
-                {etape > e.n ? <Check className="size-3.5" /> : e.n}
-              </span>
-              <span className={cn("min-w-0 text-xs", etape >= e.n ? "text-ink" : "text-ink-muted")}>
-                {e.titre}
-              </span>
+                <span
+                  className={cn(
+                    "flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-medium",
+                    etape >= e.n ? "bg-ink text-white" : "bg-surface-soft text-ink-muted",
+                  )}
+                >
+                  {etape > e.n ? <Check className="size-3.5" /> : e.n}
+                </span>
+                <span className={cn("min-w-0 text-xs", etape >= e.n ? "text-ink" : "text-ink-muted")}>
+                  {e.titre}
+                </span>
+              </button>
               {e.n < 3 && (
                 <ChevronRight className="ml-auto hidden size-3.5 shrink-0 text-line-strong sm:block" />
               )}

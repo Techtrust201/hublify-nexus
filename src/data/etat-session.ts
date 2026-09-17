@@ -23,6 +23,13 @@ import type { DocMo1, ItemInventaire, ModeleDoc } from "@/data/documents-mo1";
 import type { DossierEdl } from "@/data/edl-mo1";
 import type { Prestataire } from "@/data/types";
 import { PARAMETRAGE_DEFAUT, type ParametrageSession } from "@/data/parametrage-mo1";
+import type {
+  CandidatureLocation,
+  ContactCopro,
+  DossierLocation,
+  PartageDossier,
+  RapportIntervention,
+} from "@/data/v1-metier";
 
 export type NotifMo1 = {
   id: string;
@@ -82,6 +89,11 @@ export type EtatSession = {
   inventaire: ItemInventaire[];
   edl: DossierEdl[];
   droitsPersonnalises: DroitPersonnalise[];
+  rapportsIntervention: RapportIntervention[];
+  contactsCopro: ContactCopro[];
+  dossiersLocation: DossierLocation[];
+  partagesDossier: PartageDossier[];
+  candidatures: CandidatureLocation[];
   parametrage: ParametrageSession;
 };
 
@@ -112,6 +124,11 @@ export const COLLECTIONS_METIER = [
   "inventaire",
   "edl",
   "droitsPersonnalises",
+  "rapportsIntervention",
+  "contactsCopro",
+  "dossiersLocation",
+  "partagesDossier",
+  "candidatures",
 ] as const;
 
 export type CollectionMetier = (typeof COLLECTIONS_METIER)[number];
@@ -140,6 +157,11 @@ export const TABLE_COLLECTION: Record<CollectionMetier, string> = {
   inventaire: "inventaire_items",
   edl: "edl_dossiers",
   droitsPersonnalises: "droits_personnalises",
+  rapportsIntervention: "rapports_intervention",
+  contactsCopro: "contacts_copro",
+  dossiersLocation: "dossiers_location",
+  partagesDossier: "partages_dossier",
+  candidatures: "candidatures_location",
 };
 
 export function etatVide(): EtatSession {
@@ -168,6 +190,11 @@ export function etatVide(): EtatSession {
     inventaire: [],
     edl: [],
     droitsPersonnalises: [],
+    rapportsIntervention: [],
+    contactsCopro: [],
+    dossiersLocation: [],
+    partagesDossier: [],
+    candidatures: [],
     parametrage: PARAMETRAGE_DEFAUT,
   };
 }

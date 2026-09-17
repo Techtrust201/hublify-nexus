@@ -1,33 +1,55 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, ChevronUp, Home, LogIn, LogOut, X } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Circle,
+  Eye,
+  Home,
+  LogIn,
+  LogOut,
+  X,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useDroit } from "@/auth/auth-context";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { DialoguePrecheckin } from "@/components/reservations/DialoguePrecheckin";
 import {
   formatDateLongue,
   formatMontant,
   nuitsEntre,
   pourcentagePaiement,
 } from "@/data/reservations-mo1";
-import { annulerReservation, modifierReservation, useSession } from "@/data/session";
+import { detailMontantsReservation, paiementViaPlateforme } from "@/data/v1-metier";
+import {
+  annulerReservation,
+  idNouveau,
+  modifierReservation,
+  useSession,
+} from "@/data/session";
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { telechargerFactureReservation } from "@/lib/exports-docs";
 import { cn, useSessionBool } from "@/lib/utils";
 
-export function PanneauEnDetails() {
+export function PanneauEnDetails({ reservationId }: { reservationId?: string | null }) {
   const session = useSession();
   const peutMod = useDroit("mod-reservations");
   const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.en-details", true);
-  const [selId, setSelId] = useState<string | null>(null);
   const [confirmer, setConfirmer] = useState(false);
   const [ajouterUpsell, setAjouterUpsell] = useState(false);
   const [saisiePaye, setSaisiePaye] = useState("");
+  const [voirPrecheckin, setVoirPrecheckin] = useState(false);
+  const [rembourse, setRembourse] = useState(false);
+  const [rembMotif, setRembMotif] = useState("");
+  const [rembMontant, setRembMontant] = useState("");
+  const [rembNote, setRembNote] = useState("");
 
   const actives = useMemo(
     () => session.reservationsDossier.filter((r) => r.statut !== "Annulé"),
     [session.reservationsDossier],
   );
-  const reservation = actives.find((r) => r.id === selId) ?? actives[0];
+  const reservation =
+    actives.find((r) => r.id === reservationId) ?? (reservationId ? undefined : actives[0]);
 
   const catalogue = session.parametrage.upsells.filter((u) => u.actif);
   const upsellsChoisis = reservation?.upsellIds ?? [];
@@ -55,6 +77,21 @@ export function PanneauEnDetails() {
     reservation.services
       ?.filter((s) => !s.startsWith("Occupant 2 :") && !/ animaux?$/.test(s))
       .join(" · ") || session.parametrage.consignesArrivee;
+  const precheckinFait = reservation.precheckinStatut === "fait";
+  const viaPlateforme = paiementViaPlateforme(reservation.plateforme);
+  const detail = detailMontantsReservation({
+    montant: reservation.montant,
+    paye: reservation.paye,
+    taxeSejour: reservation.taxeSejour,
+    commissionMontant: reservation.commissionMontant,
+    caution: reservation.caution,
+    fraisMenage: reservation.fraisMenage,
+    reductionPourcent: reservation.reductionPourcent,
+    reductionMontant: reservation.reductionMontant,
+    fraisPlateforme: reservation.fraisPlateforme,
+    montantVoyageur: reservation.montantVoyageur,
+    upsellsMontant,
+  });
 
   return (
     <section className="mt-4 overflow-hidden rounded-card border border-line bg-white">
@@ -75,22 +112,6 @@ export function PanneauEnDetails() {
       </button>
       {ouvert && (
         <div className="p-4">
-          {actives.length > 1 && (
-            <label className="mb-3 block text-xs text-ink-muted">
-              Réservation
-              <select
-                value={reservation.id}
-                onChange={(e) => setSelId(e.target.value)}
-                className="mt-1 h-9 w-full rounded-card border border-line bg-white px-2 text-sm text-ink outline-none"
-              >
-                {actives.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.occupant} — {session.biens.find((b) => b.id === r.bienId)?.nom}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
           <header className="flex flex-wrap items-center gap-3 border-b border-surface-soft pb-3">
             <span className="flex size-8 items-center justify-center rounded-full border border-line bg-surface-soft text-xs text-ink-body">
               {reservation.initiales}
@@ -106,6 +127,20 @@ export function PanneauEnDetails() {
               {reservation.plateforme}
             </span>
             <p className="text-[10px] text-ink">N° de réservation : #{reservation.id.slice(-6)}</p>
+            <button
+              type="button"
+              onClick={() => setVoirPrecheckin(true)}
+              className="inline-flex h-11 items-center gap-1 rounded-card border border-line px-2 text-[11px] font-medium text-ink-body md:h-[30px]"
+              aria-label={`Pré-checkin ${precheckinFait ? "fait" : "pas fait"}, voir`}
+            >
+              {precheckinFait ? (
+                <CheckCircle2 className="size-3.5 text-accent-teal" />
+              ) : (
+                <Circle className="size-3.5 text-ink-muted" />
+              )}
+              <Eye className="size-3.5" />
+              {precheckinFait ? "Fait" : "Pas fait"}
+            </button>
             {peutMod && (
               <button
                 type="button"
@@ -162,6 +197,62 @@ export function PanneauEnDetails() {
                 Détails {pct}%
               </span>
             </div>
+            <dl className="mt-2 grid gap-1 text-xs text-ink-body sm:grid-cols-2">
+              <div className="flex justify-between gap-2">
+                <dt>Loyer / séjour</dt>
+                <dd>{formatMontant(detail.loyer)}</dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt>Caution</dt>
+                <dd>{formatMontant(detail.caution)}</dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt>Ménage</dt>
+                <dd>{formatMontant(detail.menage)}</dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt>Taxes OTA / séjour</dt>
+                <dd>{formatMontant(detail.taxe)}</dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt>Réduction</dt>
+                <dd>
+                  −{formatMontant(detail.reduction)}
+                  {reservation.reductionPourcent ? ` (${reservation.reductionPourcent} %)` : ""}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt>Frais plateforme</dt>
+                <dd>{formatMontant(detail.frais)}</dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt>Commission gestion</dt>
+                <dd>
+                  {formatMontant(detail.comm)}
+                  {reservation.commissionPourcent ? ` (${reservation.commissionPourcent} %)` : ""}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt>Upsells</dt>
+                <dd>{formatMontant(detail.upsells)}</dd>
+              </div>
+              <div className="flex justify-between gap-2 font-medium text-ink">
+                <dt>Payé voyageur</dt>
+                <dd>{formatMontant(detail.voyageur)}</dd>
+              </div>
+              <div className="flex justify-between gap-2 font-medium text-ink">
+                <dt>Net perçu</dt>
+                <dd>{formatMontant(detail.net)}</dd>
+              </div>
+            </dl>
+            <p className="mt-2 text-[11px] uppercase tracking-wide text-ink-muted">
+              Vérifier attribution
+              {reservation.attributionCommission
+                ? ` · ${reservation.attributionCommission}`
+                : viaPlateforme
+                  ? " · commission plateforme à ventiler"
+                  : " · encaissement direct"}
+            </p>
             <div className="mt-2 grid gap-2 md:grid-cols-2">
               <BarrePaiement
                 label={`Payé : ${formatMontant(reservation.paye)}`}
@@ -220,6 +311,13 @@ export function PanneauEnDetails() {
                       Marquer soldé
                     </button>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setRembourse(true)}
+                    className="inline-flex h-11 items-center rounded-card border border-line px-3 text-xs font-medium text-ink-body md:h-9"
+                  >
+                    Remboursement
+                  </button>
                 </div>
               </div>
             )}
@@ -315,7 +413,6 @@ export function PanneauEnDetails() {
               type="button"
               onClick={() => {
                 annulerReservation(reservation.id);
-                setSelId(null);
                 setConfirmer(false);
                 toastOk("Réservation annulée.");
               }}
@@ -369,6 +466,94 @@ export function PanneauEnDetails() {
           )}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={rembourse} onOpenChange={(o) => !o && setRembourse(false)}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>Remboursement</DialogTitle>
+          <DialogDescription>
+            Motif, montant et note. Le montant est déduit de l'encaissé.
+          </DialogDescription>
+          <div className="mt-3 space-y-2">
+            <label className="block text-xs text-ink-muted">
+              Motif *
+              <input
+                value={rembMotif}
+                onChange={(e) => setRembMotif(e.target.value)}
+                className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm outline-none"
+              />
+            </label>
+            <label className="block text-xs text-ink-muted">
+              Montant *
+              <input
+                value={rembMontant}
+                onChange={(e) => setRembMontant(e.target.value)}
+                inputMode="decimal"
+                className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm outline-none"
+              />
+            </label>
+            <label className="block text-xs text-ink-muted">
+              Note
+              <textarea
+                value={rembNote}
+                onChange={(e) => setRembNote(e.target.value)}
+                rows={2}
+                className="mt-1 w-full rounded-card border border-line px-3 py-2 text-sm outline-none"
+              />
+            </label>
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setRembourse(false)}
+              className="h-9 rounded-card border border-line px-3 text-xs"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!rembMotif.trim()) {
+                  toastErreur("Indiquez le motif du remboursement.");
+                  return;
+                }
+                const montant = Number(rembMontant.replace(",", ".")) || 0;
+                if (montant <= 0) {
+                  toastErreur("Indiquez un montant positif.");
+                  return;
+                }
+                const paye = Math.max(0, reservation.paye - Math.round(montant));
+                modifierReservation(reservation.id, {
+                  paye,
+                  remboursements: [
+                    ...(reservation.remboursements ?? []),
+                    {
+                      id: idNouveau("rb"),
+                      date: new Date().toISOString().slice(0, 10),
+                      motif: rembMotif.trim(),
+                      montant: Math.round(montant),
+                      note: rembNote.trim(),
+                    },
+                  ],
+                });
+                setRembourse(false);
+                setRembMotif("");
+                setRembMontant("");
+                setRembNote("");
+                toastOk(`Remboursement de ${formatMontant(Math.round(montant))} enregistré.`);
+              }}
+              className="h-9 rounded-card bg-ink px-3 text-xs font-medium text-white"
+            >
+              Confirmer
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <DialoguePrecheckin
+        reservation={reservation}
+        ouvert={voirPrecheckin}
+        onFermer={() => setVoirPrecheckin(false)}
+      />
     </section>
   );
 }

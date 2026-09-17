@@ -25,6 +25,7 @@ import {
 import type { LoyerMo1, OngletPlanning } from "@/data/planning-mo1";
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { telechargerQuittanceLoyer } from "@/lib/exports-docs";
+import { paiementViaPlateforme } from "@/data/v1-metier";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -51,6 +52,7 @@ function VueGenerale() {
   const [onglet, setOnglet] = useState<OngletPlanning>("missions");
   const [loyerQuittance, setLoyerQuittance] = useState<LoyerMo1 | null>(null);
   const [creerEvent, setCreerEvent] = useState(false);
+  const [resaId, setResaId] = useState<string | null>(null);
 
   const allerOnglet = (v: OngletPlanning) => {
     if (v === "reservations") navigate({ to: "/reservations" });
@@ -77,19 +79,42 @@ function VueGenerale() {
 
       {voirCalendrier && (
         <div className="mt-4">
-          <PlanningGrid onglet={onglet} onOnglet={allerOnglet} />
+          <PlanningGrid onglet={onglet} onOnglet={allerOnglet} onReservation={setResaId} />
         </div>
       )}
 
-      <PanneauEnDetails />
+      <PanneauEnDetails reservationId={resaId} />
 
       {voirMessages && <MessagesSection messages={session.messagesDash} />}
       {voirFinances && (
         <LoyersSection
           loyers={session.loyers}
+          viaPlateforme={(l) =>
+            paiementViaPlateforme(
+              session.reservationsDossier.find(
+                (r) => r.occupant.toLowerCase() === l.locataire.toLowerCase(),
+              )?.plateforme,
+            )
+          }
           onValider={(id) => {
+            const l = session.loyers.find((x) => x.id === id);
+            const via = paiementViaPlateforme(
+              session.reservationsDossier.find(
+                (r) => r.occupant.toLowerCase() === (l?.locataire ?? "").toLowerCase(),
+              )?.plateforme,
+            );
             validerLoyer(id);
-            toastOk("Paiement validé.");
+            if (via && l) {
+              void telechargerQuittanceLoyer(l)
+                .then(() => {
+                  marquerQuittance(id);
+                  toastOk("Paiement plateforme : quittance générée automatiquement.");
+                })
+                .catch(() => toastErreur("Impossible de générer la quittance."));
+              return;
+            }
+            toastOk("Paiement validé. Saisissez le montant pour la quittance.");
+            if (l) setLoyerQuittance(l);
           }}
           onQuittance={(id) => {
             const l = session.loyers.find((x) => x.id === id);
@@ -103,14 +128,21 @@ function VueGenerale() {
         loyer={loyerQuittance}
         ouvert={Boolean(loyerQuittance)}
         onFermer={() => setLoyerQuittance(null)}
-        onConfirmer={() => {
+        saisirMontant
+        viaPlateforme={paiementViaPlateforme(
+          session.reservationsDossier.find(
+            (r) => r.occupant.toLowerCase() === (loyerQuittance?.locataire ?? "").toLowerCase(),
+          )?.plateforme,
+        )}
+        onConfirmer={(montant) => {
           if (!loyerQuittance) return;
-          const loyer = loyerQuittance;
+          const loyer = { ...loyerQuittance, montant };
           void (async () => {
             try {
               await telechargerQuittanceLoyer(loyer);
               marquerQuittance(loyer.id);
               setLoyerQuittance(null);
+              toastOk("Quittance enregistrée.");
             } catch {
               toastErreur("Impossible de générer la quittance.");
             }

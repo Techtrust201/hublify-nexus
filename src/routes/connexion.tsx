@@ -1,6 +1,6 @@
 import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { SUPER_ADMINS } from "@/auth/permissions";
+import { SUPER_ADMINS, accueilPourRole } from "@/auth/permissions";
 import { ChampMotDePasse } from "@/components/ui/champ-mot-de-passe";
 import { authClient } from "@/lib/auth-client";
 import { getSession } from "@/lib/auth.functions";
@@ -18,7 +18,7 @@ const MDP_DEMO = import.meta.env["VITE_MDP_DEMO"] ?? "";
 export const Route = createFileRoute("/connexion")({
   beforeLoad: async () => {
     const deja = await getSession();
-    if (deja) throw redirect({ to: "/" });
+    if (deja) throw redirect({ to: accueilPourRole(deja.roleId) });
   },
   head: () => ({
     meta: [
@@ -46,6 +46,9 @@ const COMPTES_FONDATEURS = SUPER_ADMINS.map((c) => ({
 const COMPTES_DEMO = [
   { email: "amelie.dubois@hublify.app", role: "Gestionnaire" },
   { email: "lucas.menage@hublify.app", role: "Prestataire" },
+  { email: "jean.martin@hublify.app", role: "Locataire" },
+  { email: "sophie.martin@hublify.app", role: "Voyageur" },
+  { email: "pierre.moreau@hublify.app", role: "Propriétaire" },
   { email: "claire.lecture@hublify.app", role: "Lecture" },
 ];
 
@@ -82,7 +85,8 @@ function PageConnexion() {
     }
     toastOk("Connexion réussie.");
     await router.invalidate();
-    await navigate({ to: "/" });
+    const session = await getSession();
+    await navigate({ to: accueilPourRole(session?.roleId ?? "lecteur") });
   }
 
   return (
