@@ -31,6 +31,7 @@ export function CreatePrestationDialog({
   const [assigne, setAssigne] = useState("");
   const [description, setDescription] = useState("");
   const [logement, setLogement] = useState(bienId ?? session.biens[0]?.id ?? "");
+  const [jour, setJour] = useState(date ?? "");
 
   useEffect(() => {
     if (!ouvert) return;
@@ -41,6 +42,7 @@ export function CreatePrestationDialog({
       setAssigne(mission.assigne);
       setDescription(mission.description);
       setLogement(mission.bienId);
+      setJour(mission.date);
       return;
     }
     setType("Menage");
@@ -49,12 +51,13 @@ export function CreatePrestationDialog({
     setAssigne(session.prestataires.find((p) => p.actif)?.nom ?? "");
     setDescription("");
     setLogement(bienId ?? session.biens[0]?.id ?? "");
-  }, [ouvert, mission, bienId, session.biens, session.prestataires]);
+    setJour(date ?? "");
+  }, [ouvert, mission, bienId, date, session.biens, session.prestataires]);
 
   const enregistrer = () => {
     const bien = logement || bienId;
-    const jour = mission?.date ?? date;
-    if (!bien || !jour) {
+    const jourChoisi = mission?.date ?? jour;
+    if (!bien || !jourChoisi) {
       toastErreur("Indiquez le logement et la date.");
       return;
     }
@@ -76,7 +79,7 @@ export function CreatePrestationDialog({
     ajouterMission({
       id: idNouveau("ms"),
       bienId: bien,
-      date: jour,
+      date: jourChoisi,
       titre: libelle,
       type,
       emoji: emojiMission(type),
@@ -96,7 +99,7 @@ export function CreatePrestationDialog({
         <DialogDescription>
           {edition
             ? "Les changements s'appliquent immédiatement au planning."
-            : "La mission apparaît sur la case choisie, avec un assigné et un horaire."}
+            : "La mission se pose sur la case du calendrier : logement, jour, horaire et assigné."}
         </DialogDescription>
         <div className="mt-3 space-y-3">
           <label className="block text-xs text-ink-muted">
@@ -123,20 +126,31 @@ export function CreatePrestationDialog({
             />
           </label>
           {!mission && (
-            <label className="block text-xs text-ink-muted">
-              Logement
-              <select
-                value={logement}
-                onChange={(e) => setLogement(e.target.value)}
-                className={champ}
-              >
-                {session.biens.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.nom}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <>
+              <label className="block text-xs text-ink-muted">
+                Logement
+                <select
+                  value={logement}
+                  onChange={(e) => setLogement(e.target.value)}
+                  className={champ}
+                >
+                  {session.biens.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.nom}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-xs text-ink-muted">
+                Date
+                <input
+                  type="date"
+                  value={jour}
+                  onChange={(e) => setJour(e.target.value)}
+                  className={champ}
+                />
+              </label>
+            </>
           )}
           <label className="block text-xs text-ink-muted">
             Horaire

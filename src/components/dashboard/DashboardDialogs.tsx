@@ -39,18 +39,23 @@ export function MissionsPlusPopover({
   dateLabel,
   missions,
   onChoisir,
+  onAjouter,
 }: {
   bienNom: string;
   dateLabel: string;
   missions: MissionMo1[];
   onChoisir: (m: MissionMo1) => void;
+  onAjouter?: (() => void) | undefined;
 }) {
   const [ouvert, setOuvert] = useState(false);
   return (
     <>
       <button
         type="button"
-        onClick={() => setOuvert(true)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOuvert(true);
+        }}
         className="flex h-11 w-full items-center gap-1 px-1 text-left text-[10px] font-medium text-ink-muted md:h-[19px]"
       >
         <Maximize2 className="size-[9px] shrink-0" />
@@ -102,7 +107,22 @@ export function MissionsPlusPopover({
               </li>
             ))}
           </ul>
-          <div className="border-t border-surface-soft px-4 py-3">
+          <div className="flex items-center justify-between gap-2 border-t border-surface-soft px-4 py-3">
+            {onAjouter ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setOuvert(false);
+                  onAjouter();
+                }}
+                className="inline-flex h-[30px] items-center gap-1 rounded border border-line bg-white px-3 text-xs font-medium text-ink-body"
+              >
+                <Plus className="size-3" />
+                Ajouter une prestation
+              </button>
+            ) : (
+              <span />
+            )}
             <button
               type="button"
               onClick={() => setOuvert(false)}

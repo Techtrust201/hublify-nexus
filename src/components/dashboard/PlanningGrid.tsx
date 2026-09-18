@@ -631,8 +631,14 @@ function LigneBien({
                 key={key}
                 className={cn(
                   "flex flex-col border-r border-line",
+                  onAjouterPrestation && "cursor-pointer",
                   key === AUJOURD_HUI_MO1 && "bg-[#f8f8f8]",
                 )}
+                onClick={
+                  onAjouterPrestation
+                    ? () => onAjouterPrestation(bien.id, key)
+                    : undefined
+                }
               >
                 <div className="h-[52px] shrink-0" />
                 <BandMissionsJour
@@ -720,23 +726,15 @@ function MoisMissions({
             <div
               key={key}
               className={cn(
-                "group min-h-24 border-b border-r border-line p-1.5",
+                "group relative min-h-24 border-b border-r border-line p-1.5 pb-8",
+                onAjouter && "cursor-pointer",
                 hors && "bg-surface",
                 key === AUJOURD_HUI_MO1 && "bg-surface",
               )}
+              onClick={onAjouter ? () => onAjouter(key) : undefined}
             >
               <div className="mb-1 flex items-center justify-between">
                 <p className="text-center text-xs text-ink-body">{d.getDate()}</p>
-                {onAjouter && (
-                  <button
-                    type="button"
-                    onClick={() => onAjouter(key)}
-                    className="flex size-6 items-center justify-center rounded border border-dashed border-line text-ink-muted hover:bg-white"
-                    aria-label={`Ajouter une prestation le ${key}`}
-                  >
-                    <Plus className="size-2.5" />
-                  </button>
-                )}
               </div>
               <div className="space-y-1">
                 {list.slice(0, 2).map((m) => (
@@ -752,9 +750,23 @@ function MoisMissions({
                     })}
                     missions={list}
                     onChoisir={onMission}
+                    {...(onAjouter ? { onAjouter: () => onAjouter(key) } : {})}
                   />
                 )}
               </div>
+              {onAjouter ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAjouter(key);
+                  }}
+                  className="absolute bottom-1.5 right-1.5 z-[2] flex size-6 items-center justify-center rounded-md border border-line bg-white text-ink-muted shadow-sm hover:border-ink hover:bg-white hover:text-ink"
+                  aria-label={`Ajouter une prestation le ${key}`}
+                >
+                  <Plus className="size-3.5" />
+                </button>
+              ) : null}
             </div>
           );
         })}

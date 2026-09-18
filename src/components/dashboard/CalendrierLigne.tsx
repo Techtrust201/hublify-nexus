@@ -63,7 +63,10 @@ export function PastilleCalendrier({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
       title={libellePastille(mission)}
       className={cn(
         "flex h-11 w-full min-w-0 items-center gap-1 overflow-hidden rounded border border-line-strong px-1.5 text-left text-[10px] font-medium text-ink-body md:h-[21px]",
@@ -191,28 +194,33 @@ export function BandMissionsJour({
 }) {
   const visible = missions[0];
   return (
-    <div className="relative flex min-h-[56px] flex-col gap-1 px-1.5 pt-0.5">
+    <div
+      className="relative flex min-h-[56px] flex-1 flex-col gap-1 px-1.5 pb-8 pt-0.5"
+      onClick={onAjouter ? () => onAjouter(date) : undefined}
+    >
       {visible ? (
         <PastilleCalendrier mission={visible} onClick={() => onMission(visible)} />
-      ) : (
-        <div className="h-[21px]" aria-hidden />
-      )}
+      ) : null}
       {missions.length > 1 && (
         <MissionsPlusPopover
           bienNom={bienNom}
           dateLabel={dateLabel}
           missions={missions}
           onChoisir={onMission}
+          {...(onAjouter ? { onAjouter: () => onAjouter(date) } : {})}
         />
       )}
       {onAjouter ? (
         <button
           type="button"
-          onClick={() => onAjouter(date)}
-          className="mt-auto flex h-6 w-full items-center justify-center rounded border border-dashed border-line text-ink-muted"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAjouter(date);
+          }}
+          className="absolute bottom-1 right-1 z-[2] flex size-6 items-center justify-center rounded-md border border-line bg-white text-ink-muted shadow-sm hover:border-ink hover:bg-surface hover:text-ink"
           aria-label={`Ajouter une prestation — ${bienNom}`}
         >
-          <Plus className="size-3" />
+          <Plus className="size-3.5" />
         </button>
       ) : null}
     </div>
