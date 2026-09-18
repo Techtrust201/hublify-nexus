@@ -3,7 +3,12 @@
 
 export type VuePlanning = "3jours" | "5jours" | "mois";
 export type OngletPlanning = "missions" | "reservations" | "tarifs";
-export type FiltreMission = "tous" | "checkin" | "checkout";
+export type VueAffichagePlanning =
+  | "missions"
+  | "taches"
+  | "checkout"
+  | "checkin"
+  | "ouverture";
 export type StatutPastille = "a_faire" | "en_cours" | "terminee";
 export type CanalMo1 = "occupants" | "prestataires" | "team";
 export type ImpactEvenement = "Fort impact" | "Impact modéré" | "Opportunité";
@@ -652,21 +657,27 @@ export function teinteBarreCalendrier(
   return { fond: "#cce8f3", bord: "#d1d5dc", fade: false };
 }
 
+export function badgePastille(statut: StatutPastille) {
+  if (statut === "terminee") return "Fini";
+  if (statut === "en_cours") return "En cours";
+  return "À faire";
+}
+
 export function stylePastille(m: MissionMo1) {
+  const badge = badgePastille(m.statut);
   if (m.statut === "terminee" && m.type === "Menage") {
-    return {
-      fond: "#ee8a79",
-      barre: true,
-      fini: false,
-    };
+    return { fond: "#ee8a79", barre: true, badge };
   }
   if (m.statut === "terminee") {
-    return { fond: "#d8f3e3", barre: false, fini: true };
+    return { fond: "#d8f3e3", barre: false, badge };
   }
-  if (m.type === "Menage" && m.statut === "a_faire") {
-    return { fond: "#fff7de", barre: false, fini: false };
+  if (m.statut === "en_cours") {
+    return { fond: "#fff4d4", barre: false, badge };
   }
-  return { fond: "#d8f3e3", barre: false, fini: false };
+  if (m.type === "Menage") {
+    return { fond: "#fff7de", barre: false, badge };
+  }
+  return { fond: "#d8f3e3", barre: false, badge };
 }
 
 export function emojiType(type: TypeRegle) {

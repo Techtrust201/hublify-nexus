@@ -14,7 +14,6 @@ import { KpiReservations } from "@/components/reservations/KpiEtAccordeons";
 import { PlanningReservations } from "@/components/reservations/PlanningReservations";
 import { TableauReservations } from "@/components/reservations/TableauReservations";
 import { PanneauEnDetails } from "@/components/dashboard/PanneauEnDetails";
-import { RechercheGlobale } from "@/components/layout/RechercheGlobale";
 import type { LoyerMo1 } from "@/data/planning-mo1";
 import {
   ajouterEvenement,
@@ -26,7 +25,6 @@ import {
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { telechargerQuittanceLoyer } from "@/lib/exports-docs";
 import { paiementViaPlateforme } from "@/data/v1-metier";
-import { cn } from "@/lib/utils";
 
 type VuePage = "planning" | "liste";
 
@@ -61,7 +59,6 @@ function PageReservations() {
   };
   const session = useSession();
   const peutReserver = useDroit("mod-reservations");
-  const [recherche, setRecherche] = useState("");
   const [loyerQuittance, setLoyerQuittance] = useState<LoyerMo1 | null>(null);
   const [creerEvent, setCreerEvent] = useState(false);
   const [resaId, setResaId] = useState<string | null>(resa ?? null);
@@ -75,7 +72,7 @@ function PageReservations() {
         <div className="mt-3 mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-lg font-medium text-ink">Réservations</h1>
-            <p className="text-sm text-ink-subtle">Gérer toutes vos réservations en un endroit</p>
+            <p className="text-sm text-ink-subtle">Séjours, baux et paiements</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
@@ -91,7 +88,8 @@ function PageReservations() {
                 className="inline-flex h-11 items-center gap-2 rounded-[14px] bg-ink px-4 text-sm font-medium text-white md:h-10"
               >
                 <Plus className="size-3.5" />
-                Créer une réservation
+                <span className="sm:hidden">Créer</span>
+                <span className="hidden sm:inline">Créer une réservation</span>
               </Link>
             )}
           </div>
@@ -102,7 +100,12 @@ function PageReservations() {
             onSelectReservation={setResaId}
           />
         </div>
-        <PanneauEnDetails reservationId={resaId ?? resa ?? null} />
+        {resaId ? (
+          <PanneauEnDetails
+            reservationId={resaId}
+            onFermer={() => setResaId(null)}
+          />
+        ) : null}
       </AppShell>
     );
   }
@@ -115,38 +118,27 @@ function PageReservations() {
     >
       <KpiReservations />
 
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <RechercheGlobale valeur={recherche} onChange={setRecherche} />
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setVue("liste")}
-            className={cn(
-              "inline-flex h-11 items-center rounded-card border border-line px-4 text-sm font-medium text-ink-body",
-            )}
-          >
-            Liste
-          </button>
-          {peutReserver && (
-            <Link
-              to="/reservations/nouveau"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-[14px] bg-ink px-4 text-sm font-medium text-white"
-            >
-              <Plus className="size-3.5" />
-              Créer une réservation
-            </Link>
-          )}
-        </div>
+      <div className="mt-4 flex justify-end">
+        <button
+          type="button"
+          onClick={() => setVue("liste")}
+          className="inline-flex h-11 items-center rounded-card border border-line px-4 text-sm font-medium text-ink-body"
+        >
+          Liste
+        </button>
       </div>
 
       <div className="mt-4">
         <PlanningReservations
           onVoirListe={() => setVue("liste")}
           onSelectReservation={setResaId}
+          selectedResaId={resaId}
         />
       </div>
 
-      <PanneauEnDetails reservationId={resaId} />
+      {resaId ? (
+        <PanneauEnDetails reservationId={resaId} onFermer={() => setResaId(null)} />
+      ) : null}
 
       <MessagesSection messages={session.messagesDash} />
       <LoyersSection

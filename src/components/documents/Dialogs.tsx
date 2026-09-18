@@ -149,7 +149,8 @@ export function GenerateQuittanceDialog({
                   taille: "PDF",
                   modifiePar: "Vous",
                   photos: 0,
-                  vue: "logements",
+                  vue: "residents",
+                  occupant: "locataires",
                 });
                 onClose();
               });
@@ -246,7 +247,8 @@ export function GenerateAvisDialog({
                   taille: "PDF",
                   modifiePar: "Vous",
                   photos: 0,
-                  vue: "logements",
+                  vue: "residents",
+                  occupant: "locataires",
                 });
                 onClose();
               });

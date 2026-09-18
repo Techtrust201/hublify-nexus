@@ -1,23 +1,17 @@
 // SOURCE: Maquette MO1 — grille biens × jours (Missions / Tarifs, 3 jours / 5 jours / mois)
 
-import { useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import {
   estPagePlanningHorsAccueil,
   RetourVueGenerale,
 } from "@/components/layout/RetourVueGenerale";
-import {
-  ChevronLeft,
-  ChevronRight,
-  LogIn,
-  LogOut,
-  Plus,
-  SlidersHorizontal,
-  Tag,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, SlidersHorizontal, Tag } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useDroit } from "@/auth/auth-context";
 import {
   BandMissionsJour,
   BandeauPlanning,
+  CadreGrilleCalendrier,
   ChampRechercheCalendrier,
   ColonneBienCalendrier,
   EnteteJoursCalendrier,
@@ -32,7 +26,6 @@ import {
   MissionsPlusPopover,
 } from "@/components/dashboard/DashboardDialogs";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { ScrollHint } from "@/components/layout/ScrollHint";
 import {
   ANCRE_MO1,
   AUJOURD_HUI_MO1,
@@ -46,13 +39,14 @@ import {
   teinteBarreCalendrier,
   type BienMo1,
   type EnsembleRegles,
-  type FiltreMission,
   type MissionMo1,
   type OngletPlanning,
   type RegleTarif,
   type ReservationMo1,
+  type VueAffichagePlanning,
   type VuePlanning,
 } from "@/data/planning-mo1";
+import type { DateBloqueeMo1 } from "@/data/reservations-mo1";
 import {
   modifierSession,
   poserOuverturesBail,
@@ -71,14 +65,19 @@ export function PlanningGrid({
   vueInitiale = "3jours",
   onReservation,
   onMission,
+  selectedResaId = null,
+  selectedMissionId = null,
 }: {
   onglet: OngletPlanning;
   onOnglet: (v: OngletPlanning) => void;
   vueInitiale?: VuePlanning;
   onReservation?: (id: string) => void;
   onMission?: (m: MissionMo1) => void;
+  selectedResaId?: string | null | undefined;
+  selectedMissionId?: string | null | undefined;
 }) {
   const session = useSession();
+  const peutReserver = useDroit("mod-reservations");
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const retourAccueil = estPagePlanningHorsAccueil(pathname);
   const missions = session.missions;
@@ -92,7 +91,7 @@ export function PlanningGrid({
   }));
   const [vue, setVue] = useState<VuePlanning>(vueInitiale);
   const [ancre, setAncre] = useState(() => new Date(ANCRE_MO1));
-  const [filtre, setFiltre] = useState<FiltreMission>("tous");
+  const [affichage, setAffichage] = useState<VueAffichagePlanning>("missions");
   const [rechercheCal, setRechercheCal] = useState("");
   const [missionOuverte, setMissionOuverte] = useState<MissionMo1 | null>(null);
   const [prestation, setPrestation] = useState<{
@@ -142,9 +141,10 @@ export function PlanningGrid({
   }, [biens, rechercheCal]);
 
   const missionsFiltrees = useMemo(() => {
+    if (affichage === "ouverture") return [] as MissionMo1[];
     let list = missions;
-    if (filtre === "checkin") list = list.filter((m) => m.type === "Check-in");
-    if (filtre === "checkout") list = list.filter((m) => m.type === "Check-out");
+    if (affichage === "checkin") list = list.filter((m) => m.type === "Check-in");
+    if (affichage === "checkout") list = list.filter((m) => m.type === "Check-out");
     const q = rechercheCal.trim().toLowerCase();
     if (q) {
       const ids = new Set(biensFiltres.map((b) => b.id));
@@ -156,7 +156,13 @@ export function PlanningGrid({
       );
     }
     return list;
-  }, [filtre, missions, rechercheCal, biensFiltres]);
+  }, [affichage, missions, rechercheCal, biensFiltres]);
+  const montrerResas = affichage === "missions" || affichage === "ouverture";
+  const montrerMissions = affichage !== "ouverture";
+  const montrerOuverture = affichage === "ouverture";
+  const selectionActive = Boolean(selectedResaId || selectedMissionId);
+  const sejoursAffiches = montrerResas ? sejoursCal : [];
+  const datesBloquees = montrerOuverture ? session.datesBloquees : [];
 
   const choisirMission = (m: MissionMo1) => {
     if (onMission) onMission(m);
@@ -179,17 +185,29 @@ export function PlanningGrid({
           actif={onglet}
           onChoisir={onOnglet}
           extra={
-            onglet === "tarifs" ? (
-              <button
-                type="button"
-                onClick={() => setGererRegles(true)}
-                aria-label="Gérer les ensembles de règles"
-                className="inline-flex size-11 shrink-0 items-center justify-center gap-1.5 rounded border border-line bg-white text-xs font-medium text-ink-body md:h-[30px] md:w-auto md:px-3"
-              >
-                <SlidersHorizontal className="size-3" />
-                <span className="hidden md:inline">Gérer les ensembles de règles</span>
-              </button>
-            ) : undefined
+            <div className="flex items-center gap-2">
+              {onglet === "tarifs" ? (
+                <button
+                  type="button"
+                  onClick={() => setGererRegles(true)}
+                  aria-label="Gérer les ensembles de règles"
+                  className="inline-flex size-11 shrink-0 items-center justify-center gap-1.5 rounded border border-line bg-white text-xs font-medium text-ink-body md:h-[30px] md:w-auto md:px-3"
+                >
+                  <SlidersHorizontal className="size-3" />
+                  <span className="hidden md:inline">Gérer les ensembles de règles</span>
+                </button>
+              ) : null}
+              {peutReserver ? (
+                <Link
+                  to="/reservations/nouveau"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-[14px] bg-accent-teal px-3 text-xs font-medium text-white md:h-[30px]"
+                >
+                  <Plus className="size-3.5" />
+                  <span className="sm:hidden">Créer</span>
+                  <span className="hidden sm:inline">Créer une réservation</span>
+                </Link>
+              ) : null}
+            </div>
           }
         />
       </div>
@@ -283,59 +301,35 @@ export function PlanningGrid({
             )}
           </div>
         ) : (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-ink-muted">Filtrer :</span>
-            <button
-              type="button"
-              onClick={() => setFiltre((f) => (f === "checkin" ? "tous" : "checkin"))}
-              className={cn(
-                "inline-flex h-11 min-h-11 items-center gap-1 rounded border px-2.5 text-xs font-medium md:h-[26px] md:min-h-[26px]",
-                filtre === "checkin"
-                  ? "border-ink bg-ink text-white"
-                  : "border-line bg-white text-ink-body",
-              )}
-            >
-              <LogIn className="size-2.5" />
-              Taches
-            </button>
-            <button
-              type="button"
-              onClick={() => setFiltre((f) => (f === "checkout" ? "tous" : "checkout"))}
-              className={cn(
-                "inline-flex h-11 min-h-11 items-center gap-1 rounded border px-2.5 text-xs font-medium md:h-[26px] md:min-h-[26px]",
-                filtre === "checkout"
-                  ? "border-ink bg-ink text-white"
-                  : "border-line bg-white text-ink-body",
-              )}
-            >
-              <LogOut className="size-2.5" />
-              CheckOut
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const bienId = biens[0]?.id ?? "";
-                const debut = isoJour(ancre);
-                setPeriode({ bienId, debut });
-                setFinPeriode(debut);
-              }}
-              className="inline-flex h-11 min-h-11 items-center rounded border border-line bg-white px-2.5 text-xs font-medium text-ink-body md:h-[26px] md:min-h-[26px]"
-            >
-              Période d'ouverture BAIL
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                setPrestation({
-                  bienId: biens[0]?.id ?? "",
-                  date: isoJour(ancre),
-                })
-              }
-              className="inline-flex h-11 min-h-11 items-center gap-1 rounded border border-line bg-white px-2.5 text-xs font-medium text-ink-body md:h-[26px] md:min-h-[26px]"
-            >
-              <Plus className="size-2.5" />
-              Ajouter une prestation
-            </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-2 text-xs text-ink-muted">
+              Afficher :
+              <select
+                value={affichage}
+                onChange={(e) => setAffichage(e.target.value as VueAffichagePlanning)}
+                className="h-11 rounded border border-line bg-white px-2 text-xs text-ink-body outline-none md:h-[26px]"
+              >
+                <option value="missions">missions</option>
+                <option value="taches">Taches</option>
+                <option value="checkout">check out</option>
+                <option value="checkin">Check in</option>
+                <option value="ouverture">periode ouverture BAIL</option>
+              </select>
+            </label>
+            {montrerOuverture ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const bienId = biens[0]?.id ?? "";
+                  const debut = isoJour(ancre);
+                  setPeriode({ bienId, debut });
+                  setFinPeriode(debut);
+                }}
+                className="inline-flex h-11 min-h-11 items-center rounded border border-line bg-white px-2.5 text-xs font-medium text-ink-body md:h-[26px] md:min-h-[26px]"
+              >
+                Poser une période
+              </button>
+            ) : null}
           </div>
         )}
       </div>
@@ -372,23 +366,43 @@ export function PlanningGrid({
           jours={joursMois}
           ancre={ancre}
           missions={missionsFiltrees}
+          sejours={sejoursAffiches}
+          datesBloquees={datesBloquees}
           onMission={choisirMission}
-          onAjouter={(date) =>
-            setPrestation({ bienId: biensFiltres[0]?.id ?? biens[0]?.id ?? "", date })
-          }
+          selectedMissionId={selectedMissionId}
+          selectedResaId={selectedResaId}
+          selectionActive={selectionActive}
+          {...(montrerMissions
+            ? {
+                onAjouter: (date: string) =>
+                  setPrestation({
+                    bienId: biensFiltres[0]?.id ?? biens[0]?.id ?? "",
+                    date,
+                  }),
+              }
+            : {})}
         />
       ) : (
         <JoursMissions
           jours={jours}
           biens={biensFiltres}
           missions={missionsFiltrees}
-          sejours={sejoursCal}
+          sejours={sejoursAffiches}
+          datesBloquees={datesBloquees}
           onMission={choisirMission}
+          selectedMissionId={selectedMissionId}
+          selectedResaId={selectedResaId}
+          selectionActive={selectionActive}
           onReservation={(sejour) => {
             const id = idDossierPourCalendrier(sejour, session.reservationsDossier);
             if (id) onReservation?.(id);
           }}
-          onAjouterPrestation={(bienId, date) => setPrestation({ bienId, date })}
+          {...(montrerMissions
+            ? {
+                onAjouterPrestation: (bienId: string, date: string) =>
+                  setPrestation({ bienId, date }),
+              }
+            : {})}
         />
       )}
 
@@ -557,20 +571,28 @@ function JoursMissions({
   biens,
   missions,
   sejours,
+  datesBloquees,
   onMission,
   onReservation,
   onAjouterPrestation,
+  selectedResaId,
+  selectedMissionId,
+  selectionActive,
 }: {
   jours: Date[];
   biens: (BienMo1 & BienCalendrierChrome)[];
   missions: MissionMo1[];
   sejours: ReservationMo1[];
+  datesBloquees: DateBloqueeMo1[];
   onMission: (m: MissionMo1) => void;
   onReservation?: (r: ReservationMo1) => void;
   onAjouterPrestation?: (bienId: string, date: string) => void;
+  selectedResaId?: string | null | undefined;
+  selectedMissionId?: string | null | undefined;
+  selectionActive?: boolean | undefined;
 }) {
   return (
-    <ScrollHint snap>
+    <CadreGrilleCalendrier>
       <div
         className="grid min-w-[860px]"
         style={{ gridTemplateColumns: `136px repeat(${jours.length}, minmax(200px, 1fr))` }}
@@ -583,13 +605,17 @@ function JoursMissions({
             jours={jours}
             missions={missions.filter((m) => m.bienId === bien.id)}
             sejours={sejours.filter((r) => r.bienId === bien.id)}
+            datesBloquees={datesBloquees.filter((d) => d.bienId === bien.id)}
             onMission={onMission}
+            selectedResaId={selectedResaId}
+            selectedMissionId={selectedMissionId}
+            selectionActive={selectionActive}
             {...(onReservation ? { onReservation } : {})}
             {...(onAjouterPrestation ? { onAjouterPrestation } : {})}
           />
         ))}
       </div>
-    </ScrollHint>
+    </CadreGrilleCalendrier>
   );
 }
 
@@ -598,17 +624,25 @@ function LigneBien({
   jours,
   missions,
   sejours,
+  datesBloquees,
   onMission,
   onReservation,
   onAjouterPrestation,
+  selectedResaId,
+  selectedMissionId,
+  selectionActive = false,
 }: {
   bien: BienMo1 & BienCalendrierChrome;
   jours: Date[];
   missions: MissionMo1[];
   sejours: ReservationMo1[];
+  datesBloquees: DateBloqueeMo1[];
   onMission: (m: MissionMo1) => void;
   onReservation?: (r: ReservationMo1) => void;
   onAjouterPrestation?: (bienId: string, date: string) => void;
+  selectedResaId?: string | null | undefined;
+  selectedMissionId?: string | null | undefined;
+  selectionActive?: boolean | undefined;
 }) {
   return (
     <div className="contents">
@@ -626,6 +660,8 @@ function LigneBien({
           {jours.map((d) => {
             const key = isoJour(d);
             const duJour = missions.filter((m) => m.date === key);
+            const bloc = datesBloquees.find((b) => b.date === key);
+            const ouverture = bloc?.motif === "Ouverture" || bloc?.motif === "Ouverture BAIL";
             return (
               <div
                 key={key}
@@ -633,14 +669,21 @@ function LigneBien({
                   "flex flex-col border-r border-line",
                   onAjouterPrestation && "cursor-pointer",
                   key === AUJOURD_HUI_MO1 && "bg-[#f8f8f8]",
+                  bloc &&
+                    (ouverture
+                      ? "bg-[color-mix(in_srgb,var(--accent-teal)_12%,white)]"
+                      : "bg-[repeating-linear-gradient(-45deg,var(--surface-soft),var(--surface-soft)_4px,var(--surface-elevated)_4px,var(--surface-elevated)_8px)]"),
                 )}
                 onClick={
-                  onAjouterPrestation
-                    ? () => onAjouterPrestation(bien.id, key)
-                    : undefined
+                  onAjouterPrestation ? () => onAjouterPrestation(bien.id, key) : undefined
                 }
               >
                 <div className="h-[52px] shrink-0" />
+                {bloc ? (
+                  <p className="px-1.5 text-[10px] font-medium text-ink-muted">
+                    {ouverture ? "Ouverture" : "Bloqué"}
+                  </p>
+                ) : null}
                 <BandMissionsJour
                   bienNom={bien.nom}
                   date={key}
@@ -651,8 +694,10 @@ function LigneBien({
                   })}
                   missions={duJour}
                   onMission={onMission}
+                  selectedMissionId={selectedMissionId}
+                  selectionActive={selectionActive}
                   {...(onAjouterPrestation
-                    ? { onAjouter: (date) => onAjouterPrestation(bien.id, date) }
+                    ? { onAjouter: (date: string) => onAjouterPrestation(bien.id, date) }
                     : {})}
                 />
               </div>
@@ -664,19 +709,23 @@ function LigneBien({
           const barre = styleBarreResa(r, jours);
           if (!barre) return null;
           const teinte = teinteBarreCalendrier(r, jours);
-          const large =
-            jours.filter((d) => reservationCouvre(r, isoJour(d))).length >= 2;
+          const large = jours.filter((d) => reservationCouvre(r, isoJour(d))).length >= 2;
+          const sel = r.id === selectedResaId;
           return (
             <button
               key={r.id}
               type="button"
               onClick={() => onReservation?.(r)}
-              className="absolute top-[6px] z-[1] flex h-10 items-center gap-2 overflow-hidden rounded-lg border px-2.5 text-left"
+              className={cn(
+                "absolute top-[6px] z-[1] flex h-10 items-center gap-2 overflow-hidden rounded-lg border px-2.5 text-left",
+                sel && "shadow-[0_0_0_2px_rgba(17,17,17,0.4)]",
+                selectionActive && !sel && "opacity-45",
+              )}
               style={{
                 ...barre,
                 backgroundColor: teinte.fond,
-                borderColor: teinte.bord,
-                opacity: teinte.fade ? 0.6 : 1,
+                borderColor: sel ? "#111111" : teinte.bord,
+                opacity: sel ? 1 : teinte.fade ? 0.6 : undefined,
               }}
             >
               <span className="truncate text-xs text-ink-subtle">
@@ -696,18 +745,28 @@ function MoisMissions({
   jours,
   ancre,
   missions,
+  sejours,
+  datesBloquees,
   onMission,
   onAjouter,
+  selectedMissionId,
+  selectedResaId,
+  selectionActive = false,
 }: {
   jours: Date[];
   ancre: Date;
   missions: MissionMo1[];
+  sejours: ReservationMo1[];
+  datesBloquees: DateBloqueeMo1[];
   onMission: (m: MissionMo1) => void;
   onAjouter?: (date: string) => void;
+  selectedMissionId?: string | null | undefined;
+  selectedResaId?: string | null | undefined;
+  selectionActive?: boolean | undefined;
 }) {
   return (
-    <div>
-      <div className="grid grid-cols-7 border-b border-line">
+    <CadreGrilleCalendrier>
+      <div className="sticky top-0 z-[10] grid grid-cols-7 border-b border-line bg-white">
         {JOURS_SEM.map((j) => (
           <div
             key={j}
@@ -722,23 +781,55 @@ function MoisMissions({
           const key = isoJour(d);
           const list = missions.filter((m) => m.date === key);
           const hors = d.getMonth() !== ancre.getMonth();
+          const bloc = datesBloquees.find((b) => b.date === key);
+          const ouverture = bloc?.motif === "Ouverture" || bloc?.motif === "Ouverture BAIL";
+          const sejoursJour = sejours.filter((r) => reservationCouvre(r, key));
           return (
             <div
               key={key}
               className={cn(
-                "group relative min-h-24 border-b border-r border-line p-1.5 pb-8",
+                "group relative min-h-28 border-b border-r border-line p-1.5 pb-14 lg:min-h-24 lg:pb-8",
                 onAjouter && "cursor-pointer",
                 hors && "bg-surface",
                 key === AUJOURD_HUI_MO1 && "bg-surface",
+                bloc &&
+                  (ouverture
+                    ? "bg-[color-mix(in_srgb,var(--accent-teal)_12%,white)]"
+                    : "bg-[repeating-linear-gradient(-45deg,var(--surface-soft),var(--surface-soft)_4px,var(--surface-elevated)_4px,var(--surface-elevated)_8px)]"),
               )}
               onClick={onAjouter ? () => onAjouter(key) : undefined}
             >
               <div className="mb-1 flex items-center justify-between">
                 <p className="text-center text-xs text-ink-body">{d.getDate()}</p>
+                {bloc ? (
+                  <span className="text-[9px] text-ink-muted">
+                    {ouverture ? "Ouverture" : "Bloqué"}
+                  </span>
+                ) : null}
               </div>
               <div className="space-y-1">
+                {sejoursJour.slice(0, 1).map((r) => (
+                  <p
+                    key={r.id}
+                    className={cn(
+                      "truncate rounded border px-1 py-0.5 text-[10px] text-ink-subtle",
+                      r.id === selectedResaId
+                        ? "border-ink bg-[#cce8f3]"
+                        : "border-line bg-[#cce8f3]",
+                      selectionActive && r.id !== selectedResaId && "opacity-45",
+                    )}
+                  >
+                    {r.voyageur}
+                  </p>
+                ))}
                 {list.slice(0, 2).map((m) => (
-                  <PastilleCalendrier key={m.id} mission={m} onClick={() => onMission(m)} />
+                  <PastilleCalendrier
+                    key={m.id}
+                    mission={m}
+                    onClick={() => onMission(m)}
+                    selectionnee={m.id === selectedMissionId}
+                    attenuee={selectionActive}
+                  />
                 ))}
                 {list.length > 2 && (
                   <MissionsPlusPopover
@@ -761,7 +852,7 @@ function MoisMissions({
                     e.stopPropagation();
                     onAjouter(key);
                   }}
-                  className="absolute bottom-1.5 right-1.5 z-[2] flex size-6 items-center justify-center rounded-md border border-line bg-white text-ink-muted shadow-sm hover:border-ink hover:bg-white hover:text-ink"
+                  className="absolute bottom-1.5 right-1.5 z-[2] flex size-11 items-center justify-center rounded-md border border-line bg-white text-ink-muted shadow-sm hover:border-ink hover:bg-white hover:text-ink lg:size-6"
                   aria-label={`Ajouter une prestation le ${key}`}
                 >
                   <Plus className="size-3.5" />
@@ -771,7 +862,7 @@ function MoisMissions({
           );
         })}
       </div>
-    </div>
+    </CadreGrilleCalendrier>
   );
 }
 
@@ -791,7 +882,7 @@ function TarifsJours({
   onCreerRegle: (bienId: string, date: string) => void;
 }) {
   return (
-    <ScrollHint snap>
+    <CadreGrilleCalendrier>
       <div
         className="grid min-w-[720px]"
         style={{ gridTemplateColumns: `130px repeat(${jours.length}, minmax(180px, 1fr))` }}
@@ -872,7 +963,7 @@ function TarifsJours({
           Cliquez une cellule pour créer une règle sur ce bien et ce jour
         </span>
       </div>
-    </ScrollHint>
+    </CadreGrilleCalendrier>
   );
 }
 
@@ -898,7 +989,7 @@ function TarifsMois({
     return <p className="p-4 text-sm text-ink-muted">Aucun bien pour afficher les tarifs.</p>;
   }
   return (
-    <div>
+    <CadreGrilleCalendrier>
       <p className="border-b border-surface-soft px-4 py-2 text-xs text-ink-muted">
         Tarifs affichés : {bien.nom}. Cliquez un jour pour créer une règle.
       </p>
@@ -953,7 +1044,7 @@ function TarifsMois({
           );
         })}
       </div>
-    </div>
+    </CadreGrilleCalendrier>
   );
 }
 

@@ -24,6 +24,10 @@ import { telechargerDemo } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/analyse/")({
+  validateSearch: (raw: Record<string, unknown>): { logement?: string } => {
+    const logement = typeof raw["logement"] === "string" ? raw["logement"] : undefined;
+    return logement ? { logement } : {};
+  },
   head: () => ({
     meta: [{ title: "Analyse — Hublify" }],
   }),
@@ -47,7 +51,8 @@ function detailRevenuNuit(kpi: { nuitsCourteDuree: number; longsSejours: number 
 function PageAnalyse() {
   const navigate = useNavigate();
   const session = useSession();
-  const [filtreLogement, setFiltreLogement] = useState("tous");
+  const { logement: logementUrl } = Route.useSearch();
+  const [filtreLogement, setFiltreLogement] = useState(logementUrl ?? "tous");
   const sessionFiltree = useMemo(() => {
     if (filtreLogement === "tous") return session;
     return {
@@ -104,7 +109,14 @@ function PageAnalyse() {
         Appartement
         <select
           value={filtreLogement}
-          onChange={(e) => setFiltreLogement(e.target.value)}
+          onChange={(e) => {
+            const v = e.target.value;
+            setFiltreLogement(v);
+            void navigate({
+              to: "/analyse",
+              search: v === "tous" ? {} : { logement: v },
+            });
+          }}
           className="h-11 flex-1 rounded-card border border-line bg-white px-3 text-sm outline-none md:h-9"
         >
           <option value="tous">Tous les appartements</option>
@@ -135,7 +147,7 @@ function PageAnalyse() {
 
       {onglet === "occupation" && (
         <div className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Kpi
               icone={<Moon className="size-4" />}
               titre="Taux d'occupation"
@@ -274,7 +286,7 @@ function PageAnalyse() {
           <p className="text-sm text-ink-body">
             Historique complet des transactions concernant le titulaire de ce compte
           </p>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Kpi
               titre="Revenu total"
               valeur={formatMontant(analyse.kpi.net)}

@@ -1,9 +1,11 @@
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useDroit } from "@/auth/auth-context";
 import { RetourVueGenerale } from "@/components/layout/RetourVueGenerale";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Home, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   BandeauPlanning,
+  CadreGrilleCalendrier,
   ChampRechercheCalendrier,
   ColonneBienCalendrier,
   EnteteJoursCalendrier,
@@ -44,12 +46,15 @@ type FiltrePlateforme = "tout" | PlateformeMo1;
 
 export function PlanningReservations({
   onSelectReservation,
+  selectedResaId = null,
 }: {
   onVoirListe?: () => void;
   onSelectReservation?: (id: string) => void;
+  selectedResaId?: string | null | undefined;
 }) {
   const navigate = useNavigate();
   const session = useSession();
+  const peutReserver = useDroit("mod-reservations");
   const [vue, setVue] = useState<VuePlanning>("3jours");
   const [ancre, setAncre] = useState(() => new Date(ANCRE_PLANNING_MO1));
   const [plateforme, setPlateforme] = useState<FiltrePlateforme>("tout");
@@ -154,6 +159,18 @@ export function PlanningReservations({
           onChoisir={(id) => {
             if (id !== "reservations") allerOnglet(id);
           }}
+          extra={
+            peutReserver ? (
+              <Link
+                to="/reservations/nouveau"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-[14px] bg-accent-teal px-3 text-xs font-medium text-white md:h-[30px]"
+              >
+                <Plus className="size-3.5" />
+                <span className="sm:hidden">Créer</span>
+                <span className="hidden sm:inline">Créer une réservation</span>
+              </Link>
+            ) : undefined
+          }
         />
       </div>
 
@@ -315,6 +332,7 @@ export function PlanningReservations({
           jours={joursMois}
           ancre={ancre}
           reservations={reservations}
+          selectedResaId={selectedResaId}
           onSelect={(r) => {
             setSelection(r);
             onSelectReservation?.(r.id);
@@ -326,6 +344,7 @@ export function PlanningReservations({
           jours={jours}
           reservations={reservations}
           datesBloquees={voirBloquees ? datesBloquees : []}
+          selectedResaId={selectedResaId}
           onSelect={(r) => {
             setSelection(r);
             onSelectReservation?.(r.id);
@@ -476,6 +495,7 @@ function GrilleJours({
   datesBloquees,
   onSelect,
   onBloquer,
+  selectedResaId,
 }: {
   biens: (BienMo1 & BienCalendrierChrome)[];
   jours: Date[];
@@ -483,9 +503,11 @@ function GrilleJours({
   datesBloquees: { id: string; bienId: string; date: string; motif?: string }[];
   onSelect: (r: ReservationMo1) => void;
   onBloquer: (bienId: string, date: string) => void;
+  selectedResaId?: string | null | undefined;
 }) {
+  const selectionActive = Boolean(selectedResaId);
   return (
-    <ScrollHint snap>
+    <CadreGrilleCalendrier>
       <div
         className="grid min-w-[860px]"
         style={{ gridTemplateColumns: `136px repeat(${jours.length}, minmax(200px, 1fr))` }}
@@ -500,11 +522,13 @@ function GrilleJours({
             bloquees={datesBloquees.filter((d) => d.bienId === bien.id)}
             onSelect={onSelect}
             onBloquer={onBloquer}
+            selectedResaId={selectedResaId}
+            selectionActive={selectionActive}
           />
         ))}
       </div>
       <LegendePlanning bloque />
-    </ScrollHint>
+    </CadreGrilleCalendrier>
   );
 }
 
@@ -515,6 +539,8 @@ function LigneBien({
   bloquees,
   onSelect,
   onBloquer,
+  selectedResaId,
+  selectionActive = false,
 }: {
   bien: BienMo1 & BienCalendrierChrome;
   jours: Date[];
@@ -522,6 +548,8 @@ function LigneBien({
   bloquees: { id: string; date: string; motif?: string }[];
   onSelect: (r: ReservationMo1) => void;
   onBloquer: (bienId: string, date: string) => void;
+  selectedResaId?: string | null | undefined;
+  selectionActive?: boolean | undefined;
 }) {
   return (
     <div className="contents">
@@ -579,16 +607,21 @@ function LigneBien({
           if (!barre) return null;
           const paiement = paiementDe(r);
           const teinte = teinteBarreCalendrier(r, jours);
+          const sel = r.id === selectedResaId;
           return (
             <button
               key={r.id}
               type="button"
               onClick={() => onSelect(r)}
-              className="absolute top-[54px] z-[1] flex h-10 items-center gap-1.5 rounded-lg border px-2.5"
+              className={cn(
+                "absolute top-[54px] z-[1] flex h-10 items-center gap-1.5 rounded-lg border px-2.5",
+                sel && "shadow-[0_0_0_2px_rgba(17,17,17,0.4)]",
+                selectionActive && !sel && "opacity-45",
+              )}
               style={{
                 ...barre,
                 backgroundColor: teinte.fond,
-                borderColor: teinte.bord,
+                borderColor: sel ? "#111111" : teinte.bord,
               }}
             >
               <span className="shrink-0 rounded border border-line-strong bg-white/80 px-1 py-0.5 text-[9px] font-medium text-ink-status">
@@ -611,15 +644,18 @@ function GrilleMois({
   ancre,
   reservations,
   onSelect,
+  selectedResaId,
 }: {
   jours: Date[];
   ancre: Date;
   reservations: ReservationMo1[];
   onSelect: (r: ReservationMo1) => void;
+  selectedResaId?: string | null | undefined;
 }) {
+  const selectionActive = Boolean(selectedResaId);
   return (
-    <div>
-      <div className="grid grid-cols-7 border-b border-line">
+    <CadreGrilleCalendrier>
+      <div className="sticky top-0 z-[10] grid grid-cols-7 border-b border-line bg-white">
         {JOURS_MOIS.map((j) => (
           <div
             key={j}
@@ -638,7 +674,7 @@ function GrilleMois({
             <div
               key={key}
               className={cn(
-                "group min-h-24 border-b border-r border-line p-1.5",
+                "group min-h-28 border-b border-r border-line p-1.5 lg:min-h-24",
                 hors && "bg-surface",
                 key === AUJOURD_HUI_MO1 && "bg-surface",
               )}
@@ -650,7 +686,11 @@ function GrilleMois({
                     key={r.id}
                     type="button"
                     onClick={() => onSelect(r)}
-                    className="block w-full truncate rounded bg-line px-1.5 py-0.5 text-left text-[10px] text-ink-status"
+                    className={cn(
+                      "block min-h-11 w-full truncate rounded bg-line px-1.5 py-2 text-left text-[10px] text-ink-status lg:min-h-0 lg:py-0.5",
+                      r.id === selectedResaId && "border border-ink shadow-[0_0_0_1px_#111]",
+                      selectionActive && r.id !== selectedResaId && "opacity-45",
+                    )}
                   >
                     {CODE_BARRE[r.plateforme]} · {r.occupant.split(" ")[0]}
                   </button>
@@ -663,7 +703,7 @@ function GrilleMois({
                     <Link
                       to="/reservations/nouveau"
                       search={{ arrivee: key }}
-                      className="flex size-6 items-center justify-center rounded border border-dashed border-line text-ink-muted"
+                      className="flex size-11 items-center justify-center rounded border border-dashed border-line text-ink-muted lg:size-6"
                       aria-label="Créer une réservation"
                     >
                       <Plus className="size-2.5" />
@@ -676,7 +716,7 @@ function GrilleMois({
         })}
       </div>
       <LegendePlanning />
-    </div>
+    </CadreGrilleCalendrier>
   );
 }
 

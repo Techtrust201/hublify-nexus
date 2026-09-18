@@ -4,8 +4,6 @@ import {
   Check,
   ChevronDown,
   ChevronLeft,
-  ChevronRight,
-  Info,
   Minus,
   Plus,
   User,
@@ -14,12 +12,15 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import {
+  AIDE_TYPES_RESERVATION,
   COULEURS_RESERVATION,
   TYPES_RESERVATION,
   ajouterJours,
   formatMontant,
   isoJour,
+  messageChevauchement,
   nuitsEntre,
+  trouverChevauchement,
   type PlateformeMo1,
   type TypeReservationMo1,
 } from "@/data/reservations-mo1";
@@ -191,6 +192,10 @@ export function FormulaireReservation({
     setDuree(String(Math.max(1, nuitsEntre(checkIn, checkOut))));
   }, [checkIn, checkOut]);
 
+  useEffect(() => {
+    if (type === "Bail mobilité") setCaution("0");
+  }, [type]);
+
   const plateformeDe = (s: string): PlateformeMo1 => {
     if (s === "Airbnb" || s === "Booking.com") return s;
     if (s === "Canal Direct") return "Direct";
@@ -212,6 +217,16 @@ export function FormulaireReservation({
     }
     if (checkOut <= checkIn) {
       toastErreur("Le check-out doit être après le check-in.");
+      return;
+    }
+    const collision = trouverChevauchement(session.reservationsDossier, {
+      bienId: logement,
+      arrivee: checkIn,
+      depart: checkOut,
+      ...(edition && reservationId ? { horsId: reservationId } : {}),
+    });
+    if (collision) {
+      toastErreur(messageChevauchement(collision));
       return;
     }
     const nuits = Math.max(1, Number(duree) || nuitsEntre(checkIn, checkOut));
@@ -336,62 +351,23 @@ export function FormulaireReservation({
 
   return (
     <div>
-      <div className="flex items-center gap-2 text-xs text-ink-muted">
+      <div className="flex items-center gap-2">
         <Link
           to="/reservations"
-          className="inline-flex min-h-11 items-center hover:text-ink-body md:min-h-0"
+          className="flex size-11 shrink-0 items-center justify-center rounded-card border border-line text-ink-body md:size-8"
+          aria-label="Retour aux réservations"
+        >
+          <ChevronLeft className="size-4" />
+        </Link>
+        <Link
+          to="/reservations"
+          className="inline-flex min-h-11 items-center text-xs text-ink-muted hover:text-ink-body md:min-h-0"
         >
           Réservations
         </Link>
-        <ChevronRight className="size-3" />
-        <span>{edition ? "Modifier la réservation" : "Créer une réservation"}</span>
-      </div>
-
-      <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Link
-            to="/reservations"
-            className="flex size-11 shrink-0 items-center justify-center rounded-card border border-line text-ink-body md:size-8"
-            aria-label="Retour"
-          >
-            <ChevronLeft className="size-4" />
-          </Link>
-          <div>
-            <h1 className="text-lg font-medium text-ink">Réservations</h1>
-            <p className="text-xs text-ink-muted">
-              {edition ? "Mettre à jour la réservation" : "Créer une nouvelle réservation"}
-            </p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            to="/reservations"
-            search={{ vue: "liste" }}
-            className="inline-flex h-11 items-center rounded-card border border-line px-4 text-xs font-medium text-ink-body md:h-[34px]"
-          >
-            Gérer toutes les réservations
-          </Link>
-          <button
-            type="button"
-            onClick={creer}
-            className="inline-flex h-11 items-center gap-1 rounded-card bg-ink px-3 text-xs font-medium text-white md:h-8"
-          >
-            <Check className="size-3" />
-            {edition ? "Enregistrer" : "Créer une réservation"}
-          </button>
-        </div>
       </div>
 
       <div className="mx-auto mt-6 max-w-[900px] space-y-4 pb-16">
-        <div className="flex min-w-0 gap-3 rounded-card border border-chip-info bg-chip-info p-4">
-          <Info className="mt-0.5 size-4 shrink-0 text-chip-info-fg" />
-          <p className="min-w-0 text-xs leading-5 text-chip-info-fg">
-            Le prix par nuit est celui de l'annonce. Le total correspond au nombre de nuits.
-            Saisissez un acompte ci-dessous, ou enregistrez-le plus tard depuis le détail de la
-            réservation. Les taxes et charges se règlent avec l'occupant.
-          </p>
-        </div>
-
         <section className="rounded-card border border-line bg-white p-5">
           <h2 className="text-sm font-medium text-ink">Type de réservation</h2>
           <label className="mt-4 block text-xs text-ink-subtle">Type*</label>
@@ -435,6 +411,7 @@ export function FormulaireReservation({
               {type}
             </p>
           )}
+          <AideTypesReservation />
         </section>
 
         {type && (
@@ -721,12 +698,18 @@ export function FormulaireReservation({
                 </label>
                 <label className="block text-xs text-ink-subtle">
                   Caution
+                  {type === "Bail mobilité" ? (
+                    <span className="ml-1 text-[10px] text-ink-muted">
+                      — aucun dépôt autorisé
+                    </span>
+                  ) : null}
                   <span className="relative mt-1 block">
                     <input
                       value={caution}
                       onChange={(e) => setCaution(e.target.value)}
                       inputMode="decimal"
-                      className={champ}
+                      disabled={type === "Bail mobilité"}
+                      className={cn(champ, type === "Bail mobilité" && "bg-surface text-ink-muted")}
                     />
                     <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
                       €
@@ -1041,6 +1024,48 @@ function Compteur({
           <Plus className="size-2.5" />
         </button>
       </div>
+    </div>
+  );
+}
+
+function AideTypesReservation() {
+  const [ouvert, setOuvert] = useState(false);
+  return (
+    <div className="mt-4 border-t border-surface-soft pt-3">
+      <button
+        type="button"
+        onClick={() => setOuvert((v) => !v)}
+        className="inline-flex min-h-11 items-center gap-1 text-xs font-medium text-ink-body md:min-h-0"
+      >
+        Comment choisir ?
+        <ChevronDown className={cn("size-3.5 transition", ouvert && "rotate-180")} />
+      </button>
+      {ouvert && (
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[640px] text-left text-[11px]">
+            <thead className="text-ink-muted">
+              <tr>
+                <th className="pb-2 pr-2 font-medium">Type</th>
+                <th className="pb-2 pr-2 font-medium">Durée</th>
+                <th className="pb-2 pr-2 font-medium">Dépôt</th>
+                <th className="pb-2 pr-2 font-medium">Préavis</th>
+                <th className="pb-2 font-medium">Pour qui</th>
+              </tr>
+            </thead>
+            <tbody>
+              {AIDE_TYPES_RESERVATION.map((l) => (
+                <tr key={l.type} className="border-t border-surface-soft align-top">
+                  <td className="py-2 pr-2 font-medium text-ink">{l.type}</td>
+                  <td className="py-2 pr-2 text-ink-body">{l.duree}</td>
+                  <td className="py-2 pr-2 text-ink-body">{l.depot}</td>
+                  <td className="py-2 pr-2 text-ink-body">{l.preavis}</td>
+                  <td className="py-2 text-ink-body">{l.pour}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

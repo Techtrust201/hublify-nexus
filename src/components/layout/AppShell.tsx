@@ -125,9 +125,6 @@ export function AppShell({
                   <Link to="/outils/debuter">Je débute</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/outils/baux">Créer un bail</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
                   <Link to="/outils/modeles">Modèles de documents</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -155,7 +152,7 @@ export function AppShell({
               }}
             >
               <DropdownMenuTrigger
-                className="relative inline-flex h-11 w-[7.5rem] shrink-0 items-center justify-center gap-2 rounded-card border border-line bg-canvas px-3 text-sm text-ink outline-none sm:w-[8.25rem] lg:h-10"
+                className="relative inline-flex size-11 shrink-0 items-center justify-center gap-2 rounded-card border border-line bg-canvas text-sm text-ink outline-none sm:h-11 sm:w-auto sm:px-3 lg:h-10"
                 aria-label="Notifications"
               >
                 <Bell className="size-4 shrink-0" />

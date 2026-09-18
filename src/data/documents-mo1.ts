@@ -99,7 +99,7 @@ export const DOCS_MO1: DocMo1[] = [
     taille: "128 KB",
     modifiePar: "Yannick Ratti",
     photos: 0,
-    vue: "logements",
+    vue: "residents",
     occupant: "locataires",
   },
   {

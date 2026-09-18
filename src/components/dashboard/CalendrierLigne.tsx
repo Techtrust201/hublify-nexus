@@ -55,9 +55,13 @@ export function ColonneBienCalendrier({ bien }: { bien: BienCalendrierChrome }) 
 export function PastilleCalendrier({
   mission,
   onClick,
+  selectionnee = false,
+  attenuee = false,
 }: {
   mission: MissionMo1;
   onClick: () => void;
+  selectionnee?: boolean | undefined;
+  attenuee?: boolean | undefined;
 }) {
   const style = stylePastille(mission);
   return (
@@ -69,8 +73,12 @@ export function PastilleCalendrier({
       }}
       title={libellePastille(mission)}
       className={cn(
-        "flex h-11 w-full min-w-0 items-center gap-1 overflow-hidden rounded border border-line-strong px-1.5 text-left text-[10px] font-medium text-ink-body md:h-[21px]",
-        style.barre && "opacity-70",
+        "flex h-11 w-full min-w-0 items-center gap-1 overflow-hidden rounded border px-1.5 text-left text-[10px] font-medium text-ink-body lg:h-[21px]",
+        selectionnee
+          ? "border-ink shadow-[0_0_0_2px_rgba(17,17,17,0.35)]"
+          : "border-line-strong",
+        style.barre && !selectionnee && "opacity-70",
+        attenuee && !selectionnee && "opacity-45",
       )}
       style={{ backgroundColor: style.fond }}
     >
@@ -78,11 +86,9 @@ export function PastilleCalendrier({
       <span className={cn("min-w-0 flex-1 truncate", style.barre && "line-through")}>
         {libellePastille(mission)}
       </span>
-      {style.fini && (
-        <span className="shrink-0 rounded border border-line-strong bg-white px-1.5 py-px text-[10px] text-ink-body">
-          Fini
-        </span>
-      )}
+      <span className="shrink-0 rounded border border-line-strong bg-white px-1.5 py-px text-[10px] text-ink-body">
+        {style.badge}
+      </span>
     </button>
   );
 }
@@ -139,7 +145,8 @@ export function BandeauPlanning({
     },
   ];
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-2">
+    <div className="flex min-w-0 flex-1 items-center gap-2 py-2">
+      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto overscroll-x-contain">
       {items.map((it) => {
         const Icone = it.icone;
         const sel = actif === it.id;
@@ -149,7 +156,7 @@ export function BandeauPlanning({
             type="button"
             onClick={() => onChoisir(it.id)}
             className={cn(
-              "flex min-w-[148px] shrink-0 items-center gap-2.5 rounded-xl border px-3 py-2 text-left",
+              "flex min-h-11 min-w-[9.5rem] shrink-0 items-center gap-2.5 rounded-xl border px-3 py-2 text-left",
               sel
                 ? "border-ink bg-ink text-white shadow-sm"
                 : "border-line bg-white text-ink-body hover:border-ink-muted",
@@ -172,7 +179,27 @@ export function BandeauPlanning({
           </button>
         );
       })}
-      {extra ? <div className="ml-auto shrink-0">{extra}</div> : null}
+      </div>
+      {extra ? <div className="shrink-0">{extra}</div> : null}
+    </div>
+  );
+}
+
+export function CadreGrilleCalendrier({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string | undefined;
+}) {
+  return (
+    <div
+      className={cn(
+        "max-h-[min(72vh,calc(100dvh-12rem))] overflow-auto overscroll-contain [-webkit-overflow-scrolling:touch]",
+        className,
+      )}
+    >
+      {children}
     </div>
   );
 }
@@ -184,6 +211,8 @@ export function BandMissionsJour({
   missions,
   onMission,
   onAjouter,
+  selectedMissionId,
+  selectionActive = false,
 }: {
   bienNom: string;
   date: string;
@@ -191,15 +220,22 @@ export function BandMissionsJour({
   missions: MissionMo1[];
   onMission: (m: MissionMo1) => void;
   onAjouter?: ((date: string) => void) | undefined;
+  selectedMissionId?: string | null | undefined;
+  selectionActive?: boolean | undefined;
 }) {
   const visible = missions[0];
   return (
     <div
-      className="relative flex min-h-[56px] flex-1 flex-col gap-1 px-1.5 pb-8 pt-0.5"
+      className="relative flex min-h-[56px] flex-1 flex-col gap-1 px-1.5 pb-14 pt-0.5 lg:pb-8"
       onClick={onAjouter ? () => onAjouter(date) : undefined}
     >
       {visible ? (
-        <PastilleCalendrier mission={visible} onClick={() => onMission(visible)} />
+        <PastilleCalendrier
+          mission={visible}
+          onClick={() => onMission(visible)}
+          selectionnee={visible.id === selectedMissionId}
+          attenuee={selectionActive}
+        />
       ) : null}
       {missions.length > 1 && (
         <MissionsPlusPopover
@@ -217,7 +253,7 @@ export function BandMissionsJour({
             e.stopPropagation();
             onAjouter(date);
           }}
-          className="absolute bottom-1 right-1 z-[2] flex size-6 items-center justify-center rounded-md border border-line bg-white text-ink-muted shadow-sm hover:border-ink hover:bg-surface hover:text-ink"
+          className="absolute bottom-1 right-1 z-[2] flex size-11 items-center justify-center rounded-md border border-line bg-white text-ink-muted shadow-sm hover:border-ink hover:bg-surface hover:text-ink lg:size-6"
           aria-label={`Ajouter une prestation — ${bienNom}`}
         >
           <Plus className="size-3.5" />
@@ -238,7 +274,7 @@ export function EnteteJoursCalendrier({
 }) {
   return (
     <>
-      <div className="sticky left-0 z-[5] border-b border-r border-line bg-white" />
+      <div className="sticky left-0 top-0 z-[15] border-b border-r border-line bg-white" />
       {jours.map((d) => {
         const key = isoJour(d);
         const auj = key === aujourdHui;
@@ -246,7 +282,7 @@ export function EnteteJoursCalendrier({
           <div
             key={key}
             className={cn(
-              "snap-start border-b border-r border-line py-2 text-center",
+              "sticky top-0 z-[10] snap-start border-b border-r border-line bg-white py-2 text-center",
               auj && "bg-[#f8f8f8]",
             )}
           >

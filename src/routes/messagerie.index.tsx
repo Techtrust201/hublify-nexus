@@ -153,7 +153,7 @@ function PageMessagerie() {
   return (
     <AppShell attendDonnees titre="Messagerie" sousTitre="Occupants, prestataires et équipe">
       <div className="flex min-h-[calc(100dvh-10rem)] flex-col overflow-hidden rounded-card border border-line bg-white">
-        <div className="flex items-center justify-between border-b border-line bg-[color-mix(in srgb, var(--surface) 50%, transparent)] px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-[color-mix(in srgb, var(--surface) 50%, transparent)] px-4 py-3">
           <p className="flex items-center gap-2 text-sm text-ink">
             <MessageSquare className="size-[15px]" />
             Messagerie

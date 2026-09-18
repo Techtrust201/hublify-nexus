@@ -137,7 +137,47 @@ const DOSSIER_JEAN: DossierLocation = {
     },
   ],
   dureeAccesMois: 24,
+  revenus: 2400,
+  situationProfessionnelle: "CDI",
+  situationFamiliale: "Célibataire",
+  aPropos: "Locataire en place depuis 2024, garanties Visale.",
 };
+
+/** Complète les champs profil d'un dossier seed déjà persisté sans ces colonnes. */
+export function completerDossiersCanon(liste: DossierLocation[]): {
+  liste: DossierLocation[];
+  changes: DossierLocation[];
+} {
+  const seeds = [DOSSIER_JEAN];
+  const parId = new Map(seeds.map((s) => [s.id, s]));
+  const parOccupant = new Map(seeds.map((s) => [s.occupantId, s]));
+  const changes: DossierLocation[] = [];
+  const next = liste.map((d) => {
+    const seed = parId.get(d.id) ?? parOccupant.get(d.occupantId);
+    if (!seed) return d;
+    const merged: DossierLocation = { ...d };
+    if (d.revenus == null && seed.revenus != null) merged.revenus = seed.revenus;
+    if (d.rfr == null && seed.rfr != null) merged.rfr = seed.rfr;
+    if (!d.situationProfessionnelle && seed.situationProfessionnelle) {
+      merged.situationProfessionnelle = seed.situationProfessionnelle;
+    }
+    if (!d.situationFamiliale && seed.situationFamiliale) {
+      merged.situationFamiliale = seed.situationFamiliale;
+    }
+    if (!d.aPropos && seed.aPropos) merged.aPropos = seed.aPropos;
+    if (
+      merged.revenus !== d.revenus ||
+      merged.rfr !== d.rfr ||
+      merged.situationProfessionnelle !== d.situationProfessionnelle ||
+      merged.situationFamiliale !== d.situationFamiliale ||
+      merged.aPropos !== d.aPropos
+    ) {
+      changes.push(merged);
+    }
+    return merged;
+  });
+  return { liste: next, changes };
+}
 
 /** Parc Redris — uniquement pour le seed de l'org démo, jamais pour un nouvel adhérent. */
 export function etatCanon(): EtatSession {
@@ -173,7 +213,15 @@ export function etatCanon(): EtatSession {
     rapportsIntervention: [],
     contactsCopro: CONTACTS_COPRO,
     dossiersLocation: [DOSSIER_JEAN],
-    partagesDossier: [],
+    partagesDossier: [
+      {
+        id: "p-jean",
+        dossierId: "dos-jean",
+        destinataire: "Hublify gestion",
+        autorise: true,
+        demandeLe: "2026-01-10",
+      },
+    ],
     candidatures: [],
     parametrage: PARAMETRAGE_DEFAUT,
   };

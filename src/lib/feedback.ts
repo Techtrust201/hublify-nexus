@@ -109,6 +109,29 @@ export function telechargerDemo(nomFichier: string, contenu?: string) {
   );
 }
 
+export async function urlApercuFichier(
+  fichier: FichierExportable,
+  ctx: ContexteDocument = {},
+): Promise<string | null> {
+  try {
+    if (fichier.base64) {
+      const binaire = atob(fichier.base64);
+      const octets = new Uint8Array(binaire.length);
+      for (let i = 0; i < binaire.length; i += 1) octets[i] = binaire.charCodeAt(i);
+      return URL.createObjectURL(
+        new Blob([octets], { type: fichier.mime || "application/octet-stream" }),
+      );
+    }
+    const { octetsDocument } = await import("@/lib/pdf-documents");
+    const extra = ctx.extra ?? [fichier.nom];
+    const { octets } = await octetsDocument(fichier.nom.replace(/\.pdf$/i, ""), { ...ctx, extra });
+    return URL.createObjectURL(new Blob([new Uint8Array(octets)], { type: "application/pdf" }));
+  } catch {
+    toastErreur("Aperçu impossible.");
+    return null;
+  }
+}
+
 export function ouvrirBase64(nom: string, mime: string, base64: string) {
   const binaire = atob(base64);
   const octets = new Uint8Array(binaire.length);

@@ -26,6 +26,9 @@ import type {
   RapportIntervention,
 } from "@/data/v1-metier";
 import { joursPlage, poserPeriodesOuverture } from "@/data/v1-metier";
+import { completerDossiersCanon } from "@/data/etat-canon";
+import { messageChevauchement, trouverChevauchement } from "@/data/reservations-mo1";
+import { toastErreur } from "@/lib/feedback";
 import {
   chargerEtatDistant,
   insererLigneMetier,
@@ -185,9 +188,11 @@ function charger(userId: string | null): EtatSession {
     const brut = localStorage.getItem(cle);
     if (!brut) return etatVide();
     const parsed = JSON.parse(brut) as Partial<EtatSession>;
+    const dossiers = completerDossiersCanon(parsed.dossiersLocation ?? []).liste;
     return {
       ...etatVide(),
       ...parsed,
+      dossiersLocation: dossiers,
       parametrage: fusionnerParametrage(parsed.parametrage),
     };
   } catch {
@@ -213,15 +218,24 @@ async function hydraterDistant() {
       return;
     }
     ignorePush = true;
+    const dossiers = completerDossiersCanon(distant.payload.dossiersLocation);
     etat = {
       ...etatVide(),
       ...distant.payload,
+      dossiersLocation: dossiers.liste,
       parametrage: fusionnerParametrage(distant.payload.parametrage),
     };
     sales.clear();
     persisterLocal();
     abonnes.forEach((fn) => fn());
     ignorePush = false;
+    if (dossiers.changes.length > 0) {
+      void Promise.all(
+        dossiers.changes.map((d) => pousserLigne("dossiersLocation", d)),
+      ).then((oks) => {
+        if (oks.some((ok) => !ok)) programmerReprise();
+      });
+    }
     poserStatut({ etat: "enregistre", a: Date.now() });
     // Import différé : la reprise dépend de la session, elle ne pèse pas sur le
     // chargement initial et ne s'exécute qu'une fois par navigateur.
@@ -530,7 +544,17 @@ function lieAuDossier(cal: ReservationCalendrier, dossier: ReservationDossier) {
 export function ajouterReservation(params: {
   dossier: ReservationDossier;
   calendrier: ReservationCalendrier;
-}) {
+}): boolean {
+  const collision = trouverChevauchement(etat.reservationsDossier, {
+    bienId: params.dossier.bienId,
+    arrivee: params.dossier.arrivee,
+    depart: params.dossier.depart,
+    horsId: params.dossier.id,
+  });
+  if (collision) {
+    toastErreur(messageChevauchement(collision));
+    return false;
+  }
   appliquerLocal((e) => ({
     ...e,
     reservationsDossier: [params.dossier, ...e.reservationsDossier],
@@ -541,9 +565,25 @@ export function ajouterReservation(params: {
     const b = await pousserLigne("reservationsCalendrier", params.calendrier);
     if (!a || !b) programmerReprise();
   })();
+  return true;
 }
 
 export function modifierReservation(id: string, patch: Partial<ReservationDossier>) {
+  const actuelEtat = etat.reservationsDossier.find((r) => r.id === id);
+  if (!actuelEtat) return;
+  if (patch.arrivee || patch.depart || patch.bienId) {
+    const candidate = { ...actuelEtat, ...patch, id };
+    const collision = trouverChevauchement(etat.reservationsDossier, {
+      bienId: candidate.bienId,
+      arrivee: candidate.arrivee,
+      depart: candidate.depart,
+      horsId: id,
+    });
+    if (collision) {
+      toastErreur(messageChevauchement(collision));
+      return;
+    }
+  }
   appliquerLocal((e) => {
     const actuel = e.reservationsDossier.find((r) => r.id === id);
     if (!actuel) return e;
@@ -581,9 +621,11 @@ export function annulerReservation(id: string) {
       reservationsCalendrier: e.reservationsCalendrier.filter((r) => !lieAuDossier(r, actuel)),
     };
   });
+  sales.add("reservationsCalendrier");
   void pousserPatch("reservationsDossier", id, { statut: "Annulé" }).then(
     (ok) => !ok && programmerReprise(),
   );
+  persister();
 }
 
 export function ajouterBien(bien: BienSession) {
@@ -746,16 +788,28 @@ export function modifierCandidature(id: string, patch: Partial<CandidatureLocati
 export function validerCandidature(id: string) {
   const candidature = etat.candidatures.find((c) => c.id === id);
   if (!candidature) return false;
-  modifierCandidature(id, { statut: "acceptee" });
   const doss = etat.dossiersLocation.find((d) => d.id === candidature.dossierId);
-  if (!doss) return true;
+  if (!doss) {
+    modifierCandidature(id, { statut: "acceptee" });
+    return true;
+  }
+  const collision = trouverChevauchement(etat.reservationsDossier, {
+    bienId: candidature.bienId,
+    arrivee: candidature.arrivee,
+    depart: candidature.depart,
+  });
+  if (collision) {
+    toastErreur(messageChevauchement(collision));
+    return false;
+  }
+  modifierCandidature(id, { statut: "acceptee" });
   const reservaId = idNouveau("r");
   const initiales = doss.occupantNom
     .split(/\s+/)
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase() ?? "")
     .join("");
-  ajouterReservation({
+  return ajouterReservation({
     dossier: {
       id: reservaId,
       bienId: candidature.bienId,
@@ -785,5 +839,4 @@ export function validerCandidature(id: string) {
       depart: candidature.depart,
     },
   });
-  return true;
 }

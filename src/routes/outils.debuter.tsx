@@ -65,7 +65,8 @@ function PageDebuter() {
       .map((p) => p[0]?.toUpperCase() ?? "")
       .join("");
     const nuits = Math.max(1, nuitsEntre(arrivee, depart));
-    ajouterReservation({
+    if (
+      !ajouterReservation({
       dossier: {
         id,
         bienId: bien.id,
@@ -94,7 +95,10 @@ function PageDebuter() {
         arrivee,
         depart,
       },
-    });
+    })
+    ) {
+      return;
+    }
     ajouterMission({
       id: idNouveau("ms"),
       bienId: bien.id,

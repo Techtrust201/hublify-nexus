@@ -45,8 +45,19 @@ function PageMissions() {
           setMission(m);
           setResaId(null);
         }}
+        selectedResaId={resaId}
+        selectedMissionId={mission?.id}
       />
-      <PanneauEnDetails reservationId={resaId} mission={mission} />
+      {(resaId || mission) && (
+        <PanneauEnDetails
+          reservationId={resaId}
+          mission={mission}
+          onFermer={() => {
+            setResaId(null);
+            setMission(null);
+          }}
+        />
+      )}
     </AppShell>
   );
 }

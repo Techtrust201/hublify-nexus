@@ -20,6 +20,7 @@ import {
   CODE_PLATEFORME,
   formatDateLongue,
   formatMontant,
+  libelleStatutReservation,
   nuitsEntre,
   pourcentagePaiement,
   type ReservationMo1,
@@ -39,7 +40,7 @@ export function TableauReservations({
   onSelectReservation,
 }: {
   focusId?: string;
-  onSelectReservation?: (id: string) => void;
+  onSelectReservation?: (id: string | null) => void;
 }) {
   const session = useSession();
   const sync = useStatutSync();
@@ -62,7 +63,8 @@ export function TableauReservations({
   useEffect(() => {
     if (!focusId) return;
     setRecherche("");
-    setStatut("tout");
+    const cible = reservations.find((x) => x.id === focusId);
+    setStatut(cible?.statut === "Annulé" ? "Annulé" : "tout");
     setPeriode("tous");
   }, [focusId]);
 
@@ -88,6 +90,7 @@ export function TableauReservations({
       if (q && !r.occupant.toLowerCase().includes(q) && !bien?.nom.toLowerCase().includes(q)) {
         return false;
       }
+      if (statut === "tout" && r.statut === "Annulé") return false;
       if (statut !== "tout" && r.statut !== statut) return false;
       if (periode === "en_cours") return r.arrivee <= AUJOURD_HUI_MO1 && r.depart > AUJOURD_HUI_MO1;
       if (periode === "a_venir") return r.arrivee > AUJOURD_HUI_MO1;
@@ -125,7 +128,7 @@ export function TableauReservations({
   };
 
   return (
-    <div className="flex min-h-[640px] gap-0">
+    <div className="flex min-h-0 flex-col gap-0 md:min-h-[640px] md:flex-row">
       <aside className="hidden w-[190px] shrink-0 border-r border-surface-soft pr-2 md:block">
         <p className="px-2 pt-4 text-[11px] font-medium uppercase tracking-[0.3px] text-ink-muted">
           Filtres
@@ -172,7 +175,7 @@ export function TableauReservations({
             En attente <span className="text-ink-muted">{comptes.attente}</span>
           </li>
           <li className="flex justify-between text-ink-body">
-            Annulé <span className="text-ink-muted">{comptes.annule}</span>
+            Supprimées <span className="text-ink-muted">{comptes.annule}</span>
           </li>
         </ul>
       </aside>
@@ -197,7 +200,7 @@ export function TableauReservations({
                 ["tout", "Tout"],
                 ["Confirmé", "Confirmé"],
                 ["En attente", "En attente"],
-                ["Annulé", "Annulé"],
+                ["Annulé", "Supprimées"],
               ] as const
             ).map(([id, label]) => (
               <button
@@ -226,7 +229,7 @@ export function TableauReservations({
                 "Occupant;Bien;Arrivee;Depart;Statut;Montant",
                 ...aExporter.map((r) => {
                   const bien = bienParId(r.bienId);
-                  return `${r.occupant};${bien?.nom ?? r.bienId};${r.arrivee};${r.depart};${r.statut};${r.montant}`;
+                  return `${r.occupant};${bien?.nom ?? r.bienId};${r.arrivee};${r.depart};${libelleStatutReservation(r.statut)};${r.montant}`;
                 }),
               ];
               telechargerDemo("reservations-hublify.csv", lignes.join("\n"));
@@ -300,7 +303,7 @@ export function TableauReservations({
                           : "border border-line text-ink-muted",
                     )}
                   >
-                    {r.statut}
+                    {libelleStatutReservation(r.statut)}
                   </span>
                 </div>
                 <p className="text-xs text-ink-muted">
@@ -381,7 +384,7 @@ export function TableauReservations({
                               : "border border-line text-ink-muted",
                         )}
                       >
-                        {r.statut}
+                        {libelleStatutReservation(r.statut)}
                       </span>
                     </td>
                     <td className="px-3 py-3">
@@ -439,19 +442,20 @@ export function TableauReservations({
                             onClick={() => {
                               void (async () => {
                                 const ok = await confirmer({
-                                  titre: "Annuler cette réservation ?",
-                                  description: `${r.occupant} disparaît du planning et passe au statut Annulé.`,
-                                  libelleConfirmer: "Annuler la réservation",
+                                  titre: "Supprimer cette réservation ?",
+                                  description: `${r.occupant} disparaît du planning et de la liste. Retrouvez-la dans Supprimées.`,
+                                  libelleConfirmer: "Supprimer",
                                   danger: true,
                                 });
                                 if (!ok) return;
                                 annulerReservation(r.id);
-                                toastOk("Réservation annulée.");
+                                onSelectReservation?.(null);
+                                toastOk("Réservation supprimée.");
                               })();
                             }}
                             className="inline-flex h-8 items-center rounded border border-line px-2 text-[11px] text-ink-body"
                           >
-                            Annuler
+                            Supprimer
                           </button>
                         )}
                         <ChevronRight className="size-3.5 text-ink-muted" />
@@ -597,7 +601,7 @@ function PanneauDetail({
                   : "bg-surface-soft text-ink-body",
             )}
           >
-            {reservation.statut}
+            {libelleStatutReservation(reservation.statut)}
           </span>
           {reservation.type && (
             <span className="inline-flex h-6 items-center rounded border border-line px-2 text-[11px] text-ink-body">
@@ -748,16 +752,16 @@ function PanneauDetail({
             onClick={() => setConfirmer(true)}
             className="inline-flex h-11 flex-1 items-center justify-center rounded-card border border-line px-3 text-sm font-medium text-ink-body md:h-[34px]"
           >
-            Annuler
+            Supprimer
           </button>
         )}
       </footer>
       <Dialog open={confirmer} onOpenChange={(o) => !o && setConfirmer(false)}>
         <DialogContent className="max-w-sm">
-          <DialogTitle>Annuler cette réservation ?</DialogTitle>
+          <DialogTitle>Supprimer cette réservation ?</DialogTitle>
           <DialogDescription>
-            {reservation.occupant} disparaît du planning. Elle restera visible dans la liste, au
-            statut Annulé.
+            {reservation.occupant} disparaît du planning et de la liste. Vous la retrouverez
+            uniquement dans Supprimées.
           </DialogDescription>
           <div className="mt-4 flex justify-end gap-2">
             <button
@@ -772,11 +776,12 @@ function PanneauDetail({
               onClick={() => {
                 annulerReservation(reservation.id);
                 setConfirmer(false);
-                toastOk("Réservation annulée.");
+                onFermer();
+                toastOk("Réservation supprimée.");
               }}
               className="h-9 rounded-card bg-accent-teal px-3 text-xs font-medium text-white"
             >
-              Confirmer
+              Supprimer
             </button>
           </div>
         </DialogContent>

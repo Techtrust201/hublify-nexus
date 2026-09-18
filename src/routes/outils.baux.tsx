@@ -1,9 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { CreerBail } from "@/components/outils/CreerBail";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/outils/baux")({
-  head: () => ({
-    meta: [{ title: "Créer un bail — Hublify" }],
-  }),
-  component: CreerBail,
+  beforeLoad: () => {
+    throw redirect({ to: "/reservations/nouveau" });
+  },
+  component: () => null,
 });

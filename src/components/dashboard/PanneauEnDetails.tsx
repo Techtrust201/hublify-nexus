@@ -42,25 +42,34 @@ import { cn, useSessionBool } from "@/lib/utils";
 export function PanneauEnDetails({
   reservationId,
   mission,
+  onFermer,
 }: {
   reservationId?: string | null;
   mission?: MissionMo1 | null;
+  onFermer?: () => void;
 }) {
-  if (mission) return <PanneauMission mission={mission} />;
-  return <PanneauReservation reservationId={reservationId} />;
+  if (mission) return <PanneauMission mission={mission} onFermer={onFermer} />;
+  return <PanneauReservation reservationId={reservationId} onFermer={onFermer} />;
 }
 
-function PanneauMission({ mission }: { mission: MissionMo1 }) {
+function PanneauMission({
+  mission,
+  onFermer,
+}: {
+  mission: MissionMo1;
+  onFermer?: (() => void) | undefined;
+}) {
   const session = useSession();
   const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.en-details", true);
   const [edition, setEdition] = useState(false);
   const live = session.missions.find((m) => m.id === mission.id);
-  if (!live) return null;
-  const bienNom = session.biens.find((b) => b.id === live.bienId)?.nom ?? live.bienId;
 
   useEffect(() => {
     setOuvert(true);
   }, [mission.id, setOuvert]);
+
+  if (!live) return null;
+  const bienNom = session.biens.find((b) => b.id === live.bienId)?.nom ?? live.bienId;
 
   return (
     <section className="mt-4 overflow-hidden rounded-card border border-line bg-white">
@@ -132,6 +141,7 @@ function PanneauMission({ mission }: { mission: MissionMo1 }) {
                 });
                 if (!ok) return;
                 retirerMission(live.id);
+                onFermer?.();
                 toastOk("Prestation supprimée.");
               }}
               className="inline-flex h-11 items-center gap-1 rounded-card border border-line px-3 text-xs font-medium text-ink-body md:h-[30px]"
@@ -169,7 +179,13 @@ function PanneauMission({ mission }: { mission: MissionMo1 }) {
   );
 }
 
-function PanneauReservation({ reservationId }: { reservationId?: string | null | undefined }) {
+function PanneauReservation({
+  reservationId,
+  onFermer,
+}: {
+  reservationId?: string | null | undefined;
+  onFermer?: (() => void) | undefined;
+}) {
   const session = useSession();
   const peutMod = useDroit("mod-reservations");
   const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.en-details", true);
@@ -194,8 +210,9 @@ function PanneauReservation({ reservationId }: { reservationId?: string | null |
     () => session.reservationsDossier.filter((r) => r.statut !== "Annulé"),
     [session.reservationsDossier],
   );
-  const reservation =
-    actives.find((r) => r.id === reservationId) ?? (reservationId ? undefined : actives[0]);
+  const reservation = reservationId
+    ? actives.find((r) => r.id === reservationId)
+    : undefined;
 
   const catalogue = session.parametrage.upsells.filter((u) => u.actif);
   const upsellsChoisis = reservation?.upsellIds ?? [];
@@ -311,7 +328,7 @@ function PanneauReservation({ reservationId }: { reservationId?: string | null |
                 onClick={() => setConfirmer(true)}
                 className="ml-auto inline-flex h-11 items-center rounded-card border border-ink bg-accent-teal px-3 text-xs font-medium text-white md:h-[30px]"
               >
-                Annuler
+                Supprimer
               </button>
             )}
           </header>
@@ -581,10 +598,10 @@ function PanneauReservation({ reservationId }: { reservationId?: string | null |
 
       <Dialog open={confirmer} onOpenChange={(o) => !o && setConfirmer(false)}>
         <DialogContent className="max-w-sm">
-          <DialogTitle>Annuler cette réservation ?</DialogTitle>
+          <DialogTitle>Supprimer cette réservation ?</DialogTitle>
           <DialogDescription>
-            {reservation.occupant} disparaît du planning. Elle restera visible dans la liste, au
-            statut Annulé.
+            {reservation.occupant} disparaît du planning et de la liste. Vous la retrouverez
+            uniquement dans Supprimées.
           </DialogDescription>
           <div className="mt-4 flex justify-end gap-2">
             <button
@@ -599,11 +616,12 @@ function PanneauReservation({ reservationId }: { reservationId?: string | null |
               onClick={() => {
                 annulerReservation(reservation.id);
                 setConfirmer(false);
-                toastOk("Réservation annulée.");
+                onFermer?.();
+                toastOk("Réservation supprimée.");
               }}
               className="h-9 rounded-card bg-accent-teal px-3 text-xs font-medium text-white"
             >
-              Confirmer
+              Supprimer
             </button>
           </div>
         </DialogContent>

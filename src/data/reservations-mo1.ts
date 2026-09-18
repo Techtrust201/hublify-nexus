@@ -9,11 +9,21 @@ export const ANCRE_PLANNING_MO1 = "2026-03-04";
 
 export type PlateformeMo1 = "Airbnb" | "Booking.com" | "Direct" | "Autre";
 export type StatutReservationMo1 = "Confirmé" | "En attente" | "Annulé";
+
+export function libelleStatutReservation(statut: StatutReservationMo1) {
+  return statut === "Annulé" ? "Supprimée" : statut;
+}
 export type PaiementMo1 = "paye" | "partiel" | "impaye";
 export type TypeOccupantMo1 = "Locataire" | "Voyageur";
 export type StatutOccupantMo1 = "Actif" | "À venir";
 export type TypeReservationMo1 =
-  "Location saisonnière" | "Bail nu" | "Bail meublé" | "Bail mobilité" | "Bail étudiant";
+  | "Location saisonnière"
+  | "Bail nu"
+  | "Bail meublé"
+  | "Bail mobilité"
+  | "Bail étudiant"
+  | "Bail commercial"
+  | "Bail professionnel";
 
 export type BienMo1 = {
   id: string;
@@ -529,9 +539,111 @@ export const TYPES_RESERVATION: { groupe: string; options: TypeReservationMo1[] 
   { groupe: "Court séjour", options: ["Location saisonnière"] },
   {
     groupe: "Bail longue durée",
-    options: ["Bail nu", "Bail meublé", "Bail mobilité", "Bail étudiant"],
+    options: [
+      "Bail nu",
+      "Bail meublé",
+      "Bail mobilité",
+      "Bail étudiant",
+      "Bail commercial",
+      "Bail professionnel",
+    ],
   },
 ];
+
+export const AIDE_TYPES_RESERVATION: Array<{
+  type: TypeReservationMo1;
+  duree: string;
+  depot: string;
+  preavis: string;
+  pour: string;
+}> = [
+  {
+    type: "Location saisonnière",
+    duree: "Court séjour",
+    depot: "Selon l'annonce",
+    preavis: "Selon le contrat de séjour",
+    pour: "Pas un bail — meublé touristique / courte durée",
+  },
+  {
+    type: "Bail nu",
+    duree: "3 ans (personne physique) / 6 ans (personne morale)",
+    depot: "1 mois HC",
+    preavis: "Locataire 3 mois (1 mois emploi / santé / mutation…)",
+    pour: "Résidence principale non meublée",
+  },
+  {
+    type: "Bail meublé",
+    duree: "1 an, tacite reconduction",
+    depot: "2 mois HC",
+    preavis: "1 mois",
+    pour: "Meublé (liste obligatoire)",
+  },
+  {
+    type: "Bail étudiant",
+    duree: "9 mois, non reconductible auto",
+    depot: "2 mois HC",
+    preavis: "1 mois",
+    pour: "Justificatif étudiant",
+  },
+  {
+    type: "Bail mobilité",
+    duree: "1 à 10 mois, non reconductible",
+    depot: "Aucun dépôt de garantie",
+    preavis: "1 mois, fin à l'échéance",
+    pour: "Mission / stage / formation / mutation…",
+  },
+  {
+    type: "Bail commercial",
+    duree: "9 ans min (3-6-9)",
+    depot: "Souvent 3 à 6 mois",
+    preavis: "Congé 6 mois avant triennalité",
+    pour: "Fonds de commerce",
+  },
+  {
+    type: "Bail professionnel",
+    duree: "6 ans min",
+    depot: "~2 mois",
+    preavis: "Congé 6 mois",
+    pour: "Professions libérales",
+  },
+];
+
+export function reservationChevauchePeriode(
+  existante: {
+    id: string;
+    bienId: string;
+    statut: StatutReservationMo1;
+    arrivee: string;
+    depart: string;
+  },
+  candidate: {
+    bienId: string;
+    arrivee: string;
+    depart: string;
+    horsId?: string | undefined;
+  },
+) {
+  if (existante.statut === "Annulé") return false;
+  if (existante.bienId !== candidate.bienId) return false;
+  if (candidate.horsId && existante.id === candidate.horsId) return false;
+  return candidate.arrivee < existante.depart && candidate.depart > existante.arrivee;
+}
+
+export function trouverChevauchement(
+  liste: ReservationMo1[],
+  candidate: {
+    bienId: string;
+    arrivee: string;
+    depart: string;
+    horsId?: string | undefined;
+  },
+) {
+  return liste.find((r) => reservationChevauchePeriode(r, candidate));
+}
+
+export function messageChevauchement(r: ReservationMo1) {
+  return `Période déjà occupée par ${r.occupant} (${formatDateLongue(r.arrivee)} → ${formatDateLongue(r.depart)}). Impossible de superposer un second séjour sur ce logement.`;
+}
 
 export const COULEURS_RESERVATION = [
   { id: "bleu", hex: "#4f8ef7", label: "Bleu" },

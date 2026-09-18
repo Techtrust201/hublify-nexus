@@ -43,12 +43,6 @@ const NAV: Entree[] = [
 const OUTILS: Array<{ titre: string; url: string; icone: typeof Info; droit?: DroitId }> = [
   { titre: "Tous les outils", url: "/outils", icone: Info },
   {
-    titre: "Créer un bail",
-    url: "/outils/baux",
-    icone: FileText,
-    droit: "voir-documents",
-  },
-  {
     titre: "Modèles de documents",
     url: "/outils/modeles",
     icone: FileText,

@@ -19,7 +19,6 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  ACTIVITE_RECENTE,
   ALERTES_DOCS,
   PRESTATIONS_PHOTOS,
   type DocMo1,
@@ -45,11 +44,12 @@ import {
   PhotosPreuvesDialog,
 } from "./Dialogs";
 import { VueSyndic } from "@/components/documents/VueSyndic";
+import { ApercuDocumentDialog, contexteDoc } from "@/components/documents/ApercuDocument";
+import { docsRecentsParmi, marquerDocRecent } from "@/lib/docs-recents";
 import { BadgeType, BtnNavy, BtnOutline, Chip } from "./ui";
 
 const FILTRES_LOGEMENT = [
   "Tous",
-  "Quittances",
   "États des lieux",
   "Inventaire",
   "Diagnostics",
@@ -95,6 +95,7 @@ export function DocumentsApp({
   const [avis, setAvis] = useState(false);
   const [fiche, setFiche] = useState<DocMo1 | null>(null);
   const [photos, setPhotos] = useState<string | null>(null);
+  const [apercu, setApercu] = useState<DocMo1 | null>(null);
   const [filtresOuverts, setFiltresOuverts] = useState(false);
   const [logementFiltre, setLogementFiltre] = useState(logement ?? "Tous");
   const [typeFiltre, setTypeFiltre] = useState("Tous");
@@ -121,7 +122,15 @@ export function DocumentsApp({
     else if (vue === "fiches") list = list.filter((d) => d.filtre === "Fiches accès");
     else list = list.filter((d) => d.vue === vue);
     if (vue === "residents") list = list.filter((d) => d.occupant === onglet);
-    if (vue === "logements") list = list.filter((d) => !/bail/i.test(d.type) && !/bail/i.test(d.filtre));
+    if (vue === "logements") {
+      list = list.filter(
+        (d) =>
+          !/bail/i.test(d.type) &&
+          !/bail/i.test(d.filtre) &&
+          d.filtre !== "Quittances" &&
+          !/quittance/i.test(d.type),
+      );
+    }
     if (typeFiltre !== "Tous") {
       list = list.filter((d) => {
         if (d.filtre === typeFiltre) return true;
@@ -194,6 +203,7 @@ export function DocumentsApp({
         ...(vueCible === "residents" ? { occupant: vue === "residents" ? onglet : "locataires" } : {}),
       };
       ajouterDocument(ligne);
+      marquerDocRecent(ligne.id);
       toastOk(
         estBail
           ? `Bail enregistré une seule fois, côté locataire : ${fichier.nom}`
@@ -206,14 +216,14 @@ export function DocumentsApp({
   const voirDoc = (d: DocMo1) => {
     if (d.titre.toLowerCase().includes("intervention")) {
       setFiche(d);
+      marquerDocRecent(d.id);
       return;
     }
-    exporterFichier(d.fichier ?? { nom: d.titre }, {
-      adresse: d.logement,
-      logement: d.logement,
-      date: d.date,
-      extra: [`Type : ${d.type}`, `Logement : ${d.logement}`, `Date : ${d.date}`],
-    });
+    setApercu(d);
+  };
+
+  const telechargerDoc = (d: DocMo1) => {
+    exporterFichier(d.fichier ?? { nom: d.titre }, contexteDoc(d));
   };
 
   const supprimerDocs = async (ids: string[]) => {
@@ -234,8 +244,8 @@ export function DocumentsApp({
   const extraireListe = (docs: DocMo1[]) => {
     const source = selection.length ? docs.filter((d) => selection.includes(d.id)) : docs;
     const lignes = [
-      "Titre;Type;Logement;Date;Taille",
-      ...source.map((d) => `${d.titre};${d.type};${d.logement};${d.date};${d.taille}`),
+      "Titre;Type;Logement;Date",
+      ...source.map((d) => `${d.titre};${d.type};${d.logement};${d.date}`),
     ];
     telechargerDemo("documents-hublify.csv", lignes.join("\n"));
   };
@@ -259,15 +269,7 @@ export function DocumentsApp({
           onAlerte={setAlerte}
           onAcceder={aller}
           docs={documents}
-          onOuvrirDoc={(d) => {
-            const cible: VueDocuments =
-              d.filtre === "États des lieux"
-                ? "etats"
-                : d.filtre === "Fiches accès"
-                  ? "fiches"
-                  : d.vue;
-            aller(cible, { garderRecherche: true });
-          }}
+          onOuvrirDoc={(d) => voirDoc(d)}
           onOuvrirCarte={(c) => {
             if (c.href) void navigate({ to: c.href });
             else if (c.vue) aller(c.vue);
@@ -291,19 +293,13 @@ export function DocumentsApp({
           onRetour={() => aller("hub")}
           actionsEntete={
             <>
-              <BtnOutline onClick={() => setQuittance(true)}>
-                <FileText className="size-3" /> Quittance
-              </BtnOutline>
-              <BtnOutline onClick={() => setAvis(true)}>
-                <FileText className="size-3" /> Avis d'échéance
-              </BtnOutline>
               <BtnOutline onClick={importerDoc}>
                 <Upload className="size-3" /> Importer
               </BtnOutline>
             </>
           }
           onVoir={voirDoc}
-          onPhotos={(t) => setPhotos(t)}
+          onTelecharger={telechargerDoc}
           onSupprimer={supprimerDocs}
           onExtraire={() => extraireListe(docsFiltres)}
           onEnvoyer={() => envoyerListe(docsFiltres)}
@@ -378,7 +374,7 @@ export function DocumentsApp({
             </>
           }
           onVoir={voirDoc}
-          onPhotos={(t) => setPhotos(t)}
+          onTelecharger={telechargerDoc}
           onSupprimer={supprimerDocs}
           onExtraire={() => extraireListe(docsFiltres)}
           onEnvoyer={() => envoyerListe(docsFiltres)}
@@ -405,7 +401,7 @@ export function DocumentsApp({
             </BtnOutline>
           }
           onVoir={voirDoc}
-          onPhotos={(t) => setPhotos(t)}
+          onTelecharger={telechargerDoc}
           onSupprimer={supprimerDocs}
           onExtraire={() => extraireListe(docsFiltres)}
           onEnvoyer={() => envoyerListe(docsFiltres)}
@@ -447,7 +443,7 @@ export function DocumentsApp({
             </>
           }
           onVoir={voirDoc}
-          onPhotos={(t) => setPhotos(t)}
+          onTelecharger={telechargerDoc}
           onSupprimer={supprimerDocs}
           onExtraire={() => extraireListe(docsFiltres)}
           onEnvoyer={() => envoyerListe(docsFiltres)}
@@ -500,7 +496,8 @@ export function DocumentsApp({
         onClose={() => setQuittance(false)}
         onCree={(doc) => {
           ajouterDocument(doc);
-          aller("logements");
+          marquerDocRecent(doc.id);
+          aller("residents");
         }}
       />
       <GenerateAvisDialog
@@ -508,7 +505,8 @@ export function DocumentsApp({
         onClose={() => setAvis(false)}
         onCree={(doc) => {
           ajouterDocument(doc);
-          aller("logements");
+          marquerDocRecent(doc.id);
+          aller("residents");
         }}
       />
       <FicheInterventionDialog
@@ -521,6 +519,7 @@ export function DocumentsApp({
         onClose={() => setPhotos(null)}
         titre={photos ?? ""}
       />
+      <ApercuDocumentDialog doc={apercu} onFermer={() => setApercu(null)} />
       <FiltreLogementDialog
         ouvert={filtresOuverts}
         onClose={() => setFiltresOuverts(false)}
@@ -607,7 +606,7 @@ function Hub({
   }> = [
     {
       titre: "Documents Logements",
-      desc: "Factures, diagnostics, quittances — le bail est côté locataire",
+      desc: "Factures, diagnostics et fiches — le bail est côté locataire",
       n: nb((d) => d.vue === "logements" && !/bail/i.test(d.type) && !/bail/i.test(d.filtre)),
       icone: Home,
       vue: "logements",
@@ -751,7 +750,7 @@ function Hub({
         </span>
       </button>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {cartesVisibles.map((c) => (
           <article
             key={c.titre}
@@ -809,70 +808,48 @@ function Hub({
           </div>
         </header>
         <ul>
-          {ACTIVITE_RECENTE.filter(
-            (a) =>
-              !recherche.trim() || a.titre.toLowerCase().includes(recherche.trim().toLowerCase()),
-          ).map((a) => (
-            <li
-              key={a.id}
-              className="flex items-center gap-3 border-b border-surface-soft px-5 py-3.5 last:border-b-0"
-            >
-              <span className="flex size-8 items-center justify-center rounded-card bg-surface-soft">
-                <FileText className="size-3.5 text-ink-body" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm text-ink">{a.titre}</p>
-                <p className="mt-0.5 flex items-center gap-2 text-xs text-ink-muted">
-                  <span
-                    className={cn(
-                      "rounded px-1.5 py-0.5 text-[10px]",
-                      a.statut === "Créé"
-                        ? "bg-ink text-white"
-                        : "border border-line text-ink-subtle",
-                    )}
-                  >
-                    {a.statut}
-                  </span>
-                  {a.detail}
-                </p>
-              </div>
-              <button
-                type="button"
-                className="-my-3 flex size-11 shrink-0 items-center justify-center text-ink-muted md:my-0 md:size-3.5"
-                aria-label={`Voir ${a.titre}`}
-                onClick={() => {
-                  const nom = a.titre.toLowerCase();
-                  if (nom.includes("état des lieux") || nom.includes("etat des lieux")) {
-                    onOuvrirCarte({ href: "/outils/etats-des-lieux", vue: "etats" });
-                  } else if (nom.includes("fiche")) {
-                    onAcceder("fiches");
-                  } else if (nom.includes("bail") || nom.includes("quittance")) {
-                    onAcceder("residents");
-                  } else {
-                    onAcceder("logements");
-                  }
-                  const catalogue = docs.find((d) => d.titre === a.titre);
-                  void telechargerPdf(a.titre, [], {
-                    ...(catalogue?.logement ? { logement: catalogue.logement } : {}),
-                    ...(catalogue?.date ? { date: catalogue.date } : {}),
-                    extra: [
-                      ...(catalogue
-                        ? [
-                            `Type : ${catalogue.type}`,
-                            `Logement : ${catalogue.logement}`,
-                            `Date : ${catalogue.date}`,
-                          ]
-                        : [a.titre]),
-                      a.detail,
-                    ],
-                  });
-                }}
+          {docsRecentsParmi(docs)
+            .filter(
+              (d) =>
+                !recherche.trim() ||
+                d.titre.toLowerCase().includes(recherche.trim().toLowerCase()),
+            )
+            .map((d) => (
+              <li
+                key={d.id}
+                className="flex items-center gap-3 border-b border-surface-soft px-5 py-3.5 last:border-b-0"
               >
-                <Eye className="size-3.5" />
-              </button>
-            </li>
-          ))}
+                <span className="flex size-8 items-center justify-center rounded-card bg-surface-soft">
+                  <FileText className="size-3.5 text-ink-body" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <button
+                    type="button"
+                    className="text-left text-sm text-ink hover:underline"
+                    onClick={() => onOuvrirDoc(d)}
+                  >
+                    {d.titre}
+                  </button>
+                  <p className="mt-0.5 text-xs text-ink-muted">
+                    {d.logement} · {d.date}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="-my-3 flex size-11 shrink-0 items-center justify-center text-ink-muted md:my-0 md:size-3.5"
+                  aria-label={`Aperçu ${d.titre}`}
+                  onClick={() => onOuvrirDoc(d)}
+                >
+                  <Eye className="size-3.5" />
+                </button>
+              </li>
+            ))}
         </ul>
+        {docsRecentsParmi(docs).length === 0 && (
+          <p className="px-5 py-6 text-sm text-ink-muted">
+            Aucun document consulté récemment. Ouvrez un document pour l’aperçu.
+          </p>
+        )}
       </section>
     </div>
   );
@@ -895,7 +872,7 @@ function ListeDocs({
   onglets,
   bandeau,
   onVoir,
-  onPhotos,
+  onTelecharger,
   onSupprimer,
   onExtraire,
   onEnvoyer,
@@ -916,7 +893,7 @@ function ListeDocs({
   onglets?: ReactNode;
   bandeau?: string;
   onVoir: (d: DocMo1) => void;
-  onPhotos: (t: string) => void;
+  onTelecharger: (d: DocMo1) => void;
   onSupprimer: (ids: string[]) => void;
   onExtraire: () => void;
   onEnvoyer: () => void;
@@ -924,6 +901,7 @@ function ListeDocs({
   const toggle = (id: string) =>
     onSelection(selection.includes(id) ? selection.filter((x) => x !== id) : [...selection, id]);
   const tous = () => onSelection(selection.length === docs.length ? [] : docs.map((d) => d.id));
+  const recents = docsRecentsParmi(docs);
 
   return (
     <div>
@@ -976,9 +954,31 @@ function ListeDocs({
           </div>
         </div>
 
+        {recents.length > 0 && (
+          <div className="border-b border-surface-soft px-5 py-3">
+            <p className="text-xs font-medium text-ink">Récents</p>
+            <ul className="mt-2 space-y-1">
+              {recents.slice(0, 5).map((d) => (
+                <li key={`recent-${d.id}`}>
+                  <button
+                    type="button"
+                    onClick={() => onVoir(d)}
+                    className="text-left text-sm text-ink hover:underline"
+                  >
+                    {d.titre}
+                  </button>
+                  <span className="ml-2 text-[11px] text-ink-muted">
+                    {d.logement} · {d.date}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {docs.length === 0 && (
           <p className="px-5 py-8 text-center text-sm text-ink-muted">
-            Aucun document dans ce filtre. Importez un fichier ou générez une quittance.
+            Aucun document dans ce filtre. Importez un fichier ou changez de vue.
           </p>
         )}
         <div className="divide-y divide-surface-soft md:hidden">
@@ -994,7 +994,13 @@ function ListeDocs({
                     aria-label={d.titre}
                   />
                   <span>
-                    <span className="block text-sm font-medium text-ink">{d.titre}</span>
+                    <button
+                      type="button"
+                      onClick={() => onVoir(d)}
+                      className="block text-left text-sm font-medium text-ink hover:underline"
+                    >
+                      {d.titre}
+                    </button>
                     <span className="block text-xs text-ink-muted">
                       {d.logement} · {d.date}
                     </span>
@@ -1008,31 +1014,15 @@ function ListeDocs({
                   onClick={() => onVoir(d)}
                   className="inline-flex h-11 items-center justify-center rounded-card border border-line text-xs font-medium text-ink-body"
                 >
-                  Voir
+                  Aperçu
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    exporterFichier(d.fichier ?? { nom: d.titre }, {
-                      adresse: d.logement,
-                      logement: d.logement,
-                      date: d.date,
-                      extra: [`Type : ${d.type}`, `Logement : ${d.logement}`, `Date : ${d.date}`],
-                    })
-                  }
+                  onClick={() => onTelecharger(d)}
                   className="inline-flex h-11 items-center justify-center rounded-card border border-line text-xs font-medium text-ink-body"
                 >
                   Télécharger
                 </button>
-                {d.photos > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => onPhotos(d.titre)}
-                    className="col-span-2 inline-flex h-11 items-center justify-center rounded-card border border-line text-xs font-medium text-ink-body"
-                  >
-                    Photos ({d.photos})
-                  </button>
-                )}
               </div>
             </article>
           ))}
@@ -1056,9 +1046,8 @@ function ListeDocs({
                 <th className="px-2 py-3 font-medium">Type</th>
                 <th className="px-2 py-3 font-medium">Logement</th>
                 <th className="px-2 py-3 font-medium">Date</th>
-                <th className="px-2 py-3 font-medium">Taille</th>
                 <th className="px-2 py-3 font-medium">Modifié par</th>
-                <th className="px-2 py-3 font-medium">Photos</th>
+                <th className="px-2 py-3 font-medium">Aperçu</th>
                 <th className="px-2 py-3 font-medium">Actions</th>
               </tr>
             </thead>
@@ -1076,57 +1065,37 @@ function ListeDocs({
                     </label>
                   </td>
                   <td className="px-2 py-3">
-                    <span className="inline-flex items-center gap-2 text-sm text-ink">
+                    <button
+                      type="button"
+                      onClick={() => onVoir(d)}
+                      className="inline-flex items-center gap-2 text-left text-sm text-ink hover:underline"
+                    >
                       <span className="flex size-7 items-center justify-center rounded-[8px] bg-surface-soft">
                         <FileText className="size-3 text-ink-body" />
                       </span>
                       {d.titre}
-                    </span>
+                    </button>
                   </td>
                   <td className="px-2 py-3">
                     <BadgeType>{d.type}</BadgeType>
                   </td>
                   <td className="px-2 py-3 text-ink-body">{d.logement}</td>
                   <td className="px-2 py-3 text-ink-body">{d.date}</td>
-                  <td className="px-2 py-3 text-ink-body">{d.taille}</td>
                   <td className="px-2 py-3 text-ink-body">{d.modifiePar}</td>
                   <td className="px-2 py-3">
-                    {d.photos > 0 ? (
-                      <button
-                        type="button"
-                        onClick={() => onPhotos(d.titre)}
-                        className="inline-flex items-center gap-1 text-ink-body"
-                      >
-                        <Camera className="size-3" /> {d.photos}
-                      </button>
-                    ) : (
-                      <span className="text-ink-muted">—</span>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => onVoir(d)}
+                      className="inline-flex items-center gap-1 text-ink-body hover:underline"
+                    >
+                      <Eye className="size-3.5" /> Aperçu
+                    </button>
                   </td>
                   <td className="px-2 py-3">
                     <div className="flex gap-1">
                       <button
                         type="button"
-                        onClick={() => onVoir(d)}
-                        className="flex size-11 items-center justify-center rounded-[8px] text-ink-body md:size-7"
-                        aria-label="Voir"
-                      >
-                        <Eye className="size-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          exporterFichier(d.fichier ?? { nom: d.titre }, {
-                            adresse: d.logement,
-                            logement: d.logement,
-                            date: d.date,
-                            extra: [
-                              `Type : ${d.type}`,
-                              `Logement : ${d.logement}`,
-                              `Date : ${d.date}`,
-                            ],
-                          })
-                        }
+                        onClick={() => onTelecharger(d)}
                         className="flex size-11 items-center justify-center rounded-[8px] text-ink-body md:size-7"
                         aria-label="Télécharger"
                       >

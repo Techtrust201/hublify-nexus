@@ -2,7 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
-import { TYPES_RESERVATION, nuitsEntre } from "@/data/reservations-mo1";
+import { TYPES_RESERVATION, messageChevauchement, nuitsEntre, trouverChevauchement } from "@/data/reservations-mo1";
 import type { TypeReservationMo1 } from "@/data/reservations-mo1";
 import { ajouterDocument } from "@/data/documents-store";
 import {
@@ -44,6 +44,17 @@ export function CreerBail() {
       toastErreur("La date de fin doit être après le début.");
       return;
     }
+    if (calendrier) {
+      const collision = trouverChevauchement(session.reservationsDossier, {
+        bienId,
+        arrivee: dates.debut,
+        depart: dates.fin,
+      });
+      if (collision) {
+        toastErreur(messageChevauchement(collision));
+        return;
+      }
+    }
     const loyerN = Number(loyer.replace(",", ".")) || 0;
     const chargesN = Number(charges.replace(",", ".")) || 0;
     const cautionN = Number(caution.replace(",", ".")) || 0;
@@ -80,7 +91,7 @@ export function CreerBail() {
       taille: "PDF",
       modifiePar: "Vous",
       photos: 0,
-      vue: "logements",
+      vue: "residents",
       occupant: "locataires",
     });
     if (calendrier) {
@@ -125,10 +136,10 @@ export function CreerBail() {
     ajouterNotif({
       titre: "Bail créé",
       detail: `${parties.locataire} · ${bien?.nom}`,
-      href: "/documents?vue=logements",
+      href: "/documents?vue=residents",
     });
     toastOk("Bail enregistré dans Documents.");
-    await navigate({ to: "/documents", search: { vue: "logements" } });
+    await navigate({ to: "/documents", search: { vue: "residents" } });
   };
 
   return (
