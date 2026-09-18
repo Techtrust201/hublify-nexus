@@ -590,6 +590,84 @@ export function libelleStatut(s: StatutPastille) {
   return "À faire";
 }
 
+export const PHOTO_BIEN = "/biens/interieur.jpg";
+
+export function nomCourtBien(nom: string) {
+  return nom.replace(/^(Villa|Appartement|Studio)\s+/i, "").trim() || nom;
+}
+
+/** Aligné sur la maquette 3 jours : Lavandrix hors ligne, travaux = hors ligne. */
+export function bienEnLigne(bien: { id: string; statut?: string | undefined }) {
+  if (bien.statut === "en travaux") return false;
+  return bien.id !== "lavandrix";
+}
+
+export function positionPhotoBien(id: string) {
+  if (id === "lavandrix") return "20% 35%";
+  if (id === "colette") return "80% 40%";
+  if (id === "raclette") return "40% 80%";
+  return "50% 45%";
+}
+
+const DUREE_TYPE: Record<MissionMo1["type"], string> = {
+  Menage: "30min",
+  "Check-in": "40min",
+  "Check-out": "30min",
+  Inventaire: "45min",
+  Maintenance: "45min",
+};
+
+const LIBELLE_TYPE_MISSION: Record<MissionMo1["type"], string> = {
+  Menage: "Ménage",
+  "Check-in": "Check-in",
+  "Check-out": "Check-out",
+  Inventaire: "Inventaire",
+  Maintenance: "Prestation",
+};
+
+export function heurePastille(heure: string) {
+  const [h = "00", m = "00"] = heure.split(":");
+  return `${h}h${m}`;
+}
+
+export function libellePastille(m: MissionMo1) {
+  return `${LIBELLE_TYPE_MISSION[m.type]} - ${m.assigne} - ${heurePastille(m.heure)} - ${DUREE_TYPE[m.type]}`;
+}
+
+export function dateCourtIso(iso: string) {
+  const [, mois = "", jour = ""] = iso.split("-");
+  return `${jour}/${mois}`;
+}
+
+export function teinteBarreCalendrier(
+  r: { arrivee: string; depart: string },
+  jours: Date[],
+) {
+  const keys = jours.map(isoJour);
+  const arrive = keys.includes(r.arrivee);
+  const depart = keys.includes(r.depart);
+  if (arrive) return { fond: "#cce8f3", bord: "#7a96c7", fade: false };
+  if (depart) return { fond: "#a5c3cf", bord: "#d1d5dc", fade: false };
+  return { fond: "#cce8f3", bord: "#d1d5dc", fade: false };
+}
+
+export function stylePastille(m: MissionMo1) {
+  if (m.statut === "terminee" && m.type === "Menage") {
+    return {
+      fond: "#ee8a79",
+      barre: true,
+      fini: false,
+    };
+  }
+  if (m.statut === "terminee") {
+    return { fond: "#d8f3e3", barre: false, fini: true };
+  }
+  if (m.type === "Menage" && m.statut === "a_faire") {
+    return { fond: "#fff7de", barre: false, fini: false };
+  }
+  return { fond: "#d8f3e3", barre: false, fini: false };
+}
+
 export function emojiType(type: TypeRegle) {
   return TYPES_REGLE.find((t) => t.id === type)?.emoji ?? "🎉";
 }

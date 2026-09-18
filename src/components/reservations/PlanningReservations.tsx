@@ -2,6 +2,11 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { RetourVueGenerale } from "@/components/layout/RetourVueGenerale";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Home, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
+import {
+  ColonneBienCalendrier,
+  EnteteJoursCalendrier,
+  type BienCalendrierChrome,
+} from "@/components/dashboard/CalendrierLigne";
 import { ScrollHint } from "@/components/layout/ScrollHint";
 import { FiltreOnglet } from "@/components/reservations/KpiEtAccordeons";
 import {
@@ -17,7 +22,7 @@ import {
   type PlateformeMo1,
   type ReservationMo1,
 } from "@/data/reservations-mo1";
-import { reservationTouche, styleBarreResa } from "@/data/planning-mo1";
+import { reservationTouche, styleBarreResa, teinteBarreCalendrier } from "@/data/planning-mo1";
 import { CreateEventDialog } from "@/components/dashboard/DashboardDialogs";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -87,17 +92,21 @@ export function PlanningReservations({
   }, [plateforme, session.reservationsDossier]);
 
   const biens = useMemo(() => {
-    const source = session.biens.map((b): BienMo1 => ({
-      id: b.id,
-      nom: b.nom,
-      adresse: b.adresse ?? "",
-      plateformes: {
-        Airbnb: "aucun",
-        "Booking.com": "aucun",
-        Direct: "actif",
-        Autre: "aucun",
-      },
-    }));
+    const source = session.biens.map(
+      (b): BienMo1 & BienCalendrierChrome => ({
+        id: b.id,
+        nom: b.nom,
+        adresse: b.adresse ?? "",
+        typologie: b.typologie,
+        statut: b.statut,
+        plateformes: {
+          Airbnb: "aucun",
+          "Booking.com": "aucun",
+          Direct: "actif",
+          Autre: "aucun",
+        },
+      }),
+    );
     if (!bienLocalise) return source;
     return source.filter((b) => b.id === bienLocalise);
   }, [bienLocalise, session.biens]);
@@ -264,6 +273,37 @@ export function PlanningReservations({
 
         <button
           type="button"
+          onClick={() => {
+            const bienId = biens[0]?.id ?? "";
+            const debut = isoJour(ancre);
+            setPeriode({ bienId, debut });
+            setFinPeriode(debut);
+          }}
+          className="inline-flex h-11 min-h-11 items-center rounded border border-line bg-white px-2.5 text-xs font-medium text-ink-body md:h-[26px] md:min-h-[26px]"
+        >
+          Période d'ouverture BAIL
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            setNote({
+              date: isoJour(ancre),
+              bienNom: biens[0]?.nom ?? "",
+            })
+          }
+          className="inline-flex h-11 min-h-11 items-center rounded border border-line bg-white px-2.5 text-xs font-medium text-ink-body md:h-[26px] md:min-h-[26px]"
+        >
+          Note
+        </button>
+        <Link
+          to="/reservations/nouveau"
+          className="inline-flex h-11 min-h-11 items-center gap-1 rounded border border-line bg-white px-2.5 text-xs font-medium text-ink-body md:h-[26px] md:min-h-[26px]"
+        >
+          <Plus className="size-2.5" />
+          Nouvelle réservation
+        </Link>
+        <button
+          type="button"
           onClick={onVoirListe}
           className="ml-auto inline-flex min-h-11 items-center text-xs text-ink-muted md:min-h-0"
         >
@@ -293,14 +333,6 @@ export function PlanningReservations({
             onSelectReservation?.(r.id);
           }}
           onBloquer={bloquerJour}
-          onOuverture={(bienId, date) => {
-            setPeriode({ bienId, debut: date });
-            setFinPeriode(date);
-          }}
-          onNote={(bienId, date) => {
-            const nom = session.biens.find((b) => b.id === bienId)?.nom ?? "";
-            setNote({ date, bienNom: nom });
-          }}
         />
       )}
       <Dialog
@@ -446,46 +478,21 @@ function GrilleJours({
   datesBloquees,
   onSelect,
   onBloquer,
-  onOuverture,
-  onNote,
 }: {
-  biens: BienMo1[];
+  biens: (BienMo1 & BienCalendrierChrome)[];
   jours: Date[];
   reservations: ReservationMo1[];
   datesBloquees: { id: string; bienId: string; date: string; motif?: string }[];
   onSelect: (r: ReservationMo1) => void;
   onBloquer: (bienId: string, date: string) => void;
-  onOuverture: (bienId: string, date: string) => void;
-  onNote: (bienId: string, date: string) => void;
 }) {
   return (
     <ScrollHint snap>
       <div
-        className="grid min-w-[720px]"
-        style={{ gridTemplateColumns: `130px repeat(${jours.length}, minmax(180px, 1fr))` }}
+        className="grid min-w-[860px]"
+        style={{ gridTemplateColumns: `136px repeat(${jours.length}, minmax(200px, 1fr))` }}
       >
-        <div className="sticky left-0 z-[5] border-b border-r border-line bg-white" />
-        {jours.map((d) => {
-          const key = isoJour(d);
-          const auj = key === AUJOURD_HUI_MO1;
-          return (
-            <div
-              key={key}
-              className={cn(
-                "snap-start border-b border-r border-surface-soft py-2 text-center",
-                auj && "bg-surface",
-              )}
-            >
-              <p className="text-xs uppercase text-ink-muted">
-                {d.toLocaleDateString("fr-FR", { weekday: "short" }).replace(".", "")}
-              </p>
-              <p className={cn("text-sm text-ink-body", auj && "font-semibold text-ink")}>
-                {d.getDate()}
-              </p>
-            </div>
-          );
-        })}
-
+        <EnteteJoursCalendrier jours={jours} aujourdHui={AUJOURD_HUI_MO1} isoJour={isoJour} />
         {biens.map((bien) => (
           <LigneBien
             key={bien.id}
@@ -495,8 +502,6 @@ function GrilleJours({
             bloquees={datesBloquees.filter((d) => d.bienId === bien.id)}
             onSelect={onSelect}
             onBloquer={onBloquer}
-            onOuverture={onOuverture}
-            onNote={onNote}
           />
         ))}
       </div>
@@ -512,99 +517,88 @@ function LigneBien({
   bloquees,
   onSelect,
   onBloquer,
-  onOuverture,
-  onNote,
 }: {
-  bien: BienMo1;
+  bien: BienMo1 & BienCalendrierChrome;
   jours: Date[];
   sejours: ReservationMo1[];
   bloquees: { id: string; date: string; motif?: string }[];
   onSelect: (r: ReservationMo1) => void;
   onBloquer: (bienId: string, date: string) => void;
-  onOuverture: (bienId: string, date: string) => void;
-  onNote: (bienId: string, date: string) => void;
 }) {
   return (
     <div className="contents">
-      <div className="sticky left-0 z-[5] border-b border-r border-line bg-white px-3 py-3 text-xs text-ink-body">
-        {bien.nom}
-      </div>
+      <ColonneBienCalendrier bien={bien} />
       <div
-        className="relative grid border-b border-surface-soft"
-        style={{
-          gridColumn: `2 / span ${jours.length}`,
-          gridTemplateColumns: `repeat(${jours.length}, minmax(0, 1fr))`,
-        }}
+        className="relative min-h-[148px] border-b border-line"
+        style={{ gridColumn: `2 / span ${jours.length}` }}
       >
-        {jours.map((d) => {
-          const key = isoJour(d);
-          const occupe = sejours.some((r) => reservationCouvre(r, key));
-          const bloc = bloquees.find((b) => b.date === key);
-          const bloquee = Boolean(bloc);
-          const ouverture = bloc?.motif === "Ouverture" || bloc?.motif === "Ouverture BAIL";
-          return (
-            <div
-              key={key}
-              className={cn(
-                "relative min-h-[59px] border-r border-surface-soft",
-                key === AUJOURD_HUI_MO1 && "bg-surface/50",
-                bloquee &&
-                  (ouverture
-                    ? "bg-[color-mix(in_srgb,var(--accent-teal)_12%,white)]"
-                    : "bg-[repeating-linear-gradient(-45deg,var(--surface-soft),var(--surface-soft)_4px,var(--surface-elevated)_4px,var(--surface-elevated)_8px)]"),
-              )}
-            >
-              {!occupe && !bloquee && (
-                <Link
-                  to="/reservations/nouveau"
-                  search={{ bien: bien.id, arrivee: key }}
-                  className="absolute inset-0 flex items-center justify-center text-ink-muted hover:bg-white/70"
-                  aria-label={`Ajouter une réservation — ${bien.nom}`}
-                >
-                  <Plus className="size-3.5" />
-                </Link>
-              )}
-              {occupe && (
-                <MenuCaseOccupee
-                  bienId={bien.id}
-                  date={key}
-                  onOuverture={onOuverture}
-                  onNote={onNote}
-                />
-              )}
-              {bloquee && !occupe && (
-                <button
-                  type="button"
-                  onClick={() => onBloquer(bien.id, key)}
-                  className="flex h-full w-full items-center justify-center text-[10px] font-medium text-ink-muted"
-                >
-                  {ouverture ? "Ouverture" : "Bloqué"}
-                </button>
-              )}
-            </div>
-          );
-        })}
+        <div
+          className="absolute inset-0 grid"
+          style={{ gridTemplateColumns: `repeat(${jours.length}, minmax(0, 1fr))` }}
+        >
+          {jours.map((d) => {
+            const key = isoJour(d);
+            const occupe = sejours.some((r) => reservationCouvre(r, key));
+            const bloc = bloquees.find((b) => b.date === key);
+            const bloquee = Boolean(bloc);
+            const ouverture = bloc?.motif === "Ouverture" || bloc?.motif === "Ouverture BAIL";
+            return (
+              <div
+                key={key}
+                className={cn(
+                  "group/case relative border-r border-line",
+                  key === AUJOURD_HUI_MO1 && "bg-[#f8f8f8]",
+                  bloquee &&
+                    (ouverture
+                      ? "bg-[color-mix(in_srgb,var(--accent-teal)_12%,white)]"
+                      : "bg-[repeating-linear-gradient(-45deg,var(--surface-soft),var(--surface-soft)_4px,var(--surface-elevated)_4px,var(--surface-elevated)_8px)]"),
+                )}
+              >
+                {!occupe && !bloquee && (
+                  <Link
+                    to="/reservations/nouveau"
+                    search={{ bien: bien.id, arrivee: key }}
+                    className="absolute inset-0 flex items-center justify-center text-ink-muted opacity-0 transition-opacity group-hover/case:opacity-100 focus-visible:opacity-100"
+                    aria-label={`Nouvelle réservation — ${bien.nom}`}
+                  >
+                    <Plus className="size-3.5" />
+                  </Link>
+                )}
+                {bloquee && !occupe && (
+                  <button
+                    type="button"
+                    onClick={() => onBloquer(bien.id, key)}
+                    className="flex h-full w-full items-center justify-center text-[10px] font-medium text-ink-muted"
+                  >
+                    {ouverture ? "Ouverture" : "Bloqué"}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
 
         {sejours.map((r) => {
           const barre = styleBarreResa(r, jours);
           if (!barre) return null;
           const paiement = paiementDe(r);
+          const teinte = teinteBarreCalendrier(r, jours);
           return (
             <button
               key={r.id}
               type="button"
               onClick={() => onSelect(r)}
-              className="absolute top-1.5 z-[1] flex h-[47px] items-center gap-1.5 rounded-lg border-2 px-2.5"
+              className="absolute top-[54px] z-[1] flex h-10 items-center gap-1.5 rounded-lg border px-2.5"
               style={{
                 ...barre,
-                backgroundColor: r.couleur,
-                borderColor: paiement === "impaye" ? "var(--line-strong)" : "var(--ink-subtle)",
+                backgroundColor: teinte.fond,
+                borderColor: teinte.bord,
               }}
             >
-              <span className="shrink-0 rounded border border-ink-muted bg-surface-soft px-1 py-0.5 text-[9px] font-medium text-ink-status">
+              <span className="shrink-0 rounded border border-line-strong bg-white/80 px-1 py-0.5 text-[9px] font-medium text-ink-status">
                 {CODE_BARRE[r.plateforme]}
               </span>
-              <span className="truncate text-left text-xs font-medium text-ink-status">
+              <span className="truncate text-left text-xs font-medium text-ink-subtle">
                 {r.occupant}
               </span>
               <PointPaiement etat={paiement} />
@@ -648,7 +642,7 @@ function GrilleMois({
             <div
               key={key}
               className={cn(
-                "min-h-24 border-b border-r border-line p-1.5",
+                "group min-h-24 border-b border-r border-line p-1.5",
                 hors && "bg-surface",
                 key === AUJOURD_HUI_MO1 && "bg-surface",
               )}
@@ -673,7 +667,7 @@ function GrilleMois({
                     <Link
                       to="/reservations/nouveau"
                       search={{ arrivee: key }}
-                      className="flex size-11 items-center justify-center rounded-full border border-line-strong text-ink-muted md:size-5"
+                      className="flex size-11 items-center justify-center rounded-full text-ink-muted opacity-0 group-hover:opacity-100 focus-visible:opacity-100 md:size-5"
                       aria-label="Créer une réservation"
                     >
                       <Plus className="size-2.5" />
@@ -686,56 +680,6 @@ function GrilleMois({
         })}
       </div>
       <LegendePlanning />
-    </div>
-  );
-}
-
-function MenuCaseOccupee({
-  bienId,
-  date,
-  onOuverture,
-  onNote,
-}: {
-  bienId: string;
-  date: string;
-  onOuverture: (bienId: string, date: string) => void;
-  onNote: (bienId: string, date: string) => void;
-}) {
-  const [ouvert, setOuvert] = useState(false);
-  return (
-    <div className="absolute bottom-0.5 right-0.5 z-[3]">
-      <button
-        type="button"
-        onClick={() => setOuvert((v) => !v)}
-        className="flex size-5 items-center justify-center rounded-full border border-line bg-white text-ink-muted"
-        aria-label="Ajouter une note ou une période d'ouverture"
-      >
-        <Plus className="size-2.5" />
-      </button>
-      {ouvert && (
-        <div className="absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-card border border-line bg-white py-1 shadow-md">
-          <button
-            type="button"
-            onClick={() => {
-              onNote(bienId, date);
-              setOuvert(false);
-            }}
-            className="block w-full px-3 py-2 text-left text-xs text-ink hover:bg-surface"
-          >
-            Note / événement
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onOuverture(bienId, date);
-              setOuvert(false);
-            }}
-            className="block w-full px-3 py-2 text-left text-xs text-ink hover:bg-surface"
-          >
-            Période d'ouverture
-          </button>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 // SOURCE: Maquette MO1 — grille biens × jours (Missions / Tarifs, 3 jours / 5 jours / mois)
 
-import { Link, useRouterState } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import {
   estPagePlanningHorsAccueil,
   RetourVueGenerale,
@@ -15,9 +15,15 @@ import {
   Tag,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import {
+  BandMissionsJour,
+  ColonneBienCalendrier,
+  EnteteJoursCalendrier,
+  PastilleCalendrier,
+  type BienCalendrierChrome,
+} from "@/components/dashboard/CalendrierLigne";
 import { CreatePrestationDialog } from "@/components/dashboard/CreatePrestationDialog";
 import {
-  CreateEventDialog,
   CreateRegleDialog,
   GererReglesPanel,
   MissionInfoDialog,
@@ -29,11 +35,13 @@ import {
   ANCRE_MO1,
   AUJOURD_HUI_MO1,
   ajouterJours,
+  dateCourtIso,
   emojiType,
   isoJour,
   prixDuJour,
   reservationCouvre,
   styleBarreResa,
+  teinteBarreCalendrier,
   type BienMo1,
   type EnsembleRegles,
   type FiltreMission,
@@ -44,8 +52,6 @@ import {
   type VuePlanning,
 } from "@/data/planning-mo1";
 import {
-  ajouterEvenement,
-  ajouterNotif,
   modifierSession,
   poserOuverturesBail,
   retirerMission,
@@ -73,10 +79,12 @@ export function PlanningGrid({
   const retourAccueil = estPagePlanningHorsAccueil(pathname);
   const missions = session.missions;
   const sejoursCal = session.reservationsCalendrier;
-  const biens: BienMo1[] = session.biens.map((b) => ({
+  const biens: (BienMo1 & BienCalendrierChrome)[] = session.biens.map((b) => ({
     id: b.id,
     nom: b.nom,
     baseNuit: b.baseNuit,
+    typologie: b.typologie,
+    statut: b.statut,
   }));
   const [vue, setVue] = useState<VuePlanning>(vueInitiale);
   const [ancre, setAncre] = useState(() => new Date(ANCRE_MO1));
@@ -87,7 +95,6 @@ export function PlanningGrid({
     date: string;
     mission?: MissionMo1;
   } | null>(null);
-  const [note, setNote] = useState<{ date: string; bienNom: string } | null>(null);
   const ensembles = session.ensembles;
   const regles = session.regles;
   const setEnsembles = (
@@ -299,6 +306,19 @@ export function PlanningGrid({
             >
               Période d'ouverture BAIL
             </button>
+            <button
+              type="button"
+              onClick={() =>
+                setPrestation({
+                  bienId: biens[0]?.id ?? "",
+                  date: isoJour(ancre),
+                })
+              }
+              className="inline-flex h-11 min-h-11 items-center gap-1 rounded border border-line bg-white px-2.5 text-xs font-medium text-ink-body md:h-[26px] md:min-h-[26px]"
+            >
+              <Plus className="size-2.5" />
+              Ajouter une prestation
+            </button>
           </div>
         )}
       </div>
@@ -352,9 +372,6 @@ export function PlanningGrid({
             if (id) onReservation?.(id);
           }}
           onAjouterPrestation={(bienId, date) => setPrestation({ bienId, date })}
-          onAjouterNote={(bienId, date) =>
-            setNote({ date, bienNom: biens.find((b) => b.id === bienId)?.nom ?? "" })
-          }
         />
       )}
 
@@ -472,17 +489,6 @@ export function PlanningGrid({
           </div>
         </DialogContent>
       </Dialog>
-      <CreateEventDialog
-        ouvert={Boolean(note)}
-        onFermer={() => setNote(null)}
-        debutInitial={note?.date}
-        bienInitial={note?.bienNom}
-        onCreer={(e) => {
-          ajouterEvenement(e);
-          ajouterNotif({ titre: "Note calendrier", detail: e.titre, href: "/" });
-          toastOk("Note enregistrée.");
-        }}
-      />
       <CreateRegleDialog
         ouvert={creerRegle}
         onFermer={() => {
@@ -537,49 +543,22 @@ function JoursMissions({
   onMission,
   onReservation,
   onAjouterPrestation,
-  onAjouterNote,
 }: {
   jours: Date[];
-  biens: BienMo1[];
+  biens: (BienMo1 & BienCalendrierChrome)[];
   missions: MissionMo1[];
   sejours: ReservationMo1[];
   onMission: (m: MissionMo1) => void;
   onReservation?: (r: ReservationMo1) => void;
   onAjouterPrestation?: (bienId: string, date: string) => void;
-  onAjouterNote?: (bienId: string, date: string) => void;
 }) {
   return (
     <ScrollHint snap>
       <div
-        className="grid min-w-[720px]"
-        style={{ gridTemplateColumns: `130px repeat(${jours.length}, minmax(180px, 1fr))` }}
+        className="grid min-w-[860px]"
+        style={{ gridTemplateColumns: `136px repeat(${jours.length}, minmax(200px, 1fr))` }}
       >
-        <div className="sticky left-0 z-[5] border-b border-r border-line bg-white" />
-        {jours.map((d) => {
-          const key = isoJour(d);
-          return (
-            <div
-              key={key}
-              className={cn(
-                "snap-start border-b border-r border-surface-soft py-2 text-center",
-                key === AUJOURD_HUI_MO1 && "bg-surface",
-              )}
-            >
-              <p className="text-xs uppercase text-ink-muted">
-                {d.toLocaleDateString("fr-FR", { weekday: "short" }).replace(".", "")}
-              </p>
-              <p
-                className={cn(
-                  "text-sm text-ink-body",
-                  key === AUJOURD_HUI_MO1 && "font-semibold text-ink",
-                )}
-              >
-                {d.getDate()}
-              </p>
-            </div>
-          );
-        })}
-
+        <EnteteJoursCalendrier jours={jours} aujourdHui={AUJOURD_HUI_MO1} isoJour={isoJour} />
         {biens.map((bien) => (
           <LigneBien
             key={bien.id}
@@ -590,7 +569,6 @@ function JoursMissions({
             onMission={onMission}
             {...(onReservation ? { onReservation } : {})}
             {...(onAjouterPrestation ? { onAjouterPrestation } : {})}
-            {...(onAjouterNote ? { onAjouterNote } : {})}
           />
         ))}
       </div>
@@ -606,184 +584,88 @@ function LigneBien({
   onMission,
   onReservation,
   onAjouterPrestation,
-  onAjouterNote,
 }: {
-  bien: BienMo1;
+  bien: BienMo1 & BienCalendrierChrome;
   jours: Date[];
   missions: MissionMo1[];
   sejours: ReservationMo1[];
   onMission: (m: MissionMo1) => void;
   onReservation?: (r: ReservationMo1) => void;
   onAjouterPrestation?: (bienId: string, date: string) => void;
-  onAjouterNote?: (bienId: string, date: string) => void;
 }) {
-  const aUneResa = sejours.some((r) => jours.some((d) => reservationCouvre(r, isoJour(d))));
-  const aUneMission = missions.some((m) => jours.some((d) => isoJour(d) === m.date));
-  const ligneHaute = aUneResa || aUneMission;
-
   return (
     <div className="contents">
-      <div className="sticky left-0 z-[5] border-b border-r border-line bg-white px-3 py-3 text-xs text-ink-body">
-        {bien.nom}
-      </div>
+      <ColonneBienCalendrier bien={bien} />
       <div
-        className="relative grid border-b border-surface-soft"
+        className="relative min-h-[148px] border-b border-line"
         style={{
           gridColumn: `2 / span ${jours.length}`,
-          gridTemplateColumns: `repeat(${jours.length}, minmax(0, 1fr))`,
         }}
       >
-        {jours.map((d) => {
-          const key = isoJour(d);
-          const duJour = missions.filter((m) => m.date === key);
-          const visible = duJour[0];
-          const reserve = sejours.some((r) => reservationCouvre(r, key));
-          return (
-            <div
-              key={key}
-              className={cn(
-                "relative border-r border-surface-soft",
-                ligneHaute ? "min-h-[104px]" : "min-h-[52px]",
-                key === AUJOURD_HUI_MO1 && "bg-surface/60",
-                onAjouterPrestation && "cursor-pointer",
-              )}
-              onClick={() => onAjouterPrestation?.(bien.id, key)}
-            >
+        <div
+          className="absolute inset-0 grid"
+          style={{ gridTemplateColumns: `repeat(${jours.length}, minmax(0, 1fr))` }}
+        >
+          {jours.map((d) => {
+            const key = isoJour(d);
+            const duJour = missions.filter((m) => m.date === key);
+            return (
               <div
+                key={key}
                 className={cn(
-                  "flex items-center justify-center",
-                  ligneHaute ? "h-[52px]" : "h-full",
+                  "flex flex-col border-r border-line",
+                  key === AUJOURD_HUI_MO1 && "bg-[#f8f8f8]",
                 )}
               >
-                <Link
-                  to="/reservations/nouveau"
-                  search={{ bien: bien.id, arrivee: key }}
-                  className="flex size-11 items-center justify-center md:size-5"
-                  aria-label={`Ajouter une réservation — ${bien.nom}`}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <span
-                    className={cn(
-                      "flex size-5 items-center justify-center rounded-full border text-ink-muted",
-                      reserve ? "border-dashed border-line bg-white/80" : "border-line-strong",
-                    )}
-                  >
-                    <Plus className="size-2.5" />
-                  </span>
-                </Link>
+                <div className="h-[52px] shrink-0" />
+                <BandMissionsJour
+                  bienNom={bien.nom}
+                  date={key}
+                  dateLabel={d.toLocaleDateString("fr-FR", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                  })}
+                  missions={duJour}
+                  onMission={onMission}
+                  {...(onAjouterPrestation
+                    ? { onAjouter: (date) => onAjouterPrestation(bien.id, date) }
+                    : {})}
+                />
               </div>
-              {ligneHaute && (
-                <div className="absolute inset-x-0 top-[52px] z-[2] space-y-0.5 border-t border-line bg-[color-mix(in srgb, var(--surface) 40%, transparent)] p-1">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAjouterPrestation?.(bien.id, key);
-                    }}
-                    className="flex h-6 w-full items-center justify-center rounded border border-dashed border-line text-[10px] text-ink-muted hover:bg-white"
-                    aria-label={`Ajouter une prestation — ${bien.nom}`}
-                  >
-                    <Plus className="size-2.5" />
-                  </button>
-                  {onAjouterNote && (
-                    <button
-                      type="button"
-                      onClick={() => onAjouterNote(bien.id, key)}
-                      className="flex h-5 w-full items-center justify-center rounded text-[10px] text-ink-muted hover:bg-white"
-                    >
-                      Note
-                    </button>
-                  )}
-                  {visible && (
-                    <div onClick={(e) => e.stopPropagation()}>
-                    <Pastille
-                      mission={visible}
-                      onClick={() => onMission(visible)}
-                    />
-                    </div>
-                  )}
-                  {duJour.length > 1 && (
-                    <MissionsPlusPopover
-                      bienNom={bien.nom}
-                      dateLabel={d.toLocaleDateString("fr-FR", {
-                        weekday: "long",
-                        day: "numeric",
-                        month: "long",
-                      })}
-                      missions={duJour}
-                      onChoisir={onMission}
-                    />
-                  )}
-                </div>
-              )}
-              {!ligneHaute && onAjouterPrestation && (
-                <div className="absolute bottom-1 right-1 flex gap-1">
-                  <button
-                    type="button"
-                    onClick={() => onAjouterPrestation(bien.id, key)}
-                    className="flex size-6 items-center justify-center rounded-full border border-line bg-white text-ink-muted"
-                    aria-label={`Ajouter une prestation — ${bien.nom}`}
-                  >
-                    <Plus className="size-2.5" />
-                  </button>
-                  {onAjouterNote && (
-                    <button
-                      type="button"
-                      onClick={() => onAjouterNote(bien.id, key)}
-                      className="flex h-6 items-center rounded-full border border-line bg-white px-1.5 text-[9px] text-ink-muted"
-                    >
-                      Note
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        {aUneResa &&
-          sejours.map((r) => {
-            const barre = styleBarreResa(r, jours);
-            if (!barre) return null;
-            return (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => onReservation?.(r)}
-                className="absolute top-1.5 z-[1] flex h-10 items-center justify-between rounded-lg border border-line-strong bg-surface-soft px-2.5 text-left hover:bg-white"
-                style={barre}
-              >
-                <span className="truncate text-xs text-ink-subtle">{r.voyageur}</span>
-                <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-ink-muted text-[9px] font-semibold text-ink-subtle">
-                  i
-                </span>
-              </button>
             );
           })}
+        </div>
+
+        {sejours.map((r) => {
+          const barre = styleBarreResa(r, jours);
+          if (!barre) return null;
+          const teinte = teinteBarreCalendrier(r, jours);
+          const large =
+            jours.filter((d) => reservationCouvre(r, isoJour(d))).length >= 2;
+          return (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => onReservation?.(r)}
+              className="absolute top-[6px] z-[1] flex h-10 items-center gap-2 overflow-hidden rounded-lg border px-2.5 text-left"
+              style={{
+                ...barre,
+                backgroundColor: teinte.fond,
+                borderColor: teinte.bord,
+                opacity: teinte.fade ? 0.6 : 1,
+              }}
+            >
+              <span className="truncate text-xs text-ink-subtle">
+                {large
+                  ? `${r.voyageur} — ${dateCourtIso(r.arrivee)}>${dateCourtIso(r.depart)}`
+                  : r.voyageur}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
-  );
-}
-
-function Pastille({ mission, onClick }: { mission: MissionMo1; onClick: () => void }) {
-  const terminee = mission.statut === "terminee";
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        // 24px sur mobile : minimum WCAG 2.5.8 ; 21px sur desktop pour rester fidèle à MO1
-        "flex h-11 w-full items-center gap-1 overflow-hidden rounded border px-1 text-left text-[10px] font-medium md:h-[21px]",
-        terminee
-          ? "border-line bg-surface-soft text-ink-muted line-through opacity-70"
-          : mission.pastilleAccentuee
-            ? "border-ink-muted bg-line text-ink-status"
-            : "border-line-strong bg-white text-ink-body",
-      )}
-    >
-      <span>{mission.emoji}</span>
-      <span className="truncate">{mission.titre}</span>
-    </button>
   );
 }
 
@@ -821,7 +703,7 @@ function MoisMissions({
             <div
               key={key}
               className={cn(
-                "min-h-24 border-b border-r border-line p-1.5",
+                "group min-h-24 border-b border-r border-line p-1.5",
                 hors && "bg-surface",
                 key === AUJOURD_HUI_MO1 && "bg-surface",
               )}
@@ -832,7 +714,7 @@ function MoisMissions({
                   <button
                     type="button"
                     onClick={() => onAjouter(key)}
-                    className="flex size-6 items-center justify-center rounded-full text-ink-muted hover:bg-white"
+                    className="flex size-6 items-center justify-center rounded-full text-ink-muted opacity-0 hover:bg-white group-hover:opacity-100 focus-visible:opacity-100"
                     aria-label={`Ajouter une prestation le ${key}`}
                   >
                     <Plus className="size-2.5" />
@@ -841,7 +723,7 @@ function MoisMissions({
               </div>
               <div className="space-y-1">
                 {list.slice(0, 2).map((m) => (
-                  <Pastille key={m.id} mission={m} onClick={() => onMission(m)} />
+                  <PastilleCalendrier key={m.id} mission={m} onClick={() => onMission(m)} />
                 ))}
                 {list.length > 2 && (
                   <MissionsPlusPopover

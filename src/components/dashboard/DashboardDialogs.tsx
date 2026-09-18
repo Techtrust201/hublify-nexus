@@ -53,7 +53,8 @@ export function MissionsPlusPopover({
         onClick={() => setOuvert(true)}
         className="flex h-11 w-full items-center gap-1 px-1 text-left text-[10px] font-medium text-ink-muted md:h-[19px]"
       >
-        <Maximize2 className="size-[9px] shrink-0" />+{missions.length - 1} voir plus
+        <Maximize2 className="size-[9px] shrink-0" />
+        +{missions.length - 1} voir plus
       </button>
       <Dialog open={ouvert} onOpenChange={setOuvert}>
         <DialogContent className="max-w-[400px] gap-0 overflow-hidden rounded-card border border-line bg-white p-0 shadow-lg">
