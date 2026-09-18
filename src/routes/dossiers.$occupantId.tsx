@@ -157,22 +157,85 @@ function PageDossierLocataire() {
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <section className="rounded-card border border-line bg-white p-4">
-          <h2 className="text-sm font-medium text-ink">Baux et séjours</h2>
-          {resas.map((r) => (
-            <p key={r.id} className="mt-2 text-sm">
-              {r.type ?? "Séjour"} · {r.arrivee} → {r.depart} · {formatMontant(r.montant)}
-            </p>
-          ))}
+          <h2 className="text-sm font-medium text-ink">Historique de location</h2>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[420px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-surface-soft text-xs text-ink-muted">
+                  <th className="pb-2 font-medium">Période</th>
+                  <th className="pb-2 font-medium">Logement</th>
+                  <th className="pb-2 font-medium">Type</th>
+                  <th className="pb-2 text-right font-medium">Montant</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resas.map((r) => {
+                  const bien = session.biens.find((b) => b.id === r.bienId);
+                  return (
+                    <tr key={r.id} className="border-b border-surface-soft last:border-b-0">
+                      <td className="py-2">
+                        {r.arrivee} → {r.depart}
+                      </td>
+                      <td className="py-2">{bien?.nom ?? occupant.logement}</td>
+                      <td className="py-2">{r.type ?? "Séjour"}</td>
+                      <td className="py-2 text-right">{formatMontant(r.montant)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
           {resas.length === 0 && <p className="mt-2 text-sm text-ink-muted">Aucun séjour.</p>}
         </section>
         <section className="rounded-card border border-line bg-white p-4">
-          <h2 className="text-sm font-medium text-ink">Paiements</h2>
-          {loyers.map((l) => (
-            <p key={l.id} className="mt-2 text-sm">
-              {l.echeance} · {formatMontant(l.montant)} {l.valide ? "validé" : "en attente"}
-            </p>
-          ))}
-          {loyers.length === 0 && <p className="mt-2 text-sm text-ink-muted">Aucun loyer.</p>}
+          <h2 className="text-sm font-medium text-ink">Historique des paiements</h2>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[420px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-surface-soft text-xs text-ink-muted">
+                  <th className="pb-2 font-medium">Date</th>
+                  <th className="pb-2 font-medium">Libellé</th>
+                  <th className="pb-2 text-right font-medium">Montant</th>
+                  <th className="pb-2 text-right font-medium">Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loyers.map((l) => (
+                  <tr key={l.id} className="border-b border-surface-soft last:border-b-0">
+                    <td className="py-2">{l.echeance}</td>
+                    <td className="py-2">Loyer · {l.bienNom}</td>
+                    <td className="py-2 text-right">{formatMontant(l.montant)}</td>
+                    <td className="py-2 text-right">
+                      <span
+                        className={
+                          l.valide ? "text-accent-teal" : "text-ink-muted"
+                        }
+                      >
+                        {l.valide ? "Validé" : "En attente"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {resas
+                  .filter((r) => r.paye > 0)
+                  .map((r) => (
+                    <tr key={`pay-${r.id}`} className="border-b border-surface-soft last:border-b-0">
+                      <td className="py-2">{r.arrivee}</td>
+                      <td className="py-2">
+                        Séjour · {r.plateforme} · {r.id.slice(-6)}
+                      </td>
+                      <td className="py-2 text-right">{formatMontant(r.paye)}</td>
+                      <td className="py-2 text-right">
+                        {r.paye >= r.montant ? "Validé" : "Partiel"}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+          {loyers.length === 0 && resas.every((r) => r.paye <= 0) && (
+            <p className="mt-2 text-sm text-ink-muted">Aucun paiement.</p>
+          )}
         </section>
         {dossier && (
           <section className="rounded-card border border-line bg-white p-4 lg:col-span-2">

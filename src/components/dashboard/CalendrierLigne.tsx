@@ -1,4 +1,5 @@
-import { Plus } from "lucide-react";
+import type { ReactNode } from "react";
+import { CalendarDays, ClipboardList, Plus, Search, Tag } from "lucide-react";
 import {
   PHOTO_BIEN,
   bienEnLigne,
@@ -7,6 +8,7 @@ import {
   positionPhotoBien,
   stylePastille,
   type MissionMo1,
+  type OngletPlanning,
 } from "@/data/planning-mo1";
 import { MissionsPlusPopover } from "@/components/dashboard/DashboardDialogs";
 import { cn } from "@/lib/utils";
@@ -82,6 +84,96 @@ export function PastilleCalendrier({
   );
 }
 
+export function ChampRechercheCalendrier({
+  valeur,
+  onChange,
+  placeholder = "Rechercher un logement, un occupant ou une prestation…",
+}: {
+  valeur: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <label className="flex h-11 w-full items-center gap-2 rounded-card border border-line bg-white px-3 md:h-9">
+      <Search className="size-3.5 shrink-0 text-ink-muted" />
+      <input
+        value={valeur}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="h-full w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
+      />
+    </label>
+  );
+}
+
+export function BandeauPlanning({
+  actif,
+  onChoisir,
+  extra,
+}: {
+  actif: OngletPlanning;
+  onChoisir: (v: OngletPlanning) => void;
+  extra?: ReactNode;
+}) {
+  const items = [
+    {
+      id: "missions" as const,
+      label: "Missions",
+      hint: "Interventions par bien",
+      icone: ClipboardList,
+    },
+    {
+      id: "reservations" as const,
+      label: "Réservations",
+      hint: "Séjours et check-in",
+      icone: CalendarDays,
+    },
+    {
+      id: "tarifs" as const,
+      label: "Tarifs",
+      hint: "Prix et règles",
+      icone: Tag,
+    },
+  ];
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-2">
+      {items.map((it) => {
+        const Icone = it.icone;
+        const sel = actif === it.id;
+        return (
+          <button
+            key={it.id}
+            type="button"
+            onClick={() => onChoisir(it.id)}
+            className={cn(
+              "flex min-w-[148px] shrink-0 items-center gap-2.5 rounded-xl border px-3 py-2 text-left",
+              sel
+                ? "border-ink bg-ink text-white shadow-sm"
+                : "border-line bg-white text-ink-body hover:border-ink-muted",
+            )}
+          >
+            <span
+              className={cn(
+                "flex size-8 items-center justify-center rounded-lg",
+                sel ? "bg-white/15" : "bg-surface-soft",
+              )}
+            >
+              <Icone className="size-4" />
+            </span>
+            <span>
+              <span className="block text-sm font-medium">{it.label}</span>
+              <span className={cn("block text-[10px]", sel ? "text-white/70" : "text-ink-muted")}>
+                {it.hint}
+              </span>
+            </span>
+          </button>
+        );
+      })}
+      {extra ? <div className="ml-auto shrink-0">{extra}</div> : null}
+    </div>
+  );
+}
+
 export function BandMissionsJour({
   bienNom,
   date,
@@ -99,19 +191,12 @@ export function BandMissionsJour({
 }) {
   const visible = missions[0];
   return (
-    <div className="group/missions relative flex min-h-[44px] flex-col gap-0.5 px-1.5 pt-0.5">
+    <div className="relative flex min-h-[56px] flex-col gap-1 px-1.5 pt-0.5">
       {visible ? (
         <PastilleCalendrier mission={visible} onClick={() => onMission(visible)} />
-      ) : onAjouter ? (
-        <button
-          type="button"
-          onClick={() => onAjouter(date)}
-          className="flex h-11 w-full items-center justify-center rounded text-ink-muted opacity-0 transition-opacity group-hover/missions:opacity-100 focus-visible:opacity-100 md:h-[21px]"
-          aria-label={`Ajouter une prestation — ${bienNom}`}
-        >
-          <Plus className="size-3" />
-        </button>
-      ) : null}
+      ) : (
+        <div className="h-[21px]" aria-hidden />
+      )}
       {missions.length > 1 && (
         <MissionsPlusPopover
           bienNom={bienNom}
@@ -120,6 +205,16 @@ export function BandMissionsJour({
           onChoisir={onMission}
         />
       )}
+      {onAjouter ? (
+        <button
+          type="button"
+          onClick={() => onAjouter(date)}
+          className="mt-auto flex h-6 w-full items-center justify-center rounded border border-dashed border-line text-ink-muted"
+          aria-label={`Ajouter une prestation — ${bienNom}`}
+        >
+          <Plus className="size-3" />
+        </button>
+      ) : null}
     </div>
   );
 }

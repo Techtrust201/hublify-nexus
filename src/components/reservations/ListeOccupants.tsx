@@ -12,9 +12,8 @@ import {
   Search,
   Trash2,
   Users,
-  Wrench,
 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ScrollHint } from "@/components/layout/ScrollHint";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -65,6 +64,7 @@ function categorieDe(metier: string): CategoriePrestataire {
 
 export function ListeOccupants() {
   const session = useSession();
+  const navigate = useNavigate();
   const [onglet, setOnglet] = useState<Onglet>("residents");
   const [filtre, setFiltre] = useState<FiltreOccupant>("tous");
   const [logementFiltre, setLogementFiltre] = useState("tous");
@@ -228,41 +228,20 @@ export function ListeOccupants() {
     setFiche(null);
   };
 
+  const ouvrirOccupant = (o: OccupantMo1) => {
+    if (o.type === "Locataire") {
+      void navigate({ to: "/dossiers/$occupantId", params: { occupantId: o.id } });
+      return;
+    }
+    setFiche(o);
+  };
+
   return (
     <div>
       <h1 className="text-[28px] font-medium leading-9 text-ink">Liste des occupants</h1>
       <p className="mt-1 text-sm text-ink-subtle">
-        Gérez vos locataires, voyageurs et prestataires de services.
+        Gérez vos locataires et voyageurs. Les prestataires sont dans le menu Prestataires.
       </p>
-
-      <div className="mt-6 flex gap-2">
-        <button
-          type="button"
-          onClick={() => setOnglet("residents")}
-          className={cn(
-            "inline-flex h-11 items-center gap-2 rounded-card px-4 text-sm",
-            onglet === "residents"
-              ? "bg-ink text-white"
-              : "border border-line bg-white text-ink-body",
-          )}
-        >
-          <Users className="size-4" />
-          Résidents ({occupantsBase.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setOnglet("prestataires")}
-          className={cn(
-            "inline-flex h-11 items-center gap-2 rounded-card px-4 text-sm",
-            onglet === "prestataires"
-              ? "bg-ink text-white"
-              : "border border-line bg-white text-ink-body",
-          )}
-        >
-          <Wrench className="size-4" />
-          Prestataires ({prestasBase.length})
-        </button>
-      </div>
 
       <div className="mt-8 rounded-card border border-line bg-white">
         <div className="flex flex-wrap items-center gap-3 px-4 py-4 md:px-6">
@@ -361,7 +340,7 @@ export function ListeOccupants() {
                 <article
                   key={o.id}
                   className="flex cursor-pointer flex-col gap-3 px-4 py-4"
-                  onClick={() => setFiche(o)}
+                  onClick={() => ouvrirOccupant(o)}
                 >
                   <div className="flex items-center gap-3">
                     <span className="flex size-10 items-center justify-center rounded-full bg-line text-sm text-ink-body">
@@ -388,7 +367,7 @@ export function ListeOccupants() {
                     {o.depart ? ` · Départ ${formatJourFr(o.depart)}` : ""}
                   </p>
                   <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                    <IconeAction label="Voir" onClick={() => setFiche(o)}>
+                    <IconeAction label="Voir" onClick={() => ouvrirOccupant(o)}>
                       <Eye className="size-4" />
                     </IconeAction>
                     <IconeAction
@@ -423,7 +402,7 @@ export function ListeOccupants() {
                     <tr
                       key={o.id}
                       className="cursor-pointer border-b border-surface-soft last:border-b-0"
-                      onClick={() => setFiche(o)}
+                      onClick={() => ouvrirOccupant(o)}
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -432,7 +411,7 @@ export function ListeOccupants() {
                           </span>
                           <button
                             type="button"
-                            onClick={() => setFiche(o)}
+                            onClick={() => ouvrirOccupant(o)}
                             className="text-left text-sm text-ink hover:underline"
                           >
                             {o.nom}
@@ -489,7 +468,7 @@ export function ListeOccupants() {
                       </td>
                       <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex gap-1">
-                          <IconeAction label="Voir" onClick={() => setFiche(o)}>
+                          <IconeAction label="Voir" onClick={() => ouvrirOccupant(o)}>
                             <Eye className="size-4" />
                           </IconeAction>
                           <IconeAction

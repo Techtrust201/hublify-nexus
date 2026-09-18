@@ -26,6 +26,44 @@ export async function telechargerFactureReservation(r: ReservationMo1, bienNom?:
   });
 }
 
+export async function telechargerAvoir(p: {
+  occupant: string;
+  email?: string;
+  reservationId: string;
+  plateforme: string;
+  motif: string;
+  montant: number;
+  note?: string;
+  logement: string;
+  arrivee: string;
+  depart: string;
+  numero: string;
+  date: string;
+}) {
+  const extra = [
+    `Document : AVOIR`,
+    `Numero : ${p.numero}`,
+    `Date : ${p.date}`,
+    `Client : ${p.occupant}`,
+    `Email : ${p.email ?? ""}`,
+    `Reservation : ${p.plateforme} ${p.reservationId}`,
+    `Logement : ${p.logement}`,
+    `Sejour : ${p.arrivee} -> ${p.depart}`,
+    `Objet : ${p.motif}`,
+    p.note ? `Note : ${p.note}` : "",
+    `Montant TTC : ${p.montant} EUR`,
+    `Total avoir TTC : ${p.montant} EUR`,
+  ].filter(Boolean);
+  await telechargerPdf(`Avoir ${p.numero}`, extra, {
+    titulaire: p.occupant,
+    locataire: p.occupant,
+    logement: p.logement,
+    adresse: p.logement,
+    date: p.date,
+    extra,
+  });
+}
+
 export async function telechargerQuittanceLoyer(l: LoyerMo1) {
   const extra = [
     `Locataire : ${l.locataire}`,

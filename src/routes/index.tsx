@@ -22,7 +22,7 @@ import {
   useSession,
   validerLoyer,
 } from "@/data/session";
-import type { LoyerMo1, OngletPlanning } from "@/data/planning-mo1";
+import type { LoyerMo1, MissionMo1, OngletPlanning } from "@/data/planning-mo1";
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { telechargerQuittanceLoyer } from "@/lib/exports-docs";
 import { paiementViaPlateforme } from "@/data/v1-metier";
@@ -53,6 +53,7 @@ function VueGenerale() {
   const [loyerQuittance, setLoyerQuittance] = useState<LoyerMo1 | null>(null);
   const [creerEvent, setCreerEvent] = useState(false);
   const [resaId, setResaId] = useState<string | null>(null);
+  const [mission, setMission] = useState<MissionMo1 | null>(null);
 
   const allerOnglet = (v: OngletPlanning) => {
     if (v === "reservations") navigate({ to: "/reservations" });
@@ -79,11 +80,22 @@ function VueGenerale() {
 
       {voirCalendrier && (
         <div className="mt-4">
-          <PlanningGrid onglet={onglet} onOnglet={allerOnglet} onReservation={setResaId} />
+          <PlanningGrid
+            onglet={onglet}
+            onOnglet={allerOnglet}
+            onReservation={(id) => {
+              setResaId(id);
+              setMission(null);
+            }}
+            onMission={(m) => {
+              setMission(m);
+              setResaId(null);
+            }}
+          />
         </div>
       )}
 
-      <PanneauEnDetails reservationId={resaId} />
+      <PanneauEnDetails reservationId={resaId} mission={mission} />
 
       {voirMessages && <MessagesSection messages={session.messagesDash} />}
       {voirFinances && (

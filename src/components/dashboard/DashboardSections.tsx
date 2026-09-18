@@ -124,9 +124,13 @@ function CarteKpi({
 
 export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
   const session = useSession();
-  const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.messages", true);
-  const [canal, setCanal] = useState<CanalMo1>("occupants");
-  const filtres = messages.filter((m) => m.canal === canal);
+  const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.messages", false);
+  const [canal, setCanal] = useState<CanalMo1 | "prospect">("occupants");
+  const prospects = session.conversations.filter((c) => c.section === "prospections");
+  const filtres =
+    canal === "prospect"
+      ? []
+      : messages.filter((m) => m.canal === canal);
   const convDe = (auteur: string) =>
     session.conversations.find((c) => c.nom.toLowerCase() === auteur.toLowerCase());
   const nonLus = session.conversations.filter((c) => c.nonLu).length;
@@ -156,7 +160,7 @@ export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
       {ouvert && (
         <>
       <div className="flex flex-wrap gap-2 border-b border-surface-soft px-4 py-2">
-        {(["occupants", "prestataires", "team"] as const).map((c) => (
+        {(["occupants", "prestataires", "team", "prospect"] as const).map((c) => (
           <button
             key={c}
             type="button"
@@ -169,12 +173,45 @@ export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
               canal === c ? "border-ink text-ink" : "border-line-strong text-ink-body",
             )}
           >
-            {c === "occupants" ? "Occupants" : c === "prestataires" ? "Prestataires" : "Team"}
+            {c === "occupants"
+              ? "Occupants"
+              : c === "prestataires"
+                ? "Prestataires"
+                : c === "team"
+                  ? "Team"
+                  : `Prospect${prospects.length ? ` (${prospects.length})` : ""}`}
           </button>
         ))}
       </div>
         <ul>
-          {filtres.map((m) => (
+          {canal === "prospect"
+            ? prospects.map((c) => (
+                <li key={c.id}>
+                  <Link
+                    to="/messagerie"
+                    search={{ conv: c.id }}
+                    className="flex gap-3 border-b border-surface-soft px-4 py-3 last:border-b-0 hover:bg-surface"
+                  >
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-line text-xs text-ink-body">
+                      {c.nom.slice(0, 2).toUpperCase()}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-baseline gap-2">
+                        <span className="text-sm text-ink">{c.nom}</span>
+                        {c.nonLu && (
+                          <span className="rounded-full bg-ink px-1.5 text-[10px] text-white">
+                            nouveau
+                          </span>
+                        )}
+                      </div>
+                      <p className="truncate text-xs text-ink-subtle">
+                        Demande à traiter — boîte Prospect
+                      </p>
+                    </div>
+                  </Link>
+                </li>
+              ))
+            : filtres.map((m) => (
             <li key={m.id}>
               <Link
                 to="/messagerie"
@@ -195,6 +232,9 @@ export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
               </Link>
             </li>
           ))}
+          {canal === "prospect" && prospects.length === 0 && (
+            <li className="px-4 py-3 text-xs text-ink-muted">Aucune demande prospect.</li>
+          )}
         </ul>
         </>
       )}

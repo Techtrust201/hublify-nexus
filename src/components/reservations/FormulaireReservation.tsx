@@ -602,7 +602,138 @@ export function FormulaireReservation({
                     </span>
                   </span>
                 </label>
-                <label className="block text-xs text-ink-subtle sm:col-span-2">
+                <label className="block text-xs text-ink-subtle">
+                  Réduction (%)
+                  <input
+                    value={reductionPct}
+                    onChange={(e) => setReductionPct(e.target.value)}
+                    inputMode="decimal"
+                    className={cn(champ, "mt-1")}
+                  />
+                </label>
+                <label className="block text-xs text-ink-subtle">
+                  Frais de ménage
+                  <span className="relative mt-1 block">
+                    <input
+                      value={fraisMenage}
+                      onChange={(e) => setFraisMenage(e.target.value)}
+                      inputMode="decimal"
+                      className={champ}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
+                      €
+                    </span>
+                  </span>
+                </label>
+                <label className="block text-xs text-ink-subtle">
+                  Frais et commissions plateforme
+                  <span className="relative mt-1 block">
+                    <input
+                      value={fraisPlateforme}
+                      onChange={(e) => setFraisPlateforme(e.target.value)}
+                      inputMode="decimal"
+                      className={champ}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
+                      €
+                    </span>
+                  </span>
+                </label>
+                <label className="block text-xs text-ink-subtle">
+                  Taxe de séjour
+                  <span className="relative mt-1 block">
+                    <input
+                      value={taxeSejour}
+                      onChange={(e) => setTaxeSejour(e.target.value)}
+                      inputMode="decimal"
+                      className={champ}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
+                      €
+                    </span>
+                  </span>
+                </label>
+                <label className="block text-xs text-ink-subtle">
+                  Plateforme
+                  <select
+                    value={plateforme}
+                    onChange={(e) => setPlateforme(e.target.value)}
+                    className={cn(champ, "mt-1")}
+                  >
+                    <option>Canal Direct</option>
+                    <option>Airbnb</option>
+                    <option>Booking.com</option>
+                    <option>Autre</option>
+                  </select>
+                </label>
+                <label className="block text-xs text-ink-subtle">
+                  Montant payé par le voyageur
+                  <span className="relative mt-1 block">
+                    <input
+                      value={montantVoyageur}
+                      onChange={(e) => setMontantVoyageur(e.target.value)}
+                      inputMode="decimal"
+                      className={champ}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
+                      €
+                    </span>
+                  </span>
+                </label>
+                <label className="block text-xs text-ink-subtle">
+                  Commission gestionnaire / conciergerie
+                  <span className="relative mt-1 block">
+                    <input
+                      value={commissionMontant}
+                      onChange={(e) => setCommissionMontant(e.target.value)}
+                      inputMode="decimal"
+                      className={champ}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
+                      €
+                    </span>
+                  </span>
+                </label>
+                <p className="flex items-end text-sm text-ink">
+                  Montant net perçu :{" "}
+                  {formatMontant(
+                    netPercu({
+                      montant: (Number(prixNuit) || 0) * (Math.max(1, Number(duree) || 1)),
+                      taxeSejour: Number(taxeSejour.replace(",", ".")) || 0,
+                      commissionMontant: Number(commissionMontant.replace(",", ".")) || 0,
+                    }),
+                  )}
+                </p>
+                <label className="block text-xs text-ink-subtle">
+                  Commission plateforme (%)
+                  <input
+                    value={commissionPct}
+                    onChange={(e) => {
+                      setCommissionPct(e.target.value);
+                      const pct = Number(e.target.value.replace(",", ".")) || 0;
+                      const nuits = Math.max(1, Number(duree) || 1);
+                      const total = (Number(prixNuit) || 0) * nuits;
+                      setCommissionMontant(String(Math.round((total * pct) / 100)));
+                    }}
+                    inputMode="decimal"
+                    className={cn(champ, "mt-1")}
+                  />
+                </label>
+                <label className="block text-xs text-ink-subtle">
+                  Caution
+                  <span className="relative mt-1 block">
+                    <input
+                      value={caution}
+                      onChange={(e) => setCaution(e.target.value)}
+                      inputMode="decimal"
+                      className={champ}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
+                      €
+                    </span>
+                  </span>
+                </label>
+                <label className="block text-xs text-ink-subtle">
                   Déjà encaissé
                   <span className="relative mt-1 block">
                     <input
@@ -616,20 +747,16 @@ export function FormulaireReservation({
                     </span>
                   </span>
                 </label>
+                <label className="block text-xs text-ink-subtle sm:col-span-2">
+                  Attribution commission
+                  <input
+                    value={attribution}
+                    onChange={(e) => setAttribution(e.target.value)}
+                    placeholder="Vérifier attribution"
+                    className={cn(champ, "mt-1")}
+                  />
+                </label>
               </div>
-              <label className="mt-3 block text-xs text-ink-subtle">
-                Plateforme
-                <select
-                  value={plateforme}
-                  onChange={(e) => setPlateforme(e.target.value)}
-                  className={cn(champ, "mt-1")}
-                >
-                  <option>Canal Direct</option>
-                  <option>Airbnb</option>
-                  <option>Booking.com</option>
-                  <option>Autre</option>
-                </select>
-              </label>
               <p className="mt-3 text-xs text-ink-subtle">Services inclus</p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 {services.map((s) => (
@@ -681,124 +808,6 @@ export function FormulaireReservation({
                   )}
                 </p>
               )}
-            </section>
-
-            <section className="rounded-card border border-line bg-white p-5">
-              <h2 className="text-sm font-medium text-ink">Taxes, commission et encaissement</h2>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <label className="block text-xs text-ink-subtle">
-                  Taxe de séjour
-                  <span className="relative mt-1 block">
-                    <input
-                      value={taxeSejour}
-                      onChange={(e) => setTaxeSejour(e.target.value)}
-                      inputMode="decimal"
-                      className={champ}
-                    />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
-                      €
-                    </span>
-                  </span>
-                </label>
-                <label className="block text-xs text-ink-subtle">
-                  Commission plateforme (%)
-                  <input
-                    value={commissionPct}
-                    onChange={(e) => {
-                      setCommissionPct(e.target.value);
-                      const pct = Number(e.target.value.replace(",", ".")) || 0;
-                      const nuits = Math.max(1, Number(duree) || 1);
-                      const total = (Number(prixNuit) || 0) * nuits;
-                      setCommissionMontant(String(Math.round((total * pct) / 100)));
-                    }}
-                    inputMode="decimal"
-                    className={cn(champ, "mt-1")}
-                  />
-                </label>
-                <label className="block text-xs text-ink-subtle">
-                  Commission (montant)
-                  <span className="relative mt-1 block">
-                    <input
-                      value={commissionMontant}
-                      onChange={(e) => setCommissionMontant(e.target.value)}
-                      inputMode="decimal"
-                      className={champ}
-                    />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
-                      €
-                    </span>
-                  </span>
-                </label>
-                <p className="flex items-end text-sm text-ink">
-                  Net perçu :{" "}
-                  {formatMontant(
-                    netPercu({
-                      montant: (Number(prixNuit) || 0) * (Math.max(1, Number(duree) || 1)),
-                      taxeSejour: Number(taxeSejour.replace(",", ".")) || 0,
-                      commissionMontant: Number(commissionMontant.replace(",", ".")) || 0,
-                    }),
-                  )}
-                </p>
-                <label className="block text-xs text-ink-subtle">
-                  Caution
-                  <span className="relative mt-1 block">
-                    <input
-                      value={caution}
-                      onChange={(e) => setCaution(e.target.value)}
-                      inputMode="decimal"
-                      className={champ}
-                    />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
-                      €
-                    </span>
-                  </span>
-                </label>
-                <label className="block text-xs text-ink-subtle">
-                  Frais de ménage
-                  <input
-                    value={fraisMenage}
-                    onChange={(e) => setFraisMenage(e.target.value)}
-                    inputMode="decimal"
-                    className={cn(champ, "mt-1")}
-                  />
-                </label>
-                <label className="block text-xs text-ink-subtle">
-                  Réduction (%)
-                  <input
-                    value={reductionPct}
-                    onChange={(e) => setReductionPct(e.target.value)}
-                    inputMode="decimal"
-                    className={cn(champ, "mt-1")}
-                  />
-                </label>
-                <label className="block text-xs text-ink-subtle">
-                  Frais plateforme
-                  <input
-                    value={fraisPlateforme}
-                    onChange={(e) => setFraisPlateforme(e.target.value)}
-                    inputMode="decimal"
-                    className={cn(champ, "mt-1")}
-                  />
-                </label>
-                <label className="block text-xs text-ink-subtle">
-                  Montant voyageur
-                  <input
-                    value={montantVoyageur}
-                    onChange={(e) => setMontantVoyageur(e.target.value)}
-                    inputMode="decimal"
-                    className={cn(champ, "mt-1")}
-                  />
-                </label>
-                <label className="block text-xs text-ink-subtle sm:col-span-2">
-                  Attribution commission
-                  <input
-                    value={attribution}
-                    onChange={(e) => setAttribution(e.target.value)}
-                    placeholder="Vérifier attribution — qui encaisse la commission"
-                    className={cn(champ, "mt-1")}
-                  />
-                </label>
-              </div>
               {edition && reservationId && (
                 <button
                   type="button"

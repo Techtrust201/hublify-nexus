@@ -5,7 +5,6 @@ import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import {
   BarChart3,
   CalendarDays,
-  ChevronDown,
   ClipboardCheck,
   ClipboardList,
   FileText,
@@ -18,12 +17,6 @@ import {
 } from "lucide-react";
 import { useAuth, useDroit } from "@/auth/auth-context";
 import { aLeDroit, type DroitId } from "@/auth/permissions";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { oublierEtatsLocaux } from "@/data/session";
 import { listerEquipe } from "@/lib/auth.functions";
 import { authClient } from "@/lib/auth-client";
@@ -45,10 +38,6 @@ const NAV: Entree[] = [
   { titre: "Occupants", url: "/occupants", icone: Users, droit: "voir-reservations" },
   { titre: "Messagerie", url: "/messagerie", icone: MessageSquare, droit: "messagerie" },
   { titre: "Analyse", url: "/analyse", icone: BarChart3, droit: "voir-finances" },
-];
-
-const VUES = [
-  { titre: "Vue générale", url: "/", droit: undefined as DroitId | undefined },
 ];
 
 const OUTILS: Array<{ titre: string; url: string; icone: typeof Info; droit?: DroitId }> = [
@@ -103,12 +92,6 @@ export function NavChrome({
   const navVisible = NAV.filter((e) => !e.droit || aLeDroit(droits, e.droit));
   const outilsVisibles = OUTILS.filter((o) => !o.droit || aLeDroit(droits, o.droit));
   const mobile = densite === "mobile";
-  // Sur mobile les vues sont dépliées : on retire celles qui figurent déjà dans la nav principale.
-  const vuesVisibles = VUES.filter(
-    (v) =>
-      (!v.droit || aLeDroit(droits, v.droit)) &&
-      !(mobile && navVisible.some((e) => e.url === v.url)),
-  );
   // Les coéquipiers listés sont ceux de l'organisation connectée. La requête est
   // partagée avec le reste de l'application via son cache : naviguer d'un écran
   // à l'autre ne la relance pas.
@@ -147,43 +130,16 @@ export function NavChrome({
             {mobile && <span className="block text-xs text-ink-muted">Compte</span>}
           </span>
         </Link>
-        {mobile ? (
-          <>
-            <p className="mt-4 px-1 text-xs uppercase tracking-[0.3px] text-ink-muted">
-              Vue générale
-            </p>
-            <div className="mt-1 space-y-0.5">
-              {vuesVisibles.map((v) => (
-                <Link
-                  key={v.url + v.titre}
-                  to={v.url}
-                  onClick={onNavigate}
-                  className={cn(lien, estActif(pathname, v.url) && "bg-surface-soft text-ink")}
-                >
-                  {v.titre}
-                </Link>
-              ))}
-            </div>
-          </>
-        ) : (
-          <DropdownMenu modal={false}>
-            <DropdownMenuTrigger className="mt-4 flex h-[38px] w-full items-center justify-center rounded-card border border-line bg-white text-sm font-medium text-ink-body">
-              Vue générale
-              <ChevronDown className="ml-1 size-3.5" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="start"
-              className="w-56"
-              onCloseAutoFocus={(e) => e.preventDefault()}
-            >
-              {vuesVisibles.map((v) => (
-                <DropdownMenuItem key={v.url + v.titre} asChild>
-                  <Link to={v.url}>{v.titre}</Link>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        <Link
+          to="/"
+          onClick={onNavigate}
+          className={cn(
+            "mt-4 flex h-[38px] w-full items-center justify-center rounded-card border border-line bg-white text-sm font-medium text-ink-body",
+            estActif(pathname, "/") && "border-ink bg-surface-soft text-ink",
+          )}
+        >
+          Vue générale
+        </Link>
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 pt-3">

@@ -17,6 +17,8 @@ import {
 import { useMemo, useState } from "react";
 import {
   BandMissionsJour,
+  BandeauPlanning,
+  ChampRechercheCalendrier,
   ColonneBienCalendrier,
   EnteteJoursCalendrier,
   PastilleCalendrier,
@@ -68,11 +70,13 @@ export function PlanningGrid({
   onOnglet,
   vueInitiale = "3jours",
   onReservation,
+  onMission,
 }: {
   onglet: OngletPlanning;
   onOnglet: (v: OngletPlanning) => void;
   vueInitiale?: VuePlanning;
   onReservation?: (id: string) => void;
+  onMission?: (m: MissionMo1) => void;
 }) {
   const session = useSession();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
@@ -89,6 +93,7 @@ export function PlanningGrid({
   const [vue, setVue] = useState<VuePlanning>(vueInitiale);
   const [ancre, setAncre] = useState(() => new Date(ANCRE_MO1));
   const [filtre, setFiltre] = useState<FiltreMission>("tous");
+  const [rechercheCal, setRechercheCal] = useState("");
   const [missionOuverte, setMissionOuverte] = useState<MissionMo1 | null>(null);
   const [prestation, setPrestation] = useState<{
     bienId: string;
@@ -127,58 +132,70 @@ export function PlanningGrid({
     return Array.from({ length: 42 }, (_, i) => ajouterJours(ajouterJours(debut, -decalage), i));
   }, [ancre]);
 
+  const biensFiltres = useMemo(() => {
+    const q = rechercheCal.trim().toLowerCase();
+    if (!q) return biens;
+    return biens.filter(
+      (b) =>
+        b.nom.toLowerCase().includes(q) || (b.typologie ?? "").toLowerCase().includes(q),
+    );
+  }, [biens, rechercheCal]);
+
   const missionsFiltrees = useMemo(() => {
-    if (filtre === "checkin") return missions.filter((m) => m.type === "Check-in");
-    if (filtre === "checkout") return missions.filter((m) => m.type === "Check-out");
-    return missions;
-  }, [filtre, missions]);
+    let list = missions;
+    if (filtre === "checkin") list = list.filter((m) => m.type === "Check-in");
+    if (filtre === "checkout") list = list.filter((m) => m.type === "Check-out");
+    const q = rechercheCal.trim().toLowerCase();
+    if (q) {
+      const ids = new Set(biensFiltres.map((b) => b.id));
+      list = list.filter(
+        (m) =>
+          ids.has(m.bienId) ||
+          m.titre.toLowerCase().includes(q) ||
+          m.assigne.toLowerCase().includes(q),
+      );
+    }
+    return list;
+  }, [filtre, missions, rechercheCal, biensFiltres]);
+
+  const choisirMission = (m: MissionMo1) => {
+    if (onMission) onMission(m);
+    else setMissionOuverte(m);
+  };
 
   const biensTarif =
-    filtreBienTarif === "tous" ? biens : biens.filter((b) => b.id === filtreBienTarif);
+    filtreBienTarif === "tous" ? biensFiltres : biensFiltres.filter((b) => b.id === filtreBienTarif);
 
   const reglesActives = regles.filter((r) => ensembles.find((e) => e.id === r.ensembleId)?.actif);
   const ensemblesActifs = ensembles.filter((e) => e.actif).length;
 
   return (
     <div className="overflow-hidden rounded-card border border-line bg-white">
-      <div className="flex min-w-0 items-center justify-between border-b border-line px-4">
-        <div className="min-w-0 flex-1 overflow-x-auto">
-          {retourAccueil && (
-            <RetourVueGenerale className="mr-3 mt-2 h-9 border-line md:mt-0" />
-          )}
-          {(
-            [
-              ["missions", "Missions"],
-              ["reservations", "Réservations"],
-              ["tarifs", "Tarifs"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => onOnglet(id)}
-              className={cn(
-                "h-[46px] shrink-0 whitespace-nowrap border-b-2 px-4 text-sm font-medium capitalize",
-                onglet === id
-                  ? "rounded-t-[8px] border-ink bg-tab-active text-ink-deep"
-                  : "border-transparent text-ink-subtle",
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        {onglet === "tarifs" && (
-          <button
-            type="button"
-            onClick={() => setGererRegles(true)}
-            aria-label="Gérer les ensembles de règles"
-            className="inline-flex size-11 shrink-0 items-center justify-center gap-1.5 rounded border border-line text-xs font-medium text-ink-body md:h-[30px] md:w-auto md:px-3"
-          >
-            <SlidersHorizontal className="size-3" />
-            <span className="hidden md:inline">Gérer les ensembles de règles</span>
-          </button>
+      <div className="flex items-center gap-2 border-b border-line bg-[#f7f6f3] px-3">
+        {retourAccueil && (
+          <RetourVueGenerale className="my-auto h-9 shrink-0 border-line" />
         )}
+        <BandeauPlanning
+          actif={onglet}
+          onChoisir={onOnglet}
+          extra={
+            onglet === "tarifs" ? (
+              <button
+                type="button"
+                onClick={() => setGererRegles(true)}
+                aria-label="Gérer les ensembles de règles"
+                className="inline-flex size-11 shrink-0 items-center justify-center gap-1.5 rounded border border-line bg-white text-xs font-medium text-ink-body md:h-[30px] md:w-auto md:px-3"
+              >
+                <SlidersHorizontal className="size-3" />
+                <span className="hidden md:inline">Gérer les ensembles de règles</span>
+              </button>
+            ) : undefined
+          }
+        />
+      </div>
+
+      <div className="border-b border-surface-soft px-4 py-2">
+        <ChampRechercheCalendrier valeur={rechercheCal} onChange={setRechercheCal} />
       </div>
 
       <div className="flex flex-wrap items-center gap-3 border-b border-surface-soft bg-surface/50 px-4 py-2">
@@ -340,7 +357,7 @@ export function PlanningGrid({
         ) : (
           <TarifsJours
             jours={jours}
-            biens={biens}
+            biens={biensFiltres}
             ensembles={ensembles}
             regles={regles}
             sejours={sejoursCal}
@@ -355,18 +372,18 @@ export function PlanningGrid({
           jours={joursMois}
           ancre={ancre}
           missions={missionsFiltrees}
-          onMission={setMissionOuverte}
+          onMission={choisirMission}
           onAjouter={(date) =>
-            setPrestation({ bienId: biens[0]?.id ?? "", date })
+            setPrestation({ bienId: biensFiltres[0]?.id ?? biens[0]?.id ?? "", date })
           }
         />
       ) : (
         <JoursMissions
           jours={jours}
-          biens={biens}
+          biens={biensFiltres}
           missions={missionsFiltrees}
           sejours={sejoursCal}
-          onMission={setMissionOuverte}
+          onMission={choisirMission}
           onReservation={(sejour) => {
             const id = idDossierPourCalendrier(sejour, session.reservationsDossier);
             if (id) onReservation?.(id);
@@ -386,9 +403,9 @@ export function PlanningGrid({
       )}
 
       <MissionInfoDialog
-        mission={missionOuverte}
+        mission={onMission ? null : missionOuverte}
         bienNom={biens.find((b) => b.id === missionOuverte?.bienId)?.nom ?? ""}
-        ouvert={Boolean(missionOuverte)}
+        ouvert={!onMission && Boolean(missionOuverte)}
         onFermer={() => setMissionOuverte(null)}
         onStatut={(id, statut) => {
           modifierSession((e) => ({
@@ -714,7 +731,7 @@ function MoisMissions({
                   <button
                     type="button"
                     onClick={() => onAjouter(key)}
-                    className="flex size-6 items-center justify-center rounded-full text-ink-muted opacity-0 hover:bg-white group-hover:opacity-100 focus-visible:opacity-100"
+                    className="flex size-6 items-center justify-center rounded border border-dashed border-line text-ink-muted hover:bg-white"
                     aria-label={`Ajouter une prestation le ${key}`}
                   >
                     <Plus className="size-2.5" />

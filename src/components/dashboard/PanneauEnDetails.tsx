@@ -4,16 +4,22 @@ import {
   ChevronDown,
   ChevronUp,
   Circle,
+  ClipboardList,
   Eye,
   Home,
   LogIn,
   LogOut,
+  Pencil,
+  Trash2,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useDroit } from "@/auth/auth-context";
+import { CreatePrestationDialog } from "@/components/dashboard/CreatePrestationDialog";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { DialoguePrecheckin } from "@/components/reservations/DialoguePrecheckin";
+import { ajouterDocument } from "@/data/documents-store";
+import type { MissionMo1 } from "@/data/planning-mo1";
 import {
   formatDateLongue,
   formatMontant,
@@ -25,13 +31,145 @@ import {
   annulerReservation,
   idNouveau,
   modifierReservation,
+  modifierSession,
+  retirerMission,
   useSession,
 } from "@/data/session";
-import { toastErreur, toastOk } from "@/lib/feedback";
-import { telechargerFactureReservation } from "@/lib/exports-docs";
+import { confirmer, toastErreur, toastOk } from "@/lib/feedback";
+import { telechargerAvoir, telechargerFactureReservation } from "@/lib/exports-docs";
 import { cn, useSessionBool } from "@/lib/utils";
 
-export function PanneauEnDetails({ reservationId }: { reservationId?: string | null }) {
+export function PanneauEnDetails({
+  reservationId,
+  mission,
+}: {
+  reservationId?: string | null;
+  mission?: MissionMo1 | null;
+}) {
+  if (mission) return <PanneauMission mission={mission} />;
+  return <PanneauReservation reservationId={reservationId} />;
+}
+
+function PanneauMission({ mission }: { mission: MissionMo1 }) {
+  const session = useSession();
+  const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.en-details", true);
+  const [edition, setEdition] = useState(false);
+  const live = session.missions.find((m) => m.id === mission.id);
+  if (!live) return null;
+  const bienNom = session.biens.find((b) => b.id === live.bienId)?.nom ?? live.bienId;
+
+  useEffect(() => {
+    setOuvert(true);
+  }, [mission.id, setOuvert]);
+
+  return (
+    <section className="mt-4 overflow-hidden rounded-card border border-line bg-white">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between border-b border-surface-soft px-4 py-3"
+        onClick={() => setOuvert((o) => !o)}
+      >
+        <span className="flex items-center gap-2 text-sm text-ink">
+          <ClipboardList className="size-4 opacity-50" />
+          En détails
+        </span>
+        {ouvert ? (
+          <ChevronUp className="size-4 text-ink-muted" />
+        ) : (
+          <ChevronDown className="size-4 text-ink-muted" />
+        )}
+      </button>
+      {ouvert && (
+        <div className="p-4">
+          <header className="flex flex-wrap items-start justify-between gap-3 border-b border-surface-soft pb-3">
+            <div>
+              <p className="text-base text-ink">{live.titre}</p>
+              <p className="mt-1 text-xs text-ink-subtle">
+                {live.emoji} {live.type === "Menage" ? "Ménage" : live.type} · {bienNom}
+              </p>
+            </div>
+            <span className="rounded border border-line-strong px-2 py-1 text-xs text-ink-body">
+              {live.statut === "terminee"
+                ? "Terminée"
+                : live.statut === "en_cours"
+                  ? "En cours"
+                  : "À faire"}
+            </span>
+          </header>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <MiniCarte
+              label="Date & heure"
+              valeur={new Date(`${live.date}T12:00:00`).toLocaleDateString("fr-FR", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              })}
+              extra={live.heure}
+            />
+            <MiniCarte label="Assigné à" extra={live.assigne} />
+          </div>
+          <div className="mt-2 rounded-card border border-surface-soft bg-surface p-3">
+            <p className="text-xs text-ink-muted">Description</p>
+            <p className="mt-1 text-xs leading-5 text-ink-body">{live.description}</p>
+          </div>
+          <footer className="mt-3 flex flex-wrap justify-end gap-2 border-t border-surface-soft pt-3">
+            <button
+              type="button"
+              onClick={() => setEdition(true)}
+              className="inline-flex h-11 items-center gap-1 rounded-card border border-line px-3 text-xs font-medium text-ink-body md:h-[30px]"
+            >
+              <Pencil className="size-3" />
+              Modifier
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                const ok = await confirmer({
+                  titre: "Supprimer cette prestation ?",
+                  description: `${live.titre} disparaît du calendrier.`,
+                  libelleConfirmer: "Supprimer",
+                  danger: true,
+                });
+                if (!ok) return;
+                retirerMission(live.id);
+                toastOk("Prestation supprimée.");
+              }}
+              className="inline-flex h-11 items-center gap-1 rounded-card border border-line px-3 text-xs font-medium text-ink-body md:h-[30px]"
+            >
+              <Trash2 className="size-3" />
+              Supprimer
+            </button>
+            {live.statut !== "terminee" && (
+              <button
+                type="button"
+                onClick={() => {
+                  const statut = live.statut === "a_faire" ? "en_cours" : "terminee";
+                  modifierSession((e) => ({
+                    ...e,
+                    missions: e.missions.map((m) => (m.id === live.id ? { ...m, statut } : m)),
+                  }));
+                  toastOk(statut === "terminee" ? "Mission terminée." : "Mission démarrée.");
+                }}
+                className="inline-flex h-11 items-center rounded-card bg-ink px-3 text-xs font-medium text-white md:h-[30px]"
+              >
+                {live.statut === "a_faire" ? "Démarrer" : "Terminer"}
+              </button>
+            )}
+          </footer>
+        </div>
+      )}
+      <CreatePrestationDialog
+        ouvert={edition}
+        onFermer={() => setEdition(false)}
+        bienId={live.bienId}
+        date={live.date}
+        mission={live}
+      />
+    </section>
+  );
+}
+
+function PanneauReservation({ reservationId }: { reservationId?: string | null | undefined }) {
   const session = useSession();
   const peutMod = useDroit("mod-reservations");
   const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.en-details", true);
@@ -43,6 +181,14 @@ export function PanneauEnDetails({ reservationId }: { reservationId?: string | n
   const [rembMotif, setRembMotif] = useState("");
   const [rembMontant, setRembMontant] = useState("");
   const [rembNote, setRembNote] = useState("");
+  const [voirDetail, setVoirDetail] = useState(false);
+  const [avoir, setAvoir] = useState<{
+    motif: string;
+    montant: number;
+    note: string;
+    date: string;
+    numero: string;
+  } | null>(null);
 
   const actives = useMemo(
     () => session.reservationsDossier.filter((r) => r.statut !== "Annulé"),
@@ -65,6 +211,10 @@ export function PanneauEnDetails({ reservationId }: { reservationId?: string | n
     setSaisiePaye(String(reservation.paye));
   }, [reservation?.id, reservation?.paye]);
 
+  useEffect(() => {
+    if (reservationId) setOuvert(true);
+  }, [reservationId, setOuvert]);
+
   if (!reservation) return null;
   const bien = session.biens.find((b) => b.id === reservation.bienId);
   const pct = pourcentagePaiement(reservation);
@@ -79,6 +229,11 @@ export function PanneauEnDetails({ reservationId }: { reservationId?: string | n
       .join(" · ") || session.parametrage.consignesArrivee;
   const precheckinFait = reservation.precheckinStatut === "fait";
   const viaPlateforme = paiementViaPlateforme(reservation.plateforme);
+  const occupantLie = session.occupants.find(
+    (o) =>
+      o.nom.toLowerCase() === reservation.occupant.toLowerCase() ||
+      o.email.toLowerCase() === reservation.email.toLowerCase(),
+  );
   const detail = detailMontantsReservation({
     montant: reservation.montant,
     paye: reservation.paye,
@@ -127,19 +282,28 @@ export function PanneauEnDetails({ reservationId }: { reservationId?: string | n
               {reservation.plateforme}
             </span>
             <p className="text-[10px] text-ink">N° de réservation : #{reservation.id.slice(-6)}</p>
+            {occupantLie && (
+              <Link
+                to="/dossiers/$occupantId"
+                params={{ occupantId: occupantLie.id }}
+                className="inline-flex h-11 items-center rounded-card border border-line px-2 text-[11px] font-medium text-ink-body md:h-[30px]"
+              >
+                Fiche occupant
+              </Link>
+            )}
             <button
               type="button"
               onClick={() => setVoirPrecheckin(true)}
-              className="inline-flex h-11 items-center gap-1 rounded-card border border-line px-2 text-[11px] font-medium text-ink-body md:h-[30px]"
+              className="inline-flex h-11 items-center gap-1.5 rounded-card border border-ink px-2.5 text-[11px] font-medium text-ink md:h-[30px]"
               aria-label={`Pré-checkin ${precheckinFait ? "fait" : "pas fait"}, voir`}
             >
               {precheckinFait ? (
-                <CheckCircle2 className="size-3.5 text-accent-teal" />
+                <CheckCircle2 className="size-4 text-accent-teal" />
               ) : (
-                <Circle className="size-3.5 text-ink-muted" />
+                <Circle className="size-4 text-ink-muted" />
               )}
+              <span>Pré-checkin {precheckinFait ? "fait" : "pas fait"}</span>
               <Eye className="size-3.5" />
-              {precheckinFait ? "Fait" : "Pas fait"}
             </button>
             {peutMod && (
               <button
@@ -193,58 +357,70 @@ export function PanneauEnDetails({ reservationId }: { reservationId?: string | n
           <div className="mt-2 rounded-card border border-surface-soft bg-surface p-3">
             <div className="flex items-center justify-between">
               <p className="text-xs text-ink-subtle">Paiement du séjour</p>
-              <span className="rounded border border-ink-muted bg-line px-2 py-0.5 text-xs text-ink-status">
+              <button
+                type="button"
+                onClick={() => setVoirDetail((v) => !v)}
+                className="rounded border border-ink-muted bg-line px-2 py-0.5 text-xs text-ink-status"
+              >
                 Détails {pct}%
-              </span>
+              </button>
             </div>
-            <dl className="mt-2 grid gap-1 text-xs text-ink-body sm:grid-cols-2">
-              <div className="flex justify-between gap-2">
-                <dt>Loyer / séjour</dt>
-                <dd>{formatMontant(detail.loyer)}</dd>
-              </div>
-              <div className="flex justify-between gap-2">
-                <dt>Caution</dt>
-                <dd>{formatMontant(detail.caution)}</dd>
-              </div>
-              <div className="flex justify-between gap-2">
-                <dt>Ménage</dt>
-                <dd>{formatMontant(detail.menage)}</dd>
-              </div>
-              <div className="flex justify-between gap-2">
-                <dt>Taxes OTA / séjour</dt>
-                <dd>{formatMontant(detail.taxe)}</dd>
-              </div>
-              <div className="flex justify-between gap-2">
-                <dt>Réduction</dt>
-                <dd>
-                  −{formatMontant(detail.reduction)}
-                  {reservation.reductionPourcent ? ` (${reservation.reductionPourcent} %)` : ""}
-                </dd>
-              </div>
-              <div className="flex justify-between gap-2">
-                <dt>Frais plateforme</dt>
-                <dd>{formatMontant(detail.frais)}</dd>
-              </div>
-              <div className="flex justify-between gap-2">
-                <dt>Commission gestion</dt>
-                <dd>
-                  {formatMontant(detail.comm)}
-                  {reservation.commissionPourcent ? ` (${reservation.commissionPourcent} %)` : ""}
-                </dd>
-              </div>
-              <div className="flex justify-between gap-2">
-                <dt>Upsells</dt>
-                <dd>{formatMontant(detail.upsells)}</dd>
-              </div>
-              <div className="flex justify-between gap-2 font-medium text-ink">
-                <dt>Payé voyageur</dt>
-                <dd>{formatMontant(detail.voyageur)}</dd>
-              </div>
-              <div className="flex justify-between gap-2 font-medium text-ink">
-                <dt>Net perçu</dt>
-                <dd>{formatMontant(detail.net)}</dd>
-              </div>
-            </dl>
+            <p className="mt-2 text-sm text-ink">
+              Payé : {formatMontant(reservation.paye)} / {formatMontant(reservation.montant)}
+              <span className="ml-2 text-xs text-ink-muted">
+                Caution {formatMontant(detail.caution)} · Loyer {formatMontant(detail.loyer)}
+              </span>
+            </p>
+            {voirDetail && (
+              <dl className="mt-2 grid gap-1 text-xs text-ink-body sm:grid-cols-2">
+                <div className="flex justify-between gap-2">
+                  <dt>Loyer / séjour</dt>
+                  <dd>{formatMontant(detail.loyer)}</dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt>Caution</dt>
+                  <dd>{formatMontant(detail.caution)}</dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt>Ménage</dt>
+                  <dd>{formatMontant(detail.menage)}</dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt>Taxes OTA / séjour</dt>
+                  <dd>{formatMontant(detail.taxe)}</dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt>Réduction</dt>
+                  <dd>
+                    −{formatMontant(detail.reduction)}
+                    {reservation.reductionPourcent ? ` (${reservation.reductionPourcent} %)` : ""}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt>Frais plateforme</dt>
+                  <dd>{formatMontant(detail.frais)}</dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt>Commission gestion</dt>
+                  <dd>
+                    {formatMontant(detail.comm)}
+                    {reservation.commissionPourcent ? ` (${reservation.commissionPourcent} %)` : ""}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt>Upsells</dt>
+                  <dd>{formatMontant(detail.upsells)}</dd>
+                </div>
+                <div className="flex justify-between gap-2 font-medium text-ink">
+                  <dt>Payé voyageur</dt>
+                  <dd>{formatMontant(detail.voyageur)}</dd>
+                </div>
+                <div className="flex justify-between gap-2 font-medium text-ink">
+                  <dt>Net perçu</dt>
+                  <dd>{formatMontant(detail.net)}</dd>
+                </div>
+              </dl>
+            )}
             <p className="mt-2 text-[11px] uppercase tracking-wide text-ink-muted">
               Vérifier attribution
               {reservation.attributionCommission
@@ -380,6 +556,15 @@ export function PanneauEnDetails({ reservationId }: { reservationId?: string | n
               >
                 Fiche d'accès
               </Link>
+            )}
+            {peutMod && (
+              <button
+                type="button"
+                onClick={() => setRembourse(true)}
+                className="inline-flex h-11 items-center justify-center rounded-card border border-line px-3 text-xs font-medium text-ink-body md:h-[30px]"
+              >
+                Remboursement
+              </button>
             )}
             {peutMod && (
               <Link
@@ -521,29 +706,134 @@ export function PanneauEnDetails({ reservationId }: { reservationId?: string | n
                   toastErreur("Indiquez un montant positif.");
                   return;
                 }
-                const paye = Math.max(0, reservation.paye - Math.round(montant));
+                const montantArrondi = Math.round(montant);
+                const paye = Math.max(0, reservation.paye - montantArrondi);
+                const date = new Date().toISOString().slice(0, 10);
+                const numero = `AV-${date.replace(/-/g, "")}-${reservation.id.slice(-4).toUpperCase()}`;
                 modifierReservation(reservation.id, {
                   paye,
                   remboursements: [
                     ...(reservation.remboursements ?? []),
                     {
                       id: idNouveau("rb"),
-                      date: new Date().toISOString().slice(0, 10),
+                      date,
                       motif: rembMotif.trim(),
-                      montant: Math.round(montant),
+                      montant: montantArrondi,
                       note: rembNote.trim(),
                     },
                   ],
+                });
+                ajouterDocument({
+                  id: idNouveau("doc"),
+                  titre: `Avoir ${numero} — ${reservation.occupant}`,
+                  type: "Avoir",
+                  filtre: "Correspondances",
+                  logement: bien?.nom ?? reservation.bienId,
+                  date,
+                  taille: "1 page",
+                  modifiePar: "Gestionnaire",
+                  photos: 0,
+                  vue: "residents",
+                  occupant: "locataires",
+                });
+                setAvoir({
+                  motif: rembMotif.trim(),
+                  montant: montantArrondi,
+                  note: rembNote.trim(),
+                  date,
+                  numero,
                 });
                 setRembourse(false);
                 setRembMotif("");
                 setRembMontant("");
                 setRembNote("");
-                toastOk(`Remboursement de ${formatMontant(Math.round(montant))} enregistré.`);
+                toastOk(`Avoir ${numero} généré.`);
               }}
               className="h-9 rounded-card bg-ink px-3 text-xs font-medium text-white"
             >
               Confirmer
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(avoir)} onOpenChange={(o) => !o && setAvoir(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogTitle>Avoir</DialogTitle>
+          <DialogDescription>Document de remboursement à remettre au client.</DialogDescription>
+          {avoir && (
+            <div className="mt-3 rounded-card border border-line bg-white p-4 text-sm text-ink">
+              <p className="text-center text-lg font-semibold tracking-wide">AVOIR</p>
+              <div className="mt-3 flex justify-between gap-4 text-xs">
+                <div>
+                  <p>Client : {reservation.occupant}</p>
+                  <p>{reservation.email}</p>
+                </div>
+                <div className="text-right">
+                  <p>Avoir n° {avoir.numero}</p>
+                  <p>Date : {avoir.date}</p>
+                  <p>
+                    Réf. {reservation.plateforme} · {reservation.id}
+                  </p>
+                </div>
+              </div>
+              <p className="mt-3 text-xs">Objet : {avoir.motif}</p>
+              <p className="text-xs">
+                Logement : {bien?.nom ?? reservation.bienId} · séjour {reservation.arrivee} →{" "}
+                {reservation.depart}
+              </p>
+              <table className="mt-3 w-full text-xs">
+                <thead>
+                  <tr className="border-b border-line text-left">
+                    <th className="py-1 font-medium">Désignation</th>
+                    <th className="py-1 text-right font-medium">Montant TTC</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="py-1">
+                      {avoir.motif}
+                      {avoir.note ? ` — ${avoir.note}` : ""}
+                    </td>
+                    <td className="py-1 text-right">{formatMontant(avoir.montant)}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p className="mt-3 text-right font-medium">
+                Total avoir TTC {formatMontant(avoir.montant)}
+              </p>
+            </div>
+          )}
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setAvoir(null)}
+              className="h-9 rounded-card border border-line px-3 text-xs"
+            >
+              Fermer
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!avoir) return;
+                void telechargerAvoir({
+                  occupant: reservation.occupant,
+                  email: reservation.email,
+                  reservationId: reservation.id,
+                  plateforme: reservation.plateforme,
+                  motif: avoir.motif,
+                  montant: avoir.montant,
+                  note: avoir.note,
+                  logement: bien?.nom ?? reservation.bienId,
+                  arrivee: reservation.arrivee,
+                  depart: reservation.depart,
+                  numero: avoir.numero,
+                  date: avoir.date,
+                });
+              }}
+              className="h-9 rounded-card bg-ink px-3 text-xs font-medium text-white"
+            >
+              Télécharger
             </button>
           </div>
         </DialogContent>

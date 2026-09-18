@@ -575,12 +575,13 @@ export function styleBarreResa(r: { arrivee: string; depart: string }, jours: Da
   const cell = 100 / jours.length;
   const startKey = keys[start]!;
   const endKey = keys[start + span - 1]!;
+  // Turnover : une résa finit le matin, la suivante commence l'après-midi — jointure à midi.
   const leftFrac = start + (startKey === r.arrivee ? 0.5 : 0);
   const endFrac = start + span - (endKey === r.depart ? 0.5 : 0);
-  const largeur = Math.max(endFrac - leftFrac, 0.28);
+  const largeur = Math.max(endFrac - leftFrac, 0.22);
   return {
-    left: `calc(${leftFrac * cell}% + 2px)`,
-    width: `calc(${largeur * cell}% - 4px)`,
+    left: `${leftFrac * cell}%`,
+    width: `${largeur * cell}%`,
   };
 }
 

@@ -49,7 +49,6 @@ import { BadgeType, BtnNavy, BtnOutline, Chip } from "./ui";
 
 const FILTRES_LOGEMENT = [
   "Tous",
-  "Bail",
   "Quittances",
   "États des lieux",
   "Inventaire",
@@ -68,6 +67,7 @@ const FILTRES_LOCATAIRES = [
   "Dossiers",
   "États des lieux",
   "Attestations",
+  "Documents",
 ];
 
 const FILTRES_PROPRIO = [
@@ -125,6 +125,14 @@ export function DocumentsApp({
     if (typeFiltre !== "Tous") {
       list = list.filter((d) => {
         if (d.filtre === typeFiltre) return true;
+        if (typeFiltre === "Documents") {
+          return (
+            d.filtre === "Correspondances" ||
+            d.filtre === "Courrier libre" ||
+            /correspondance|courrier|avoir/i.test(d.titre) ||
+            /correspondance|courrier|avoir/i.test(d.type)
+          );
+        }
         if (typeFiltre === "Correspondances") {
           return /correspondance|courrier/i.test(d.titre) || /correspondance|courrier/i.test(d.type);
         }

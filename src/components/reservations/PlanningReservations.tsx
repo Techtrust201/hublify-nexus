@@ -3,6 +3,8 @@ import { RetourVueGenerale } from "@/components/layout/RetourVueGenerale";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Home, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
+  BandeauPlanning,
+  ChampRechercheCalendrier,
   ColonneBienCalendrier,
   EnteteJoursCalendrier,
   type BienCalendrierChrome,
@@ -22,7 +24,7 @@ import {
   type PlateformeMo1,
   type ReservationMo1,
 } from "@/data/reservations-mo1";
-import { reservationTouche, styleBarreResa, teinteBarreCalendrier } from "@/data/planning-mo1";
+import { styleBarreResa, teinteBarreCalendrier } from "@/data/planning-mo1";
 import { CreateEventDialog } from "@/components/dashboard/DashboardDialogs";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -41,7 +43,6 @@ type VuePlanning = "3jours" | "5jours" | "mois";
 type FiltrePlateforme = "tout" | PlateformeMo1;
 
 export function PlanningReservations({
-  onVoirListe,
   onSelectReservation,
 }: {
   onVoirListe?: () => void;
@@ -66,6 +67,7 @@ export function PlanningReservations({
   const [periode, setPeriode] = useState<{ bienId: string; debut: string } | null>(null);
   const [finPeriode, setFinPeriode] = useState("");
   const [note, setNote] = useState<{ date: string; bienNom: string } | null>(null);
+  const [rechercheCal, setRechercheCal] = useState("");
 
   const poserOuverture = (bienId: string, debut: string, fin: string) => {
     const n = poserOuverturesBail(bienId, debut, fin);
@@ -86,10 +88,19 @@ export function PlanningReservations({
   }, [ancre]);
 
   const reservations = useMemo(() => {
-    const source = session.reservationsDossier;
-    if (plateforme === "tout") return source;
-    return source.filter((r) => r.plateforme === plateforme);
-  }, [plateforme, session.reservationsDossier]);
+    let source = session.reservationsDossier;
+    if (plateforme !== "tout") source = source.filter((r) => r.plateforme === plateforme);
+    const q = rechercheCal.trim().toLowerCase();
+    if (q) {
+      source = source.filter(
+        (r) =>
+          r.occupant.toLowerCase().includes(q) ||
+          r.id.toLowerCase().includes(q) ||
+          r.plateforme.toLowerCase().includes(q),
+      );
+    }
+    return source;
+  }, [plateforme, rechercheCal, session.reservationsDossier]);
 
   const biens = useMemo(() => {
     const source = session.biens.map(
@@ -107,16 +118,18 @@ export function PlanningReservations({
         },
       }),
     );
-    if (!bienLocalise) return source;
-    return source.filter((b) => b.id === bienLocalise);
-  }, [bienLocalise, session.biens]);
-
-  const visiblePlanning = useMemo(() => {
-    const cles = new Set((vue === "mois" ? joursMois : jours).map((d) => isoJour(d)));
-    return reservations.filter((r) => [...cles].some((j) => reservationTouche(r, j)));
-  }, [reservations, jours, joursMois, vue]);
-
-  const totalVisible = visiblePlanning.reduce((s, r) => s + r.montant, 0);
+    const q = rechercheCal.trim().toLowerCase();
+    const parNom = q
+      ? source.filter(
+          (b) =>
+            b.nom.toLowerCase().includes(q) ||
+            (b.typologie ?? "").toLowerCase().includes(q) ||
+            reservations.some((r) => r.bienId === b.id),
+        )
+      : source;
+    if (!bienLocalise) return parNom;
+    return parNom.filter((b) => b.id === bienLocalise);
+  }, [bienLocalise, rechercheCal, reservations, session.biens]);
 
   const allerOnglet = (id: "missions" | "reservations" | "tarifs") => {
     if (id === "missions") navigate({ to: "/missions" });
@@ -134,29 +147,22 @@ export function PlanningReservations({
 
   return (
     <div className="overflow-hidden rounded-card border border-line bg-white">
-      <div className="flex min-w-0 items-center overflow-x-auto border-b border-line px-4">
-        <RetourVueGenerale className="mr-3 h-9 shrink-0 border-line" />
-        {(
-          [
-            ["missions", "Missions"],
-            ["reservations", "Réservations"],
-            ["tarifs", "Tarifs"],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => allerOnglet(id)}
-            className={cn(
-              "h-[46px] shrink-0 whitespace-nowrap border-b-2 px-4 text-sm font-medium capitalize",
-              id === "reservations"
-                ? "border-ink text-ink-deep"
-                : "border-transparent text-ink-subtle",
-            )}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="flex items-center gap-2 border-b border-line bg-[#f7f6f3] px-3">
+        <RetourVueGenerale className="my-auto h-9 shrink-0 border-line" />
+        <BandeauPlanning
+          actif="reservations"
+          onChoisir={(id) => {
+            if (id !== "reservations") allerOnglet(id);
+          }}
+        />
+      </div>
+
+      <div className="border-b border-surface-soft px-4 py-2">
+        <ChampRechercheCalendrier
+          valeur={rechercheCal}
+          onChange={setRechercheCal}
+          placeholder="Rechercher un logement ou un occupant…"
+        />
       </div>
 
       <div className="border-b border-surface-soft px-4 py-2.5">
@@ -302,14 +308,6 @@ export function PlanningReservations({
           <Plus className="size-2.5" />
           Nouvelle réservation
         </Link>
-        <button
-          type="button"
-          onClick={onVoirListe}
-          className="ml-auto inline-flex min-h-11 items-center text-xs text-ink-muted md:min-h-0"
-        >
-          {visiblePlanning.length} rés. ·{" "}
-          <span className="text-ink-body">{totalVisible.toLocaleString("fr-FR")} €</span>
-        </button>
       </div>
 
       {vue === "mois" ? (
@@ -554,16 +552,14 @@ function LigneBien({
                       : "bg-[repeating-linear-gradient(-45deg,var(--surface-soft),var(--surface-soft)_4px,var(--surface-elevated)_4px,var(--surface-elevated)_8px)]"),
                 )}
               >
-                {!occupe && !bloquee && (
-                  <Link
-                    to="/reservations/nouveau"
-                    search={{ bien: bien.id, arrivee: key }}
-                    className="absolute inset-0 flex items-center justify-center text-ink-muted opacity-0 transition-opacity group-hover/case:opacity-100 focus-visible:opacity-100"
-                    aria-label={`Nouvelle réservation — ${bien.nom}`}
-                  >
-                    <Plus className="size-3.5" />
-                  </Link>
-                )}
+                <Link
+                  to="/reservations/nouveau"
+                  search={{ bien: bien.id, arrivee: key }}
+                  className="absolute bottom-1.5 left-1/2 z-[2] flex size-7 -translate-x-1/2 items-center justify-center rounded-full border border-dashed border-line bg-white text-ink-muted"
+                  aria-label={`Nouvelle réservation — ${bien.nom}`}
+                >
+                  <Plus className="size-3" />
+                </Link>
                 {bloquee && !occupe && (
                   <button
                     type="button"
@@ -662,12 +658,12 @@ function GrilleMois({
                 {list.length > 3 && (
                   <p className="px-1 text-[10px] text-ink-muted">+{list.length - 3} autres</p>
                 )}
-                {list.length === 0 && !hors && (
+                {!hors && (
                   <div className="flex justify-center pt-2">
                     <Link
                       to="/reservations/nouveau"
                       search={{ arrivee: key }}
-                      className="flex size-11 items-center justify-center rounded-full text-ink-muted opacity-0 group-hover:opacity-100 focus-visible:opacity-100 md:size-5"
+                      className="flex size-6 items-center justify-center rounded border border-dashed border-line text-ink-muted"
                       aria-label="Créer une réservation"
                     >
                       <Plus className="size-2.5" />

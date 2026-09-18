@@ -47,7 +47,16 @@ function detailRevenuNuit(kpi: { nuitsCourteDuree: number; longsSejours: number 
 function PageAnalyse() {
   const navigate = useNavigate();
   const session = useSession();
-  const analyse = useMemo(() => analyserReservations(session), [session]);
+  const [filtreLogement, setFiltreLogement] = useState("tous");
+  const sessionFiltree = useMemo(() => {
+    if (filtreLogement === "tous") return session;
+    return {
+      ...session,
+      reservationsDossier: session.reservationsDossier.filter((r) => r.bienId === filtreLogement),
+      biens: session.biens.filter((b) => b.id === filtreLogement),
+    };
+  }, [filtreLogement, session]);
+  const analyse = useMemo(() => analyserReservations(sessionFiltree), [sessionFiltree]);
   const [onglet, setOnglet] = useState<OngletAnalyse>("revenus");
   const [filtreStatut, setFiltreStatut] = useState<"tous" | PaiementAnalyse["statut"]>("tous");
   const [selection, setSelection] = useState<string[]>([]);
@@ -91,6 +100,21 @@ function PageAnalyse() {
       titre="Analyses, revenus et paiements"
       sousTitre="Suivi détaillé de vos revenus et commissions"
     >
+      <label className="mb-4 flex max-w-sm items-center gap-2 text-sm text-ink-body">
+        Appartement
+        <select
+          value={filtreLogement}
+          onChange={(e) => setFiltreLogement(e.target.value)}
+          className="h-11 flex-1 rounded-card border border-line bg-white px-3 text-sm outline-none md:h-9"
+        >
+          <option value="tous">Tous les appartements</option>
+          {session.biens.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.nom}
+            </option>
+          ))}
+        </select>
+      </label>
       <div className="mb-4 flex gap-1 overflow-x-auto border-b border-line">
         {ONGLETS.map((o) => (
           <button
