@@ -230,11 +230,11 @@ async function hydraterDistant() {
     abonnes.forEach((fn) => fn());
     ignorePush = false;
     if (dossiers.changes.length > 0) {
-      void Promise.all(
-        dossiers.changes.map((d) => pousserLigne("dossiersLocation", d)),
-      ).then((oks) => {
-        if (oks.some((ok) => !ok)) programmerReprise();
-      });
+      void Promise.all(dossiers.changes.map((d) => pousserLigne("dossiersLocation", d))).then(
+        (oks) => {
+          if (oks.some((ok) => !ok)) programmerReprise();
+        },
+      );
     }
     poserStatut({ etat: "enregistre", a: Date.now() });
     // Import différé : la reprise dépend de la session, elle ne pèse pas sur le
@@ -471,12 +471,46 @@ function appliquerLocal(fn: (actuel: EtatSession) => EtatSession) {
   ignorePush = false;
 }
 
-export function validerLoyer(id: string) {
+export function validerLoyer(id: string, details: { methode: string; reference: string }) {
+  const patch = {
+    valide: true,
+    methode: details.methode,
+    reference: details.reference,
+    payeLe: new Date().toISOString().slice(0, 10),
+  };
   appliquerLocal((e) => ({
     ...e,
-    loyers: e.loyers.map((l) => (l.id === id ? { ...l, valide: true } : l)),
+    loyers: e.loyers.map((l) => (l.id === id ? { ...l, ...patch } : l)),
   }));
-  void pousserPatch("loyers", id, { valide: true }).then((ok) => !ok && programmerReprise());
+  void pousserPatch("loyers", id, patch).then((ok) => !ok && programmerReprise());
+}
+
+/** L'encaissé reste un total saisi par le gestionnaire ; chaque variation devient une
+ *  ligne datée, pour que l'historique des paiements ne se réduise pas à un cumul. */
+export function enregistrerEncaissement(
+  id: string,
+  nouveauTotal: number,
+  details: { methode: string; reference?: string; ajoutePar: string },
+) {
+  const actuel = etat.reservationsDossier.find((r) => r.id === id);
+  if (!actuel) return;
+  const total = Math.max(0, Math.round(nouveauTotal));
+  const ecart = total - actuel.paye;
+  if (ecart === 0) return;
+  modifierReservation(id, {
+    paye: total,
+    paiements: [
+      ...(actuel.paiements ?? []),
+      {
+        id: idNouveau("pay"),
+        date: new Date().toISOString().slice(0, 10),
+        montant: ecart,
+        methode: details.methode,
+        reference: details.reference ?? "",
+        ajoutePar: details.ajoutePar,
+      },
+    ],
+  });
 }
 
 export function marquerQuittance(id: string) {
@@ -571,7 +605,11 @@ export function ajouterReservation(params: {
 export function modifierReservation(id: string, patch: Partial<ReservationDossier>) {
   const actuelEtat = etat.reservationsDossier.find((r) => r.id === id);
   if (!actuelEtat) return;
-  if (patch.arrivee || patch.depart || patch.bienId) {
+  const deplacee =
+    (patch.arrivee !== undefined && patch.arrivee !== actuelEtat.arrivee) ||
+    (patch.depart !== undefined && patch.depart !== actuelEtat.depart) ||
+    (patch.bienId !== undefined && patch.bienId !== actuelEtat.bienId);
+  if (deplacee) {
     const candidate = { ...actuelEtat, ...patch, id };
     const collision = trouverChevauchement(etat.reservationsDossier, {
       bienId: candidate.bienId,

@@ -3,12 +3,7 @@
 
 export type VuePlanning = "3jours" | "5jours" | "mois";
 export type OngletPlanning = "missions" | "reservations" | "tarifs";
-export type VueAffichagePlanning =
-  | "missions"
-  | "taches"
-  | "checkout"
-  | "checkin"
-  | "ouverture";
+export type VueAffichagePlanning = "missions" | "taches" | "checkout" | "checkin" | "ouverture";
 export type StatutPastille = "a_faire" | "en_cours" | "terminee";
 export type CanalMo1 = "occupants" | "prestataires" | "team";
 export type ImpactEvenement = "Fort impact" | "Impact modéré" | "Opportunité";
@@ -62,6 +57,9 @@ export type LoyerMo1 = {
   montant: number;
   valide: boolean;
   quittance: boolean;
+  methode?: string;
+  reference?: string;
+  payeLe?: string;
 };
 
 export type EvenementMo1 = {
@@ -590,6 +588,21 @@ export function styleBarreResa(r: { arrivee: string; depart: string }, jours: Da
   };
 }
 
+/** Deux séjours qui se chevauchent sur un même bien prennent chacun leur couloir :
+ *  dessinés au même endroit, l'un masquerait l'autre et la double réservation passerait
+ *  inaperçue. Un départ et une arrivée le même jour se partagent la journée à midi. */
+export function couloirsSejours(sejours: Array<{ id: string; arrivee: string; depart: string }>) {
+  const fins: string[] = [];
+  const couloirs = new Map<string, number>();
+  for (const s of [...sejours].sort((a, b) => a.arrivee.localeCompare(b.arrivee))) {
+    let couloir = fins.findIndex((fin) => fin <= s.arrivee);
+    if (couloir < 0) couloir = fins.length;
+    fins[couloir] = s.depart;
+    couloirs.set(s.id, couloir);
+  }
+  return { couloirs, nombre: Math.max(1, fins.length) };
+}
+
 export function libelleStatut(s: StatutPastille) {
   if (s === "terminee") return "Terminée";
   if (s === "en_cours") return "En cours";
@@ -645,10 +658,7 @@ export function dateCourtIso(iso: string) {
   return `${jour}/${mois}`;
 }
 
-export function teinteBarreCalendrier(
-  r: { arrivee: string; depart: string },
-  jours: Date[],
-) {
+export function teinteBarreCalendrier(r: { arrivee: string; depart: string }, jours: Date[]) {
   const keys = jours.map(isoJour);
   const arrive = keys.includes(r.arrivee);
   const depart = keys.includes(r.depart);

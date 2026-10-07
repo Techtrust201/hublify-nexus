@@ -1,10 +1,6 @@
 // SOURCE: Maquette MO1 — grille biens × jours (Missions / Tarifs, 3 jours / 5 jours / mois)
 
-import { Link, useRouterState } from "@tanstack/react-router";
-import {
-  estPagePlanningHorsAccueil,
-  RetourVueGenerale,
-} from "@/components/layout/RetourVueGenerale";
+import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Plus, SlidersHorizontal, Tag } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useDroit } from "@/auth/auth-context";
@@ -35,6 +31,7 @@ import {
   isoJour,
   prixDuJour,
   reservationCouvre,
+  couloirsSejours,
   styleBarreResa,
   teinteBarreCalendrier,
   type BienMo1,
@@ -47,12 +44,7 @@ import {
   type VuePlanning,
 } from "@/data/planning-mo1";
 import type { DateBloqueeMo1 } from "@/data/reservations-mo1";
-import {
-  modifierSession,
-  poserOuverturesBail,
-  retirerMission,
-  useSession,
-} from "@/data/session";
+import { modifierSession, poserOuverturesBail, retirerMission, useSession } from "@/data/session";
 import { confirmer, toastOk } from "@/lib/feedback";
 import { idDossierPourCalendrier } from "@/data/v1-metier";
 import { cn } from "@/lib/utils";
@@ -78,10 +70,27 @@ export function PlanningGrid({
 }) {
   const session = useSession();
   const peutReserver = useDroit("mod-reservations");
-  const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const retourAccueil = estPagePlanningHorsAccueil(pathname);
   const missions = session.missions;
-  const sejoursCal = session.reservationsCalendrier;
+  const sejoursCal = useMemo(() => {
+    const dossiers = session.reservationsDossier;
+    const couverts = new Set<string>();
+    const visibles = session.reservationsCalendrier.filter((sejour) => {
+      const id = idDossierPourCalendrier(sejour, dossiers);
+      if (id) couverts.add(id);
+      return dossiers.find((d) => d.id === id)?.statut !== "Annulé";
+    });
+    // Une réservation créée hors calendrier (import, ancienne saisie) doit rester visible.
+    const manquants = dossiers
+      .filter((d) => d.statut !== "Annulé" && !couverts.has(d.id))
+      .map((d) => ({
+        id: `cal-${d.id}`,
+        bienId: d.bienId,
+        voyageur: d.occupant,
+        arrivee: d.arrivee,
+        depart: d.depart,
+      }));
+    return [...visibles, ...manquants];
+  }, [session.reservationsCalendrier, session.reservationsDossier]);
   const biens: (BienMo1 & BienCalendrierChrome)[] = session.biens.map((b) => ({
     id: b.id,
     nom: b.nom,
@@ -135,8 +144,7 @@ export function PlanningGrid({
     const q = rechercheCal.trim().toLowerCase();
     if (!q) return biens;
     return biens.filter(
-      (b) =>
-        b.nom.toLowerCase().includes(q) || (b.typologie ?? "").toLowerCase().includes(q),
+      (b) => b.nom.toLowerCase().includes(q) || (b.typologie ?? "").toLowerCase().includes(q),
     );
   }, [biens, rechercheCal]);
 
@@ -170,7 +178,9 @@ export function PlanningGrid({
   };
 
   const biensTarif =
-    filtreBienTarif === "tous" ? biensFiltres : biensFiltres.filter((b) => b.id === filtreBienTarif);
+    filtreBienTarif === "tous"
+      ? biensFiltres
+      : biensFiltres.filter((b) => b.id === filtreBienTarif);
 
   const reglesActives = regles.filter((r) => ensembles.find((e) => e.id === r.ensembleId)?.actif);
   const ensemblesActifs = ensembles.filter((e) => e.actif).length;
@@ -178,9 +188,6 @@ export function PlanningGrid({
   return (
     <div className="overflow-hidden rounded-card border border-line bg-white">
       <div className="flex items-center gap-2 border-b border-line bg-[#f7f6f3] px-3">
-        {retourAccueil && (
-          <RetourVueGenerale className="my-auto h-9 shrink-0 border-line" />
-        )}
         <BandeauPlanning
           actif={onglet}
           onChoisir={onOnglet}
@@ -644,13 +651,17 @@ function LigneBien({
   selectedMissionId?: string | null | undefined;
   selectionActive?: boolean | undefined;
 }) {
+  const visibles = sejours.filter((r) => styleBarreResa(r, jours));
+  const { couloirs, nombre } = couloirsSejours(visibles);
+  const bandeau = 6 + nombre * 44 + 2;
   return (
     <div className="contents">
       <ColonneBienCalendrier bien={bien} />
       <div
-        className="relative min-h-[148px] border-b border-line"
+        className="relative border-b border-line"
         style={{
           gridColumn: `2 / span ${jours.length}`,
+          minHeight: Math.max(148, bandeau + 96),
         }}
       >
         <div
@@ -674,11 +685,9 @@ function LigneBien({
                       ? "bg-[color-mix(in_srgb,var(--accent-teal)_12%,white)]"
                       : "bg-[repeating-linear-gradient(-45deg,var(--surface-soft),var(--surface-soft)_4px,var(--surface-elevated)_4px,var(--surface-elevated)_8px)]"),
                 )}
-                onClick={
-                  onAjouterPrestation ? () => onAjouterPrestation(bien.id, key) : undefined
-                }
+                onClick={onAjouterPrestation ? () => onAjouterPrestation(bien.id, key) : undefined}
               >
-                <div className="h-[52px] shrink-0" />
+                <div className="shrink-0" style={{ height: bandeau }} />
                 {bloc ? (
                   <p className="px-1.5 text-[10px] font-medium text-ink-muted">
                     {ouverture ? "Ouverture" : "Bloqué"}
@@ -705,7 +714,7 @@ function LigneBien({
           })}
         </div>
 
-        {sejours.map((r) => {
+        {visibles.map((r) => {
           const barre = styleBarreResa(r, jours);
           if (!barre) return null;
           const teinte = teinteBarreCalendrier(r, jours);
@@ -717,12 +726,13 @@ function LigneBien({
               type="button"
               onClick={() => onReservation?.(r)}
               className={cn(
-                "absolute top-[6px] z-[1] flex h-10 items-center gap-2 overflow-hidden rounded-lg border px-2.5 text-left",
+                "absolute z-[1] flex h-10 items-center gap-2 overflow-hidden rounded-lg border px-2.5 text-left",
                 sel && "shadow-[0_0_0_2px_rgba(17,17,17,0.4)]",
                 selectionActive && !sel && "opacity-45",
               )}
               style={{
                 ...barre,
+                top: 6 + (couloirs.get(r.id) ?? 0) * 44,
                 backgroundColor: teinte.fond,
                 borderColor: sel ? "#111111" : teinte.bord,
                 opacity: sel ? 1 : teinte.fade ? 0.6 : undefined,

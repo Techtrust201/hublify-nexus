@@ -14,7 +14,9 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import type { CanalMo1, EvenementMo1, LoyerMo1, MessageMo1 } from "@/data/planning-mo1";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useKpiMo1, useSession } from "@/data/session";
+import { METHODES_PAIEMENT } from "@/data/v1-metier";
 import { cn, useSessionBool } from "@/lib/utils";
 
 export function KpiCards() {
@@ -127,10 +129,7 @@ export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
   const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.messages", false);
   const [canal, setCanal] = useState<CanalMo1 | "prospect">("occupants");
   const prospects = session.conversations.filter((c) => c.section === "prospections");
-  const filtres =
-    canal === "prospect"
-      ? []
-      : messages.filter((m) => m.canal === canal);
+  const filtres = canal === "prospect" ? [] : messages.filter((m) => m.canal === canal);
   const convDe = (auteur: string) =>
     session.conversations.find((c) => c.nom.toLowerCase() === auteur.toLowerCase());
   const nonLus = session.conversations.filter((c) => c.nonLu).length;
@@ -159,83 +158,83 @@ export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
       </button>
       {ouvert && (
         <>
-      <div className="flex flex-wrap gap-2 border-b border-surface-soft px-4 py-2">
-        {(["occupants", "prestataires", "team", "prospect"] as const).map((c) => (
-          <button
-            key={c}
-            type="button"
-            onClick={() => {
-              setCanal(c);
-              setOuvert(true);
-            }}
-            className={cn(
-              "inline-flex h-11 min-h-11 items-center rounded border px-3 text-sm font-medium md:h-[26px] md:min-h-[26px] md:text-xs",
-              canal === c ? "border-ink text-ink" : "border-line-strong text-ink-body",
-            )}
-          >
-            {c === "occupants"
-              ? "Occupants"
-              : c === "prestataires"
-                ? "Prestataires"
-                : c === "team"
-                  ? "Team"
-                  : `Prospect${prospects.length ? ` (${prospects.length})` : ""}`}
-          </button>
-        ))}
-      </div>
-        <ul>
-          {canal === "prospect"
-            ? prospects.map((c) => (
-                <li key={c.id}>
-                  <Link
-                    to="/messagerie"
-                    search={{ conv: c.id }}
-                    className="flex gap-3 border-b border-surface-soft px-4 py-3 last:border-b-0 hover:bg-surface"
-                  >
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-line text-xs text-ink-body">
-                      {c.nom.slice(0, 2).toUpperCase()}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-baseline gap-2">
-                        <span className="text-sm text-ink">{c.nom}</span>
-                        {c.nonLu && (
-                          <span className="rounded-full bg-ink px-1.5 text-[10px] text-white">
-                            nouveau
-                          </span>
-                        )}
-                      </div>
-                      <p className="truncate text-xs text-ink-subtle">
-                        Demande à traiter — boîte Prospect
-                      </p>
-                    </div>
-                  </Link>
-                </li>
-              ))
-            : filtres.map((m) => (
-            <li key={m.id}>
-              <Link
-                to="/messagerie"
-                search={convDe(m.auteur) ? { conv: convDe(m.auteur)!.id } : {}}
-                className="flex gap-3 border-b border-surface-soft px-4 py-3 last:border-b-0 hover:bg-surface"
+          <div className="flex flex-wrap gap-2 border-b border-surface-soft px-4 py-2">
+            {(["occupants", "prestataires", "team", "prospect"] as const).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => {
+                  setCanal(c);
+                  setOuvert(true);
+                }}
+                className={cn(
+                  "inline-flex h-11 min-h-11 items-center rounded border px-3 text-sm font-medium md:h-[26px] md:min-h-[26px] md:text-xs",
+                  canal === c ? "border-ink text-ink" : "border-line-strong text-ink-body",
+                )}
               >
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-line text-xs text-ink-body">
-                  {m.initiales}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-baseline gap-2">
-                    <span className="text-sm text-ink">{m.auteur}</span>
-                    {m.bienNom && <span className="text-xs text-ink-muted">{m.bienNom}</span>}
-                    <span className="ml-auto text-xs text-ink-muted">● {m.ilYa}</span>
-                  </div>
-                  <p className="truncate text-xs text-ink-subtle">{m.texte}</p>
-                </div>
-              </Link>
-            </li>
-          ))}
-          {canal === "prospect" && prospects.length === 0 && (
-            <li className="px-4 py-3 text-xs text-ink-muted">Aucune demande prospect.</li>
-          )}
-        </ul>
+                {c === "occupants"
+                  ? "Occupants"
+                  : c === "prestataires"
+                    ? "Prestataires"
+                    : c === "team"
+                      ? "Team"
+                      : `Prospect${prospects.length ? ` (${prospects.length})` : ""}`}
+              </button>
+            ))}
+          </div>
+          <ul>
+            {canal === "prospect"
+              ? prospects.map((c) => (
+                  <li key={c.id}>
+                    <Link
+                      to="/messagerie"
+                      search={{ conv: c.id }}
+                      className="flex gap-3 border-b border-surface-soft px-4 py-3 last:border-b-0 hover:bg-surface"
+                    >
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-line text-xs text-ink-body">
+                        {c.nom.slice(0, 2).toUpperCase()}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-baseline gap-2">
+                          <span className="text-sm text-ink">{c.nom}</span>
+                          {c.nonLu && (
+                            <span className="rounded-full bg-ink px-1.5 text-[10px] text-white">
+                              nouveau
+                            </span>
+                          )}
+                        </div>
+                        <p className="truncate text-xs text-ink-subtle">
+                          Demande à traiter — boîte Prospect
+                        </p>
+                      </div>
+                    </Link>
+                  </li>
+                ))
+              : filtres.map((m) => (
+                  <li key={m.id}>
+                    <Link
+                      to="/messagerie"
+                      search={convDe(m.auteur) ? { conv: convDe(m.auteur)!.id } : {}}
+                      className="flex gap-3 border-b border-surface-soft px-4 py-3 last:border-b-0 hover:bg-surface"
+                    >
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-line text-xs text-ink-body">
+                        {m.initiales}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-baseline gap-2">
+                          <span className="text-sm text-ink">{m.auteur}</span>
+                          {m.bienNom && <span className="text-xs text-ink-muted">{m.bienNom}</span>}
+                          <span className="ml-auto text-xs text-ink-muted">● {m.ilYa}</span>
+                        </div>
+                        <p className="truncate text-xs text-ink-subtle">{m.texte}</p>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+            {canal === "prospect" && prospects.length === 0 && (
+              <li className="px-4 py-3 text-xs text-ink-muted">Aucune demande prospect.</li>
+            )}
+          </ul>
         </>
       )}
     </section>
@@ -249,13 +248,17 @@ export function LoyersSection({
   viaPlateforme,
 }: {
   loyers: LoyerMo1[];
-  onValider: (id: string) => void;
+  /** `null` : paiement reçu via la plateforme, la méthode se déduit de la réservation. */
+  onValider: (id: string, details: { methode: string; reference: string } | null) => void;
   onQuittance: (id: string) => void;
   viaPlateforme?: (l: LoyerMo1) => boolean;
 }) {
   const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.loyers", true);
   const peutValider = useDroit("mod-finances");
   const total = loyers.reduce((s, l) => s + l.montant, 0);
+  const [aValider, setAValider] = useState<LoyerMo1 | null>(null);
+  const [methode, setMethode] = useState<string>("Virement");
+  const [reference, setReference] = useState("");
 
   return (
     <section className="mt-4 overflow-hidden rounded-card border border-line bg-white">
@@ -301,7 +304,15 @@ export function LoyersSection({
                   {peutValider && (
                     <button
                       type="button"
-                      onClick={() => onValider(l.id)}
+                      onClick={() => {
+                        if (viaPlateforme?.(l)) {
+                          onValider(l.id, null);
+                          return;
+                        }
+                        setMethode("Virement");
+                        setReference("");
+                        setAValider(l);
+                      }}
                       className="h-11 rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[26px]"
                     >
                       {viaPlateforme?.(l) ? "Valider + quittance auto" : "Valider paiement"}
@@ -309,7 +320,15 @@ export function LoyersSection({
                   )}
                   <button
                     type="button"
-                    onClick={() => onQuittance(l.id)}
+                    onClick={() => {
+                      if (viaPlateforme?.(l) || !peutValider) {
+                        onQuittance(l.id);
+                        return;
+                      }
+                      setMethode("Virement");
+                      setReference("");
+                      setAValider(l);
+                    }}
                     className="inline-flex h-11 items-center gap-1 rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[26px]"
                   >
                     <FileCheck className="size-2.5" />
@@ -322,7 +341,7 @@ export function LoyersSection({
                     <span className="flex size-3 items-center justify-center rounded-full border border-ink-muted">
                       <span className="size-1.5 rounded-full bg-ink-muted" />
                     </span>
-                    Validé
+                    Validé{l.methode ? ` · ${l.methode}` : ""}
                   </span>
                   {l.quittance ? (
                     <button
@@ -349,6 +368,59 @@ export function LoyersSection({
           ))}
         </ul>
       )}
+      <Dialog open={Boolean(aValider)} onOpenChange={(o) => !o && setAValider(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>Valider le paiement</DialogTitle>
+          <DialogDescription>
+            {aValider
+              ? `${aValider.locataire} · ${aValider.montant.toLocaleString("fr-FR")} € · échéance ${aValider.echeance}`
+              : ""}
+          </DialogDescription>
+          <label className="mt-2 block text-xs text-ink-muted">
+            Méthode de paiement
+            <select
+              value={methode}
+              onChange={(e) => setMethode(e.target.value)}
+              className="mt-1 h-11 w-full rounded-card border border-line bg-white px-3 text-sm text-ink outline-none md:h-9"
+            >
+              {METHODES_PAIEMENT.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-xs text-ink-muted">
+            Référence (n° de chèque, de virement…)
+            <input
+              value={reference}
+              onChange={(e) => setReference(e.target.value)}
+              placeholder="Facultatif"
+              className="mt-1 h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none md:h-9"
+            />
+          </label>
+          <div className="mt-2 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setAValider(null)}
+              className="inline-flex h-11 items-center rounded-card border border-line px-3 text-xs md:h-9"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!aValider) return;
+                onValider(aValider.id, { methode, reference: reference.trim() });
+                setAValider(null);
+              }}
+              className="inline-flex h-11 items-center rounded-card bg-ink px-3 text-xs font-medium text-white md:h-9"
+            >
+              Valider le paiement
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

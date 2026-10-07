@@ -8,7 +8,7 @@ import { EcranAttente } from "@/components/layout/EcranAttente";
 import { ScrollHint } from "@/components/layout/ScrollHint";
 import { ajouterDocument } from "@/data/documents-store";
 import type { DocMo1 } from "@/data/documents-mo1";
-import { formatMontant } from "@/data/reservations-mo1";
+import { formatDateLongue, formatMontant } from "@/data/reservations-mo1";
 import {
   idNouveau,
   modifierCandidature,
@@ -19,7 +19,7 @@ import {
   validerCandidature,
   validerDepartDossier,
 } from "@/data/session";
-import { dossierArchiveSeuleLigne } from "@/data/v1-metier";
+import { dossierArchiveSeuleLigne, lignesEncaissement } from "@/data/v1-metier";
 import { completerDossiersCanon } from "@/data/etat-canon";
 import { telechargerPdf, toastErreur, toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
@@ -28,6 +28,35 @@ export const Route = createFileRoute("/dossiers/$occupantId")({
   head: () => ({ meta: [{ title: "Dossier locataire — Hublify" }] }),
   component: PageDossierLocataire,
 });
+
+function dateLisible(valeur: string) {
+  return /^\d{4}-\d{2}-\d{2}/.test(valeur) ? formatDateLongue(valeur.slice(0, 10)) : valeur;
+}
+
+function moisAnnee(iso: string) {
+  const d = new Date(`${iso.slice(0, 10)}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  const texte = d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  return texte.charAt(0).toUpperCase() + texte.slice(1);
+}
+
+function villeDe(adresse?: string) {
+  return adresse?.split(",").pop()?.trim() || "—";
+}
+
+function PastilleStatut({ ok, libelle }: { ok: boolean; libelle: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs",
+        ok ? "bg-chip-success text-chip-success-fg" : "bg-chip-warning text-chip-warning-fg",
+      )}
+    >
+      {ok ? <CheckCircle2 className="size-3" /> : <Clock className="size-3" />}
+      {libelle}
+    </span>
+  );
+}
 
 function PageDossierLocataire() {
   const { occupantId } = Route.useParams();
@@ -56,7 +85,9 @@ function PageDossierLocataire() {
   );
   const nomOccupant = occupant.nom.trim().toLowerCase();
   const docs = session.documents.filter((d) => d.titre.toLowerCase().includes(nomOccupant));
-  const loyers = session.loyers.filter((l) => l.locataire.toLowerCase() === occupant.nom.toLowerCase());
+  const loyers = session.loyers.filter(
+    (l) => l.locataire.toLowerCase() === occupant.nom.toLowerCase(),
+  );
   const historiqueSeul = dossierArchiveSeuleLigne(dossier);
   const candidatures = session.candidatures.filter((c) => !dossier || c.dossierId === dossier.id);
   const accord = session.partagesDossier.some(
@@ -99,6 +130,28 @@ function PageDossierLocataire() {
   };
 
   const pieces = dossier?.pieces ?? [];
+  const lignesPaiement = [
+    ...loyers.map((l) => ({
+      id: l.id,
+      date: dateLisible(l.valide && l.payeLe ? l.payeLe : l.echeance),
+      montant: l.montant,
+      methode: l.methode || (l.valide ? "Non précisée" : "—"),
+      ref: l.reference ?? "",
+      statut: l.valide ? "Validé" : "En attente",
+      ok: l.valide,
+    })),
+    ...resas.flatMap((r) =>
+      lignesEncaissement(r).map((p) => ({
+        id: `${r.id}-${p.id}`,
+        date: p.date ? dateLisible(p.date) : dateLisible(r.arrivee),
+        montant: p.montant,
+        methode: p.methode,
+        ref: p.reference || `#${r.id.slice(-6)}`,
+        statut: p.montant < 0 ? "Remboursé" : "Validé",
+        ok: p.montant >= 0,
+      })),
+    ),
+  ];
 
   return (
     <AppShell titre={`Dossier · ${occupant.nom}`} sousTitre={occupant.logement}>
@@ -220,7 +273,7 @@ function PageDossierLocataire() {
         )}
       </section>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]">
+      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]">
         <div className="min-w-0 space-y-4">
           {!historiqueSeul && (
             <section className="rounded-card border border-line bg-white p-4 sm:p-6">
@@ -332,7 +385,8 @@ function PageDossierLocataire() {
               )}
               {dossier?.garants.map((g) => (
                 <p key={g.id} className="mt-3 text-xs text-ink-muted">
-                  Garant : {g.type === "institutionnel" ? `${g.organisme} (${g.numeroDossier})` : g.nom}
+                  Garant :{" "}
+                  {g.type === "institutionnel" ? `${g.organisme} (${g.numeroDossier})` : g.nom}
                 </p>
               ))}
             </section>
@@ -341,77 +395,46 @@ function PageDossierLocataire() {
           <section className="rounded-card border border-line bg-white p-4 sm:p-6">
             <h3 className="text-lg text-ink">Historique des paiements</h3>
             <div className="mt-4 divide-y divide-surface-soft md:hidden">
-              {loyers.map((l) => (
-                <div key={l.id} className="py-3">
-                  <p className="text-sm text-ink">{l.bienNom}</p>
-                  <p className="text-xs text-ink-muted">{l.echeance}</p>
-                  <p className="mt-1 text-sm font-medium text-ink">
-                    {formatMontant(l.montant)} · {l.valide ? "Payé" : "En attente"}
-                  </p>
-                </div>
-              ))}
-              {resas
-                .filter((r) => r.paye > 0)
-                .map((r) => (
-                  <div key={`pay-m-${r.id}`} className="py-3">
-                    <p className="text-sm text-ink">
-                      Séjour · {r.plateforme}
-                    </p>
-                    <p className="text-xs text-ink-muted">{r.arrivee}</p>
-                    <p className="mt-1 text-sm font-medium text-ink">
-                      {formatMontant(r.paye)} · {r.paye >= r.montant ? "Payé" : "Partiel"}
+              {lignesPaiement.map((p) => (
+                <div key={p.id} className="flex items-start justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink">{formatMontant(p.montant)}</p>
+                    <p className="text-xs text-ink-muted">
+                      {p.date} · {p.methode}
+                      {p.ref ? ` · ${p.ref}` : ""}
                     </p>
                   </div>
-                ))}
+                  <PastilleStatut ok={p.ok} libelle={p.statut} />
+                </div>
+              ))}
             </div>
             <ScrollHint className="mt-4 hidden md:block">
-              <table className="w-full min-w-[520px] text-left text-sm">
+              <table className="w-full min-w-[560px] text-left text-sm">
                 <thead className="text-xs text-ink-subtle">
                   <tr>
                     <th className="px-4 py-3 font-medium">Date</th>
-                    <th className="px-4 py-3 font-medium">Libellé</th>
                     <th className="px-4 py-3 font-medium">Montant</th>
+                    <th className="px-4 py-3 font-medium">Méthode</th>
+                    <th className="px-4 py-3 font-medium">Booking</th>
                     <th className="px-4 py-3 font-medium">Statut</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {loyers.map((l) => (
-                    <tr key={l.id} className="border-t border-surface-soft">
-                      <td className="px-4 py-3 text-ink">{l.echeance}</td>
-                      <td className="px-4 py-3 text-ink-body">Loyer · {l.bienNom}</td>
-                      <td className="px-4 py-3 font-medium text-ink">{formatMontant(l.montant)}</td>
+                  {lignesPaiement.map((p) => (
+                    <tr key={p.id} className="border-t border-surface-soft">
+                      <td className="px-4 py-3 text-ink">{p.date}</td>
+                      <td className="px-4 py-3 font-medium text-ink">{formatMontant(p.montant)}</td>
+                      <td className="px-4 py-3 text-ink-body">{p.methode}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-ink-body">{p.ref || "—"}</td>
                       <td className="px-4 py-3">
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs",
-                            l.valide
-                              ? "bg-chip-success text-chip-success-fg"
-                              : "bg-chip-warning text-chip-warning-fg",
-                          )}
-                        >
-                          {l.valide ? "Payé" : "En attente"}
-                        </span>
+                        <PastilleStatut ok={p.ok} libelle={p.statut} />
                       </td>
                     </tr>
                   ))}
-                  {resas
-                    .filter((r) => r.paye > 0)
-                    .map((r) => (
-                      <tr key={`pay-${r.id}`} className="border-t border-surface-soft">
-                        <td className="px-4 py-3 text-ink">{r.arrivee}</td>
-                        <td className="px-4 py-3 text-ink-body">
-                          Séjour · {r.plateforme} · {r.id.slice(-6)}
-                        </td>
-                        <td className="px-4 py-3 font-medium text-ink">{formatMontant(r.paye)}</td>
-                        <td className="px-4 py-3">
-                          {r.paye >= r.montant ? "Payé" : "Partiel"}
-                        </td>
-                      </tr>
-                    ))}
                 </tbody>
               </table>
             </ScrollHint>
-            {loyers.length === 0 && resas.every((r) => r.paye <= 0) && (
+            {lignesPaiement.length === 0 && (
               <p className="mt-2 text-sm text-ink-muted">Aucun paiement.</p>
             )}
           </section>
@@ -423,9 +446,12 @@ function PageDossierLocataire() {
                 const bienResa = session.biens.find((b) => b.id === r.bienId);
                 return (
                   <div key={`loc-m-${r.id}`} className="py-3">
-                    <p className="text-sm text-ink">{bienResa?.nom ?? occupant.logement}</p>
+                    <p className="text-sm text-ink">
+                      {moisAnnee(r.arrivee)} – {moisAnnee(r.depart)}
+                    </p>
                     <p className="text-xs text-ink-muted">
-                      {r.arrivee} → {r.depart} · {r.type ?? "Séjour"}
+                      {bienResa?.nom ?? occupant.logement} · {villeDe(bienResa?.adresse)} ·{" "}
+                      {r.type ?? "Séjour"}
                     </p>
                     <p className="mt-1 text-sm font-medium text-ink">{formatMontant(r.montant)}</p>
                   </div>
@@ -433,11 +459,12 @@ function PageDossierLocataire() {
               })}
             </div>
             <ScrollHint className="mt-4 hidden md:block">
-              <table className="w-full min-w-[420px] text-left text-sm">
+              <table className="w-full min-w-[560px] text-left text-sm">
                 <thead className="text-xs text-ink-subtle">
                   <tr>
                     <th className="px-4 py-3 font-medium">Période</th>
                     <th className="px-4 py-3 font-medium">Logement</th>
+                    <th className="px-4 py-3 font-medium">Ville</th>
                     <th className="px-4 py-3 font-medium">Type</th>
                     <th className="px-4 py-3 text-right font-medium">Montant</th>
                   </tr>
@@ -447,10 +474,11 @@ function PageDossierLocataire() {
                     const bienResa = session.biens.find((b) => b.id === r.bienId);
                     return (
                       <tr key={r.id} className="border-t border-surface-soft">
-                        <td className="px-4 py-3">
-                          {r.arrivee} → {r.depart}
+                        <td className="px-4 py-3 text-ink">
+                          {moisAnnee(r.arrivee)} – {moisAnnee(r.depart)}
                         </td>
                         <td className="px-4 py-3">{bienResa?.nom ?? occupant.logement}</td>
+                        <td className="px-4 py-3">{villeDe(bienResa?.adresse)}</td>
                         <td className="px-4 py-3">{r.type ?? "Séjour"}</td>
                         <td className="px-4 py-3 text-right">{formatMontant(r.montant)}</td>
                       </tr>
@@ -479,7 +507,9 @@ function PageDossierLocataire() {
               <div className="rounded-card bg-chip-warning p-4">
                 <p className="text-sm text-chip-warning-fg">En attente</p>
                 <p className="mt-1 text-2xl text-ink">
-                  {formatMontant(loyers.filter((l) => !l.valide).reduce((s, l) => s + l.montant, 0))}
+                  {formatMontant(
+                    loyers.filter((l) => !l.valide).reduce((s, l) => s + l.montant, 0),
+                  )}
                 </p>
               </div>
             </div>
@@ -511,7 +541,8 @@ function PageDossierLocataire() {
                 <>
                   <p className="mt-1 text-2xl text-ink">{tauxEffort} %</p>
                   <p className="mt-1 text-xs text-ink-muted">
-                    Loyer {formatMontant(loyerRef)} / revenus {formatMontant(dossier?.revenus ?? 0)}.{" "}
+                    Loyer {formatMontant(loyerRef)} / revenus {formatMontant(dossier?.revenus ?? 0)}
+                    .{" "}
                     {tauxEffort > 33
                       ? "Au-dessus du seuil habituel."
                       : "Dans l'enveloppe habituelle."}
@@ -549,8 +580,8 @@ function PageDossierLocataire() {
                 return (
                   <div key={c.id} className="mt-2 flex flex-wrap items-center gap-2 text-sm">
                     <span>
-                      {bienC?.nom ?? c.bienId} · {c.arrivee} → {c.depart} · {formatMontant(c.montant)}{" "}
-                      · {c.statut}
+                      {bienC?.nom ?? c.bienId} · {c.arrivee} → {c.depart} ·{" "}
+                      {formatMontant(c.montant)} · {c.statut}
                     </span>
                     {c.statut === "proposee" && (
                       <>

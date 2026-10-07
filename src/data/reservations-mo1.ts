@@ -2,7 +2,11 @@
 // Noms, adresses, montants et libellés relevés dans les frames Dashboard/Calendar
 // et Vision Occupations / Visions Liste occupants.
 
-import type { PrecheckinStatut, RemboursementReservation } from "@/data/v1-metier";
+import type {
+  PaiementReservation,
+  PrecheckinStatut,
+  RemboursementReservation,
+} from "@/data/v1-metier";
 
 export const AUJOURD_HUI_MO1 = "2026-03-05";
 export const ANCRE_PLANNING_MO1 = "2026-03-04";
@@ -70,6 +74,7 @@ export type ReservationMo1 = {
   precheckinHeureArrivee?: string;
   precheckinNote?: string;
   remboursements?: RemboursementReservation[];
+  paiements?: PaiementReservation[];
 };
 
 export type DateBloqueeMo1 = {

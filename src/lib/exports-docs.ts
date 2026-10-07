@@ -26,42 +26,54 @@ export async function telechargerFactureReservation(r: ReservationMo1, bienNom?:
   });
 }
 
-export async function telechargerAvoir(p: {
+export type DonneesAvoir = {
   occupant: string;
-  email?: string;
+  email?: string | undefined;
   reservationId: string;
   plateforme: string;
   motif: string;
   montant: number;
-  note?: string;
+  note?: string | undefined;
   logement: string;
   arrivee: string;
   depart: string;
   numero: string;
   date: string;
-}) {
-  const extra = [
-    `Document : AVOIR`,
+  ville?: string | undefined;
+  societe?: string | undefined;
+  signataire?: string | undefined;
+};
+
+function lignesAvoir(p: DonneesAvoir) {
+  return [
     `Numero : ${p.numero}`,
     `Date : ${p.date}`,
     `Client : ${p.occupant}`,
     `Email : ${p.email ?? ""}`,
-    `Reservation : ${p.plateforme} ${p.reservationId}`,
-    `Logement : ${p.logement}`,
-    `Sejour : ${p.arrivee} -> ${p.depart}`,
+    `Reference : ${p.plateforme} ${p.reservationId}`,
     `Objet : ${p.motif}`,
-    p.note ? `Note : ${p.note}` : "",
-    `Montant TTC : ${p.montant} EUR`,
-    `Total avoir TTC : ${p.montant} EUR`,
-  ].filter(Boolean);
-  await telechargerPdf(`Avoir ${p.numero}`, extra, {
-    titulaire: p.occupant,
-    locataire: p.occupant,
-    logement: p.logement,
-    adresse: p.logement,
-    date: p.date,
-    extra,
-  });
+    `Logement : ${p.logement}`,
+    `Arrivee : ${p.arrivee}`,
+    `Depart : ${p.depart}`,
+    `Note : ${p.note ?? ""}`,
+    `Montant : ${p.montant}`,
+    `Ville : ${p.ville ?? ""}`,
+    `Societe : ${p.societe ?? ""}`,
+    `Signataire : ${p.signataire ?? ""}`,
+  ];
+}
+
+export async function telechargerAvoir(p: DonneesAvoir) {
+  await telechargerPdf(`Avoir ${p.numero}`, lignesAvoir(p), { extra: lignesAvoir(p) });
+}
+
+export async function fichierAvoir(p: DonneesAvoir) {
+  const [{ octetsDocument }, { octetsVersBase64 }] = await Promise.all([
+    import("@/lib/pdf-documents"),
+    import("@/lib/pdf"),
+  ]);
+  const { nom, octets } = await octetsDocument(`Avoir ${p.numero}`, { extra: lignesAvoir(p) });
+  return { nom, mime: "application/pdf", base64: octetsVersBase64(octets) };
 }
 
 export async function telechargerQuittanceLoyer(l: LoyerMo1) {

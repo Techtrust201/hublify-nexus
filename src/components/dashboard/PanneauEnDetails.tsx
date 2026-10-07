@@ -14,29 +14,41 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useDroit } from "@/auth/auth-context";
+import { useAuth, useDroit } from "@/auth/auth-context";
 import { CreatePrestationDialog } from "@/components/dashboard/CreatePrestationDialog";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { DialoguePrecheckin } from "@/components/reservations/DialoguePrecheckin";
-import { ajouterDocument } from "@/data/documents-store";
 import type { MissionMo1 } from "@/data/planning-mo1";
 import {
   formatDateLongue,
+  formatJourFr,
   formatMontant,
   nuitsEntre,
   pourcentagePaiement,
 } from "@/data/reservations-mo1";
-import { detailMontantsReservation, paiementViaPlateforme } from "@/data/v1-metier";
 import {
+  detailMontantsReservation,
+  lignesEncaissement,
+  METHODES_PAIEMENT,
+  methodeParDefaut,
+  paiementViaPlateforme,
+} from "@/data/v1-metier";
+import {
+  affecterMission,
   annulerReservation,
-  idNouveau,
+  changerStatutMission,
+  enregistrerEncaissement,
   modifierReservation,
-  modifierSession,
   retirerMission,
   useSession,
 } from "@/data/session";
 import { confirmer, toastErreur, toastOk } from "@/lib/feedback";
-import { telechargerAvoir, telechargerFactureReservation } from "@/lib/exports-docs";
+import { emettreAvoir } from "@/data/avoirs";
+import {
+  telechargerAvoir,
+  telechargerFactureReservation,
+  type DonneesAvoir,
+} from "@/lib/exports-docs";
 import { cn, useSessionBool } from "@/lib/utils";
 
 export function PanneauEnDetails({
@@ -60,6 +72,7 @@ function PanneauMission({
   onFermer?: (() => void) | undefined;
 }) {
   const session = useSession();
+  const peutModMission = useDroit("mod-missions");
   const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.en-details", true);
   const [edition, setEdition] = useState(false);
   const live = session.missions.find((m) => m.id === mission.id);
@@ -69,7 +82,23 @@ function PanneauMission({
   }, [mission.id, setOuvert]);
 
   if (!live) return null;
-  const bienNom = session.biens.find((b) => b.id === live.bienId)?.nom ?? live.bienId;
+  const bien = session.biens.find((b) => b.id === live.bienId);
+  const bienNom = bien?.nom ?? live.bienId;
+  const presta = session.prestataires.find((p) => p.nom === live.assigne);
+  const resaLiee = session.reservationsDossier.find(
+    (r) =>
+      r.statut !== "Annulé" &&
+      r.bienId === live.bienId &&
+      r.arrivee <= live.date &&
+      r.depart >= live.date,
+  );
+  const suites: Record<MissionMo1["statut"], MissionMo1["statut"][]> = {
+    a_faire: ["en_cours"],
+    en_cours: ["terminee", "a_faire"],
+    terminee: ["a_faire"],
+  };
+  const libelle = (s: MissionMo1["statut"]) =>
+    s === "terminee" ? "Terminée" : s === "en_cours" ? "En cours" : "À faire";
 
   return (
     <section className="mt-4 overflow-hidden rounded-card border border-line bg-white">
@@ -98,28 +127,104 @@ function PanneauMission({
               </p>
             </div>
             <span className="rounded border border-line-strong px-2 py-1 text-xs text-ink-body">
-              {live.statut === "terminee"
-                ? "Terminée"
-                : live.statut === "en_cours"
-                  ? "En cours"
-                  : "À faire"}
+              {libelle(live.statut)}
             </span>
           </header>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <MiniCarte
-              label="Date & heure"
-              valeur={new Date(`${live.date}T12:00:00`).toLocaleDateString("fr-FR", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-              })}
-              extra={live.heure}
-            />
-            <MiniCarte label="Assigné à" extra={live.assigne} />
-          </div>
-          <div className="mt-2 rounded-card border border-surface-soft bg-surface p-3">
-            <p className="text-xs text-ink-muted">Description</p>
-            <p className="mt-1 text-xs leading-5 text-ink-body">{live.description}</p>
+          <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <div className="rounded-card border border-surface-soft p-3">
+              <p className="text-xs font-medium text-ink">Informations</p>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <MiniCarte
+                  label="Date"
+                  valeur={new Date(`${live.date}T12:00:00`).toLocaleDateString("fr-FR", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                />
+                <MiniCarte label="Créneau" valeur={live.heure} />
+                <MiniCarte
+                  icone={Home}
+                  label="Bien"
+                  valeur={bienNom}
+                  {...(bien?.adresse ? { extra: bien.adresse } : {})}
+                />
+                <MiniCarte
+                  label="Réservation liée"
+                  valeur={resaLiee ? resaLiee.occupant : "Aucune réservation sur ces dates"}
+                  {...(resaLiee
+                    ? {
+                        extra: `${formatJourFr(resaLiee.arrivee)} → ${formatJourFr(resaLiee.depart)}`,
+                      }
+                    : {})}
+                />
+              </div>
+              <div className="mt-2 rounded-card border border-surface-soft bg-surface p-3">
+                <p className="text-xs text-ink-muted">Consignes</p>
+                <p className="mt-1 text-xs leading-5 text-ink-body">
+                  {live.description || "Aucune consigne."}
+                </p>
+              </div>
+              {resaLiee && (
+                <Link
+                  to="/reservations"
+                  search={{ vue: "liste", resa: resaLiee.id }}
+                  className="mt-2 inline-flex min-h-11 items-center text-xs font-medium text-accent-teal md:min-h-0"
+                >
+                  Ouvrir la réservation
+                </Link>
+              )}
+            </div>
+            <div className="space-y-3">
+              <div className="rounded-card border border-surface-soft p-3">
+                <p className="text-xs font-medium text-ink">Prestataire affecté</p>
+                <p className="mt-1 text-xs text-ink-body">
+                  {presta ? `${presta.nom} · ${presta.categorie}` : live.assigne || "Aucun"}
+                </p>
+                {peutModMission && (
+                  <select
+                    aria-label="Affecter un prestataire"
+                    value={presta?.id ?? ""}
+                    onChange={(e) => {
+                      const cible = session.prestataires.find((p) => p.id === e.target.value);
+                      affecterMission(live.id, cible?.nom ?? "Non assigné");
+                      toastOk(cible ? `Mission affectée à ${cible.nom}.` : "Mission désaffectée.");
+                    }}
+                    className="mt-2 h-11 w-full rounded-card border border-line bg-white px-2 text-xs text-ink outline-none md:h-9"
+                  >
+                    <option value="">— Aucun —</option>
+                    {session.prestataires
+                      .filter((p) => p.actif)
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.nom} · {p.categorie}
+                        </option>
+                      ))}
+                  </select>
+                )}
+              </div>
+              {peutModMission && (
+                <div className="rounded-card border border-surface-soft p-3">
+                  <p className="text-xs font-medium text-ink">Statut</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {suites[live.statut].map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => {
+                          changerStatutMission(live.id, s);
+                          toastOk(`Mission passée à « ${libelle(s)} ».`);
+                        }}
+                        className="inline-flex h-11 items-center rounded-card border border-line px-3 text-xs font-medium text-ink-body hover:bg-surface md:h-[30px]"
+                      >
+                        Passer à « {libelle(s)} »
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           <footer className="mt-3 flex flex-wrap justify-end gap-2 border-t border-surface-soft pt-3">
             <button
@@ -149,22 +254,6 @@ function PanneauMission({
               <Trash2 className="size-3" />
               Supprimer
             </button>
-            {live.statut !== "terminee" && (
-              <button
-                type="button"
-                onClick={() => {
-                  const statut = live.statut === "a_faire" ? "en_cours" : "terminee";
-                  modifierSession((e) => ({
-                    ...e,
-                    missions: e.missions.map((m) => (m.id === live.id ? { ...m, statut } : m)),
-                  }));
-                  toastOk(statut === "terminee" ? "Mission terminée." : "Mission démarrée.");
-                }}
-                className="inline-flex h-11 items-center rounded-card bg-ink px-3 text-xs font-medium text-white md:h-[30px]"
-              >
-                {live.statut === "a_faire" ? "Démarrer" : "Terminer"}
-              </button>
-            )}
           </footer>
         </div>
       )}
@@ -192,27 +281,22 @@ function PanneauReservation({
   const [confirmer, setConfirmer] = useState(false);
   const [ajouterUpsell, setAjouterUpsell] = useState(false);
   const [saisiePaye, setSaisiePaye] = useState("");
+  const [methodePaiement, setMethodePaiement] = useState<string>("Virement");
+  const [referencePaiement, setReferencePaiement] = useState("");
   const [voirPrecheckin, setVoirPrecheckin] = useState(false);
   const [rembourse, setRembourse] = useState(false);
   const [rembMotif, setRembMotif] = useState("");
   const [rembMontant, setRembMontant] = useState("");
   const [rembNote, setRembNote] = useState("");
   const [voirDetail, setVoirDetail] = useState(false);
-  const [avoir, setAvoir] = useState<{
-    motif: string;
-    montant: number;
-    note: string;
-    date: string;
-    numero: string;
-  } | null>(null);
+  const [avoir, setAvoir] = useState<DonneesAvoir | null>(null);
+  const auth = useAuth();
 
   const actives = useMemo(
     () => session.reservationsDossier.filter((r) => r.statut !== "Annulé"),
     [session.reservationsDossier],
   );
-  const reservation = reservationId
-    ? actives.find((r) => r.id === reservationId)
-    : undefined;
+  const reservation = reservationId ? actives.find((r) => r.id === reservationId) : undefined;
 
   const catalogue = session.parametrage.upsells.filter((u) => u.actif);
   const upsellsChoisis = reservation?.upsellIds ?? [];
@@ -227,6 +311,11 @@ function PanneauReservation({
     if (!reservation) return;
     setSaisiePaye(String(reservation.paye));
   }, [reservation?.id, reservation?.paye]);
+
+  useEffect(() => {
+    if (!reservation) return;
+    setMethodePaiement(methodeParDefaut(reservation.plateforme));
+  }, [reservation?.id]);
 
   useEffect(() => {
     if (reservationId) setOuvert(true);
@@ -264,6 +353,16 @@ function PanneauReservation({
     montantVoyageur: reservation.montantVoyageur,
     upsellsMontant,
   });
+  const paiementsEnregistres = lignesEncaissement(reservation);
+  const auteur = auth ? `${auth.prenom} ${auth.nom}` : "Gestionnaire";
+  const encaisser = (total: number) => {
+    enregistrerEncaissement(reservation.id, total, {
+      methode: methodePaiement,
+      reference: referencePaiement.trim(),
+      ajoutePar: auteur,
+    });
+    setReferencePaiement("");
+  };
 
   return (
     <section className="mt-4 overflow-hidden rounded-card border border-line bg-white">
@@ -377,9 +476,10 @@ function PanneauReservation({
               <button
                 type="button"
                 onClick={() => setVoirDetail((v) => !v)}
-                className="rounded border border-ink-muted bg-line px-2 py-0.5 text-xs text-ink-status"
+                aria-expanded={voirDetail}
+                className="inline-flex h-11 items-center rounded border border-ink-muted bg-line px-3 text-xs text-ink-status md:h-7"
               >
-                Détails {pct}%
+                Détails
               </button>
             </div>
             <p className="mt-2 text-sm text-ink">
@@ -389,54 +489,84 @@ function PanneauReservation({
               </span>
             </p>
             {voirDetail && (
-              <dl className="mt-2 grid gap-1 text-xs text-ink-body sm:grid-cols-2">
-                <div className="flex justify-between gap-2">
-                  <dt>Loyer / séjour</dt>
-                  <dd>{formatMontant(detail.loyer)}</dd>
+              <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                <div className="rounded-card border border-line bg-white p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-ink-muted">
+                    Répartition des frais
+                  </p>
+                  <dl className="mt-2 space-y-1 text-xs text-ink-body">
+                    <LigneMontant label="Loyer / séjour" montant={detail.loyer} />
+                    {detail.reduction > 0 && (
+                      <LigneMontant
+                        label={`Réduction${reservation.reductionPourcent ? ` (${reservation.reductionPourcent} %)` : ""}`}
+                        montant={-detail.reduction}
+                      />
+                    )}
+                    <LigneMontant label="Frais de ménage" montant={detail.menage} />
+                    <LigneMontant
+                      label="Taxes et commissions OTA"
+                      montant={detail.taxe + detail.frais}
+                    />
+                    <LigneMontant label="Montant payé par le voyageur" montant={detail.voyageur} />
+                    <LigneMontant
+                      label={`Commissions gestionnaire${reservation.commissionPourcent ? ` (${reservation.commissionPourcent} %)` : ""}`}
+                      montant={detail.comm}
+                    />
+                    <LigneMontant label="Montant net gagné" montant={detail.net} />
+                    {upsells.length > 0 ? (
+                      upsells.map((u) => (
+                        <LigneMontant key={u.id} label={`Upsell · ${u.nom}`} montant={u.prix} />
+                      ))
+                    ) : (
+                      <LigneMontant label="Upsells" montant={0} />
+                    )}
+                    <LigneMontant label="Total" montant={detail.total} fort />
+                    {detail.caution > 0 && (
+                      <LigneMontant label="Caution (restituable)" montant={detail.caution} />
+                    )}
+                  </dl>
                 </div>
-                <div className="flex justify-between gap-2">
-                  <dt>Caution</dt>
-                  <dd>{formatMontant(detail.caution)}</dd>
+                <div className="rounded-card border border-line bg-white p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-ink-muted">
+                    Paiements enregistrés · {paiementsEnregistres.length}
+                  </p>
+                  {paiementsEnregistres.length === 0 ? (
+                    <p className="mt-2 text-xs text-ink-muted">
+                      Aucun encaissement pour l'instant.
+                    </p>
+                  ) : (
+                    <ul className="mt-2 divide-y divide-surface-soft">
+                      {paiementsEnregistres.map((p) => (
+                        <li key={p.id} className="flex items-center gap-3 py-2 text-xs">
+                          <span className="w-16 shrink-0 text-ink-muted">
+                            {p.date ? formatJourFr(p.date) : "—"}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block break-words text-ink">{p.libelle}</span>
+                            <span className="block break-words text-ink-muted">
+                              {p.methode}
+                              {p.reference ? ` · ${p.reference}` : ""}
+                            </span>
+                          </span>
+                          <span
+                            className={cn(
+                              "shrink-0 rounded-full px-2 py-0.5 text-[10px]",
+                              p.montant < 0
+                                ? "bg-chip-warning text-chip-warning-fg"
+                                : "bg-chip-success text-chip-success-fg",
+                            )}
+                          >
+                            {p.montant < 0 ? "Avoir" : "Payé"}
+                          </span>
+                          <span className="shrink-0 text-right font-medium text-ink">
+                            {formatMontant(p.montant)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
-                <div className="flex justify-between gap-2">
-                  <dt>Ménage</dt>
-                  <dd>{formatMontant(detail.menage)}</dd>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <dt>Taxes OTA / séjour</dt>
-                  <dd>{formatMontant(detail.taxe)}</dd>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <dt>Réduction</dt>
-                  <dd>
-                    −{formatMontant(detail.reduction)}
-                    {reservation.reductionPourcent ? ` (${reservation.reductionPourcent} %)` : ""}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <dt>Frais plateforme</dt>
-                  <dd>{formatMontant(detail.frais)}</dd>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <dt>Commission gestion</dt>
-                  <dd>
-                    {formatMontant(detail.comm)}
-                    {reservation.commissionPourcent ? ` (${reservation.commissionPourcent} %)` : ""}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <dt>Upsells</dt>
-                  <dd>{formatMontant(detail.upsells)}</dd>
-                </div>
-                <div className="flex justify-between gap-2 font-medium text-ink">
-                  <dt>Payé voyageur</dt>
-                  <dd>{formatMontant(detail.voyageur)}</dd>
-                </div>
-                <div className="flex justify-between gap-2 font-medium text-ink">
-                  <dt>Net perçu</dt>
-                  <dd>{formatMontant(detail.net)}</dd>
-                </div>
-              </dl>
+              </div>
             )}
             <p className="mt-2 text-[11px] uppercase tracking-wide text-ink-muted">
               Vérifier attribution
@@ -461,13 +591,36 @@ function PanneauReservation({
               />
             </div>
             {peutMod && (
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
-                <label className="block min-w-0 flex-1 text-xs text-ink-muted">
+              <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,9rem)_minmax(0,9rem)_auto] sm:items-end">
+                <label className="block min-w-0 text-xs text-ink-muted">
                   Montant encaissé
                   <input
                     value={saisiePaye}
                     onChange={(e) => setSaisiePaye(e.target.value)}
                     inputMode="decimal"
+                    className="mt-1 h-11 w-full rounded-card border border-line bg-white px-3 text-sm text-ink outline-none md:h-9"
+                  />
+                </label>
+                <label className="block min-w-0 text-xs text-ink-muted">
+                  Méthode
+                  <select
+                    value={methodePaiement}
+                    onChange={(e) => setMethodePaiement(e.target.value)}
+                    className="mt-1 h-11 w-full rounded-card border border-line bg-white px-2 text-sm text-ink outline-none md:h-9"
+                  >
+                    {METHODES_PAIEMENT.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block min-w-0 text-xs text-ink-muted">
+                  Référence
+                  <input
+                    value={referencePaiement}
+                    onChange={(e) => setReferencePaiement(e.target.value)}
+                    placeholder="Facultatif"
                     className="mt-1 h-11 w-full rounded-card border border-line bg-white px-3 text-sm text-ink outline-none md:h-9"
                   />
                 </label>
@@ -481,7 +634,11 @@ function PanneauReservation({
                         return;
                       }
                       const paye = Math.max(0, Math.min(reservation.montant, Math.round(n)));
-                      modifierReservation(reservation.id, { paye });
+                      if (paye === reservation.paye) {
+                        toastOk("Montant encaissé inchangé.");
+                        return;
+                      }
+                      encaisser(paye);
                       toastOk(
                         paye >= reservation.montant
                           ? "Réservation soldée."
@@ -496,7 +653,7 @@ function PanneauReservation({
                     <button
                       type="button"
                       onClick={() => {
-                        modifierReservation(reservation.id, { paye: reservation.montant });
+                        encaisser(reservation.montant);
                         toastOk("Réservation soldée.");
                       }}
                       className="inline-flex h-11 items-center rounded-card bg-ink px-3 text-xs font-medium text-white md:h-9"
@@ -504,13 +661,6 @@ function PanneauReservation({
                       Marquer soldé
                     </button>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => setRembourse(true)}
-                    className="inline-flex h-11 items-center rounded-card border border-line px-3 text-xs font-medium text-ink-body md:h-9"
-                  >
-                    Remboursement
-                  </button>
                 </div>
               </div>
             )}
@@ -724,48 +874,21 @@ function PanneauReservation({
                   toastErreur("Indiquez un montant positif.");
                   return;
                 }
-                const montantArrondi = Math.round(montant);
-                const paye = Math.max(0, reservation.paye - montantArrondi);
-                const date = new Date().toISOString().slice(0, 10);
-                const numero = `AV-${date.replace(/-/g, "")}-${reservation.id.slice(-4).toUpperCase()}`;
-                modifierReservation(reservation.id, {
-                  paye,
-                  remboursements: [
-                    ...(reservation.remboursements ?? []),
-                    {
-                      id: idNouveau("rb"),
-                      date,
-                      motif: rembMotif.trim(),
-                      montant: montantArrondi,
-                      note: rembNote.trim(),
-                    },
-                  ],
-                });
-                ajouterDocument({
-                  id: idNouveau("doc"),
-                  titre: `Avoir ${numero} — ${reservation.occupant}`,
-                  type: "Avoir",
-                  filtre: "Correspondances",
-                  logement: bien?.nom ?? reservation.bienId,
-                  date,
-                  taille: "1 page",
-                  modifiePar: "Gestionnaire",
-                  photos: 0,
-                  vue: "residents",
-                  occupant: "locataires",
-                });
-                setAvoir({
+                const donnees = emettreAvoir({
+                  reservation,
+                  bien,
                   motif: rembMotif.trim(),
-                  montant: montantArrondi,
+                  montant,
                   note: rembNote.trim(),
-                  date,
-                  numero,
+                  societe: auth?.orgNom,
+                  signataire: auth ? `${auth.prenom} ${auth.nom}` : undefined,
                 });
+                setAvoir(donnees);
                 setRembourse(false);
                 setRembMotif("");
                 setRembMontant("");
                 setRembNote("");
-                toastOk(`Avoir ${numero} généré.`);
+                toastOk(`Avoir ${donnees.numero} généré.`);
               }}
               className="h-9 rounded-card bg-ink px-3 text-xs font-medium text-white"
             >
@@ -782,43 +905,68 @@ function PanneauReservation({
           {avoir && (
             <div className="mt-3 rounded-card border border-line bg-white p-4 text-sm text-ink">
               <p className="text-center text-lg font-semibold tracking-wide">AVOIR</p>
-              <div className="mt-3 flex justify-between gap-4 text-xs">
+              <div className="mt-3 flex flex-col gap-3 text-xs sm:flex-row sm:justify-between">
                 <div>
-                  <p>Client : {reservation.occupant}</p>
-                  <p>{reservation.email}</p>
+                  <p className="font-medium">Client</p>
+                  <p>{avoir.occupant}</p>
+                  <p className="break-all">{avoir.email}</p>
                 </div>
-                <div className="text-right">
-                  <p>Avoir n° {avoir.numero}</p>
-                  <p>Date : {avoir.date}</p>
+                <div className="sm:text-right">
+                  <p className="font-medium">Avoir n° {avoir.numero}</p>
+                  <p>Date d'émission : {formatJourFr(avoir.date)}</p>
                   <p>
-                    Réf. {reservation.plateforme} · {reservation.id}
+                    Réf. réservation {avoir.plateforme} : {avoir.reservationId}
                   </p>
                 </div>
               </div>
-              <p className="mt-3 text-xs">Objet : {avoir.motif}</p>
+              <p className="mt-3 text-xs">
+                <span className="font-medium">Objet :</span> {avoir.motif}
+              </p>
               <p className="text-xs">
-                Logement : {bien?.nom ?? reservation.bienId} · séjour {reservation.arrivee} →{" "}
-                {reservation.depart}
+                <span className="font-medium">Logement :</span> {avoir.logement}
+              </p>
+              <p className="text-xs">
+                <span className="font-medium">Séjour :</span> du {formatDateLongue(avoir.arrivee)}{" "}
+                au {formatDateLongue(avoir.depart)} ({nuits} nuit{nuits > 1 ? "s" : ""})
               </p>
               <table className="mt-3 w-full text-xs">
                 <thead>
-                  <tr className="border-b border-line text-left">
-                    <th className="py-1 font-medium">Désignation</th>
-                    <th className="py-1 text-right font-medium">Montant TTC</th>
+                  <tr className="bg-ink text-left text-white">
+                    <th className="px-2 py-1 font-medium">Désignation</th>
+                    <th className="px-2 py-1 text-center font-medium">Qté</th>
+                    <th className="px-2 py-1 text-right font-medium">Montant TTC</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td className="py-1">
-                      {avoir.motif}
-                      {avoir.note ? ` — ${avoir.note}` : ""}
+                  <tr className="border border-line">
+                    <td className="px-2 py-1">
+                      Remboursement
+                      <span className="block italic text-ink-muted">Motif : {avoir.motif}</span>
                     </td>
-                    <td className="py-1 text-right">{formatMontant(avoir.montant)}</td>
+                    <td className="px-2 py-1 text-center">1</td>
+                    <td className="px-2 py-1 text-right">{formatMontant(avoir.montant)}</td>
                   </tr>
                 </tbody>
               </table>
               <p className="mt-3 text-right font-medium">
-                Total avoir TTC {formatMontant(avoir.montant)}
+                TOTAL AVOIR TTC {formatMontant(avoir.montant)}
+              </p>
+              {avoir.note && <p className="mt-3 text-xs">{avoir.note}</p>}
+              <p className="mt-3 text-xs">
+                Ce montant sera restitué au client via le même moyen de paiement que celui utilisé
+                lors du règlement de la réservation.
+              </p>
+              <p className="mt-3 text-xs">
+                {avoir.ville ? `Fait à ${avoir.ville}, le ` : "Fait le "}
+                {new Date(`${avoir.date}T12:00:00`).toLocaleDateString("fr-FR", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </p>
+              <p className="mt-2 text-xs">
+                Pour {avoir.societe || "Hublify"},
+                {avoir.signataire && <span className="block">{avoir.signataire}</span>}
               </p>
             </div>
           )}
@@ -834,20 +982,7 @@ function PanneauReservation({
               type="button"
               onClick={() => {
                 if (!avoir) return;
-                void telechargerAvoir({
-                  occupant: reservation.occupant,
-                  email: reservation.email,
-                  reservationId: reservation.id,
-                  plateforme: reservation.plateforme,
-                  motif: avoir.motif,
-                  montant: avoir.montant,
-                  note: avoir.note,
-                  logement: bien?.nom ?? reservation.bienId,
-                  arrivee: reservation.arrivee,
-                  depart: reservation.depart,
-                  numero: avoir.numero,
-                  date: avoir.date,
-                });
+                void telechargerAvoir(avoir);
               }}
               className="h-9 rounded-card bg-ink px-3 text-xs font-medium text-white"
             >
@@ -900,6 +1035,30 @@ function MiniCarte({
         ) : (
           <p className={cn("text-xs text-ink-subtle", !valeur && "mt-1")}>{extra}</p>
         ))}
+    </div>
+  );
+}
+
+function LigneMontant({
+  label,
+  montant,
+  fort = false,
+}: {
+  label: string;
+  montant: number;
+  fort?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex justify-between gap-3",
+        fort && "mt-1 border-t border-surface-soft pt-1.5 font-medium text-ink",
+      )}
+    >
+      <dt className="min-w-0">{label}</dt>
+      <dd className="shrink-0">
+        {montant < 0 ? `−${formatMontant(-montant)}` : formatMontant(montant)}
+      </dd>
     </div>
   );
 }

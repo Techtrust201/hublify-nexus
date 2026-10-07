@@ -1,6 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useDroit } from "@/auth/auth-context";
-import { RetourVueGenerale } from "@/components/layout/RetourVueGenerale";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Home, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
@@ -26,7 +25,7 @@ import {
   type PlateformeMo1,
   type ReservationMo1,
 } from "@/data/reservations-mo1";
-import { styleBarreResa, teinteBarreCalendrier } from "@/data/planning-mo1";
+import { couloirsSejours, styleBarreResa, teinteBarreCalendrier } from "@/data/planning-mo1";
 import { CreateEventDialog } from "@/components/dashboard/DashboardDialogs";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -93,7 +92,7 @@ export function PlanningReservations({
   }, [ancre]);
 
   const reservations = useMemo(() => {
-    let source = session.reservationsDossier;
+    let source = session.reservationsDossier.filter((r) => r.statut !== "Annulé");
     if (plateforme !== "tout") source = source.filter((r) => r.plateforme === plateforme);
     const q = rechercheCal.trim().toLowerCase();
     if (q) {
@@ -108,21 +107,19 @@ export function PlanningReservations({
   }, [plateforme, rechercheCal, session.reservationsDossier]);
 
   const biens = useMemo(() => {
-    const source = session.biens.map(
-      (b): BienMo1 & BienCalendrierChrome => ({
-        id: b.id,
-        nom: b.nom,
-        adresse: b.adresse ?? "",
-        typologie: b.typologie,
-        statut: b.statut,
-        plateformes: {
-          Airbnb: "aucun",
-          "Booking.com": "aucun",
-          Direct: "actif",
-          Autre: "aucun",
-        },
-      }),
-    );
+    const source = session.biens.map((b): BienMo1 & BienCalendrierChrome => ({
+      id: b.id,
+      nom: b.nom,
+      adresse: b.adresse ?? "",
+      typologie: b.typologie,
+      statut: b.statut,
+      plateformes: {
+        Airbnb: "aucun",
+        "Booking.com": "aucun",
+        Direct: "actif",
+        Autre: "aucun",
+      },
+    }));
     const q = rechercheCal.trim().toLowerCase();
     const parNom = q
       ? source.filter(
@@ -153,7 +150,6 @@ export function PlanningReservations({
   return (
     <div className="overflow-hidden rounded-card border border-line bg-white">
       <div className="flex items-center gap-2 border-b border-line bg-[#f7f6f3] px-3">
-        <RetourVueGenerale className="my-auto h-9 shrink-0 border-line" />
         <BandeauPlanning
           actif="reservations"
           onChoisir={(id) => {
@@ -191,16 +187,11 @@ export function PlanningReservations({
           >
             <Home className="size-3.5" />
             <span>Logements & plateformes</span>
-            <span className="text-ink-muted">(4 biens)</span>
+            <span className="text-ink-muted">
+              ({session.biens.length} bien{session.biens.length > 1 ? "s" : ""})
+            </span>
           </button>
           <div className="flex items-center gap-2">
-            <Link
-              to="/patrimoines"
-              className="inline-flex h-11 items-center gap-1 rounded border border-line-strong bg-white px-2.5 text-xs font-medium text-ink-body md:h-[26px]"
-            >
-              <Home className="size-2.5" />
-              Voir tous mes biens
-            </Link>
             <button
               type="button"
               aria-label={sectionOuverte ? "Replier" : "Déplier"}
@@ -318,13 +309,6 @@ export function PlanningReservations({
         >
           Note
         </button>
-        <Link
-          to="/reservations/nouveau"
-          className="inline-flex h-11 min-h-11 items-center gap-1 rounded border border-line bg-white px-2.5 text-xs font-medium text-ink-body md:h-[26px] md:min-h-[26px]"
-        >
-          <Plus className="size-2.5" />
-          Nouvelle réservation
-        </Link>
       </div>
 
       {vue === "mois" ? (
@@ -359,9 +343,12 @@ export function PlanningReservations({
         }}
       >
         <DialogContent className="max-w-md rounded-card border border-line bg-white p-5">
-          <DialogTitle className="text-sm font-medium text-ink">Période d'ouverture type bail</DialogTitle>
+          <DialogTitle className="text-sm font-medium text-ink">
+            Période d'ouverture type bail
+          </DialogTitle>
           <DialogDescription className="text-xs text-ink-muted">
-            Fenêtre type bail : les jours sont marqués sur le calendrier et alignent les réservations.
+            Fenêtre type bail : les jours sont marqués sur le calendrier et alignent les
+            réservations.
           </DialogDescription>
           <label className="mt-3 block text-xs text-ink-muted">
             Début
@@ -382,7 +369,11 @@ export function PlanningReservations({
             />
           </label>
           <div className="mt-4 flex justify-end gap-2">
-            <button type="button" onClick={() => setPeriode(null)} className="h-9 rounded-card border border-line px-3 text-xs">
+            <button
+              type="button"
+              onClick={() => setPeriode(null)}
+              className="h-9 rounded-card border border-line px-3 text-xs"
+            >
               Annuler
             </button>
             <button
@@ -551,12 +542,17 @@ function LigneBien({
   selectedResaId?: string | null | undefined;
   selectionActive?: boolean | undefined;
 }) {
+  const visibles = sejours.filter((r) => styleBarreResa(r, jours));
+  const { couloirs, nombre } = couloirsSejours(visibles);
   return (
     <div className="contents">
       <ColonneBienCalendrier bien={bien} />
       <div
-        className="relative min-h-[148px] border-b border-line"
-        style={{ gridColumn: `2 / span ${jours.length}` }}
+        className="relative border-b border-line"
+        style={{
+          gridColumn: `2 / span ${jours.length}`,
+          minHeight: Math.max(148, 54 + nombre * 44 + 54),
+        }}
       >
         <div
           className="absolute inset-0 grid"
@@ -583,7 +579,7 @@ function LigneBien({
                 <Link
                   to="/reservations/nouveau"
                   search={{ bien: bien.id, arrivee: key }}
-                  className="absolute bottom-1.5 left-1/2 z-[2] flex size-7 -translate-x-1/2 items-center justify-center rounded-full border border-dashed border-line bg-white text-ink-muted"
+                  className="absolute bottom-1.5 left-1/2 z-[2] flex size-11 -translate-x-1/2 items-center justify-center rounded-full border border-dashed border-line bg-white text-ink-muted lg:size-7"
                   aria-label={`Nouvelle réservation — ${bien.nom}`}
                 >
                   <Plus className="size-3" />
@@ -602,7 +598,7 @@ function LigneBien({
           })}
         </div>
 
-        {sejours.map((r) => {
+        {visibles.map((r) => {
           const barre = styleBarreResa(r, jours);
           if (!barre) return null;
           const paiement = paiementDe(r);
@@ -614,12 +610,13 @@ function LigneBien({
               type="button"
               onClick={() => onSelect(r)}
               className={cn(
-                "absolute top-[54px] z-[1] flex h-10 items-center gap-1.5 rounded-lg border px-2.5",
+                "absolute z-[1] flex h-10 items-center gap-1.5 rounded-lg border px-2.5",
                 sel && "shadow-[0_0_0_2px_rgba(17,17,17,0.4)]",
                 selectionActive && !sel && "opacity-45",
               )}
               style={{
                 ...barre,
+                top: 54 + (couloirs.get(r.id) ?? 0) * 44,
                 backgroundColor: teinte.fond,
                 borderColor: sel ? "#111111" : teinte.bord,
               }}

@@ -39,6 +39,7 @@ export type KindDocument =
   | "assurance"
   | "modele"
   | "facture"
+  | "avoir"
   | "courrier";
 
 export function normaliser(valeur: string) {
@@ -327,6 +328,7 @@ function loyerDe(locataire?: string, logement?: string) {
 export function kindDocument(titre: string, extra: string[] = []): KindDocument {
   const n = normaliser([titre, extra.join(" ")].join(" "));
   if (n.includes("modele")) return "modele";
+  if (/^avoir(\s|$)/.test(normaliser(titre))) return "avoir";
   if (n.includes("identit") || n.includes("passeport") || n.includes("cni")) return "identite";
   if (n.includes("domicile")) return "domicile";
   if (n.includes("revenu")) return "revenus";
@@ -363,7 +365,7 @@ export function enrichirContexte(titre: string, ctx: ContexteDocument = {}): Con
     };
   }
 
-  if (kind === "modele") {
+  if (kind === "modele" || kind === "avoir") {
     return {
       ...ctx,
       extra: ctx.extra ?? [],

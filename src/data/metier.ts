@@ -81,6 +81,9 @@ const CHAMPS: Record<CollectionMetier, Champs> = {
     ["montant", "montant"],
     ["valide", "valide"],
     ["quittance", "quittance"],
+    ["methode", "methode"],
+    ["reference", "reference"],
+    ["paye_le", "payeLe"],
   ],
   evenements: [
     ["id", "id"],
@@ -157,6 +160,7 @@ const CHAMPS: Record<CollectionMetier, Champs> = {
     ["precheckin_heure_arrivee", "precheckinHeureArrivee"],
     ["precheckin_note", "precheckinNote"],
     ["remboursements", "remboursements"],
+    ["paiements", "paiements"],
   ],
   datesBloquees: [
     ["id", "id"],
@@ -372,7 +376,7 @@ function valeursEtPlaceholders(champs: Champs, item: Ligne, decalage: number) {
   return { colonnes, place, params };
 }
 
-const CLES_JSON = new Set(["remboursements", "pieces", "garants"]);
+const CLES_JSON = new Set(["remboursements", "paiements", "pieces", "garants"]);
 
 function nettoyer<T extends Ligne>(ligne: T): T {
   for (const cle of Object.keys(ligne)) {
@@ -653,10 +657,18 @@ export async function assemblerEtat(sql: Sql, org: OrgSession): Promise<EtatSess
         gestId,
       )) as EtatSession["rapportsIntervention"];
       etat.rapportsIntervention = rapports.filter((r) => missionIds.has(r.missionId));
-      const conv = (await listerCollection(sql, "conversations", gestId)) as EtatSession["conversations"];
+      const conv = (await listerCollection(
+        sql,
+        "conversations",
+        gestId,
+      )) as EtatSession["conversations"];
       etat.conversations = conv.filter((c) => c.type === "prestataire");
       const convIds = new Set(etat.conversations.map((c) => c.id));
-      const fils = (await listerCollection(sql, "messagesFil", gestId)) as EtatSession["messagesFil"];
+      const fils = (await listerCollection(
+        sql,
+        "messagesFil",
+        gestId,
+      )) as EtatSession["messagesFil"];
       etat.messagesFil = fils.filter((m) => convIds.has(m.conversationId));
       const docs = (await listerCollection(sql, "documents", gestId)) as EtatSession["documents"];
       etat.documents = docs.filter((d) => d.vue === "inventaire-presta");
@@ -750,7 +762,9 @@ function filtrerEtatPortail(etat: EtatSession, org: OrgSession): EtatSession {
     const immeubles = etat.immeubles.filter((i) => i.proprietaire.toLowerCase() === nom);
     const bienIds = new Set(biens.map((b) => b.id));
     const nomsBiens = new Set(biens.map((b) => b.nom.toLowerCase()));
-    const conversations = etat.conversations.filter((c) => c.type === "team" || c.nom.toLowerCase() === nom);
+    const conversations = etat.conversations.filter(
+      (c) => c.type === "team" || c.nom.toLowerCase() === nom,
+    );
     const convIds = new Set(conversations.map((c) => c.id));
     return {
       ...etat,
@@ -1054,9 +1068,7 @@ export async function majLigneVisible(
     if (cle === "id" || valeur === undefined) continue;
     const col = colonneDe(collection, cle);
     if (!col) continue;
-    params.push(
-      valeur !== null && typeof valeur === "object" ? JSON.stringify(valeur) : valeur,
-    );
+    params.push(valeur !== null && typeof valeur === "object" ? JSON.stringify(valeur) : valeur);
     affectations.push(`"${col}" = $${params.length}`);
   }
 

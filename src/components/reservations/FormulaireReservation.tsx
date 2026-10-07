@@ -1,14 +1,7 @@
-import { useDroit } from "@/auth/auth-context";
+import { useAuth, useDroit } from "@/auth/auth-context";
+import { emettreAvoir } from "@/data/avoirs";
 import { Link, useNavigate } from "@tanstack/react-router";
-import {
-  Check,
-  ChevronDown,
-  ChevronLeft,
-  Minus,
-  Plus,
-  User,
-  X,
-} from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, Minus, Plus, User, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -34,7 +27,12 @@ import {
 } from "@/data/session";
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
-import { netPercu } from "@/data/v1-metier";
+import {
+  METHODES_PAIEMENT,
+  methodeParDefaut,
+  montantVoyageurCalcule,
+  netPercu,
+} from "@/data/v1-metier";
 
 const champ =
   "h-11 w-full rounded-[8px] border border-line bg-white px-3 text-base text-ink outline-none placeholder:text-ink-muted md:h-[34px] md:text-sm";
@@ -50,6 +48,7 @@ export function FormulaireReservation({
 }) {
   const navigate = useNavigate();
   const session = useSession();
+  const auth = useAuth();
   const peutParametrer = useDroit("mod-biens");
   const edition = Boolean(reservationId);
   const prefillId = useRef<string | null>(null);
@@ -74,6 +73,7 @@ export function FormulaireReservation({
   const [prixNuit, setPrixNuit] = useState("250");
   const [duree, setDuree] = useState("4");
   const [dejaEncaisse, setDejaEncaisse] = useState("0");
+  const [methodeEncaisse, setMethodeEncaisse] = useState<string>("Virement");
   const [taxeSejour, setTaxeSejour] = useState("0");
   const [commissionPct, setCommissionPct] = useState("0");
   const [commissionMontant, setCommissionMontant] = useState("0");
@@ -81,7 +81,7 @@ export function FormulaireReservation({
   const [fraisMenage, setFraisMenage] = useState("0");
   const [reductionPct, setReductionPct] = useState("0");
   const [fraisPlateforme, setFraisPlateforme] = useState("0");
-  const [montantVoyageur, setMontantVoyageur] = useState("0");
+  const [montantVoyageur, setMontantVoyageur] = useState("");
   const [attribution, setAttribution] = useState("");
   const [rembourse, setRembourse] = useState(false);
   const [rembMotif, setRembMotif] = useState("");
@@ -165,7 +165,7 @@ export function FormulaireReservation({
     setFraisMenage(String(r.fraisMenage ?? 0));
     setReductionPct(String(r.reductionPourcent ?? 0));
     setFraisPlateforme(String(r.fraisPlateforme ?? 0));
-    setMontantVoyageur(String(r.montantVoyageur ?? r.montant));
+    setMontantVoyageur(r.montantVoyageur ? String(r.montantVoyageur) : "");
     setAttribution(r.attributionCommission ?? "");
     setPlateforme(
       r.plateforme === "Direct"
@@ -196,6 +196,10 @@ export function FormulaireReservation({
     if (type === "Bail mobilité") setCaution("0");
   }, [type]);
 
+  useEffect(() => {
+    setMethodeEncaisse(methodeParDefaut(plateforme));
+  }, [plateforme]);
+
   const plateformeDe = (s: string): PlateformeMo1 => {
     if (s === "Airbnb" || s === "Booking.com") return s;
     if (s === "Canal Direct") return "Direct";
@@ -219,12 +223,22 @@ export function FormulaireReservation({
       toastErreur("Le check-out doit être après le check-in.");
       return;
     }
-    const collision = trouverChevauchement(session.reservationsDossier, {
-      bienId: logement,
-      arrivee: checkIn,
-      depart: checkOut,
-      ...(edition && reservationId ? { horsId: reservationId } : {}),
-    });
+    const existante = edition
+      ? session.reservationsDossier.find((r) => r.id === reservationId)
+      : undefined;
+    const deplacee =
+      !existante ||
+      existante.arrivee !== checkIn ||
+      existante.depart !== checkOut ||
+      existante.bienId !== logement;
+    const collision = deplacee
+      ? trouverChevauchement(session.reservationsDossier, {
+          bienId: logement,
+          arrivee: checkIn,
+          depart: checkOut,
+          ...(edition && reservationId ? { horsId: reservationId } : {}),
+        })
+      : undefined;
     if (collision) {
       toastErreur(messageChevauchement(collision));
       return;
@@ -242,6 +256,14 @@ export function FormulaireReservation({
     const voyageurN = Math.max(0, Number(montantVoyageur.replace(",", ".")) || 0);
     const commMontant = commSaisie > 0 ? commSaisie : Math.round((total * commPct) / 100);
     const paye = Math.max(0, Math.min(total, Number(dejaEncaisse.replace(",", ".")) || 0));
+    const ligneEncaissement = (montant: number) => ({
+      id: idNouveau("pay"),
+      date: new Date().toISOString().slice(0, 10),
+      montant,
+      methode: methodeEncaisse,
+      reference: "",
+      ajoutePar: auth ? `${auth.prenom} ${auth.nom}` : "Gestionnaire",
+    });
     const servicesFinaux = [...services];
     if (occupant2.trim()) servicesFinaux.push(`Occupant 2 : ${occupant2.trim()}`);
     if (animaux > 0) {
@@ -257,7 +279,11 @@ export function FormulaireReservation({
       .join("");
     if (edition && reservationId) {
       const actuel = session.reservationsDossier.find((r) => r.id === reservationId);
+      const ecart = paye - (actuel?.paye ?? 0);
       modifierReservation(reservationId, {
+        ...(ecart !== 0
+          ? { paiements: [...(actuel?.paiements ?? []), ligneEncaissement(ecart)] }
+          : {}),
         bienId: logement,
         occupant,
         initiales: initiales || actuel?.initiales || "??",
@@ -285,7 +311,14 @@ export function FormulaireReservation({
         reductionPourcent: reducPct,
         reductionMontant: Math.round((total * reducPct) / 100),
         fraisPlateforme: fraisPlat,
-        montantVoyageur: voyageurN || total + taxe + menageN + fraisPlat,
+        montantVoyageur:
+          voyageurN ||
+          montantVoyageurCalcule({
+            montant: total,
+            reduction: Math.round((total * reducPct) / 100),
+            fraisMenage: menageN,
+            taxeSejour: taxe,
+          }),
         attributionCommission: attribution.trim(),
       });
       ajouterNotif({
@@ -316,6 +349,7 @@ export function FormulaireReservation({
         enfants,
         montant: total,
         paye,
+        ...(paye > 0 ? { paiements: [ligneEncaissement(paye)] } : {}),
         statut: "Confirmé",
         couleur: couleur.hex,
         type,
@@ -329,7 +363,14 @@ export function FormulaireReservation({
         reductionPourcent: reducPct,
         reductionMontant: Math.round((total * reducPct) / 100),
         fraisPlateforme: fraisPlat,
-        montantVoyageur: voyageurN || total + taxe + menageN + fraisPlat,
+        montantVoyageur:
+          voyageurN ||
+          montantVoyageurCalcule({
+            montant: total,
+            reduction: Math.round((total * reducPct) / 100),
+            fraisMenage: menageN,
+            taxeSejour: taxe,
+          }),
         attributionCommission: attribution.trim(),
       },
       calendrier: {
@@ -348,6 +389,23 @@ export function FormulaireReservation({
     toastOk("Réservation créée.");
     void navigate({ to: "/reservations", search: { vue: "liste", resa: id } });
   };
+
+  const nombre = (v: string) => Number(v.replace(",", ".")) || 0;
+  const totalForm = nombre(prixNuit) * Math.max(1, Number(duree) || 1);
+  const reductionForm = Math.round((totalForm * Math.max(0, nombre(reductionPct))) / 100);
+  const voyageurForm = montantVoyageurCalcule({
+    montant: totalForm,
+    reduction: reductionForm,
+    fraisMenage: nombre(fraisMenage),
+    taxeSejour: nombre(taxeSejour),
+  });
+  const netForm = netPercu({
+    montant: totalForm,
+    reduction: reductionForm,
+    fraisMenage: nombre(fraisMenage),
+    fraisPlateforme: nombre(fraisPlateforme),
+    commissionMontant: nombre(commissionMontant),
+  });
 
   return (
     <div>
@@ -579,15 +637,33 @@ export function FormulaireReservation({
                     </span>
                   </span>
                 </label>
-                <label className="block text-xs text-ink-subtle">
-                  Réduction (%)
-                  <input
-                    value={reductionPct}
-                    onChange={(e) => setReductionPct(e.target.value)}
-                    inputMode="decimal"
-                    className={cn(champ, "mt-1")}
-                  />
-                </label>
+                <div className="text-xs text-ink-subtle">
+                  <label htmlFor="reduction-pct">Réduction %</label>
+                  <div className="mt-1 grid grid-cols-[minmax(0,5rem)_minmax(0,1fr)] gap-2">
+                    <span className="relative block">
+                      <input
+                        id="reduction-pct"
+                        value={reductionPct}
+                        onChange={(e) => setReductionPct(e.target.value)}
+                        inputMode="decimal"
+                        className={champ}
+                      />
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
+                        %
+                      </span>
+                    </span>
+                    <output
+                      className={cn(
+                        champ,
+                        "flex items-center justify-between bg-surface text-ink-body",
+                      )}
+                      aria-label="Montant de la réduction"
+                    >
+                      <span className="truncate text-ink-muted">Montant de la réduction</span>
+                      <span>{formatMontant(reductionForm)}</span>
+                    </output>
+                  </div>
+                </div>
                 <label className="block text-xs text-ink-subtle">
                   Frais de ménage
                   <span className="relative mt-1 block">
@@ -649,6 +725,7 @@ export function FormulaireReservation({
                     <input
                       value={montantVoyageur}
                       onChange={(e) => setMontantVoyageur(e.target.value)}
+                      placeholder={String(voyageurForm)}
                       inputMode="decimal"
                       className={champ}
                     />
@@ -657,32 +734,48 @@ export function FormulaireReservation({
                     </span>
                   </span>
                 </label>
-                <label className="block text-xs text-ink-subtle">
-                  Commission gestionnaire / conciergerie
-                  <span className="relative mt-1 block">
+                <div className="text-xs text-ink-subtle">
+                  <label htmlFor="commission-gestion">Commission gestionnaire / conciergerie</label>
+                  <div className="mt-1 grid grid-cols-2 gap-2">
+                    <span className="relative block">
+                      <input
+                        id="commission-gestion"
+                        value={commissionMontant}
+                        onChange={(e) => setCommissionMontant(e.target.value)}
+                        inputMode="decimal"
+                        className={champ}
+                      />
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
+                        €
+                      </span>
+                    </span>
                     <input
-                      value={commissionMontant}
-                      onChange={(e) => setCommissionMontant(e.target.value)}
-                      inputMode="decimal"
+                      value={attribution}
+                      onChange={(e) => setAttribution(e.target.value)}
+                      placeholder="Attribution"
+                      aria-label="Attribution de la commission"
                       className={champ}
                     />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">
-                      €
-                    </span>
-                  </span>
-                </label>
-                <p className="flex items-end text-sm text-ink">
-                  Montant net perçu :{" "}
-                  {formatMontant(
-                    netPercu({
-                      montant: (Number(prixNuit) || 0) * (Math.max(1, Number(duree) || 1)),
-                      taxeSejour: Number(taxeSejour.replace(",", ".")) || 0,
-                      commissionMontant: Number(commissionMontant.replace(",", ".")) || 0,
-                    }),
-                  )}
-                </p>
+                  </div>
+                  <p className="mt-1 text-[11px] font-medium uppercase tracking-wide text-accent-teal">
+                    Vérifier attribution
+                  </p>
+                </div>
+                <div className="text-xs text-ink-subtle">
+                  Montant net perçu
+                  <output
+                    className={cn(
+                      champ,
+                      "mt-1 flex items-center justify-between bg-surface text-ink",
+                    )}
+                    aria-label="Montant net perçu"
+                  >
+                    <span>{formatMontant(netForm)}</span>
+                    <span className="text-xs text-ink-muted">euros</span>
+                  </output>
+                </div>
                 <label className="block text-xs text-ink-subtle">
-                  Commission plateforme (%)
+                  Commission gestionnaire (%)
                   <input
                     value={commissionPct}
                     onChange={(e) => {
@@ -699,9 +792,7 @@ export function FormulaireReservation({
                 <label className="block text-xs text-ink-subtle">
                   Caution
                   {type === "Bail mobilité" ? (
-                    <span className="ml-1 text-[10px] text-ink-muted">
-                      — aucun dépôt autorisé
-                    </span>
+                    <span className="ml-1 text-[10px] text-ink-muted">— aucun dépôt autorisé</span>
                   ) : null}
                   <span className="relative mt-1 block">
                     <input
@@ -730,14 +821,19 @@ export function FormulaireReservation({
                     </span>
                   </span>
                 </label>
-                <label className="block text-xs text-ink-subtle sm:col-span-2">
-                  Attribution commission
-                  <input
-                    value={attribution}
-                    onChange={(e) => setAttribution(e.target.value)}
-                    placeholder="Vérifier attribution"
+                <label className="block text-xs text-ink-subtle">
+                  Méthode de l'encaissement
+                  <select
+                    value={methodeEncaisse}
+                    onChange={(e) => setMethodeEncaisse(e.target.value)}
                     className={cn(champ, "mt-1")}
-                  />
+                  >
+                    {METHODES_PAIEMENT.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
                 </label>
               </div>
               <p className="mt-3 text-xs text-ink-subtle">Services inclus</p>
@@ -961,26 +1057,21 @@ export function FormulaireReservation({
                   toastErreur("Indiquez un montant positif.");
                   return;
                 }
-                const paye = Math.max(0, actuel.paye - Math.round(montant));
-                modifierReservation(reservationId, {
-                  paye,
-                  remboursements: [
-                    ...(actuel.remboursements ?? []),
-                    {
-                      id: idNouveau("rb"),
-                      date: new Date().toISOString().slice(0, 10),
-                      motif: rembMotif.trim(),
-                      montant: Math.round(montant),
-                      note: rembNote.trim(),
-                    },
-                  ],
+                const donnees = emettreAvoir({
+                  reservation: actuel,
+                  bien: session.biens.find((b) => b.id === actuel.bienId),
+                  motif: rembMotif.trim(),
+                  montant,
+                  note: rembNote.trim(),
+                  societe: auth?.orgNom,
+                  signataire: auth ? `${auth.prenom} ${auth.nom}` : undefined,
                 });
-                setDejaEncaisse(String(paye));
+                setDejaEncaisse(String(Math.max(0, actuel.paye - donnees.montant)));
                 setRembourse(false);
                 setRembMotif("");
                 setRembMontant("");
                 setRembNote("");
-                toastOk(`Remboursement de ${formatMontant(Math.round(montant))} enregistré.`);
+                toastOk(`Avoir ${donnees.numero} généré — retrouvez-le dans Documents.`);
               }}
               className="h-9 rounded-card bg-ink px-3 text-xs font-medium text-white"
             >

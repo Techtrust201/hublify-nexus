@@ -1,5 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Briefcase, Download, Moon, Percent, Sparkles, TrendingUp, Wrench } from "lucide-react";
+import {
+  Briefcase,
+  Download,
+  MessageSquare,
+  Moon,
+  Percent,
+  Sparkles,
+  TrendingUp,
+  Wrench,
+} from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import {
   CartesianGrid,
@@ -62,6 +71,10 @@ function PageAnalyse() {
     };
   }, [filtreLogement, session]);
   const analyse = useMemo(() => analyserReservations(sessionFiltree), [sessionFiltree]);
+  const bienFiltre = session.biens.find((b) => b.id === filtreLogement);
+  const prospects = session.conversations.filter(
+    (c) => c.section === "prospections" && (!bienFiltre || c.bienNom === bienFiltre.nom),
+  );
   const [onglet, setOnglet] = useState<OngletAnalyse>("revenus");
   const [filtreStatut, setFiltreStatut] = useState<"tous" | PaiementAnalyse["statut"]>("tous");
   const [selection, setSelection] = useState<string[]>([]);
@@ -286,7 +299,7 @@ function PageAnalyse() {
           <p className="text-sm text-ink-body">
             Historique complet des transactions concernant le titulaire de ce compte
           </p>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <Kpi
               titre="Revenu total"
               valeur={formatMontant(analyse.kpi.net)}
@@ -301,6 +314,14 @@ function PageAnalyse() {
               titre="Commissions totales"
               valeur={formatMontant(analyse.kpi.commissionsOta)}
               detail={`Frais et commissions · ${analyse.kpi.partOta}`}
+            />
+            <Kpi
+              icone={<MessageSquare className="size-4" />}
+              titre="Demandes prospect"
+              valeur={String(prospects.length)}
+              detail={`Boîte Prospect · ${prospects.filter((c) => c.nonLu).length} non traitée${prospects.filter((c) => c.nonLu).length > 1 ? "s" : ""} · rapport d'activité`}
+              action="Voir les demandes →"
+              onAction={() => void navigate({ to: "/messagerie" })}
             />
           </div>
           <TableauPaiements

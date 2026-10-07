@@ -10,6 +10,87 @@ export type RemboursementReservation = {
   note: string;
 };
 
+export type PaiementReservation = {
+  id: string;
+  date: string;
+  montant: number;
+  methode: string;
+  reference: string;
+  ajoutePar: string;
+};
+
+export const METHODES_PAIEMENT = [
+  "Virement",
+  "Carte bancaire",
+  "Chèque",
+  "Espèces",
+  "Prélèvement",
+  "Plateforme",
+] as const;
+
+export function methodeParDefaut(plateforme?: string) {
+  return plateforme === "Airbnb" || plateforme === "Booking.com" ? "Plateforme" : "Virement";
+}
+
+export type LigneEncaissement = {
+  id: string;
+  date: string;
+  montant: number;
+  methode: string;
+  reference: string;
+  libelle: string;
+};
+
+/** Les réservations antérieures au suivi détaillé n'ont qu'un cumul encaissé : la part
+ *  non justifiée par des paiements datés reste visible plutôt que de disparaître. */
+export function lignesEncaissement(r: {
+  id: string;
+  paye: number;
+  plateforme: string;
+  paiements?: PaiementReservation[] | undefined;
+  remboursements?: RemboursementReservation[] | undefined;
+}): LigneEncaissement[] {
+  const paiements = r.paiements ?? [];
+  const remboursements = r.remboursements ?? [];
+  const justifie =
+    paiements.reduce((s, p) => s + p.montant, 0) -
+    remboursements.reduce((s, x) => s + x.montant, 0);
+  const anterieur = Math.round(r.paye - justifie);
+  return [
+    ...(anterieur > 0
+      ? [
+          {
+            id: `${r.id}-anterieur`,
+            date: "",
+            montant: anterieur,
+            methode:
+              methodeParDefaut(r.plateforme) === "Plateforme"
+                ? `Versement ${r.plateforme}`
+                : "Non précisée",
+            reference: "",
+            libelle: "Encaissé avant le suivi détaillé",
+          },
+        ]
+      : []),
+    ...paiements.map((p) => ({
+      id: p.id,
+      date: p.date,
+      montant: p.montant,
+      methode: p.methode,
+      reference: p.reference,
+      libelle: p.montant < 0 ? "Correction d'encaissement" : `Paiement · ${p.ajoutePar}`,
+    })),
+    ...remboursements.map((x) => ({
+      id: x.id,
+      date: x.date,
+      montant: -x.montant,
+      methode: "Avoir",
+      reference: "",
+      libelle: `Remboursement — ${x.motif}`,
+    })),
+  ].sort((a, b) => (a.date || "0").localeCompare(b.date || "0"));
+}
+
 export type RapportIntervention = {
   id: string;
   missionId: string;
@@ -224,17 +305,38 @@ export function idDossierPourCalendrier(
   const memePersonne = dossiers.filter(
     (d) => d.bienId === sejour.bienId && d.occupant === sejour.voyageur,
   );
-  return (
-    memePersonne.find((d) => jourIso(d.arrivee) === arrivee)?.id ?? memePersonne[0]?.id
+  return memePersonne.find((d) => jourIso(d.arrivee) === arrivee)?.id ?? memePersonne[0]?.id;
+}
+
+/** La taxe de séjour transite par le gestionnaire mais repart à la commune : elle
+ *  entre dans ce que paie le voyageur, jamais dans ce que perçoit le propriétaire. */
+export function montantVoyageurCalcule(params: {
+  montant: number;
+  reduction?: number | undefined;
+  fraisMenage?: number | undefined;
+  taxeSejour?: number | undefined;
+}) {
+  return Math.max(
+    0,
+    params.montant - (params.reduction ?? 0) + (params.fraisMenage ?? 0) + (params.taxeSejour ?? 0),
   );
 }
 
 export function netPercu(params: {
   montant: number;
-  taxeSejour?: number | undefined;
+  reduction?: number | undefined;
+  fraisMenage?: number | undefined;
+  fraisPlateforme?: number | undefined;
   commissionMontant?: number | undefined;
 }) {
-  return Math.max(0, params.montant + (params.taxeSejour ?? 0) - (params.commissionMontant ?? 0));
+  return Math.max(
+    0,
+    params.montant -
+      (params.reduction ?? 0) +
+      (params.fraisMenage ?? 0) -
+      (params.fraisPlateforme ?? 0) -
+      (params.commissionMontant ?? 0),
+  );
 }
 
 /** Airbnb / Booking = paiement plateforme → quittance automatique (126:1291). */
@@ -271,22 +373,29 @@ export function detailMontantsReservation(params: {
   upsellsMontant?: number | undefined;
 }) {
   const reduction =
-    params.reductionMontant ??
-    Math.round((params.montant * (params.reductionPourcent ?? 0)) / 100);
+    params.reductionMontant ?? Math.round((params.montant * (params.reductionPourcent ?? 0)) / 100);
   const menage = params.fraisMenage ?? 0;
   const taxe = params.taxeSejour ?? 0;
   const comm = params.commissionMontant ?? 0;
   const frais = params.fraisPlateforme ?? 0;
   const upsells = params.upsellsMontant ?? 0;
   const voyageur =
-    params.montantVoyageur ??
-    Math.max(0, params.montant + taxe + menage + upsells + frais - reduction);
+    params.montantVoyageur ||
+    montantVoyageurCalcule({
+      montant: params.montant,
+      reduction,
+      fraisMenage: menage,
+      taxeSejour: taxe,
+    });
   const net = netPercu({
     montant: params.montant,
-    taxeSejour: taxe,
-    commissionMontant: comm + frais,
+    reduction,
+    fraisMenage: menage,
+    fraisPlateforme: frais,
+    commissionMontant: comm,
   });
   return {
+    total: voyageur + upsells,
     loyer: params.montant,
     caution: params.caution ?? 0,
     menage,

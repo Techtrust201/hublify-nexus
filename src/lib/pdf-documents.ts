@@ -137,6 +137,7 @@ export async function octetsDocument(titre: string, ctx: ContexteDocument = {}) 
   else if (kind === "modele") dessinerModele(page, font, gras, titre, data);
   else if (kind === "bail") dessinerBail(page, font, gras, titre, data);
   else if (kind === "quittance") dessinerQuittance(page, font, gras, titre, data);
+  else if (kind === "avoir") dessinerAvoir(page, font, gras, data);
   else if (kind === "avis") dessinerAvis(page, font, gras, titre, data);
   else if (kind === "photo") dessinerPhotoPreuve(page, font, gras, titre, data);
   else if (kind === "edl") dessinerEdl(page, font, gras, titre, data);
@@ -387,6 +388,175 @@ function dessinerQuittance(
   page.drawRectangle({ x: 40, y: 72, width: 220, height: 70, borderColor: LIGNE, borderWidth: 1 });
   page.drawText("Hublify", { x: 52, y: 84, size: 10, font, color: MUET });
   pied(page, font, `Quittance — ${locataire} — ${ctx.periode ?? ctx.date ?? aujourdHui()}`);
+}
+
+function champsExtra(extra: string[] = []) {
+  const champs: Record<string, string> = {};
+  for (const ligne of extra) {
+    const coupe = ligne.indexOf(":");
+    if (coupe <= 0) continue;
+    champs[ligne.slice(0, coupe).trim().toLowerCase()] = ligne.slice(coupe + 1).trim();
+  }
+  return champs;
+}
+
+function dateFr(iso: string | undefined) {
+  const [y, m, d] = (iso ?? "").split("-");
+  return y && m && d ? `${d}/${m}/${y}` : iso || aujourdHui();
+}
+
+function dateLongue(iso: string | undefined, avecJour = true) {
+  const [y, m, d] = (iso ?? "").split("-").map(Number);
+  if (!y || !m || !d) return iso || "";
+  return new Date(y, m - 1, d).toLocaleDateString("fr-FR", {
+    ...(avecJour ? { weekday: "long" as const } : {}),
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function tenirDans(police: PDFFont, texte: string, taille: number, largeur: number) {
+  const propre = t(texte);
+  if (police.widthOfTextAtSize(propre, taille) <= largeur) return propre;
+  let coupe = propre;
+  while (coupe.length > 1 && police.widthOfTextAtSize(`${coupe}...`, taille) > largeur) {
+    coupe = coupe.slice(0, -1);
+  }
+  return `${coupe.trimEnd()}...`;
+}
+
+function aDroite(
+  page: PDFPage,
+  police: PDFFont,
+  texte: string,
+  xDroite: number,
+  y: number,
+  taille: number,
+) {
+  const propre = t(texte);
+  page.drawText(propre, {
+    x: xDroite - police.widthOfTextAtSize(propre, taille),
+    y,
+    size: taille,
+    font: police,
+    color: ENCRE,
+  });
+}
+
+function dessinerAvoir(page: PDFPage, font: PDFFont, gras: PDFFont, ctx: ContexteDocument) {
+  const c = champsExtra(ctx.extra);
+  const montant = Number(c["montant"]) || 0;
+  const euros = `${montant.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} EUR`;
+  const arrivee = c["arrivee"];
+  const depart = c["depart"];
+  const nuits =
+    arrivee && depart
+      ? Math.max(0, Math.round((Date.parse(depart) - Date.parse(arrivee)) / 86_400_000))
+      : 0;
+
+  const titre = "AVOIR";
+  page.drawText(titre, {
+    x: (595 - gras.widthOfTextAtSize(titre, 24)) / 2,
+    y: 780,
+    size: 24,
+    font: gras,
+    color: ENCRE,
+  });
+
+  page.drawText("Client", { x: 40, y: 740, size: 10, font: gras, color: ENCRE });
+  page.drawText(t(c["client"] || "—"), { x: 40, y: 726, size: 10, font, color: ENCRE });
+  if (c["email"]) page.drawText(t(c["email"]), { x: 40, y: 712, size: 10, font, color: ENCRE });
+  aDroite(page, gras, `Avoir n° ${c["numero"] ?? ""}`, 555, 740, 10);
+  aDroite(page, font, `Date d'émission : ${dateFr(c["date"])}`, 555, 726, 10);
+  if (c["reference"]) aDroite(page, font, `Réf. réservation ${c["reference"]}`, 555, 712, 10);
+
+  let y = 680;
+  const ligneInfo = (label: string, valeur: string) => {
+    page.drawText(t(label), { x: 40, y, size: 10, font: gras, color: ENCRE });
+    y = paragraphe(page, font, valeur, 40 + gras.widthOfTextAtSize(t(label), 10) + 4, y, 10, 450);
+    y -= 4;
+  };
+  ligneInfo("Objet :", c["objet"] || "—");
+  ligneInfo("Logement :", c["logement"] || "—");
+  if (arrivee && depart) {
+    ligneInfo(
+      "Séjour :",
+      `du ${dateLongue(arrivee)} au ${dateLongue(depart)}${nuits ? ` (${nuits} nuit${nuits > 1 ? "s" : ""})` : ""}`,
+    );
+  }
+
+  const haut = y - 10;
+  page.drawRectangle({ x: 40, y: haut - 18, width: 515, height: 18, color: NAVY });
+  page.drawText("Désignation", { x: 46, y: haut - 13, size: 9, font: gras, color: rgb(1, 1, 1) });
+  page.drawText("Qté", { x: 400, y: haut - 13, size: 9, font: gras, color: rgb(1, 1, 1) });
+  page.drawText("Montant TTC", {
+    x: 549 - gras.widthOfTextAtSize("Montant TTC", 9),
+    y: haut - 13,
+    size: 9,
+    font: gras,
+    color: rgb(1, 1, 1),
+  });
+  page.drawRectangle({
+    x: 40,
+    y: haut - 52,
+    width: 515,
+    height: 34,
+    borderColor: ENCRE,
+    borderWidth: 0.8,
+  });
+  page.drawText(t("Remboursement"), { x: 46, y: haut - 32, size: 10, font, color: ENCRE });
+  page.drawText(tenirDans(font, `Motif : ${c["objet"] || "—"}`, 8, 340), {
+    x: 46,
+    y: haut - 45,
+    size: 8,
+    font,
+    color: MUET,
+  });
+  page.drawText("1", { x: 404, y: haut - 32, size: 10, font, color: ENCRE });
+  aDroite(page, font, euros, 549, haut - 32, 10);
+
+  const yTotal = haut - 84;
+  page.drawText("TOTAL AVOIR TTC", { x: 300, y: yTotal, size: 11, font: gras, color: ENCRE });
+  page.drawRectangle({ x: 440, y: yTotal - 5, width: 115, height: 18, color: FOND });
+  aDroite(page, gras, euros, 549, yTotal, 11);
+
+  let yTexte = yTotal - 40;
+  if (c["note"]) {
+    yTexte = paragraphe(page, font, c["note"], 40, yTexte, 10) - 6;
+  }
+  yTexte = paragraphe(
+    page,
+    font,
+    "Ce montant sera restitué au client via le même moyen de paiement que celui utilisé lors du règlement de la réservation.",
+    40,
+    yTexte,
+    10,
+  );
+  yTexte = paragraphe(
+    page,
+    font,
+    "Nous restons à votre disposition pour toute question complémentaire et vous prions de recevoir nos excuses pour la gêne occasionnée.",
+    40,
+    yTexte,
+    10,
+  );
+
+  const lieu = c["ville"]
+    ? `Fait à ${c["ville"]}, le ${dateLongue(c["date"], false)}`
+    : `Fait le ${dateLongue(c["date"], false)}`;
+  page.drawText(t(lieu), { x: 40, y: yTexte - 24, size: 10, font, color: ENCRE });
+  page.drawText(t(`Pour ${c["societe"] || "Hublify"},`), {
+    x: 40,
+    y: yTexte - 52,
+    size: 10,
+    font,
+    color: ENCRE,
+  });
+  if (c["signataire"]) {
+    page.drawText(t(c["signataire"]), { x: 40, y: yTexte - 66, size: 10, font, color: ENCRE });
+  }
+  pied(page, font, `Avoir ${c["numero"] ?? ""} — ${c["client"] ?? ""}`);
 }
 
 function dessinerAvis(

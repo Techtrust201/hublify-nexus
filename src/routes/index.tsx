@@ -102,14 +102,16 @@ function VueGenerale() {
               )?.plateforme,
             )
           }
-          onValider={(id) => {
+          onValider={(id, details) => {
             const l = session.loyers.find((x) => x.id === id);
-            const via = paiementViaPlateforme(
-              session.reservationsDossier.find(
-                (r) => r.occupant.toLowerCase() === (l?.locataire ?? "").toLowerCase(),
-              )?.plateforme,
+            const plateforme = session.reservationsDossier.find(
+              (r) => r.occupant.toLowerCase() === (l?.locataire ?? "").toLowerCase(),
+            )?.plateforme;
+            const via = paiementViaPlateforme(plateforme);
+            validerLoyer(
+              id,
+              details ?? { methode: `Versement ${plateforme ?? "plateforme"}`, reference: "" },
             );
-            validerLoyer(id);
             if (via && l) {
               void telechargerQuittanceLoyer(l)
                 .then(() => {
@@ -143,9 +145,20 @@ function VueGenerale() {
         onConfirmer={(montant) => {
           if (!loyerQuittance) return;
           const loyer = { ...loyerQuittance, montant };
+          const plateforme = session.reservationsDossier.find(
+            (r) => r.occupant.toLowerCase() === loyer.locataire.toLowerCase(),
+          )?.plateforme;
           void (async () => {
             try {
               await telechargerQuittanceLoyer(loyer);
+              if (!session.loyers.find((x) => x.id === loyer.id)?.valide) {
+                validerLoyer(loyer.id, {
+                  methode: paiementViaPlateforme(plateforme)
+                    ? `Versement ${plateforme}`
+                    : "Non précisée",
+                  reference: "",
+                });
+              }
               marquerQuittance(loyer.id);
               setLoyerQuittance(null);
               toastOk("Quittance enregistrée.");

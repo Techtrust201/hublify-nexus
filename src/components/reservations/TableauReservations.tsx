@@ -26,7 +26,13 @@ import {
   type ReservationMo1,
   type StatutReservationMo1,
 } from "@/data/reservations-mo1";
-import { annulerReservation, modifierReservation, useSession, useStatutSync } from "@/data/session";
+import {
+  annulerReservation,
+  enregistrerEncaissement,
+  useSession,
+  useStatutSync,
+} from "@/data/session";
+import { methodeParDefaut } from "@/data/v1-metier";
 import { confirmer, telechargerDemo, toastErreur, toastOk } from "@/lib/feedback";
 import { telechargerFactureReservation } from "@/lib/exports-docs";
 import { cn } from "@/lib/utils";
@@ -549,7 +555,10 @@ function FiltreLigne({
 
 function enregistrerPaiement(reservation: ReservationMo1, brut: number) {
   const paye = Math.max(0, Math.min(reservation.montant, Math.round(brut)));
-  modifierReservation(reservation.id, { paye });
+  enregistrerEncaissement(reservation.id, paye, {
+    methode: methodeParDefaut(reservation.plateforme),
+    ajoutePar: "Gestionnaire",
+  });
   toastOk(
     paye >= reservation.montant
       ? "Réservation soldée."

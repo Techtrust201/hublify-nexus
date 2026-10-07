@@ -143,7 +143,9 @@ export function DocumentsApp({
           );
         }
         if (typeFiltre === "Correspondances") {
-          return /correspondance|courrier/i.test(d.titre) || /correspondance|courrier/i.test(d.type);
+          return (
+            /correspondance|courrier/i.test(d.titre) || /correspondance|courrier/i.test(d.type)
+          );
         }
         if (typeFiltre === "Courrier libre") {
           return /courrier libre|courrier/i.test(d.filtre) || /courrier/i.test(d.titre);
@@ -174,6 +176,8 @@ export function DocumentsApp({
 
   const importerDoc = () => {
     choisirFichierComplet((fichier) => {
+      const estBail =
+        /bail/i.test(fichier.nom) || (typeFiltre !== "Tous" && /bail/i.test(typeFiltre));
       const filtre =
         vue === "etats"
           ? "États des lieux"
@@ -181,8 +185,11 @@ export function DocumentsApp({
             ? "Fiches accès"
             : typeFiltre !== "Tous"
               ? typeFiltre
-              : "Bail";
-      const estBail = /bail/i.test(fichier.nom) || (typeFiltre !== "Tous" && /bail/i.test(typeFiltre));
+              : estBail
+                ? "Bail"
+                : vue === "residents"
+                  ? "Documents"
+                  : "Courrier libre";
       const vueCible: DocMo1["vue"] = estBail
         ? "residents"
         : vue === "residents" || vue === "proprio" || vue === "logements" || vue === "syndic"
@@ -200,7 +207,9 @@ export function DocumentsApp({
         photos: 0,
         vue: vueCible,
         fichier: { nom: fichier.nom, mime: fichier.mime, base64: fichier.base64 },
-        ...(vueCible === "residents" ? { occupant: vue === "residents" ? onglet : "locataires" } : {}),
+        ...(vueCible === "residents"
+          ? { occupant: vue === "residents" ? onglet : "locataires" }
+          : {}),
       };
       ajouterDocument(ligne);
       marquerDocRecent(ligne.id);
@@ -489,7 +498,9 @@ export function DocumentsApp({
         </section>
       )}
 
-      {vue === "syndic" && <VueSyndic docs={docsFiltres} onRetour={() => aller("hub")} onImporter={importerDoc} />}
+      {vue === "syndic" && (
+        <VueSyndic docs={docsFiltres} onRetour={() => aller("hub")} onImporter={importerDoc} />
+      )}
 
       <GenerateQuittanceDialog
         ouvert={quittance}
@@ -648,13 +659,6 @@ function Hub({
       vue: "factures",
     },
     {
-      titre: "Inventaire des prestations",
-      desc: "Photos et preuves des interventions réalisées par logement",
-      n: nb((d) => d.vue === "inventaire-presta"),
-      icone: Camera,
-      vue: "inventaire-presta",
-    },
-    {
       titre: "Syndic / copropriété",
       desc: "Règlements, appels de fonds, contacts copropriété",
       n: nb((d) => d.vue === "syndic"),
@@ -811,8 +815,7 @@ function Hub({
           {docsRecentsParmi(docs)
             .filter(
               (d) =>
-                !recherche.trim() ||
-                d.titre.toLowerCase().includes(recherche.trim().toLowerCase()),
+                !recherche.trim() || d.titre.toLowerCase().includes(recherche.trim().toLowerCase()),
             )
             .map((d) => (
               <li
