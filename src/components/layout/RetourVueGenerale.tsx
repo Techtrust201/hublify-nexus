@@ -6,13 +6,14 @@ export function RetourVueGenerale({ className }: { className?: string }) {
   return (
     <Link
       to="/"
+      aria-label="Retour à la vue générale"
       className={cn(
-        "inline-flex h-11 items-center gap-2 rounded-card border border-ink bg-white px-3 text-sm font-medium text-ink hover:bg-surface md:h-10",
+        "inline-flex h-11 min-w-11 items-center justify-center gap-2 rounded-card border border-ink bg-white text-sm font-medium text-ink hover:bg-surface sm:px-3 md:h-10 lg:px-0 xl:px-3",
         className,
       )}
     >
-      <ArrowLeft className="size-3.5" />
-      Retour à la vue générale
+      <ArrowLeft className="size-3.5 shrink-0" />
+      <span className="hidden sm:inline lg:hidden xl:inline">Retour à la vue générale</span>
     </Link>
   );
 }

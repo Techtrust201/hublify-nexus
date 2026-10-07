@@ -658,14 +658,14 @@ function LigneBien({
     <div className="contents">
       <ColonneBienCalendrier bien={bien} />
       <div
-        className="relative border-b border-line"
+        className="relative flex flex-col border-b border-line"
         style={{
           gridColumn: `2 / span ${jours.length}`,
           minHeight: Math.max(148, bandeau + 96),
         }}
       >
         <div
-          className="absolute inset-0 grid"
+          className="grid flex-1"
           style={{ gridTemplateColumns: `repeat(${jours.length}, minmax(0, 1fr))` }}
         >
           {jours.map((d) => {
@@ -1029,7 +1029,7 @@ function TarifsMois({
                 onCreerRegle(bien.id, key);
               }}
               className={cn(
-                "min-h-[88px] border-b border-r border-line p-1.5 text-left",
+                "min-h-[88px] min-w-0 border-b border-r border-line p-1 text-left sm:p-1.5",
                 hors && "bg-surface text-ink-muted",
                 key === AUJOURD_HUI_MO1 && "bg-surface",
               )}
@@ -1037,7 +1037,14 @@ function TarifsMois({
               <p className="text-center text-xs text-ink-body">{d.getDate()}</p>
               {!hors && (
                 <>
-                  {reserve && <p className="text-[10px] text-ink-muted">Réservé</p>}
+                  {reserve && (
+                    <p className="text-[10px] text-ink-muted" title="Réservé">
+                      <span aria-hidden className="sm:hidden">
+                        ●
+                      </span>
+                      <span className="sr-only sm:not-sr-only">Réservé</span>
+                    </p>
+                  )}
                   <p className="text-xs font-medium text-ink">{prix}€</p>
                   {variation !== 0 && (
                     <p className="text-[9px] text-ink-muted line-through">{base}€</p>

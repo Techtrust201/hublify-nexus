@@ -74,9 +74,7 @@ export function PastilleCalendrier({
       title={libellePastille(mission)}
       className={cn(
         "flex h-11 w-full min-w-0 items-center gap-1 overflow-hidden rounded border px-1.5 text-left text-[10px] font-medium text-ink-body lg:h-[21px]",
-        selectionnee
-          ? "border-ink shadow-[0_0_0_2px_rgba(17,17,17,0.35)]"
-          : "border-line-strong",
+        selectionnee ? "border-ink shadow-[0_0_0_2px_rgba(17,17,17,0.35)]" : "border-line-strong",
         style.barre && !selectionnee && "opacity-70",
         attenuee && !selectionnee && "opacity-45",
       )}
@@ -145,42 +143,55 @@ export function BandeauPlanning({
     },
   ];
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-2 py-2">
-      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto overscroll-x-contain">
-      {items.map((it) => {
-        const Icone = it.icone;
-        const sel = actif === it.id;
-        return (
-          <button
-            key={it.id}
-            type="button"
-            onClick={() => onChoisir(it.id)}
-            className={cn(
-              "flex min-h-11 min-w-[9.5rem] shrink-0 items-center gap-2.5 rounded-xl border px-3 py-2 text-left",
-              sel
-                ? "border-ink bg-ink text-white shadow-sm"
-                : "border-line bg-white text-ink-body hover:border-ink-muted",
-            )}
-          >
-            <span
+    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 py-2">
+      <div
+        role="tablist"
+        aria-label="Planning"
+        className="grid min-w-0 flex-[1_1_30rem] grid-cols-3 gap-1.5 sm:gap-2"
+      >
+        {items.map((it) => {
+          const Icone = it.icone;
+          const sel = actif === it.id;
+          return (
+            <button
+              key={it.id}
+              type="button"
+              role="tab"
+              aria-selected={sel}
+              onClick={() => onChoisir(it.id)}
               className={cn(
-                "flex size-8 items-center justify-center rounded-lg",
-                sel ? "bg-white/15" : "bg-surface-soft",
+                "flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-xl border px-2 py-2 text-left sm:justify-start sm:gap-2.5 sm:px-3",
+                sel
+                  ? "border-ink bg-ink text-white shadow-sm"
+                  : "border-line bg-white text-ink-body hover:border-ink-muted",
               )}
             >
-              <Icone className="size-4" />
-            </span>
-            <span>
-              <span className="block text-sm font-medium">{it.label}</span>
-              <span className={cn("block text-[10px]", sel ? "text-white/70" : "text-ink-muted")}>
-                {it.hint}
+              <span
+                className={cn(
+                  "hidden size-8 shrink-0 items-center justify-center rounded-lg sm:flex",
+                  sel ? "bg-white/15" : "bg-surface-soft",
+                )}
+              >
+                <Icone className="size-4" />
               </span>
-            </span>
-          </button>
-        );
-      })}
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium">{it.label}</span>
+                <span
+                  className={cn(
+                    "hidden truncate text-[10px] md:block",
+                    sel ? "text-white/70" : "text-ink-muted",
+                  )}
+                >
+                  {it.hint}
+                </span>
+              </span>
+            </button>
+          );
+        })}
       </div>
-      {extra ? <div className="shrink-0">{extra}</div> : null}
+      {extra ? (
+        <div className="ml-auto flex shrink-0 flex-wrap justify-end gap-2">{extra}</div>
+      ) : null}
     </div>
   );
 }
@@ -298,4 +309,3 @@ export function EnteteJoursCalendrier({
     </>
   );
 }
-

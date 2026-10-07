@@ -73,135 +73,145 @@ export function AppShell({
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-sticky border-b border-line bg-white/90 px-4 pt-[env(safe-area-inset-top)] backdrop-blur-sm lg:px-6">
           <div className="flex min-h-[80px] items-center justify-between gap-4 py-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <button
-              ref={hamburgerRef}
-              type="button"
-              className="flex size-11 items-center justify-center rounded-card border border-line text-ink-body lg:hidden"
-              onClick={() => setMobileOuvert(true)}
-              aria-label={mobileOuvert ? "Fermer la navigation" : "Ouvrir la navigation"}
-              aria-expanded={mobileOuvert}
-              aria-controls="nav-mobile"
-            >
-              <Menu className="size-4" />
-            </button>
-            {pathname === "/" && auth ? (
-              <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-ink-muted">Vue générale</p>
-                <h1 className="truncate text-xl font-medium leading-tight text-ink-deep">
-                  Bonjour {auth.prenom}
-                </h1>
-              </div>
-            ) : titre ? (
-              <div className="min-w-0">
-                <h1 className="truncate text-lg font-medium leading-tight text-ink-deep">{titre}</h1>
-                {sousTitre && !(attendDonnees && !chargee) && (
-                  <p className="mt-0.5 truncate text-sm text-ink-muted">{sousTitre}</p>
-                )}
-              </div>
-            ) : (
-              <div className="hidden h-8 w-16 lg:block" />
-            )}
-            {estPagePlanningHorsAccueil(pathname) && (
-              <RetourVueGenerale className="shrink-0" />
-            )}
-          </div>
-          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            {actions ? <div className="flex shrink-0 items-center">{actions}</div> : null}
-            <DropdownMenu modal={false}>
-              <DropdownMenuTrigger className="hidden h-10 shrink-0 items-center gap-1 rounded-card border border-line bg-canvas px-3 text-sm font-medium text-ink outline-none lg:inline-flex">
-                Outils
-                <ChevronDown className="size-3.5 shrink-0" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-52"
-                onCloseAutoFocus={(e) => e.preventDefault()}
+            <div className="flex min-w-0 items-center gap-3">
+              <button
+                ref={hamburgerRef}
+                type="button"
+                className="flex size-11 shrink-0 items-center justify-center rounded-card border border-line text-ink-body lg:hidden"
+                onClick={() => setMobileOuvert(true)}
+                aria-label={mobileOuvert ? "Fermer la navigation" : "Ouvrir la navigation"}
+                aria-expanded={mobileOuvert}
+                aria-controls="nav-mobile"
               >
-                <DropdownMenuItem asChild>
-                  <Link to="/outils">Tous les outils</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/outils/debuter">Je débute</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/outils/modeles">Modèles de documents</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/outils/vue-annuelle">Vue annuelle</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/inventaire">Inventaire</Link>
-                </DropdownMenuItem>
-                {voirDocs && (
-                  <DropdownMenuItem asChild>
-                    <Link to="/outils/etats-des-lieux">États des lieux</Link>
-                  </DropdownMenuItem>
-                )}
-                {peutParametrer && (
-                  <DropdownMenuItem asChild>
-                    <Link to="/parametrage">Paramétrage</Link>
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <DropdownMenu
-              modal={false}
-              onOpenChange={(ouvert) => {
-                if (!ouvert && notifsNonLues > 0) marquerNotifsLues();
-              }}
-            >
-              <DropdownMenuTrigger
-                className="relative inline-flex size-11 shrink-0 items-center justify-center gap-2 rounded-card border border-line bg-canvas text-sm text-ink outline-none sm:h-11 sm:w-auto sm:px-3 lg:h-10"
-                aria-label="Notifications"
-              >
-                <Bell className="size-4 shrink-0" />
-                <span className="hidden sm:inline">Alertes</span>
-                <span
-                  className={cn(
-                    "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px]",
-                    notifsNonLues > 0 ? "bg-ink text-white" : "bg-transparent text-transparent",
+                <Menu className="size-4" />
+              </button>
+              {pathname === "/" && auth ? (
+                <div className="min-w-0">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-ink-muted">
+                    Vue générale
+                  </p>
+                  <h1 className="truncate text-xl font-medium leading-tight text-ink-deep">
+                    Bonjour {auth.prenom}
+                  </h1>
+                </div>
+              ) : titre ? (
+                <div className="min-w-0">
+                  <h1 className="truncate text-lg font-medium leading-tight text-ink-deep">
+                    {titre}
+                  </h1>
+                  {sousTitre && !(attendDonnees && !chargee) && (
+                    <p className="mt-0.5 truncate text-sm text-ink-muted">{sousTitre}</p>
                   )}
-                  aria-hidden={notifsNonLues === 0}
+                </div>
+              ) : (
+                <div className="hidden h-8 w-16 lg:block" />
+              )}
+              {estPagePlanningHorsAccueil(pathname) && <RetourVueGenerale className="shrink-0" />}
+            </div>
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+              {actions ? <div className="flex shrink-0 items-center">{actions}</div> : null}
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger className="hidden h-10 shrink-0 items-center gap-1 rounded-card border border-line bg-canvas px-3 text-sm font-medium text-ink outline-none lg:inline-flex">
+                  Outils
+                  <ChevronDown className="size-3.5 shrink-0" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-52"
+                  onCloseAutoFocus={(e) => e.preventDefault()}
                 >
-                  {notifsNonLues > 0 ? notifsNonLues : "0"}
-                </span>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-[min(20rem,calc(100vw-1.5rem))] p-0"
-                onCloseAutoFocus={(e) => e.preventDefault()}
-              >
-                <p className="border-b border-surface-soft px-3 py-2 text-xs font-medium text-ink">
-                  Notifications
-                </p>
-                {session.notifications.length === 0 ? (
-                  <p className="px-3 py-4 text-xs text-ink-subtle">Aucune notification.</p>
-                ) : (
-                  session.notifications.slice(0, 8).map((n) => (
-                    <DropdownMenuItem
-                      key={n.id}
-                      asChild
-                      className="cursor-pointer items-start gap-2 py-2"
-                    >
-                      <a href={n.href}>
-                        <span>
-                          <span className="block text-xs text-ink">{n.titre}</span>
-                          <span className="block text-[11px] text-ink-muted">{n.detail}</span>
-                        </span>
-                      </a>
+                  <DropdownMenuItem asChild>
+                    <Link to="/outils">Tous les outils</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/outils/debuter">Je débute</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/outils/modeles">Modèles de documents</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/outils/vue-annuelle">Vue annuelle</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/inventaire">Inventaire</Link>
+                  </DropdownMenuItem>
+                  {voirDocs && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/outils/etats-des-lieux">États des lieux</Link>
                     </DropdownMenuItem>
-                  ))
+                  )}
+                  {peutParametrer && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/parametrage">Paramétrage</Link>
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <DropdownMenu
+                modal={false}
+                onOpenChange={(ouvert) => {
+                  if (!ouvert && notifsNonLues > 0) marquerNotifsLues();
+                }}
+              >
+                <DropdownMenuTrigger
+                  className="relative inline-flex size-11 shrink-0 items-center justify-center gap-2 rounded-card border border-line bg-canvas text-sm text-ink outline-none sm:h-11 sm:w-auto sm:px-3 lg:h-10"
+                  aria-label="Notifications"
+                >
+                  <Bell className="size-4 shrink-0" />
+                  <span className="hidden sm:inline">Alertes</span>
+                  <span
+                    className={cn(
+                      "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px]",
+                      notifsNonLues > 0 ? "bg-ink text-white" : "bg-transparent text-transparent",
+                    )}
+                    aria-hidden={notifsNonLues === 0}
+                  >
+                    {notifsNonLues > 0 ? notifsNonLues : "0"}
+                  </span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-[min(20rem,calc(100vw-1.5rem))] p-0"
+                  onCloseAutoFocus={(e) => e.preventDefault()}
+                >
+                  <p className="border-b border-surface-soft px-3 py-2 text-xs font-medium text-ink">
+                    Notifications
+                  </p>
+                  {session.notifications.length === 0 ? (
+                    <p className="px-3 py-4 text-xs text-ink-subtle">Aucune notification.</p>
+                  ) : (
+                    session.notifications.slice(0, 8).map((n) => (
+                      <DropdownMenuItem
+                        key={n.id}
+                        asChild
+                        className="cursor-pointer items-start gap-2 py-2"
+                      >
+                        <a href={n.href}>
+                          <span>
+                            <span className="block text-xs text-ink">{n.titre}</span>
+                            <span className="block text-[11px] text-ink-muted">{n.detail}</span>
+                          </span>
+                        </a>
+                      </DropdownMenuItem>
+                    ))
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Link
+                to="/profil"
+                title={auth ? `${auth.prenom} · ${auth.role}` : undefined}
+                className="hidden min-h-10 items-center whitespace-nowrap rounded-card border border-line bg-canvas px-3 text-sm font-medium text-ink lg:inline-flex"
+              >
+                {auth ? (
+                  <>
+                    {auth.prenom}
+                    <span className="hidden xl:inline"> · {auth.role}</span>
+                  </>
+                ) : (
+                  "Compte"
                 )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Link
-              to="/profil"
-              className="hidden min-h-10 items-center rounded-card border border-line bg-canvas px-3 text-sm font-medium text-ink lg:inline-flex"
-            >
-              {auth ? `${auth.prenom} · ${auth.role}` : "Compte"}
-            </Link>
-          </div>
+              </Link>
+            </div>
           </div>
         </header>
 
