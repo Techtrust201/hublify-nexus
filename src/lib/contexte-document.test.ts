@@ -15,6 +15,13 @@ describe("kindDocument", () => {
     expect(kindDocument("Attestation_assurance.pdf")).toBe("assurance");
     expect(kindDocument("État des lieux entrée.pdf")).toBe("edl");
   });
+
+  it("ne prend pas une fiche d'accès pour un bail à cause de la ligne Bailleur", () => {
+    const titre = "Fiche d'accès — Villa Lavandrix";
+    const ctx = enrichirContexte(titre, { extra: ["Type : Fiche accès"] });
+    expect(ctx.extra?.some((l) => l.startsWith("Bailleur"))).toBe(true);
+    expect(kindDocument(titre, ctx.extra)).not.toBe("bail");
+  });
 });
 
 describe("enrichirContexte", () => {

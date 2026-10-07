@@ -140,14 +140,14 @@ function PageAnalyse() {
           ))}
         </select>
       </label>
-      <div className="mb-4 flex gap-1 overflow-x-auto border-b border-line">
+      <div className="mb-4 grid grid-cols-3 border-b border-line sm:flex sm:gap-1">
         {ONGLETS.map((o) => (
           <button
             key={o.id}
             type="button"
             onClick={() => setOnglet(o.id)}
             className={cn(
-              "h-11 shrink-0 border-b-2 px-4 text-sm font-medium md:h-[46px]",
+              "min-h-11 border-b-2 px-2 py-1 text-xs font-medium leading-tight sm:shrink-0 sm:px-4 sm:text-sm md:h-[46px]",
               onglet === o.id
                 ? "border-ink bg-tab-active text-ink-deep"
                 : "border-transparent text-ink-subtle",
@@ -473,7 +473,7 @@ function TableauPaiements({
   onVoir: (p: PaiementAnalyse) => void;
 }) {
   return (
-    <section className="overflow-hidden rounded-card border border-line bg-white">
+    <section className="@container overflow-hidden rounded-card border border-line bg-white">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-soft px-5 py-3">
         <div>
           <h2 className="text-sm font-medium text-ink">{titre}</h2>
@@ -506,7 +506,7 @@ function TableauPaiements({
           Aucune réservation à afficher. Créez une réservation pour alimenter l'analyse.
         </p>
       )}
-      <div className="divide-y divide-surface-soft md:hidden">
+      <div className="divide-y divide-surface-soft @min-[1000px]:hidden">
         {paiements.map((p) => (
           <article key={p.id} className="flex flex-col gap-2 px-4 py-4">
             <div className="flex items-start justify-between gap-2">
@@ -554,7 +554,7 @@ function TableauPaiements({
           </article>
         ))}
       </div>
-      <ScrollHint className="hidden md:block">
+      <ScrollHint className="hidden @min-[1000px]:block">
         <table className="w-full min-w-[980px] text-left text-xs">
           <thead className="border-b border-surface-soft text-ink-subtle">
             <tr>

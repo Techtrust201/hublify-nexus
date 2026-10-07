@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { CalendarDays, ClipboardList, Plus, Search, Tag } from "lucide-react";
 import {
   PHOTO_BIEN,
@@ -20,15 +20,34 @@ export type BienCalendrierChrome = {
   statut?: string | undefined;
 };
 
+/** Les jours gardent une largeur lisible sans imposer de défilement : 3 jours tiennent
+ *  sur un téléphone (colonne des biens resserrée) et 5 jours tiennent dès 1 024 px. */
+export function grilleJours(nbJours: number) {
+  const jour = nbJours > 3 ? 108 : 150;
+  const jourMobile = nbJours > 3 ? 96 : 88;
+  return {
+    className:
+      "grid min-w-[var(--grille-min-mobile)] [grid-template-columns:var(--grille-cols-mobile)] sm:min-w-[var(--grille-min)] sm:[grid-template-columns:var(--grille-cols)]",
+    style: {
+      "--grille-cols": `136px repeat(${nbJours}, minmax(${jour}px, 1fr))`,
+      "--grille-min": `${136 + nbJours * jour}px`,
+      "--grille-cols-mobile": `88px repeat(${nbJours}, minmax(${jourMobile}px, 1fr))`,
+      "--grille-min-mobile": `${88 + nbJours * jourMobile}px`,
+    } as CSSProperties,
+  };
+}
+
 export function ColonneBienCalendrier({ bien }: { bien: BienCalendrierChrome }) {
   const enLigne = bienEnLigne(bien);
   return (
-    <div className="sticky left-0 z-[5] flex flex-col items-center border-b border-r border-line bg-white px-2 py-2 text-center">
-      <p className="text-[10px] italic leading-4 text-ink-muted">
+    <div className="sticky left-0 z-[5] flex min-w-0 flex-col items-center border-b border-r border-line bg-white px-1 py-2 text-center sm:px-2">
+      <p className="max-w-full truncate text-[10px] italic leading-4 text-ink-muted">
         {bien.typologie || "Appartement"}
       </p>
-      <p className="truncate text-[13px] leading-4 text-ink-body">{nomCourtBien(bien.nom)}</p>
-      <div className="mt-1.5 h-[62px] w-[94px] overflow-hidden rounded-[10px] bg-surface-soft">
+      <p className="max-w-full truncate text-[13px] leading-4 text-ink-body">
+        {nomCourtBien(bien.nom)}
+      </p>
+      <div className="mt-1.5 hidden h-[62px] w-[94px] overflow-hidden rounded-[10px] bg-surface-soft sm:block">
         <img
           src={PHOTO_BIEN}
           alt=""

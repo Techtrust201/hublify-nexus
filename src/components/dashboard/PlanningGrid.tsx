@@ -11,6 +11,7 @@ import {
   ChampRechercheCalendrier,
   ColonneBienCalendrier,
   EnteteJoursCalendrier,
+  grilleJours,
   PastilleCalendrier,
   type BienCalendrierChrome,
 } from "@/components/dashboard/CalendrierLigne";
@@ -272,6 +273,7 @@ export function PlanningGrid({
               onClick={() => setVue(id)}
               className={cn(
                 "h-11 min-h-11 border-r border-line px-3 text-xs font-medium last:border-r-0",
+                id === "5jours" && "hidden sm:block",
                 vue === id ? "bg-tab-active text-ink-body" : "bg-white text-ink-body",
               )}
             >
@@ -600,10 +602,7 @@ function JoursMissions({
 }) {
   return (
     <CadreGrilleCalendrier>
-      <div
-        className="grid min-w-[860px]"
-        style={{ gridTemplateColumns: `136px repeat(${jours.length}, minmax(200px, 1fr))` }}
-      >
+      <div {...grilleJours(jours.length)}>
         <EnteteJoursCalendrier jours={jours} aujourdHui={AUJOURD_HUI_MO1} isoJour={isoJour} />
         {biens.map((bien) => (
           <LigneBien
@@ -893,10 +892,7 @@ function TarifsJours({
 }) {
   return (
     <CadreGrilleCalendrier>
-      <div
-        className="grid min-w-[720px]"
-        style={{ gridTemplateColumns: `130px repeat(${jours.length}, minmax(180px, 1fr))` }}
-      >
+      <div {...grilleJours(jours.length)}>
         <div className="sticky left-0 z-[5] border-b border-r border-line bg-white px-3 pb-2 pt-8 text-[10px] text-ink-muted">
           Bien
         </div>

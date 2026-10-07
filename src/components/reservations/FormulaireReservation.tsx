@@ -1132,8 +1132,27 @@ function AideTypesReservation() {
         <ChevronDown className={cn("size-3.5 transition", ouvert && "rotate-180")} />
       </button>
       {ouvert && (
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-[11px]">
+        <div className="@container mt-3">
+          <dl className="divide-y divide-surface-soft @min-[660px]:hidden">
+            {AIDE_TYPES_RESERVATION.map((l) => (
+              <div key={l.type} className="py-2 text-[11px]">
+                <dt className="text-xs font-medium text-ink">{l.type}</dt>
+                <dd className="mt-1 text-ink-body">
+                  <span className="text-ink-muted">Durée :</span> {l.duree}
+                </dd>
+                <dd className="text-ink-body">
+                  <span className="text-ink-muted">Dépôt :</span> {l.depot}
+                </dd>
+                <dd className="text-ink-body">
+                  <span className="text-ink-muted">Préavis :</span> {l.preavis}
+                </dd>
+                <dd className="text-ink-body">
+                  <span className="text-ink-muted">Pour qui :</span> {l.pour}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <table className="hidden w-full text-left text-[11px] @min-[660px]:table">
             <thead className="text-ink-muted">
               <tr>
                 <th className="pb-2 pr-2 font-medium">Type</th>

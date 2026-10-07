@@ -279,55 +279,56 @@ export function ModelesApp() {
             </div>
           </div>
 
-          {cartes ? (
-            <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
-              {list.map((m) => (
-                <article
-                  key={m.id}
-                  className={cn(
-                    "rounded-card border bg-white p-4",
-                    selection.includes(m.id) ? "border-ink" : "border-line",
-                  )}
-                >
-                  <div className="flex items-start justify-between">
-                    <span className="flex size-8 items-center justify-center rounded-[8px] bg-surface-soft">
-                      <FileText className="size-3.5 text-ink-body" />
-                    </span>
-                    <label className="-my-1 flex min-h-11 min-w-11 items-center justify-end md:my-0 md:min-h-0 md:min-w-0">
-                      <input
-                        type="checkbox"
-                        checked={selection.includes(m.id)}
-                        onChange={() => toggleSel(m.id)}
-                        aria-label={`Sélectionner ${m.designation}`}
-                      />
-                    </label>
-                  </div>
-                  <p className="mt-3 text-sm text-ink">{m.designation}</p>
-                  <p className="mt-1 text-xs text-ink-muted">
-                    {m.type} · {m.categorie}
-                  </p>
-                  <p className="mt-1 text-xs text-ink-subtle">
-                    {m.derniere} · {m.utilisations} utilisations
-                  </p>
-                  <ActionsModele
-                    modele={m}
-                    onApercu={() => setApercu(m)}
-                    onFavori={() => basculerFavori(m)}
-                    onTelecharger={() => telecharger(m)}
-                    onDupliquer={() => dupliquer(m)}
-                    onSupprimer={() => supprimerIds([m.id])}
-                  />
-                </article>
-              ))}
-              {list.length === 0 && (
-                <p className="py-10 text-center text-sm text-ink-muted sm:col-span-2 lg:col-span-3">
-                  Aucun modèle pour cette recherche.
+          <div
+            className={cn("grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3", !cartes && "md:hidden")}
+          >
+            {list.map((m) => (
+              <article
+                key={m.id}
+                className={cn(
+                  "rounded-card border bg-white p-4",
+                  selection.includes(m.id) ? "border-ink" : "border-line",
+                )}
+              >
+                <div className="flex items-start justify-between">
+                  <span className="flex size-8 items-center justify-center rounded-[8px] bg-surface-soft">
+                    <FileText className="size-3.5 text-ink-body" />
+                  </span>
+                  <label className="-my-1 flex min-h-11 min-w-11 items-center justify-end md:my-0 md:min-h-0 md:min-w-0">
+                    <input
+                      type="checkbox"
+                      checked={selection.includes(m.id)}
+                      onChange={() => toggleSel(m.id)}
+                      aria-label={`Sélectionner ${m.designation}`}
+                    />
+                  </label>
+                </div>
+                <p className="mt-3 text-sm text-ink">{m.designation}</p>
+                <p className="mt-1 text-xs text-ink-muted">
+                  {m.type} · {m.categorie}
                 </p>
-              )}
-            </div>
-          ) : (
-            <ScrollHint>
-              <table className="w-full min-w-[800px] text-left text-xs">
+                <p className="mt-1 text-xs text-ink-subtle">
+                  {m.derniere} · {m.utilisations} utilisations
+                </p>
+                <ActionsModele
+                  modele={m}
+                  onApercu={() => setApercu(m)}
+                  onFavori={() => basculerFavori(m)}
+                  onTelecharger={() => telecharger(m)}
+                  onDupliquer={() => dupliquer(m)}
+                  onSupprimer={() => supprimerIds([m.id])}
+                />
+              </article>
+            ))}
+            {list.length === 0 && (
+              <p className="py-10 text-center text-sm text-ink-muted sm:col-span-2 lg:col-span-3">
+                Aucun modèle pour cette recherche.
+              </p>
+            )}
+          </div>
+          {!cartes && (
+            <ScrollHint className="hidden md:block">
+              <table className="w-full min-w-[620px] text-left text-xs">
                 <thead className="border-b border-surface-soft text-ink-subtle">
                   <tr>
                     <th className="w-12 px-4 py-4" />
@@ -335,8 +336,10 @@ export function ModelesApp() {
                     <th className="px-2 py-4 font-medium">Type</th>
                     <th className="px-2 py-4 font-medium">Catégorie</th>
                     <th className="px-2 py-4 font-medium">Dernière utilisation</th>
-                    <th className="px-2 py-4 text-center font-medium">Utilisations</th>
-                    <th className="px-2 py-4 font-medium">Référence</th>
+                    <th className="hidden px-2 py-4 text-center font-medium xl:table-cell">
+                      Utilisations
+                    </th>
+                    <th className="hidden px-2 py-4 font-medium xl:table-cell">Référence</th>
                     <th className="px-2 py-4 text-right font-medium">Actions</th>
                   </tr>
                 </thead>
@@ -369,9 +372,13 @@ export function ModelesApp() {
                         <BadgeType>{m.type}</BadgeType>
                       </td>
                       <td className="px-2 py-3 text-ink-body">{m.categorie}</td>
-                      <td className="px-2 py-3 text-ink-body">{m.derniere}</td>
-                      <td className="px-2 py-3 text-center text-ink-body">{m.utilisations}</td>
-                      <td className="px-2 py-3 text-ink-body">{m.reference}</td>
+                      <td className="whitespace-nowrap px-2 py-3 text-ink-body">{m.derniere}</td>
+                      <td className="hidden px-2 py-3 text-center text-ink-body xl:table-cell">
+                        {m.utilisations}
+                      </td>
+                      <td className="hidden px-2 py-3 text-ink-body xl:table-cell">
+                        {m.reference}
+                      </td>
                       <td className="px-2 py-3">
                         <ActionsModele
                           modele={m}

@@ -143,7 +143,7 @@ export function InventaireApp() {
         ))}
       </div>
 
-      <section className="overflow-hidden rounded-card border border-line bg-white">
+      <section className="@container overflow-hidden rounded-card border border-line bg-white">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-soft px-6 py-4">
           <div className="flex items-center gap-3">
             <h3 className="text-lg text-ink">{titre}</h3>
@@ -189,7 +189,7 @@ export function InventaireApp() {
           </div>
         </header>
 
-        <div className="divide-y divide-surface-soft md:hidden">
+        <div className="divide-y divide-surface-soft @min-[920px]:hidden">
           {filtrés.map((i) => (
             <article key={i.id} className="px-4 py-4">
               <div className="flex items-start justify-between gap-2">
@@ -255,7 +255,7 @@ export function InventaireApp() {
             </p>
           )}
         </div>
-        <ScrollHint className="hidden md:block">
+        <ScrollHint className="hidden @min-[920px]:block">
           <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="border-b border-surface-soft text-xs text-ink-subtle">
               <tr>

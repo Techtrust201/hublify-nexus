@@ -103,7 +103,7 @@ export function Champ({
 
 export function BadgeType({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex h-[23px] items-center rounded border border-line bg-surface px-2 text-xs text-ink-body">
+    <span className="inline-flex h-[23px] items-center whitespace-nowrap rounded border border-line bg-surface px-2 text-xs text-ink-body">
       {children}
     </span>
   );

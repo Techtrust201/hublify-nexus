@@ -233,7 +233,7 @@ function PageProfil() {
             </div>
           </section>
 
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_389px]">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]">
             <div className="min-w-0 space-y-4">
               <section className="rounded-card border border-line bg-white p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -281,7 +281,7 @@ function PageProfil() {
                 </ul>
               </section>
 
-              <section className="rounded-card border border-line bg-white p-6">
+              <section className="@container rounded-card border border-line bg-white p-4 sm:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h3 className="text-lg text-ink">Historique des paiements</h3>
                   <div className="flex gap-2">
@@ -310,7 +310,39 @@ function PageProfil() {
                     </select>
                   </div>
                 </div>
-                <ScrollHint className="mt-4">
+                <ul className="mt-4 divide-y divide-surface-soft @min-[660px]:hidden">
+                  {paiements.length === 0 && (
+                    <li className="py-4 text-sm text-ink-muted">
+                      Aucun paiement pour ces filtres.
+                    </li>
+                  )}
+                  {paiements.map((p) => (
+                    <li key={p.booking} className="flex items-start justify-between gap-3 py-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-ink">{p.montant}</p>
+                        <p className="text-xs text-ink-muted">
+                          {p.date} · {p.methode} · {p.booking}
+                        </p>
+                      </div>
+                      <span
+                        className={cn(
+                          "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs",
+                          p.statut === "Payé"
+                            ? "bg-chip-success text-chip-success-fg"
+                            : "bg-chip-warning text-chip-warning-fg",
+                        )}
+                      >
+                        {p.statut === "Payé" ? (
+                          <CheckCircle2 className="size-3" />
+                        ) : (
+                          <Clock className="size-3" />
+                        )}
+                        {p.statut}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <ScrollHint className="mt-4 hidden @min-[660px]:block">
                   <table className="w-full min-w-[640px] text-left text-sm">
                     <thead className="text-xs text-ink-subtle">
                       <tr>

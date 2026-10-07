@@ -347,7 +347,7 @@ export function kindDocument(titre: string, extra: string[] = []): KindDocument 
     return "photo";
   }
   if (n.includes("assurance") || n.includes("attestation")) return "assurance";
-  if (n.includes("bail") || /(^|\s)location(\s|$)/.test(n)) return "bail";
+  if (/(^|\s)bail(\s|$)/.test(n) || /(^|\s)location(\s|$)/.test(n)) return "bail";
   if (n.includes("conversation")) return "courrier";
   return "courrier";
 }

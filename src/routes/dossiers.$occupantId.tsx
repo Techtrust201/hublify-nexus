@@ -392,9 +392,9 @@ function PageDossierLocataire() {
             </section>
           )}
 
-          <section className="rounded-card border border-line bg-white p-4 sm:p-6">
+          <section className="@container rounded-card border border-line bg-white p-4 sm:p-6">
             <h3 className="text-lg text-ink">Historique des paiements</h3>
-            <div className="mt-4 divide-y divide-surface-soft md:hidden">
+            <div className="mt-4 divide-y divide-surface-soft @min-[580px]:hidden">
               {lignesPaiement.map((p) => (
                 <div key={p.id} className="flex items-start justify-between gap-3 py-3">
                   <div className="min-w-0">
@@ -408,7 +408,7 @@ function PageDossierLocataire() {
                 </div>
               ))}
             </div>
-            <ScrollHint className="mt-4 hidden md:block">
+            <ScrollHint className="mt-4 hidden @min-[580px]:block">
               <table className="w-full min-w-[560px] text-left text-sm">
                 <thead className="text-xs text-ink-subtle">
                   <tr>
@@ -439,9 +439,9 @@ function PageDossierLocataire() {
             )}
           </section>
 
-          <section className="rounded-card border border-line bg-white p-4 sm:p-6">
+          <section className="@container rounded-card border border-line bg-white p-4 sm:p-6">
             <h3 className="text-lg text-ink">Historique de location</h3>
-            <div className="mt-4 divide-y divide-surface-soft md:hidden">
+            <div className="mt-4 divide-y divide-surface-soft @min-[580px]:hidden">
               {resas.map((r) => {
                 const bienResa = session.biens.find((b) => b.id === r.bienId);
                 return (
@@ -458,7 +458,7 @@ function PageDossierLocataire() {
                 );
               })}
             </div>
-            <ScrollHint className="mt-4 hidden md:block">
+            <ScrollHint className="mt-4 hidden @min-[580px]:block">
               <table className="w-full min-w-[560px] text-left text-sm">
                 <thead className="text-xs text-ink-subtle">
                   <tr>

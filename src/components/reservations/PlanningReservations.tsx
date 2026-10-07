@@ -8,6 +8,7 @@ import {
   ChampRechercheCalendrier,
   ColonneBienCalendrier,
   EnteteJoursCalendrier,
+  grilleJours,
   type BienCalendrierChrome,
 } from "@/components/dashboard/CalendrierLigne";
 import { ScrollHint } from "@/components/layout/ScrollHint";
@@ -258,6 +259,7 @@ export function PlanningReservations({
               onClick={() => setVue(id)}
               className={cn(
                 "h-11 min-h-11 border-r border-line px-3 text-xs font-medium last:border-r-0",
+                id === "5jours" && "hidden sm:block",
                 vue === id ? "bg-ink text-white" : "bg-white text-ink-body",
               )}
             >
@@ -416,10 +418,12 @@ function TableauLogements({
   return (
     <div className="mt-3 overflow-hidden rounded-card border border-line">
       <ScrollHint>
-        <div className="grid min-w-[520px] grid-cols-[1fr_80px_80px_80px_80px] border-b border-surface-soft bg-surface px-4 py-1.5 text-[11px] text-ink-muted">
+        <div className="grid grid-cols-[minmax(0,1fr)_repeat(3,3.5rem)_4.5rem] border-b border-surface-soft bg-surface px-3 py-1.5 text-[11px] text-ink-muted sm:grid-cols-[1fr_80px_80px_80px_80px] sm:px-4">
           <span>Bien</span>
           <span className="text-center">Airbnb</span>
-          <span className="text-center">Booking.com</span>
+          <span className="text-center">
+            Booking<span className="hidden sm:inline">.com</span>
+          </span>
           <span className="text-center">Direct</span>
           <span />
         </div>
@@ -427,15 +431,15 @@ function TableauLogements({
           <div
             key={b.id}
             className={cn(
-              "grid min-w-[520px] grid-cols-[1fr_80px_80px_80px_80px] items-center border-b border-surface-soft px-4 py-2.5 last:border-b-0",
+              "grid grid-cols-[minmax(0,1fr)_repeat(3,3.5rem)_4.5rem] items-center border-b border-surface-soft px-3 py-2.5 last:border-b-0 sm:grid-cols-[1fr_80px_80px_80px_80px] sm:px-4",
               actif === b.id && "bg-surface",
             )}
           >
-            <span className="flex items-center gap-2 text-xs text-ink-body">
-              <span className="flex size-6 items-center justify-center rounded border border-line bg-surface-soft">
+            <span className="flex min-w-0 items-center gap-2 text-xs text-ink-body">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded border border-line bg-surface-soft">
                 <Home className="size-2.5" />
               </span>
-              {b.nom}
+              <span className="min-w-0 break-words">{b.nom}</span>
             </span>
             <StatutPlateforme etat="aucun" />
             <StatutPlateforme etat="aucun" />
@@ -499,10 +503,7 @@ function GrilleJours({
   const selectionActive = Boolean(selectedResaId);
   return (
     <CadreGrilleCalendrier>
-      <div
-        className="grid min-w-[860px]"
-        style={{ gridTemplateColumns: `136px repeat(${jours.length}, minmax(200px, 1fr))` }}
-      >
+      <div {...grilleJours(jours.length)}>
         <EnteteJoursCalendrier jours={jours} aujourdHui={AUJOURD_HUI_MO1} isoJour={isoJour} />
         {biens.map((bien) => (
           <LigneBien
@@ -610,7 +611,7 @@ function LigneBien({
               type="button"
               onClick={() => onSelect(r)}
               className={cn(
-                "absolute z-[1] flex h-10 items-center gap-1.5 rounded-lg border px-2.5",
+                "absolute z-[1] flex h-10 items-center gap-1.5 overflow-hidden rounded-lg border px-2.5",
                 sel && "shadow-[0_0_0_2px_rgba(17,17,17,0.4)]",
                 selectionActive && !sel && "opacity-45",
               )}

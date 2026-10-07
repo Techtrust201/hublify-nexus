@@ -343,14 +343,14 @@ export function DocumentsApp({
                 : "Contrats, factures et preuves déposées par les prestataires"
           }
           onglets={
-            <div className="flex overflow-x-auto border-b border-surface-soft">
+            <div className="grid grid-cols-3 border-b border-surface-soft sm:flex">
               {(
                 [
-                  ["locataires", "Locataires", 7],
-                  ["voyageurs", "Voyageurs", 5],
-                  ["prestataires", "Prestataires", 8],
+                  ["locataires", "Locataires"],
+                  ["voyageurs", "Voyageurs"],
+                  ["prestataires", "Prestataires"],
                 ] as const
-              ).map(([k, label, n]) => (
+              ).map(([k, label]) => (
                 <button
                   key={k}
                   type="button"
@@ -360,13 +360,13 @@ export function DocumentsApp({
                     setSelection([]);
                   }}
                   className={cn(
-                    "inline-flex h-[46px] shrink-0 items-center gap-2 px-5 text-sm",
+                    "inline-flex h-[46px] min-w-0 items-center justify-center gap-1.5 px-2 text-sm sm:shrink-0 sm:gap-2 sm:px-5",
                     onglet === k ? "border-b-2 border-ink text-ink" : "text-ink-subtle",
                   )}
                 >
-                  {label}
-                  <span className="rounded bg-surface-soft px-1.5 text-[10px] text-ink-subtle">
-                    {n}
+                  <span className="truncate">{label}</span>
+                  <span className="shrink-0 rounded bg-surface-soft px-1.5 text-[10px] text-ink-subtle">
+                    {documents.filter((d) => d.vue === "residents" && d.occupant === k).length}
                   </span>
                 </button>
               ))}
@@ -926,7 +926,7 @@ function ListeDocs({
         <div className="flex flex-wrap gap-2">{actionsEntete}</div>
       </div>
 
-      <div className="overflow-hidden rounded-card border border-line bg-white">
+      <div className="@container overflow-hidden rounded-card border border-line bg-white">
         {onglets}
         {bandeau && (
           <p className="border-b border-surface-soft bg-surface/60 px-5 py-2.5 text-xs text-ink-muted">
@@ -984,7 +984,7 @@ function ListeDocs({
             Aucun document dans ce filtre. Importez un fichier ou changez de vue.
           </p>
         )}
-        <div className="divide-y divide-surface-soft md:hidden">
+        <div className="divide-y divide-surface-soft @min-[680px]:hidden">
           {docs.map((d) => (
             <article key={d.id} className="px-4 py-4">
               <div className="flex items-start justify-between gap-2">
@@ -1031,11 +1031,11 @@ function ListeDocs({
           ))}
         </div>
 
-        <ScrollHint className="hidden md:block">
-          <table className="w-full min-w-[900px] text-left text-xs">
+        <ScrollHint className="hidden @min-[680px]:block">
+          <table className="w-full min-w-[640px] text-left text-xs">
             <thead className="border-b border-surface-soft text-ink-subtle">
               <tr>
-                <th className="w-12 px-4 py-3">
+                <th className="w-10 px-3 py-3">
                   <label className="flex min-h-11 items-center md:min-h-0">
                     <input
                       type="checkbox"
@@ -1049,15 +1049,15 @@ function ListeDocs({
                 <th className="px-2 py-3 font-medium">Type</th>
                 <th className="px-2 py-3 font-medium">Logement</th>
                 <th className="px-2 py-3 font-medium">Date</th>
-                <th className="px-2 py-3 font-medium">Modifié par</th>
+                <th className="hidden px-2 py-3 font-medium xl:table-cell">Modifié par</th>
                 <th className="px-2 py-3 font-medium">Aperçu</th>
-                <th className="px-2 py-3 font-medium">Actions</th>
+                <th className="px-2 py-3 text-right font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {docs.map((d) => (
                 <tr key={d.id} className="border-b border-surface-soft last:border-b-0">
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-3">
                     <label className="flex min-h-11 items-center md:min-h-0">
                       <input
                         type="checkbox"
@@ -1073,29 +1073,29 @@ function ListeDocs({
                       onClick={() => onVoir(d)}
                       className="inline-flex items-center gap-2 text-left text-sm text-ink hover:underline"
                     >
-                      <span className="flex size-7 items-center justify-center rounded-[8px] bg-surface-soft">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-surface-soft">
                         <FileText className="size-3 text-ink-body" />
                       </span>
-                      {d.titre}
+                      <span className="min-w-0 break-words">{d.titre}</span>
                     </button>
                   </td>
                   <td className="px-2 py-3">
                     <BadgeType>{d.type}</BadgeType>
                   </td>
                   <td className="px-2 py-3 text-ink-body">{d.logement}</td>
-                  <td className="px-2 py-3 text-ink-body">{d.date}</td>
-                  <td className="px-2 py-3 text-ink-body">{d.modifiePar}</td>
+                  <td className="whitespace-nowrap px-2 py-3 text-ink-body">{d.date}</td>
+                  <td className="hidden px-2 py-3 text-ink-body xl:table-cell">{d.modifiePar}</td>
                   <td className="px-2 py-3">
                     <button
                       type="button"
                       onClick={() => onVoir(d)}
-                      className="inline-flex items-center gap-1 text-ink-body hover:underline"
+                      className="inline-flex items-center gap-1 whitespace-nowrap text-ink-body hover:underline"
                     >
-                      <Eye className="size-3.5" /> Aperçu
+                      <Eye className="size-3.5 shrink-0" /> Aperçu
                     </button>
                   </td>
                   <td className="px-2 py-3">
-                    <div className="flex gap-1">
+                    <div className="flex justify-end gap-1">
                       <button
                         type="button"
                         onClick={() => onTelecharger(d)}

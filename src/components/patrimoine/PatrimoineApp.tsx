@@ -287,7 +287,7 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
       </div>
 
       {onglet === "lieux" && (
-        <section className="mb-4 overflow-hidden rounded-card border border-line bg-white">
+        <section className="@container mb-4 overflow-hidden rounded-card border border-line bg-white">
           <header className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-soft px-5 py-4">
             <p className="flex items-center gap-2 text-sm text-ink">
               <Home className="size-4" />
@@ -335,7 +335,7 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
               </label>
             </div>
           )}
-          <div className="divide-y divide-surface-soft md:hidden">
+          <div className="divide-y divide-surface-soft @min-[920px]:hidden">
             {visibles.map((l) => (
               <article
                 key={l.id}
@@ -389,7 +389,7 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
               </article>
             ))}
           </div>
-          <ScrollHint className="hidden md:block">
+          <ScrollHint className="hidden @min-[920px]:block">
             <table className="w-full min-w-[900px] text-left text-xs">
               <thead className="border-b border-surface-soft text-ink-subtle">
                 <tr>
@@ -521,7 +521,7 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
       )}
 
       {onglet === "immeubles" && (
-        <section className="overflow-hidden rounded-card border border-line bg-white">
+        <section className="@container overflow-hidden rounded-card border border-line bg-white">
           <header className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-soft px-5 py-4">
             <p className="flex items-center gap-2 text-sm text-ink">
               <Building2 className="size-4" />
@@ -559,7 +559,7 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
               )}
             </div>
           </header>
-          <div className="divide-y divide-surface-soft md:hidden">
+          <div className="divide-y divide-surface-soft @min-[740px]:hidden">
             {immeubles.map((i) => (
               <article key={i.id} className="px-4 py-4">
                 <div className="flex items-start justify-between gap-2">
@@ -606,7 +606,7 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
               </article>
             ))}
           </div>
-          <ScrollHint className="hidden md:block">
+          <ScrollHint className="hidden @min-[740px]:block">
             <table className="w-full min-w-[700px] text-left text-xs">
               <thead className="border-b border-surface-soft text-ink-subtle">
                 <tr>

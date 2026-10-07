@@ -186,7 +186,7 @@ export function TableauReservations({
         </ul>
       </aside>
 
-      <div className="min-w-0 flex-1">
+      <div className="@container min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-3 px-5 py-3">
           <label className="relative flex h-11 min-w-[220px] flex-1 items-center gap-2 rounded-card border border-line bg-white px-3 md:h-[34px]">
             <Search className="size-3.5 text-ink-muted" />
@@ -286,7 +286,7 @@ export function TableauReservations({
           />
         </div>
 
-        <div className="divide-y divide-surface-soft md:hidden">
+        <div className="divide-y divide-surface-soft @min-[900px]:hidden">
           {visibles.map((r) => {
             const bien = bienParId(r.bienId);
             const pct = pourcentagePaiement(r);
@@ -323,7 +323,7 @@ export function TableauReservations({
           })}
         </div>
 
-        <ScrollHint className="hidden md:block">
+        <ScrollHint className="hidden @min-[900px]:block">
           <table className="w-full min-w-[880px] text-left">
             <thead>
               <tr className="border-y border-surface-soft text-xs text-ink-subtle">

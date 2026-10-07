@@ -243,7 +243,7 @@ export function ListeOccupants() {
         Gérez vos locataires et voyageurs. Les prestataires sont dans le menu Prestataires.
       </p>
 
-      <div className="mt-8 rounded-card border border-line bg-white">
+      <div className="@container mt-8 rounded-card border border-line bg-white">
         <div className="flex flex-wrap items-center gap-3 px-4 py-4 md:px-6">
           <label className="relative flex h-11 w-full max-w-[448px] items-center gap-2 rounded-card border border-line px-3">
             <Search className="size-4 text-ink-muted" />
@@ -335,7 +335,7 @@ export function ListeOccupants() {
 
         {onglet === "residents" ? (
           <>
-            <div className="divide-y divide-surface-soft md:hidden">
+            <div className="divide-y divide-surface-soft @min-[1000px]:hidden">
               {occupants.map((o) => (
                 <article
                   key={o.id}
@@ -384,7 +384,7 @@ export function ListeOccupants() {
                 </article>
               ))}
             </div>
-            <ScrollHint className="hidden md:block">
+            <ScrollHint className="hidden @min-[1000px]:block">
               <table className="w-full min-w-[860px] text-left">
                 <thead>
                   <tr className="border-y border-line-table bg-surface text-xs font-medium uppercase tracking-[0.6px] text-ink-header">
@@ -491,7 +491,7 @@ export function ListeOccupants() {
           </>
         ) : (
           <>
-            <div className="divide-y divide-surface-soft md:hidden">
+            <div className="divide-y divide-surface-soft @min-[760px]:hidden">
               {prestataires.map((p) => (
                 <article key={p.id} className="flex flex-col gap-3 px-4 py-4">
                   <div className="flex items-center gap-3">
@@ -523,7 +523,7 @@ export function ListeOccupants() {
                 </article>
               ))}
             </div>
-            <ScrollHint className="hidden md:block">
+            <ScrollHint className="hidden @min-[760px]:block">
               <table className="w-full min-w-[720px] text-left">
                 <thead>
                   <tr className="border-y border-surface-soft text-sm text-ink-subtle">
