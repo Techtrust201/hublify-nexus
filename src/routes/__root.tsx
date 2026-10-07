@@ -7,11 +7,18 @@ import {
   HeadContent,
   Scripts,
   redirect,
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
 import { AuthProvider } from "@/auth/auth-context";
-import { aLeDroit, accueilPourRole, droitRequisPourChemin, estRolePortail, type AuthContexte } from "@/auth/permissions";
+import {
+  aLeDroit,
+  accueilPourRole,
+  droitRequisPourChemin,
+  estRolePortail,
+  type AuthContexte,
+} from "@/auth/permissions";
 import { DialogueConfirmation } from "@/components/ui/dialogue-confirmation";
 import { Toaster } from "@/components/ui/sonner";
 import { hydraterSession } from "@/data/session";
@@ -40,8 +47,9 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
+  const message = error instanceof Error ? error.message : String(error ?? "");
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -55,9 +63,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <p className="mt-2 text-sm text-muted-foreground">
           Un problème est survenu. Vous pouvez réessayer ou revenir à l'accueil.
         </p>
-        {import.meta.env.DEV && error?.message ? (
+        {import.meta.env.DEV && message ? (
           <p className="mt-3 max-w-full break-words font-mono text-[11px] text-muted-foreground">
-            {error.message}
+            {message}
           </p>
         ) : null}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
@@ -86,7 +94,7 @@ export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
   auth: AuthContexte | null;
 }>()({
-  beforeLoad: async ({ location }) => {
+  beforeLoad: async ({ location }): Promise<{ auth: AuthContexte | null }> => {
     const estPublic =
       location.pathname === "/connexion" ||
       location.pathname === "/inscription" ||
