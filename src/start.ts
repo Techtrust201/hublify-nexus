@@ -1,3 +1,8 @@
+import {
+  captureException,
+  sentryGlobalFunctionMiddleware,
+  sentryGlobalRequestMiddleware,
+} from "@sentry/tanstackstart-react";
 import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
@@ -9,6 +14,9 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
     if (error != null && typeof error === "object" && "statusCode" in error) {
       throw error;
     }
+    // Le middleware Sentry est au-dessus : une réponse HTML avale l'exception
+    // avant qu'il ne la voie. On la signale ici, une seule fois.
+    captureException(error);
     console.error(error);
     return new Response(renderErrorPage(), {
       status: 500,
@@ -25,5 +33,6 @@ const csrfMiddleware = createCsrfMiddleware({
 });
 
 export const startInstance = createStart(() => ({
-  requestMiddleware: [errorMiddleware, csrfMiddleware],
+  requestMiddleware: [sentryGlobalRequestMiddleware, errorMiddleware, csrfMiddleware],
+  functionMiddleware: [sentryGlobalFunctionMiddleware],
 }));

@@ -27,6 +27,19 @@ npm run db:prepare
 
 Sur Neon (démo hébergée), la même URL Postgres standard convient — le client HTTP Neon n'est plus utilisé.
 
+## Sentry
+
+Ce dépôt est **TanStack Start** (Vite + React), pas Next.js. L'instrumentation utilise `@sentry/tanstackstart-react` (le SDK React de Sentry plus le serveur et le plugin Vite), pas `@sentry/nextjs`.
+
+Les variables sont documentées dans `.env.example`. Aucun DSN ni jeton n'est versionné.
+
+- Navigateur : `NEXT_PUBLIC_SENTRY_DSN`, injecté au build.
+- Serveur : `SENTRY_DSN`, sinon le DSN public. Le DSN serveur n'est pas inliné dans le client.
+- `environment` = `VERCEL_ENV`, `release` = `VERCEL_GIT_COMMIT_SHA`.
+- Traces échantillonnées à 10 %. Session Replay désactivé.
+- Cookies, en-têtes, corps HTTP et données de requêtes SQL ne sont pas envoyés.
+- Source maps : `SENTRY_AUTH_TOKEN` au build, vers `https://de.sentry.io` (`SENTRY_ORG=tech-trust-agency`, `SENTRY_PROJECT=hublify-nexus`). Le plugin retire les `.map` du livrable à la fin du build, après l'envoi lorsque le jeton est présent. Sans jeton, rien n'est envoyé, le build n'échoue pas, et les `.map` ne sont pas publiés.
+
 ```bash
 npm run db:apply   # schéma
 npm run db:seed    # comptes de démo

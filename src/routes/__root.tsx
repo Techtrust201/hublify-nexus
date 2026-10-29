@@ -9,6 +9,7 @@ import {
   redirect,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
+import * as Sentry from "@sentry/tanstackstart-react";
 import { useEffect, type ReactNode } from "react";
 
 import { AuthProvider } from "@/auth/auth-context";
@@ -51,6 +52,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
   const message = error instanceof Error ? error.message : String(error ?? "");
   useEffect(() => {
+    Sentry.captureException(error);
     console.error(error);
   }, [error]);
 
