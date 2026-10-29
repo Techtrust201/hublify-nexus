@@ -29,6 +29,18 @@ const environnement = lireVariableBuild("VERCEL_ENV");
 const release = lireVariableBuild("VERCEL_GIT_COMMIT_SHA");
 const jeton = lireVariableBuild("SENTRY_AUTH_TOKEN");
 
+// Objet séparé : le type du preset partagé ne déclare pas `vercel`, mais Nitro
+// recopie `vercel.functions` dans `.vc-config.json`. Sans `regions`, Vercel
+// place la fonction en iad1.
+const nitroConfig = {
+  preset: "vercel",
+  vercel: {
+    functions: {
+      regions: ["fra1"],
+    },
+  },
+};
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
@@ -38,7 +50,8 @@ export default defineConfig({
   },
   // Sans preset explicite, le preset partagé vise Cloudflare Workers, dont le
   // runtime n'ouvre pas les connexions Postgres dont l'application a besoin.
-  nitro: { preset: "vercel" },
+  // fra1 (Francfort) : même région que vercel.json. Jamais iad1.
+  nitro: nitroConfig,
   vite: {
     define: {
       "import.meta.env.NEXT_PUBLIC_SENTRY_DSN": JSON.stringify(dsnPublic ?? ""),
