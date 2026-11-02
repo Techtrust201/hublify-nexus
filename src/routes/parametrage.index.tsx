@@ -9,6 +9,8 @@ import {
   type ParametrageSession,
   type UpsellParam,
 } from "@/data/parametrage-mo1";
+import { PanneauNotifications } from "@/components/parametrage/PanneauNotifications";
+import { useReglagesEtendus, type ReglagesEtendus } from "@/data/reglages-etendus";
 import { confirmer, toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
@@ -23,9 +25,12 @@ type Onglet = "notif" | "formulaires" | "upsells";
 
 function PageParametrage() {
   const { parametrage: sauve } = useSession();
+  const { reglages: reglagesSauves, sauver: sauverReglages } = useReglagesEtendus();
   const [onglet, setOnglet] = useState<Onglet>("notif");
   const [brouillon, setBrouillon] = useState<ParametrageSession>(() => fusionnerParametrage(sauve));
+  const [reglages, setReglages] = useState<ReglagesEtendus>(reglagesSauves);
   const [touche, setTouche] = useState(false);
+  const [toucheReglages, setToucheReglages] = useState(false);
   const [creer, setCreer] = useState(false);
   const [nomUpsell, setNomUpsell] = useState("");
   const [prixUpsell, setPrixUpsell] = useState("15");
@@ -34,34 +39,52 @@ function PageParametrage() {
     if (!touche) setBrouillon(fusionnerParametrage(sauve));
   }, [sauve, touche]);
 
+  useEffect(() => {
+    if (!toucheReglages) setReglages(reglagesSauves);
+  }, [reglagesSauves, toucheReglages]);
+
   const sale = useMemo(
     () => JSON.stringify(brouillon) !== JSON.stringify(fusionnerParametrage(sauve)),
     [brouillon, sauve],
   );
+  const saleReglages = useMemo(
+    () => JSON.stringify(reglages) !== JSON.stringify(reglagesSauves),
+    [reglages, reglagesSauves],
+  );
+  const saleTout = sale || saleReglages;
 
   const patch = (p: Partial<ParametrageSession>) => {
     setTouche(true);
     setBrouillon((b) => ({ ...b, ...p }));
   };
 
+  const patchReglages = (p: Partial<ReglagesEtendus>) => {
+    setToucheReglages(true);
+    setReglages((r) => ({ ...r, ...p }));
+  };
+
   const enregistrer = () => {
     modifierSession((e) => ({ ...e, parametrage: brouillon }));
+    sauverReglages(reglages);
     setTouche(false);
+    setToucheReglages(false);
     toastOk("Modifications enregistrées.");
   };
 
   const annuler = () => {
     setBrouillon(fusionnerParametrage(sauve));
+    setReglages(reglagesSauves);
     setTouche(false);
+    setToucheReglages(false);
   };
 
   return (
     <AppShell
       attendDonnees
-      titre="Paramètres du compte"
+      titre="Paramètres"
       sousTitre="Configurez vos notifications, formulaires et services additionnels"
     >
-      {sale && (
+      {saleTout && onglet !== "notif" && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-white px-4 py-3">
           <p className="text-sm text-ink">Modifications non sauvegardées</p>
           <div className="flex gap-2">
@@ -108,70 +131,29 @@ function PageParametrage() {
       </div>
 
       {onglet === "notif" && (
-        <section className="space-y-5 rounded-card border border-line bg-white p-5">
-          <div>
-            <h2 className="text-sm font-medium text-ink">Préférences de notifications</h2>
-            <p className="text-xs text-ink-muted">Choisissez comment vous souhaitez être informé</p>
-          </div>
-          <Toggle
-            label="Nouvelles notifications et alertes"
-            detail="Arrivées, réservations, événements à venir et plus encore"
-            actif={brouillon.notifAlertes}
-            onChange={(v) => patch({ notifAlertes: v })}
-          />
-          <Toggle
-            label="Aide et suivi"
-            detail="infos bulles"
-            actif={brouillon.notifAide}
-            onChange={(v) => patch({ notifAide: v })}
-          />
-          <Toggle
-            label="Mise à jour automatique"
-            detail="recherche de Maj"
-            actif={brouillon.notifMaj}
-            onChange={(v) => patch({ notifMaj: v })}
-          />
-
-          <h2 className="pt-2 text-sm font-medium text-ink">Canaux de communication</h2>
-          <Toggle
-            label="Email"
-            detail="Recevoir les notifications par mail"
-            actif={brouillon.notifsEmail}
-            onChange={(v) => patch({ notifsEmail: v })}
-          />
-          <Toggle
-            label="Push navigateur"
-            detail="Notifications en temps réel sur votre navigateur"
-            actif={brouillon.notifsPush}
-            onChange={(v) => patch({ notifsPush: v })}
-          />
-          <Toggle
-            label="SMS"
-            detail="Alertes urgentes (loyers, missions du jour)"
-            actif={brouillon.notifsSms}
-            onChange={(v) => patch({ notifsSms: v })}
-          />
-          <Toggle
-            label="Rappels et notifications de paiement"
-            detail={`rappel de paiement ${brouillon.rappelPaiementHeures}h avant le début de la réservation, mail sms`}
-            actif={brouillon.rappelPaiement}
-            onChange={(v) => patch({ rappelPaiement: v })}
-          />
-          {brouillon.rappelPaiement && (
-            <label className="block text-xs text-ink-muted">
-              Heures avant la réservation
-              <input
-                value={brouillon.rappelPaiementHeures}
-                onChange={(e) => patch({ rappelPaiementHeures: e.target.value })}
-                className="mt-1 h-9 w-24 rounded-card border border-line px-3 text-sm text-ink outline-none"
-              />
-            </label>
-          )}
-        </section>
+        <PanneauNotifications
+          brouillon={brouillon}
+          reglages={reglages}
+          sale={saleTout}
+          onPatch={patch}
+          onReglages={patchReglages}
+          onAnnuler={annuler}
+          onEnregistrer={enregistrer}
+        />
       )}
 
       {onglet === "formulaires" && (
         <div className="space-y-4">
+          <section className="rounded-card border border-line bg-white p-5">
+            <h2 className="text-sm font-medium text-ink">Paramétrage message automatique</h2>
+            <p className="mt-2 text-sm text-ink-body">
+              Les messages de pré-check-in, de lien voyageur et de rappel de départ se règlent
+              ci-dessous. Les relances de loyer et de facture se règlent dans Notifications.
+              {reglages.messagesAuto
+                ? " Les envois automatiques sont activés."
+                : " Les envois automatiques sont coupés."}
+            </p>
+          </section>
           <section className="rounded-card border border-line bg-white p-5">
             <h2 className="text-sm font-medium text-ink">Informations sur le Portail Voyageurs</h2>
             <p className="mt-2 text-sm text-ink-body">
@@ -287,7 +269,7 @@ function PageParametrage() {
             />
           </Bloc>
 
-          <Bloc titre="Check-in">
+          <Bloc titre="Paramétrage check-in / check-out">
             <Toggle
               label="Montrer le code de la porte seulement quand la réservation a été payée"
               detail="Le code est affiché le jour de l'enregistrement. Option actuelle : NUITS."
