@@ -117,6 +117,10 @@ export type PieceDossier = {
   filigrane?: boolean;
   aide?: string;
   photoNom?: string;
+  /** Recto, pour la pièce d'identité (commentaire maquette n°2). */
+  rectoNom?: string;
+  /** Verso, pour la pièce d'identité. */
+  versoNom?: string;
   numero2dDoc?: string;
 };
 
