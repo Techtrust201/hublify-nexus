@@ -26,6 +26,12 @@ const OUTILS = [
     vers: "/outils/modeles" as const,
   },
   {
+    titre: "Baux",
+    texte: "Espace de rédaction page par page, avec la prise de caution.",
+    icone: FileText,
+    vers: "/outils/baux" as const,
+  },
+  {
     titre: "Vue Annuelle",
     texte: "Disponibilités, blocages et réservations sur l'année.",
     icone: CalendarDays,
@@ -33,13 +39,13 @@ const OUTILS = [
   },
   {
     titre: "Inventaire",
-    texte: "Tous les inventaires de la maison sont réunis ici.",
+    texte: "Conciergerie : draps, linge de maison et consommables.",
     icone: ClipboardList,
     vers: "/inventaire" as const,
   },
   {
     titre: "États des lieux",
-    texte: "Entrée, sortie, photos par pièce, comparaison.",
+    texte: "Espace de rédaction : entrée, sortie, inventaire du logement et du mobilier.",
     icone: ClipboardCheck,
     vers: "/outils/etats-des-lieux" as const,
   },
@@ -51,7 +57,7 @@ const OUTILS = [
   },
   {
     titre: "Je débute",
-    texte: "Parcours guidé : créer un bien, une réservation, puis une première mission.",
+    texte: "Fiche, documents reçus, paiement ou caution, puis les étapes du compte.",
     icone: Info,
     vers: "/outils/debuter" as const,
   },
@@ -72,7 +78,11 @@ function PageOutils() {
   const outils = OUTILS.filter((o) => {
     if (o.vers === "/parametrage") return peutParametrer;
     if (o.vers === "/outils/debuter") return peutReserver;
-    if (o.vers === "/outils/modeles" || o.vers === "/outils/etats-des-lieux")
+    if (
+      o.vers === "/outils/modeles" ||
+      o.vers === "/outils/etats-des-lieux" ||
+      o.vers === "/outils/baux"
+    )
       return voirDocs;
     if (o.vers === "/outils/vue-annuelle") return voirCal;
     if (o.vers === "/inventaire") return voirBiens;

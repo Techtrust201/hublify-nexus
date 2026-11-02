@@ -129,6 +129,11 @@ export function AppShell({
                   <DropdownMenuItem asChild>
                     <Link to="/outils/modeles">Modèles de documents</Link>
                   </DropdownMenuItem>
+                  {voirDocs && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/outils/baux">Baux</Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem asChild>
                     <Link to="/outils/vue-annuelle">Vue annuelle</Link>
                   </DropdownMenuItem>

@@ -789,10 +789,76 @@ export type ItemInventaire = {
   emoji: string;
   emplacement: string;
   serie: string;
-  onglet: "1" | "2" | "conso";
+  onglet: "1" | "2" | "conso" | "linge";
 };
 
 export const ITEMS_INVENTAIRE: ItemInventaire[] = [
+  {
+    id: "linge-drap-160",
+    code: "LG-160",
+    designation: "Drap housse 160",
+    etat: "Bon",
+    qte: 8,
+    emoji: "🛏️",
+    emplacement: "Lingerie",
+    serie: "LINGE",
+    onglet: "linge",
+  },
+  {
+    id: "linge-drap-180",
+    code: "LG-180",
+    designation: "Drap housse 180",
+    etat: "Bon",
+    qte: 6,
+    emoji: "🛏️",
+    emplacement: "Lingerie",
+    serie: "LINGE",
+    onglet: "linge",
+  },
+  {
+    id: "linge-housse",
+    code: "LG-HSE",
+    designation: "Housse de couette",
+    etat: "Bon",
+    qte: 10,
+    emoji: "🛏️",
+    emplacement: "Lingerie",
+    serie: "LINGE",
+    onglet: "linge",
+  },
+  {
+    id: "linge-taie",
+    code: "LG-TAI",
+    designation: "Taies d'oreiller",
+    etat: "Bon",
+    qte: 16,
+    emoji: "🛏️",
+    emplacement: "Lingerie",
+    serie: "LINGE",
+    onglet: "linge",
+  },
+  {
+    id: "linge-serviette",
+    code: "LG-SRV",
+    designation: "Serviettes de bain",
+    etat: "Bon",
+    qte: 12,
+    emoji: "🧺",
+    emplacement: "Lingerie",
+    serie: "LINGE",
+    onglet: "linge",
+  },
+  {
+    id: "linge-torchon",
+    code: "LG-TRC",
+    designation: "Torchons",
+    etat: "Bon",
+    qte: 14,
+    emoji: "🧺",
+    emplacement: "Buanderie",
+    serie: "LINGE",
+    onglet: "linge",
+  },
   {
     id: "inv1",
     code: "10-01-02",

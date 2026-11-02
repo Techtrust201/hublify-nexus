@@ -1,21 +1,22 @@
 import { Download, Eye, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { BtnNavy, BtnOutline, Chip } from "@/components/documents/ui";
 import { ScrollHint } from "@/components/layout/ScrollHint";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { type ItemInventaire } from "@/data/documents-mo1";
+import { ITEMS_INVENTAIRE, type ItemInventaire } from "@/data/documents-mo1";
 import { idNouveau, poserCollection, useSession } from "@/data/session";
 import { confirmer, telechargerDemo, telechargerPdf, toastErreur, toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
 const ONGLETS = [
-  { id: "1" as const, label: "Inventaire 1" },
-  { id: "2" as const, label: "Inventaire 2" },
-  { id: "conso" as const, label: "Inventaire des consommables" },
+  { id: "linge" as const, label: "Linge de maison" },
+  { id: "conso" as const, label: "Consommables" },
+  { id: "1" as const, label: "Hors conciergerie" },
 ];
 
 export function InventaireApp() {
-  const [onglet, setOnglet] = useState<"1" | "2" | "conso">("1");
+  const [onglet, setOnglet] = useState<"1" | "2" | "conso" | "linge">("linge");
   const [recherche, setRecherche] = useState("");
   const [selection, setSelection] = useState<string[]>([]);
   const items = useSession().inventaire;
@@ -26,10 +27,21 @@ export function InventaireApp() {
   const [creer, setCreer] = useState(false);
   const [form, setForm] = useState({ designation: "", emplacement: "", qte: "1", etat: "Bon" });
 
+  useEffect(() => {
+    const ids = new Set(items.map((i) => i.id));
+    const manquants = ITEMS_INVENTAIRE.filter((i) => i.onglet === "linge" && !ids.has(i.id));
+    if (manquants.length === 0) return;
+    setItems((liste) => {
+      const connus = new Set(liste.map((i) => i.id));
+      const ajout = manquants.filter((i) => !connus.has(i.id));
+      return ajout.length ? [...ajout, ...liste] : liste;
+    });
+  }, [items]);
+
   const filtrés = useMemo(() => {
     const q = recherche.trim().toLowerCase();
     return items
-      .filter((i) => i.onglet === onglet)
+      .filter((i) => (onglet === "1" ? i.onglet === "1" || i.onglet === "2" : i.onglet === onglet))
       .filter(
         (i) =>
           !q ||
@@ -40,11 +52,11 @@ export function InventaireApp() {
   }, [onglet, recherche, items]);
 
   const titre =
-    onglet === "1"
-      ? "Inventaire 1"
-      : onglet === "2"
-        ? "Inventaire 2"
-        : "Inventaire des consommables";
+    onglet === "linge"
+      ? "Linge de maison"
+      : onglet === "conso"
+        ? "Consommables"
+        : "Ancien jeu hors conciergerie";
 
   const supprimer = async (ids: string[]) => {
     const ok = await confirmer({
@@ -114,9 +126,10 @@ export function InventaireApp() {
     <div>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-2xl text-ink">Inventaire</h2>
-          <p className="text-sm text-ink-subtle">
-            Tous les inventaires de la maison sont réunis ici
+          <h2 className="text-2xl text-ink">Inventaire conciergerie</h2>
+          <p className="max-w-xl text-sm text-ink-subtle">
+            Draps, linge de maison et consommables utiles au ménage. Ce n'est ni l'inventaire
+            mobilier ni l'état de l'appartement : ceux-ci se rédigent dans les états des lieux.
           </p>
         </div>
         <BtnNavy
@@ -134,6 +147,12 @@ export function InventaireApp() {
           <Download className="size-4" /> Télécharger le tableau
         </BtnNavy>
       </div>
+
+      <p className="mb-4 text-xs text-ink-muted">
+        <Link to="/outils/etats-des-lieux" className="font-medium text-ink underline">
+          Ouvrir l'inventaire logement et mobilier
+        </Link>
+      </p>
 
       <div className="mb-4 flex flex-wrap gap-2">
         {ONGLETS.map((o) => (

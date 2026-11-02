@@ -1,6 +1,5 @@
 import {
   AlertTriangle,
-  ArrowRight,
   Camera,
   ChevronLeft,
   ChevronRight,
@@ -9,12 +8,13 @@ import {
   Eye,
   FileText,
   Home,
-  Lock,
+  KeyRound,
   Search,
   Trash2,
   Upload,
   User,
   Users,
+  Wrench,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -46,38 +46,58 @@ import {
 import { VueSyndic } from "@/components/documents/VueSyndic";
 import { ApercuDocumentDialog, contexteDoc } from "@/components/documents/ApercuDocument";
 import { docsRecentsParmi, marquerDocRecent } from "@/lib/docs-recents";
+import { DOSSIERS_HUB } from "./dossiers-hub";
+import { MenuCreer } from "./MenuCreer";
+import { RapportPrestation } from "./RapportPrestation";
 import { BadgeType, BtnNavy, BtnOutline, Chip } from "./ui";
+import {
+  correspondFiltreDocument,
+  libelleOccupant,
+  referenceDocument,
+} from "@/lib/filtres-documents";
 
 const FILTRES_LOGEMENT = [
   "Tous",
+  "Fiche logement",
+  "Factures entretien",
+  "Diagnostics",
+  "Syndic — Appels de fonds",
+  "Syndic — RIB",
+  "Divers courriers",
   "États des lieux",
   "Inventaire",
-  "Diagnostics",
-  "Fiches intervention",
-  "Syndic / Copro",
-  "Fiches accès",
-  "Correspondances",
-  "Courrier libre",
 ];
 
-const FILTRES_LOCATAIRES = [
+const FILTRES_OCCUPANTS = [
   "Tous",
+  "Fiche Locataire",
+  "Fiche Voyageur",
   "Bail",
-  "Quittances",
-  "Dossiers",
-  "États des lieux",
-  "Attestations",
-  "Documents",
+  "Quittances de loyer",
+  "Appels de loyer",
+  "Factures voyageur",
+  "Autres",
+];
+
+const FILTRES_PRESTATAIRES = [
+  "Tous",
+  "Fiche prestataire",
+  "Rapport de prestation",
+  "Factures",
+  "Contrats de prestation",
+  "Autres",
 ];
 
 const FILTRES_PROPRIO = [
   "Tous",
-  "Pièce d'identité",
+  "Fiche propriétaire",
+  "Attestation de propriété",
+  "Contrats de gestion",
   "Justificatifs",
-  "Attestations",
   "RIB",
-  "Contrats",
 ];
+
+const FILTRES_ACCES = ["Tous", "Fiche d'accès", "Clés", "Badges"];
 
 export function DocumentsApp({
   vue,
@@ -100,6 +120,7 @@ export function DocumentsApp({
   const [logementFiltre, setLogementFiltre] = useState(logement ?? "Tous");
   const [typeFiltre, setTypeFiltre] = useState("Tous");
   const [onglet, setOnglet] = useState<OngletResident>("locataires");
+  const [rapport, setRapport] = useState<{ titre: string; logement: string } | null>(null);
   const [selection, setSelection] = useState<string[]>([]);
   const documents = useDocuments();
 
@@ -119,9 +140,19 @@ export function DocumentsApp({
   const docsFiltres = useMemo(() => {
     let list = [...documents];
     if (vue === "etats") list = list.filter((d) => d.filtre === "États des lieux");
-    else if (vue === "fiches") list = list.filter((d) => d.filtre === "Fiches accès");
+    else if (vue === "fiches")
+      list = list.filter(
+        (d) =>
+          d.filtre === "Fiches accès" ||
+          /accès|acces|clé|badge/i.test(`${d.filtre} ${d.type} ${d.titre}`),
+      );
     else list = list.filter((d) => d.vue === vue);
-    if (vue === "residents") list = list.filter((d) => d.occupant === onglet);
+    if (vue === "residents") {
+      list =
+        onglet === "prestataires"
+          ? list.filter((d) => d.occupant === "prestataires")
+          : list.filter((d) => d.occupant !== "prestataires");
+    }
     if (vue === "logements") {
       list = list.filter(
         (d) =>
@@ -132,26 +163,7 @@ export function DocumentsApp({
       );
     }
     if (typeFiltre !== "Tous") {
-      list = list.filter((d) => {
-        if (d.filtre === typeFiltre) return true;
-        if (typeFiltre === "Documents") {
-          return (
-            d.filtre === "Correspondances" ||
-            d.filtre === "Courrier libre" ||
-            /correspondance|courrier|avoir/i.test(d.titre) ||
-            /correspondance|courrier|avoir/i.test(d.type)
-          );
-        }
-        if (typeFiltre === "Correspondances") {
-          return (
-            /correspondance|courrier/i.test(d.titre) || /correspondance|courrier/i.test(d.type)
-          );
-        }
-        if (typeFiltre === "Courrier libre") {
-          return /courrier libre|courrier/i.test(d.filtre) || /courrier/i.test(d.titre);
-        }
-        return false;
-      });
+      list = list.filter((d) => correspondFiltreDocument(d, typeFiltre));
     }
     if (logementFiltre !== "Tous") list = list.filter((d) => d.logement === logementFiltre);
     const q = recherche.trim().toLowerCase();
@@ -268,7 +280,7 @@ export function DocumentsApp({
 
   return (
     <div>
-      <FilAriane vue={vue} onHub={() => aller("hub")} />
+      <FilAriane vue={vue} occupants={onglet !== "prestataires"} onHub={() => aller("hub")} />
 
       {vue === "hub" && (
         <Hub
@@ -280,6 +292,7 @@ export function DocumentsApp({
           docs={documents}
           onOuvrirDoc={(d) => voirDoc(d)}
           onOuvrirCarte={(c) => {
+            if (c.onglet) setOnglet(c.onglet);
             if (c.href) void navigate({ to: c.href });
             else if (c.vue) aller(c.vue);
           }}
@@ -317,15 +330,13 @@ export function DocumentsApp({
 
       {vue === "residents" && (
         <ListeDocs
-          titre="Résidents & Prestataires"
-          sousTitre="Documents par type d'occupant"
-          filtres={
-            onglet === "locataires"
-              ? FILTRES_LOCATAIRES
-              : onglet === "voyageurs"
-                ? ["Tous", "Contrats", "Factures", "Dossiers", "États des lieux", "Attestations"]
-                : ["Tous", "Contrats", "Factures", "Devis", "Attestations", "Preuves"]
+          titre={onglet === "prestataires" ? "Prestataires" : "Dossier occupants logement"}
+          sousTitre={
+            onglet === "prestataires"
+              ? "Fiche, rapport de prestation, factures et contrats"
+              : "Fiches, baux, quittances, appels de loyer et factures"
           }
+          filtres={onglet === "prestataires" ? FILTRES_PRESTATAIRES : FILTRES_OCCUPANTS}
           docs={docsFiltres}
           recherche={recherche}
           onRecherche={setRecherche}
@@ -335,51 +346,61 @@ export function DocumentsApp({
           onSelection={setSelection}
           onFiltres={() => setFiltresOuverts(true)}
           onRetour={() => aller("hub")}
+          montrerOccupant
           bandeau={
-            onglet === "locataires"
-              ? "Bail, quittances, dossiers et états des lieux de vos locataires"
-              : onglet === "voyageurs"
-                ? "Contrats de séjour, factures et états des lieux des voyageurs"
-                : "Contrats, factures et preuves déposées par les prestataires"
-          }
-          onglets={
-            <div className="grid grid-cols-3 border-b border-surface-soft sm:flex">
-              {(
-                [
-                  ["locataires", "Locataires"],
-                  ["voyageurs", "Voyageurs"],
-                  ["prestataires", "Prestataires"],
-                ] as const
-              ).map(([k, label]) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => {
-                    setOnglet(k);
-                    setTypeFiltre("Tous");
-                    setSelection([]);
-                  }}
-                  className={cn(
-                    "inline-flex h-[46px] min-w-0 items-center justify-center gap-1.5 px-2 text-sm sm:shrink-0 sm:gap-2 sm:px-5",
-                    onglet === k ? "border-b-2 border-ink text-ink" : "text-ink-subtle",
-                  )}
-                >
-                  <span className="truncate">{label}</span>
-                  <span className="shrink-0 rounded bg-surface-soft px-1.5 text-[10px] text-ink-subtle">
-                    {documents.filter((d) => d.vue === "residents" && d.occupant === k).length}
-                  </span>
-                </button>
-              ))}
-            </div>
+            onglet === "prestataires"
+              ? "Rapports de prestation, factures et contrats. Importez un fichier ou une photo, recto puis verso."
+              : "Le bail n'est saisi qu'une fois, côté occupant. Importez un fichier ou une photo, recto puis verso."
           }
           actionsEntete={
             <>
-              <BtnOutline onClick={() => setQuittance(true)}>
-                <FileText className="size-3" /> Quittance
-              </BtnOutline>
-              <BtnOutline onClick={importerDoc}>
+              <MenuCreer
+                onQuittance={() => setQuittance(true)}
+                onAppel={() => setAvis(true)}
+                onFacture={() => {
+                  const doc: DocMo1 = {
+                    id: `fac-${Date.now()}`,
+                    titre: "Facture — à compléter",
+                    type: "Facture",
+                    filtre: onglet === "prestataires" ? "Factures" : "Factures",
+                    logement: logementFiltre === "Tous" ? "—" : logementFiltre,
+                    date: new Date().toLocaleDateString("fr-FR"),
+                    taille: "—",
+                    modifiePar: "Vous",
+                    photos: 0,
+                    vue: "residents",
+                    occupant: onglet === "prestataires" ? "prestataires" : "voyageurs",
+                  };
+                  ajouterDocument(doc);
+                  marquerDocRecent(doc.id);
+                  toastOk("Facture créée. Complétez-la depuis l'aperçu.");
+                }}
+                onCourrier={() => {
+                  const doc: DocMo1 = {
+                    id: `cou-${Date.now()}`,
+                    titre: "Courrier — à rédiger",
+                    type: "Courrier",
+                    filtre: "Courrier libre",
+                    logement: logementFiltre === "Tous" ? "—" : logementFiltre,
+                    date: new Date().toLocaleDateString("fr-FR"),
+                    taille: "—",
+                    modifiePar: "Vous",
+                    photos: 0,
+                    vue: "residents",
+                    occupant: "locataires",
+                  };
+                  ajouterDocument(doc);
+                  setTypeFiltre("Autres");
+                  toastOk("Courrier ajouté dans Autres.");
+                }}
+                onRecherche={() => {
+                  setTypeFiltre("Tous");
+                  document.getElementById("recherche-documents")?.focus();
+                }}
+              />
+              <BtnNavy onClick={importerDoc}>
                 <Upload className="size-3" /> Importer
-              </BtnOutline>
+              </BtnNavy>
             </>
           }
           onVoir={voirDoc}
@@ -392,8 +413,8 @@ export function DocumentsApp({
 
       {vue === "proprio" && (
         <ListeDocs
-          titre="Documents Propriétaires"
-          sousTitre="Pièces d'identité, justificatifs, attestations"
+          titre="Propriétaires"
+          sousTitre="Fiche, attestation de propriété, contrats de gestion"
           filtres={FILTRES_PROPRIO}
           docs={docsFiltres}
           recherche={recherche}
@@ -417,19 +438,30 @@ export function DocumentsApp({
         />
       )}
 
-      {vue === "inventaire-presta" && (
-        <InventairePresta onRetour={() => aller("hub")} onPhotos={(t) => setPhotos(t)} />
-      )}
+      {vue === "inventaire-presta" &&
+        (rapport ? (
+          <RapportPrestation
+            titre={rapport.titre}
+            logement={rapport.logement}
+            onFermer={() => setRapport(null)}
+          />
+        ) : (
+          <InventairePresta
+            onRetour={() => aller("hub")}
+            onPhotos={(t) => setPhotos(t)}
+            onRapport={(titre, logement) => setRapport({ titre, logement })}
+          />
+        ))}
 
       {(vue === "etats" || vue === "fiches") && (
         <ListeDocs
-          titre={vue === "etats" ? "États des lieux" : "Fiches d'accès"}
+          titre={vue === "etats" ? "États des lieux, Inventaire" : "Gestion des accès"}
           sousTitre={
             vue === "etats"
-              ? "Créer, comparer et archiver les états des lieux d'entrée et de sortie"
-              : "Codes, instructions et contacts d'urgence par logement"
+              ? "Inventaire du logement et du mobilier, entrée et sortie. L'inventaire linge et consommables est l'outil conciergerie."
+              : "Fiche d'accès, gestion des clés et des badges"
           }
-          filtres={vue === "etats" ? ["Tous", "États des lieux"] : ["Tous", "Fiches accès"]}
+          filtres={vue === "etats" ? ["Tous", "États des lieux", "Inventaire"] : FILTRES_ACCES}
           docs={docsFiltres}
           recherche={recherche}
           onRecherche={setRecherche}
@@ -542,15 +574,23 @@ export function DocumentsApp({
   );
 }
 
-function FilAriane({ vue, onHub }: { vue: VueDocuments; onHub: () => void }) {
+function FilAriane({
+  vue,
+  onHub,
+  occupants,
+}: {
+  vue: VueDocuments;
+  onHub: () => void;
+  occupants?: boolean;
+}) {
   const labels: Record<VueDocuments, string> = {
     hub: "Documents",
-    logements: "Documents Logements",
-    residents: "Résidents & Prestataires",
-    proprio: "Documents Propriétaires",
-    "inventaire-presta": "Inventaire des prestations",
-    etats: "États des lieux",
-    fiches: "Fiches d'accès",
+    logements: "Documents logements",
+    residents: occupants ? "Dossier occupants logement" : "Prestataires",
+    proprio: "Propriétaires",
+    "inventaire-presta": "Rapports de prestation",
+    etats: "États des lieux, Inventaire",
+    fiches: "Gestion des accès",
     factures: "Factures et comptabilité",
     syndic: "Syndic / copropriété",
   };
@@ -592,7 +632,11 @@ function Hub({
   alerte: number;
   onAlerte: (n: number) => void;
   onAcceder: (v: VueDocuments) => void;
-  onOuvrirCarte: (c: { vue?: VueDocuments; href?: "/outils/etats-des-lieux" }) => void;
+  onOuvrirCarte: (c: {
+    vue?: VueDocuments;
+    href?: "/outils/etats-des-lieux";
+    onglet?: OngletResident;
+  }) => void;
   docs: DocMo1[];
   onOuvrirDoc: (d: DocMo1) => void;
 }) {
@@ -606,80 +650,32 @@ function Hub({
           d.type.toLowerCase().includes(q),
       )
     : [];
-  const nb = (pred: (d: DocMo1) => boolean) => docs.filter(pred).length;
-  const cartes: Array<{
-    titre: string;
-    desc: string;
-    n: number;
-    icone: typeof Home;
-    vue?: VueDocuments;
-    href?: "/outils/etats-des-lieux";
-  }> = [
-    {
-      titre: "Documents Logements",
-      desc: "Factures, diagnostics et fiches — le bail est côté locataire",
-      n: nb((d) => d.vue === "logements" && !/bail/i.test(d.type) && !/bail/i.test(d.filtre)),
-      icone: Home,
-      vue: "logements",
-    },
-    {
-      titre: "Résidents & Prestataires",
-      desc: "Baux (une seule fois), dossiers locataires, voyageurs et prestataires",
-      n: nb((d) => d.vue === "residents"),
-      icone: Users,
-      vue: "residents",
-    },
-    {
-      titre: "États des lieux, Inventaire",
-      desc: "Créer, comparer et archiver les états des lieux d'entrée et de sortie",
-      n: nb((d) => d.filtre === "États des lieux"),
-      icone: FileText,
-      href: "/outils/etats-des-lieux",
-      vue: "etats",
-    },
-    {
-      titre: "Documents Propriétaires",
-      desc: "CNI, justificatifs de domicile, RIB, attestations de propriété",
-      n: nb((d) => d.vue === "proprio"),
-      icone: User,
-      vue: "proprio",
-    },
-    {
-      titre: "Fiches d'accès",
-      desc: "Codes, instructions et contacts d'urgence par logement",
-      n: nb((d) => d.filtre === "Fiches accès"),
-      icone: Lock,
-      vue: "fiches",
-    },
-    {
-      titre: "Factures et comptabilité",
-      desc: "Factures propriétaires, lots comptables et exports",
-      n: nb((d) => d.vue === "factures"),
-      icone: FileText,
-      vue: "factures",
-    },
-    {
-      titre: "Syndic / copropriété",
-      desc: "Règlements, appels de fonds, contacts copropriété",
-      n: nb((d) => d.vue === "syndic"),
-      icone: Home,
-      vue: "syndic",
-    },
-  ];
+  const iconeDossier = (id: string) => {
+    if (id === "occupants") return Users;
+    if (id === "edl") return FileText;
+    if (id === "prestataires") return Wrench;
+    if (id === "proprietaires") return User;
+    if (id === "acces") return KeyRound;
+    return Home;
+  };
   const cartesVisibles = q
-    ? cartes.filter(
+    ? DOSSIERS_HUB.filter(
         (c) =>
           c.titre.toLowerCase().includes(q) ||
           c.desc.toLowerCase().includes(q) ||
           hits.some((d) =>
             c.vue === "etats"
-              ? d.filtre === "États des lieux"
-              : c.vue === "fiches"
-                ? d.filtre === "Fiches accès"
-                : d.vue === c.vue,
+              ? d.filtre === "États des lieux" || d.filtre === "Inventaire"
+              : c.id === "prestataires"
+                ? d.occupant === "prestataires"
+                : c.id === "occupants"
+                  ? d.vue === "residents" && d.occupant !== "prestataires"
+                  : c.vue === "fiches"
+                    ? d.filtre === "Fiches accès"
+                    : d.vue === c.vue,
           ),
       )
-    : cartes;
+    : DOSSIERS_HUB;
 
   return (
     <div className="space-y-4">
@@ -717,7 +713,7 @@ function Hub({
                         {d.logement} · {d.type}
                       </span>
                     </span>
-                    <ArrowRight className="size-3.5 text-ink-muted" />
+                    <ChevronRight className="size-3.5 text-ink-muted" />
                   </button>
                 </li>
               ))}
@@ -755,51 +751,47 @@ function Hub({
       </button>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {cartesVisibles.map((c) => (
-          <article
-            key={c.titre}
-            className="flex cursor-pointer flex-col rounded-2xl border border-line bg-white p-5 text-left hover:border-line-strong"
-            onClick={() => onOuvrirCarte(c)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onOuvrirCarte(c);
-              }
-            }}
-            role="button"
-            tabIndex={0}
-          >
-            <div className="flex items-start justify-between">
-              <span className="flex size-10 items-center justify-center rounded-[14px] bg-surface-soft">
-                <c.icone className="size-5 text-ink-body" />
-              </span>
-              <div className="text-right">
-                <p className="text-2xl leading-8 text-ink">{c.n}</p>
-                <p className="text-[10px] text-ink-muted">documents</p>
-              </div>
-            </div>
-            <h2 className="mt-4 text-sm font-medium text-ink">{c.titre}</h2>
-            <p className="mt-1 text-xs text-ink-subtle">{c.desc}</p>
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <span className="inline-flex min-h-11 items-center gap-1 text-xs text-ink-body md:min-h-0">
-                Accéder <ArrowRight className="size-2.5" />
-              </span>
-              {c.href && c.vue && (
+        {cartesVisibles.map((c) => {
+          const Icone = iconeDossier(c.id);
+          return (
+            <article key={c.id} className="pt-2">
+              <button type="button" onClick={() => onOuvrirCarte(c)} className="w-full text-left">
+                <span className="relative block">
+                  <span className="inline-flex max-w-[78%] rounded-t-xl bg-[#e7eef8] px-3 pt-2 pb-1 text-xs font-medium text-ink">
+                    {c.titre}
+                  </span>
+                  <span className="block overflow-hidden rounded-xl rounded-tl-none border border-[#d5deea] bg-white">
+                    <span className="block bg-[#eef3f8] px-3 py-1.5 text-[11px] text-ink-muted">
+                      {c.desc}
+                    </span>
+                    <span className="flex h-28 items-center justify-center text-ink-subtle">
+                      <Icone className="size-10 stroke-[1.25]" />
+                    </span>
+                    {c.badge ? (
+                      <span className="block pb-3 text-center text-[11px] text-ink-muted">
+                        {c.badge}
+                      </span>
+                    ) : null}
+                  </span>
+                </span>
+              </button>
+              {c.href && c.vue ? (
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAcceder(c.vue!);
-                  }}
-                  className="inline-flex min-h-11 items-center text-xs text-ink-muted hover:text-ink-body md:min-h-0"
+                  onClick={() => onAcceder(c.vue!)}
+                  className="mt-1 inline-flex min-h-11 items-center px-1 text-xs text-ink-muted hover:text-ink"
                 >
-                  Liste documents
+                  Documents archivés
                 </button>
-              )}
-            </div>
-          </article>
-        ))}
+              ) : null}
+            </article>
+          );
+        })}
       </div>
+      <p className="text-[11px] text-ink-muted">
+        Syndic et factures d'entretien sont dans Documents logements. L'inventaire linge et
+        consommables est l'outil conciergerie, distinct de l'inventaire mobilier.
+      </p>
 
       <section className="overflow-hidden rounded-card border border-line bg-white">
         <header className="flex items-center gap-3 border-b border-surface-soft px-5 py-4">
@@ -874,6 +866,7 @@ function ListeDocs({
   actionsEntete,
   onglets,
   bandeau,
+  montrerOccupant,
   onVoir,
   onTelecharger,
   onSupprimer,
@@ -895,6 +888,7 @@ function ListeDocs({
   actionsEntete: ReactNode;
   onglets?: ReactNode;
   bandeau?: string;
+  montrerOccupant?: boolean;
   onVoir: (d: DocMo1) => void;
   onTelecharger: (d: DocMo1) => void;
   onSupprimer: (ids: string[]) => void;
@@ -941,6 +935,7 @@ function ListeDocs({
             <label className="flex h-11 flex-1 items-center gap-2 rounded-card border border-line px-3 md:h-[34px]">
               <Search className="size-3 text-ink-muted" />
               <input
+                id="recherche-documents"
                 value={recherche}
                 onChange={(e) => onRecherche(e.target.value)}
                 placeholder="Rechercher un document…"
@@ -1046,6 +1041,8 @@ function ListeDocs({
                   </label>
                 </th>
                 <th className="px-2 py-3 font-medium">Référence</th>
+                <th className="px-2 py-3 font-medium">Document</th>
+                {montrerOccupant ? <th className="px-2 py-3 font-medium">Occupant</th> : null}
                 <th className="px-2 py-3 font-medium">Type</th>
                 <th className="px-2 py-3 font-medium">Logement</th>
                 <th className="px-2 py-3 font-medium">Date</th>
@@ -1067,6 +1064,9 @@ function ListeDocs({
                       />
                     </label>
                   </td>
+                  <td className="px-2 py-3 font-mono text-[11px] text-ink-muted">
+                    {referenceDocument(d.id)}
+                  </td>
                   <td className="px-2 py-3">
                     <button
                       type="button"
@@ -1079,6 +1079,9 @@ function ListeDocs({
                       <span className="min-w-0 break-words">{d.titre}</span>
                     </button>
                   </td>
+                  {montrerOccupant ? (
+                    <td className="px-2 py-3 text-ink-body">{libelleOccupant(d.occupant)}</td>
+                  ) : null}
                   <td className="px-2 py-3">
                     <BadgeType>{d.type}</BadgeType>
                   </td>
@@ -1138,9 +1141,11 @@ function ListeDocs({
 function InventairePresta({
   onRetour,
   onPhotos,
+  onRapport,
 }: {
   onRetour: () => void;
   onPhotos: (t: string) => void;
+  onRapport: (titre: string, logement: string) => void;
 }) {
   const [prestations, setPrestations] = useState(() => [...PRESTATIONS_PHOTOS]);
   return (
@@ -1215,6 +1220,13 @@ function InventairePresta({
                 className="ml-auto inline-flex items-center gap-1"
               >
                 <Camera className="size-2.5" /> {p.photos} photos
+              </button>
+              <button
+                type="button"
+                onClick={() => onRapport(p.titre, p.lieu)}
+                className="inline-flex min-h-11 items-center text-ink hover:underline md:min-h-0"
+              >
+                Rédiger
               </button>
             </div>
             <div className="grid grid-cols-4 gap-1 p-3">

@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Camera, ChevronLeft, Columns2, Plus, Trash2 } from "lucide-react";
+import { Camera, ChevronLeft, Columns2, Copy, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { EspaceRedaction } from "@/components/documents/EspaceRedaction";
 import { AppShell } from "@/components/layout/AppShell";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { ajouterDocument } from "@/data/documents-store";
@@ -14,7 +15,13 @@ import {
 } from "@/data/edl-mo1";
 import { formatDateLongue } from "@/data/reservations-mo1";
 import { poserCollection, useSession } from "@/data/session";
-import { choisirFichierComplet, confirmer, exporterFichier, toastOk } from "@/lib/feedback";
+import {
+  choisirFichierComplet,
+  confirmer,
+  exporterFichier,
+  toastErreur,
+  toastOk,
+} from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/outils/etats-des-lieux")({
@@ -37,6 +44,7 @@ function PageEdl() {
   const [pieceId, setPieceId] = useState<string | null>(null);
   const [logementCompare, setLogementCompare] = useState<string | null>(null);
   const [creer, setCreer] = useState(false);
+  const [nomPiece, setNomPiece] = useState("");
   const logements = session.biens.length ? session.biens.map((b) => b.nom) : ["Suzette"];
   const [form, setForm] = useState({
     logement: logements[0] ?? "Suzette",
@@ -58,12 +66,13 @@ function PageEdl() {
   );
 
   const majPiece = (mut: (p: PieceEdl) => PieceEdl) => {
-    if (!dossierId || !pieceId) return;
+    const cible = pieceId ?? dossier?.pieces[0]?.id;
+    if (!dossierId || !cible) return;
     setTousDossiers((liste) =>
       liste.map((d) =>
         d.id !== dossierId
           ? d
-          : { ...d, pieces: d.pieces.map((p) => (p.id === pieceId ? mut(p) : p)) },
+          : { ...d, pieces: d.pieces.map((p) => (p.id === cible ? mut(p) : p)) },
       ),
     );
   };
@@ -115,6 +124,85 @@ function PageEdl() {
     setDossierId(id);
     setPieceId(null);
     toastOk("État des lieux créé. Complétez chaque pièce puis archivez.");
+  };
+
+  const ajouterPiece = () => {
+    const nom = nomPiece.trim();
+    if (!dossier || !nom) {
+      toastErreur("Nommez la pièce avant de l'ajouter.");
+      return;
+    }
+    const id = `p-${Date.now()}`;
+    setTousDossiers((liste) =>
+      liste.map((d) =>
+        d.id !== dossier.id
+          ? d
+          : {
+              ...d,
+              pieces: [
+                ...d.pieces,
+                {
+                  id,
+                  nom,
+                  etat: "ok" as const,
+                  commentaire: "À renseigner lors de la visite.",
+                  points: [{ id: `pt-${id}`, libelle: "État général", etat: "ok" as const }],
+                  photos: [],
+                },
+              ],
+            },
+      ),
+    );
+    setNomPiece("");
+    setPieceId(id);
+    toastOk(`Pièce « ${nom} » ajoutée.`);
+  };
+
+  const copierModifier = () => {
+    if (!dossier) return;
+    const id = `edl-${Date.now()}`;
+    const copie: DossierEdl = {
+      ...dossier,
+      id,
+      type: dossier.type === "Entrée" ? "Sortie" : "Entrée",
+      date: new Date().toISOString().slice(0, 10),
+      pieces: dossier.pieces.map((p, i) => ({
+        ...p,
+        id: `${id}-p${i}`,
+        photos: [],
+        points: p.points.map((pt, j) => ({ ...pt, id: `${id}-pt${i}-${j}` })),
+      })),
+    };
+    setTousDossiers((liste) => [copie, ...liste]);
+    setDossierId(id);
+    setPieceId(copie.pieces[0]?.id ?? null);
+    toastOk("Copie créée. Modifiez-la sans toucher au dossier d'origine.");
+  };
+
+  const reprendreAnterieur = (sourceId: string) => {
+    if (!dossier) return;
+    const source = tousDossiers.find((d) => d.id === sourceId);
+    if (!source) return;
+    setTousDossiers((liste) =>
+      liste.map((d) =>
+        d.id !== dossier.id
+          ? d
+          : {
+              ...d,
+              pieces: source.pieces.map((p, i) => ({
+                ...p,
+                id: `${dossier.id}-reprise-${i}`,
+                photos: [],
+                points: p.points.map((pt, j) => ({
+                  ...pt,
+                  id: `${dossier.id}-reprise-${i}-${j}`,
+                })),
+              })),
+            },
+      ),
+    );
+    setPieceId(null);
+    toastOk(`Pièces reprises depuis l'état des lieux du ${formatDateLongue(source.date)}.`);
   };
 
   return (
@@ -235,87 +323,135 @@ function PageEdl() {
         </section>
       )}
 
-      {filtre !== "Comparer" && dossier && !piece && (
-        <div>
+      {filtre !== "Comparer" && dossier && (
+        <div className="space-y-3">
           <button
             type="button"
-            onClick={() => setDossierId(null)}
-            className="mb-3 inline-flex min-h-11 items-center gap-1 text-sm text-ink-body md:min-h-0"
+            onClick={() => {
+              setDossierId(null);
+              setPieceId(null);
+            }}
+            className="inline-flex min-h-11 items-center gap-1 text-sm text-ink-body md:min-h-0"
           >
             <ChevronLeft className="size-4" /> Retour aux dossiers
           </button>
-          <h2 className="text-lg text-ink">
-            {dossier.logement} — {dossier.type}
-          </h2>
-          <p className="text-xs text-ink-muted">
-            {dossier.occupant} · {formatDateLongue(dossier.date)}
-          </p>
-          <div className="mt-2">
-            <button
-              type="button"
-              onClick={() => archiver(dossier.id)}
-              className="inline-flex h-11 items-center rounded-card border border-line px-3 text-xs font-medium text-ink-body md:h-9"
-            >
-              Archiver ce dossier
-            </button>
-          </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            {dossier.pieces.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setPieceId(p.id)}
-                className="rounded-card border border-line bg-white p-4 text-left hover:bg-surface"
-              >
-                <p className="text-sm font-medium text-ink">{p.nom}</p>
-                <p className={cn("mt-1 text-xs", classeEtat(p.etat))}>{libelleEtat(p.etat)}</p>
-                <p className="mt-2 flex items-center gap-1 text-xs text-ink-muted">
-                  <Camera className="size-3" /> {p.photos.length} photos
+          <EspaceRedaction
+            titre={`${dossier.type} — ${dossier.logement}`}
+            sousTitre={`${dossier.occupant} · ${formatDateLongue(dossier.date)} · Rédigé dans la session`}
+            unite="pièces renseignées"
+            pages={dossier.pieces.map((p) => ({
+              id: p.id,
+              label: p.nom,
+              detail: `${p.photos.length} photo${p.photos.length > 1 ? "s" : ""}`,
+              fait: p.photos.length > 0 || !p.commentaire.startsWith("À renseigner"),
+            }))}
+            pageActive={piece?.id ?? dossier.pieces[0]?.id ?? ""}
+            onPage={setPieceId}
+            onAjouter={ajouterPiece}
+            libelleAjouter="Ajouter une pièce"
+            pied={
+              <div className="mt-3 space-y-2 border-t border-surface-soft px-2 pt-3">
+                <label className="block text-[11px] text-ink-muted">
+                  Nom de la pièce
+                  <input
+                    value={nomPiece}
+                    onChange={(e) => setNomPiece(e.target.value)}
+                    placeholder="Buanderie"
+                    className="mt-1 h-11 w-full rounded-card border border-line px-2 text-sm text-ink outline-none md:h-9"
+                  />
+                </label>
+                <p className="text-[11px] text-ink-muted">
+                  Le nombre de pièces suit la configuration du logement. Saisissez le nom puis «
+                  Ajouter une pièce ».
                 </p>
-              </button>
-            ))}
-          </div>
+                <button
+                  type="button"
+                  onClick={copierModifier}
+                  className="inline-flex min-h-11 items-center gap-1 text-xs font-medium text-ink"
+                >
+                  <Copy className="size-3" /> Copier et modifier
+                </button>
+                {tousDossiers.some(
+                  (d) => d.logement === dossier.logement && d.id !== dossier.id,
+                ) ? (
+                  <label className="block text-[11px] text-ink-muted">
+                    Reprendre un état antérieur
+                    <select
+                      defaultValue=""
+                      onChange={(e) => {
+                        if (e.target.value) reprendreAnterieur(e.target.value);
+                      }}
+                      className="mt-1 h-11 w-full rounded-card border border-line bg-white px-2 text-sm text-ink md:h-9"
+                    >
+                      <option value="">Choisir…</option>
+                      {tousDossiers
+                        .filter((d) => d.logement === dossier.logement && d.id !== dossier.id)
+                        .map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.type} · {formatDateLongue(d.date)}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => archiver(dossier.id)}
+                  className="inline-flex min-h-11 items-center text-xs text-ink-muted hover:text-ink"
+                >
+                  Archiver ce dossier
+                </button>
+              </div>
+            }
+            apercu={
+              (piece ?? dossier.pieces[0]) ? (
+                <FichePiece
+                  piece={(piece ?? dossier.pieces[0])!}
+                  logement={dossier.logement}
+                  occupant={dossier.occupant}
+                  date={dossier.date}
+                  integre
+                  onRetour={() => setPieceId(null)}
+                  onPhoto={() => {
+                    choisirFichierComplet((fichier) => {
+                      majPiece((p) => ({
+                        ...p,
+                        photos: [
+                          ...p.photos,
+                          {
+                            id: `ph-${Date.now()}`,
+                            legend: fichier.nom,
+                            mime: fichier.mime,
+                            base64: fichier.base64,
+                          },
+                        ],
+                      }));
+                      toastOk(
+                        `Photo ajoutée : ${fichier.nom}. Recto et verso si la pièce l'exige.`,
+                      );
+                    });
+                  }}
+                  onValider={() => {
+                    majPiece((p) => ({ ...p, etat: "ok" }));
+                    toastOk(`${(piece ?? dossier.pieces[0])?.nom ?? "Pièce"} validée.`);
+                  }}
+                  onPoint={(id) => {
+                    majPiece((p) => ({
+                      ...p,
+                      points: p.points.map((pt) =>
+                        pt.id === id ? { ...pt, etat: etatSuivant(pt.etat) } : pt,
+                      ),
+                    }));
+                  }}
+                />
+              ) : (
+                <p className="text-sm text-ink-muted">
+                  Ajoutez une pièce pour commencer la rédaction.
+                </p>
+              )
+            }
+          />
         </div>
-      )}
-
-      {filtre !== "Comparer" && dossier && piece && (
-        <FichePiece
-          piece={piece}
-          logement={dossier.logement}
-          occupant={dossier.occupant}
-          date={dossier.date}
-          onRetour={() => setPieceId(null)}
-          onPhoto={() => {
-            choisirFichierComplet((fichier) => {
-              majPiece((p) => ({
-                ...p,
-                photos: [
-                  ...p.photos,
-                  {
-                    id: `ph-${Date.now()}`,
-                    legend: fichier.nom,
-                    mime: fichier.mime,
-                    base64: fichier.base64,
-                  },
-                ],
-              }));
-              toastOk(`Photo ajoutée : ${fichier.nom}`);
-            });
-          }}
-          onValider={() => {
-            majPiece((p) => ({ ...p, etat: "ok" }));
-            toastOk(`${piece.nom} validé.`);
-            setPieceId(null);
-          }}
-          onPoint={(id) => {
-            majPiece((p) => ({
-              ...p,
-              points: p.points.map((pt) =>
-                pt.id === id ? { ...pt, etat: etatSuivant(pt.etat) } : pt,
-              ),
-            }));
-          }}
-        />
       )}
 
       <Dialog
@@ -468,11 +604,13 @@ function FichePiece({
   onPhoto,
   onValider,
   onPoint,
+  integre,
 }: {
   piece: PieceEdl;
   logement: string;
   occupant: string;
   date: string;
+  integre?: boolean;
   onRetour: () => void;
   onPhoto: () => void;
   onValider: () => void;
@@ -480,14 +618,16 @@ function FichePiece({
 }) {
   return (
     <div>
-      <button
-        type="button"
-        onClick={onRetour}
-        className="mb-3 inline-flex min-h-11 items-center gap-1 text-sm text-ink-body md:min-h-0"
-      >
-        <ChevronLeft className="size-4" /> Retour aux pièces
-      </button>
-      <article className="rounded-card border border-line bg-white p-5">
+      {integre ? null : (
+        <button
+          type="button"
+          onClick={onRetour}
+          className="mb-3 inline-flex min-h-11 items-center gap-1 text-sm text-ink-body md:min-h-0"
+        >
+          <ChevronLeft className="size-4" /> Retour aux pièces
+        </button>
+      )}
+      <article className={integre ? "" : "rounded-card border border-line bg-white p-5"}>
         <p className="text-xs text-ink-muted">{logement}</p>
         <h2 className="mt-1 text-lg text-ink">{piece.nom}</h2>
         <p className={cn("mt-2 text-sm", classeEtat(piece.etat))}>{libelleEtat(piece.etat)}</p>
