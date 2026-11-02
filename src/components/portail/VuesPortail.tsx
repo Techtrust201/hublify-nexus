@@ -211,7 +211,10 @@ export function MissionsPortail() {
               </button>
             )}
             {rapports.map((r) => (
-              <p key={r.id} className="mt-2 rounded-card bg-surface px-3 py-2 text-xs text-ink-body">
+              <p
+                key={r.id}
+                className="mt-2 rounded-card bg-surface px-3 py-2 text-xs text-ink-body"
+              >
                 Rapport · {r.date} — {r.texte}
                 {r.photos.length > 0 ? ` · ${r.photos.length} photo(s)` : ""}
               </p>
@@ -334,7 +337,10 @@ export function MessagesPortail() {
           className="h-10 flex-1 rounded-card border border-line px-3 text-sm outline-none"
           placeholder="Votre message"
         />
-        <button type="submit" className="h-10 rounded-card bg-ink px-3 text-xs font-medium text-white">
+        <button
+          type="submit"
+          className="h-10 rounded-card bg-ink px-3 text-xs font-medium text-white"
+        >
           Envoyer
         </button>
       </form>
@@ -359,7 +365,10 @@ export function DocumentsPortail() {
   return (
     <ul className="space-y-2">
       {docs.map((d) => (
-        <li key={d.id} className="flex items-center justify-between rounded-card border border-line bg-white px-4 py-3">
+        <li
+          key={d.id}
+          className="flex items-center justify-between rounded-card border border-line bg-white px-4 py-3"
+        >
           <span>
             <span className="block text-sm text-ink">{d.titre}</span>
             <span className="text-xs text-ink-muted">
@@ -453,7 +462,9 @@ export function LogementPortail() {
             <p className="mt-2 text-sm">
               Honoraires / loyers :{" "}
               {formatMontant(
-                loyers.filter((l) => l.bienNom.toLowerCase() === b.nom.toLowerCase()).reduce((s, l) => s + l.montant, 0),
+                loyers
+                  .filter((l) => l.bienNom.toLowerCase() === b.nom.toLowerCase())
+                  .reduce((s, l) => s + l.montant, 0),
               )}
             </p>
           </article>
@@ -491,15 +502,17 @@ export function LogementPortail() {
             (d) => d.email.toLowerCase() === (auth?.email ?? "").toLowerCase(),
           ),
         ) ? (
-          <p className="mt-2 text-sm text-ink-muted">Archive expirée : seule la ligne d'historique reste.</p>
+          <p className="mt-2 text-sm text-ink-muted">
+            Archive expirée : seule la ligne d'historique reste.
+          </p>
         ) : (
-        <ul className="mt-2 space-y-1 text-sm">
-          {session.documents
-            .filter((d) => /bail|quittance/i.test(d.type) || /bail|quittance/i.test(d.titre))
-            .map((d) => (
-              <li key={d.id}>{d.titre}</li>
-            ))}
-        </ul>
+          <ul className="mt-2 space-y-1 text-sm">
+            {session.documents
+              .filter((d) => /bail|quittance/i.test(d.type) || /bail|quittance/i.test(d.titre))
+              .map((d) => (
+                <li key={d.id}>{d.titre}</li>
+              ))}
+          </ul>
         )}
         {!dossierArchiveSeuleLigne(
           session.dossiersLocation.find(
@@ -507,10 +520,10 @@ export function LogementPortail() {
           ),
         ) &&
           loyers.map((l) => (
-          <p key={l.id} className="mt-2 text-sm">
-            {l.echeance} · {formatMontant(l.montant)} {l.valide ? "payé" : "en attente"}
-          </p>
-        ))}
+            <p key={l.id} className="mt-2 text-sm">
+              {l.echeance} · {formatMontant(l.montant)} {l.valide ? "payé" : "en attente"}
+            </p>
+          ))}
       </section>
       <section id="depart" className="rounded-card border border-line bg-white p-4">
         <h2 className="text-sm font-medium text-ink">Déclaration de départ</h2>
@@ -533,7 +546,8 @@ export function LogementPortail() {
             upsertDossierLocation({
               id: existant?.id ?? idNouveau("dos"),
               occupantId: existant?.occupantId ?? session.occupants[0]?.id ?? "o",
-              occupantNom: existant?.occupantNom || `${auth?.prenom ?? ""} ${auth?.nom ?? ""}`.trim(),
+              occupantNom:
+                existant?.occupantNom || `${auth?.prenom ?? ""} ${auth?.nom ?? ""}`.trim(),
               email: auth?.email ?? "",
               statut: existant?.statut ?? "complet",
               pieces: existant?.pieces ?? PIECES_DOSSIER_DEFAUT,
@@ -548,7 +562,9 @@ export function LogementPortail() {
               detail: `${auth?.prenom} ${auth?.nom} · ${depart}`,
               href: "/occupants",
             });
-            toastOk("Demande envoyée au gestionnaire. Les documents de sortie seront générés après validation.");
+            toastOk(
+              "Demande envoyée au gestionnaire. Les documents de sortie seront générés après validation.",
+            );
             setDepart("");
           }}
           className="mt-2 h-9 rounded-card bg-ink px-3 text-xs font-medium text-white"
@@ -604,7 +620,9 @@ export function CalendrierPortail() {
             </li>
           ))}
           {ouvertures.length === 0 && (
-            <li className="text-ink-muted">Aucune période d'ouverture posée par le gestionnaire.</li>
+            <li className="text-ink-muted">
+              Aucune période d'ouverture posée par le gestionnaire.
+            </li>
           )}
         </ul>
       </section>
@@ -619,7 +637,11 @@ export function CalendrierPortail() {
           ))}
           {departs.length === 0 && <li className="text-ink-muted">Aucun départ déclaré.</li>}
         </ul>
-        <Link to="/espace/logement" hash="depart" className="mt-2 inline-block text-xs text-accent-teal">
+        <Link
+          to="/espace/logement"
+          hash="depart"
+          className="mt-2 inline-block text-xs text-accent-teal"
+        >
           Déclarer une date →
         </Link>
       </section>
@@ -638,9 +660,18 @@ export function FaqPortail() {
       q: "Fuite ou plomberie",
       r: "Coupez l'eau au robinet d'arrêt. Mettez un récipient. Puis message au gestionnaire avec une photo. Urgence hors heures : le contact figure dans Messages.",
     },
-    { q: "Comment obtenir le code Wi-Fi ?", r: "Les codes sont protégés : confirmez votre session (PIN) dans Mon logement." },
-    { q: "Comment déclarer un départ ?", r: "Depuis Mon logement, indiquez la date : le gestionnaire valide puis génère les documents de sortie." },
-    { q: "Où sont les quittances ?", r: "Dans Documents, filtre Quittances, ou dans Mon logement." },
+    {
+      q: "Comment obtenir le code Wi-Fi ?",
+      r: "Les codes sont protégés : confirmez votre session (PIN) dans Mon logement.",
+    },
+    {
+      q: "Comment déclarer un départ ?",
+      r: "Depuis Mon logement, indiquez la date : le gestionnaire valide puis génère les documents de sortie.",
+    },
+    {
+      q: "Où sont les quittances ?",
+      r: "Dans Documents, filtre Quittances, ou dans Mon logement.",
+    },
   ];
   const hits = faq.filter(
     (f) =>
@@ -694,7 +725,12 @@ function CodesProteges({
   if (ok) {
     return (
       <div className="mt-2 space-y-1 text-xs text-ink-body">
-        {enfants.wifi && <p>Wi-Fi : {enfants.wifi}{enfants.wifiMdp ? ` · ${enfants.wifiMdp}` : ""}</p>}
+        {enfants.wifi && (
+          <p>
+            Wi-Fi : {enfants.wifi}
+            {enfants.wifiMdp ? ` · ${enfants.wifiMdp}` : ""}
+          </p>
+        )}
         {enfants.codeCles && <p>Boîte à clés / code : {enfants.codeCles}</p>}
       </div>
     );
@@ -724,7 +760,9 @@ function CodesProteges({
               return;
             }
             const attendu =
-              typeof sessionStorage === "undefined" ? "" : sessionStorage.getItem("hublify.pin.code");
+              typeof sessionStorage === "undefined"
+                ? ""
+                : sessionStorage.getItem("hublify.pin.code");
             if (!attendu) {
               sessionStorage.setItem("hublify.pin.code", pin);
               setOk(true);
@@ -768,19 +806,37 @@ export function PrecheckinPortail() {
       </p>
       <label className="block text-xs text-ink-muted">
         Identité
-        <input value={identite} onChange={(e) => setIdentite(e.target.value)} className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm" />
+        <input
+          value={identite}
+          onChange={(e) => setIdentite(e.target.value)}
+          className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm"
+        />
       </label>
       <label className="block text-xs text-ink-muted">
         Nombre de personnes
-        <input value={nb} onChange={(e) => setNb(e.target.value)} className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm" />
+        <input
+          value={nb}
+          onChange={(e) => setNb(e.target.value)}
+          className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm"
+        />
       </label>
       <label className="block text-xs text-ink-muted">
         Heure d'arrivée
-        <input type="time" value={heure} onChange={(e) => setHeure(e.target.value)} className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm" />
+        <input
+          type="time"
+          value={heure}
+          onChange={(e) => setHeure(e.target.value)}
+          className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm"
+        />
       </label>
       <label className="block text-xs text-ink-muted">
         Note
-        <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} className="mt-1 w-full rounded-card border border-line px-3 py-2 text-sm" />
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          rows={3}
+          className="mt-1 w-full rounded-card border border-line px-3 py-2 text-sm"
+        />
       </label>
       <button
         type="button"
@@ -805,7 +861,12 @@ export function PrecheckinPortail() {
       <button type="button" onClick={() => setVoir(true)} className="text-xs text-accent-teal">
         Voir le récapitulatif
       </button>
-      <DialoguePrecheckin reservation={resa} ouvert={voir} onFermer={() => setVoir(false)} lectureSeule />
+      <DialoguePrecheckin
+        reservation={resa}
+        ouvert={voir}
+        onFermer={() => setVoir(false)}
+        lectureSeule
+      />
     </div>
   );
 }
@@ -834,8 +895,12 @@ function CapturerPiece({
           e.target.value = "";
         }}
       />
-      <button type="button" onClick={() => ref.current?.click()} className="text-xs text-accent-teal">
-        {piece.present ? piece.photoNom ?? "Présente" : "Prendre en photo"}
+      <button
+        type="button"
+        onClick={() => ref.current?.click()}
+        className="text-xs text-accent-teal"
+      >
+        {piece.present ? (piece.photoNom ?? "Présente") : "Prendre en photo"}
       </button>
     </>
   );
@@ -844,7 +909,9 @@ function CapturerPiece({
 export function DossierPortail() {
   const auth = useAuth();
   const session = useSession();
-  const existant = session.dossiersLocation.find((d) => d.email.toLowerCase() === (auth?.email ?? "").toLowerCase());
+  const existant = session.dossiersLocation.find(
+    (d) => d.email.toLowerCase() === (auth?.email ?? "").toLowerCase(),
+  );
   const [pieces, setPieces] = useState<PieceDossier[]>(existant?.pieces ?? PIECES_DOSSIER_DEFAUT);
   const [garants, setGarants] = useState<GarantDossier[]>(existant?.garants ?? []);
   const [etape, setEtape] = useState(0);
@@ -901,7 +968,8 @@ export function DossierPortail() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-ink-muted">
-        Deux étapes : déposer et filigraner les pièces, puis partager le dossier avec une date d'expiration.
+        Deux étapes : déposer et filigraner les pièces, puis partager le dossier avec une date
+        d'expiration.
       </p>
       <div className="flex gap-2 text-xs">
         <span className={etape === 0 ? "font-medium text-ink" : "text-ink-muted"}>1. Déposer</span>
@@ -911,9 +979,14 @@ export function DossierPortail() {
         <div className="space-y-3 rounded-[20px] border border-line bg-white p-4">
           <div className="flex items-start justify-between gap-2">
             <p className="text-xs text-ink-muted">
-              Photo du justificatif : cadrez le document, lumière uniforme, pas de doigt sur le texte.
+              Photo du justificatif : cadrez le document, lumière uniforme, pas de doigt sur le
+              texte.
             </p>
-            <button type="button" onClick={() => setTuto(true)} className="shrink-0 text-xs text-accent-teal">
+            <button
+              type="button"
+              onClick={() => setTuto(true)}
+              className="shrink-0 text-xs text-accent-teal"
+            >
               Voir le tuto
             </button>
           </div>
@@ -926,58 +999,64 @@ export function DossierPortail() {
                 <li>Aucun doigt ni ombre sur les mentions.</li>
                 <li>Pour l'avis d'imposition, le code 2D-DOC doit rester lisible.</li>
               </ol>
-              <button type="button" onClick={() => setTuto(false)} className="mt-2 text-accent-teal">
+              <button
+                type="button"
+                onClick={() => setTuto(false)}
+                className="mt-2 text-accent-teal"
+              >
                 J'ai compris
               </button>
             </div>
           )}
           <ul className="space-y-3">
-          {pieces.map((p) => (
-            <li key={p.id} className="text-sm">
-              <div className="flex items-center justify-between gap-2">
-                <span>{p.titre}</span>
-                <span className="flex gap-2">
-                  <CapturerPiece
-                    piece={p}
-                    onChange={(suivant) =>
-                      setPieces((liste) => liste.map((x) => (x.id === p.id ? suivant : x)))
-                    }
-                  />
-                  {p.present && (
-                    <button
-                      type="button"
-                      onClick={() =>
+            {pieces.map((p) => (
+              <li key={p.id} className="text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span>{p.titre}</span>
+                  <span className="flex gap-2">
+                    <CapturerPiece
+                      piece={p}
+                      onChange={(suivant) =>
+                        setPieces((liste) => liste.map((x) => (x.id === p.id ? suivant : x)))
+                      }
+                    />
+                    {p.present && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPieces((liste) =>
+                            liste.map((x) =>
+                              x.id === p.id ? { ...x, filigrane: !x.filigrane } : x,
+                            ),
+                          )
+                        }
+                        className="text-xs text-ink-muted"
+                      >
+                        {p.filigrane ? "Filigrané" : "Filigraner"}
+                      </button>
+                    )}
+                  </span>
+                </div>
+                {p.aide && <p className="text-[11px] text-ink-muted">{p.aide}</p>}
+                {p.type === "fiscal" && (
+                  <label className="mt-1 block text-[11px] text-ink-muted">
+                    Code 2D-DOC
+                    <input
+                      value={p.numero2dDoc ?? ""}
+                      onChange={(e) =>
                         setPieces((liste) =>
-                          liste.map((x) => (x.id === p.id ? { ...x, filigrane: !x.filigrane } : x)),
+                          liste.map((x) =>
+                            x.id === p.id ? { ...x, numero2dDoc: e.target.value } : x,
+                          ),
                         )
                       }
-                      className="text-xs text-ink-muted"
-                    >
-                      {p.filigrane ? "Filigrané" : "Filigraner"}
-                    </button>
-                  )}
-                </span>
-              </div>
-              {p.aide && <p className="text-[11px] text-ink-muted">{p.aide}</p>}
-              {p.type === "fiscal" && (
-                <label className="mt-1 block text-[11px] text-ink-muted">
-                  Code 2D-DOC
-                  <input
-                    value={p.numero2dDoc ?? ""}
-                    onChange={(e) =>
-                      setPieces((liste) =>
-                        liste.map((x) =>
-                          x.id === p.id ? { ...x, numero2dDoc: e.target.value } : x,
-                        ),
-                      )
-                    }
-                    placeholder="Série imprimée en bas de l'avis"
-                    className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink"
-                  />
-                </label>
-              )}
-            </li>
-          ))}
+                      placeholder="Série imprimée en bas de l'avis"
+                      className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink"
+                    />
+                  </label>
+                )}
+              </li>
+            ))}
           </ul>
           <label className="block text-xs text-ink-muted">
             Situation familiale (marié / pacsé / coloc)
@@ -1017,74 +1096,83 @@ export function DossierPortail() {
           </div>
           <div className="space-y-2 border-t border-line pt-3">
             <p className="text-xs font-medium text-ink">Garants (personne physique ou organisme)</p>
-          {garants.map((g) => (
-            <p key={g.id} className="text-sm">
-              {g.type === "institutionnel" ? `${g.organisme} · n° ${g.numeroDossier}` : g.nom}
-            </p>
-          ))}
-          <select
-            value={garant.type}
-            onChange={(e) => setGarant({ ...garant, type: e.target.value as GarantDossier["type"] })}
-            className="h-10 w-full rounded-card border border-line px-3 text-sm"
-          >
-            <option value="personne">Garant personne physique</option>
-            <option value="institutionnel">Garant institutionnel</option>
-          </select>
-          <input
-            value={garant.nom}
-            onChange={(e) => setGarant({ ...garant, nom: e.target.value })}
-            placeholder="Nom"
-            className="h-10 w-full rounded-card border border-line px-3 text-sm"
-          />
-          {garant.type === "institutionnel" && (
-            <>
-              <input
-                value={garant.organisme ?? ""}
-                onChange={(e) => setGarant({ ...garant, organisme: e.target.value })}
-                placeholder="Organisme"
-                className="h-10 w-full rounded-card border border-line px-3 text-sm"
-              />
-              <input
-                value={garant.numeroDossier ?? ""}
-                onChange={(e) => setGarant({ ...garant, numeroDossier: e.target.value })}
-                placeholder="N° de dossier"
-                className="h-10 w-full rounded-card border border-line px-3 text-sm"
-              />
-            </>
-          )}
-          <button
-            type="button"
-            onClick={() => {
-              if (!garant.nom.trim()) {
-                toastErreur("Indiquez le nom du garant.");
-                return;
+            {garants.map((g) => (
+              <p key={g.id} className="text-sm">
+                {g.type === "institutionnel" ? `${g.organisme} · n° ${g.numeroDossier}` : g.nom}
+              </p>
+            ))}
+            <select
+              value={garant.type}
+              onChange={(e) =>
+                setGarant({ ...garant, type: e.target.value as GarantDossier["type"] })
               }
-              if (garant.type === "institutionnel" && (!garant.organisme?.trim() || !garant.numeroDossier?.trim())) {
-                toastErreur("Indiquez l'organisme et le n° de dossier.");
-                return;
-              }
-              setGarants((liste) => [...liste, { ...garant, id: idNouveau("g") }]);
-              setGarant({
-                id: "",
-                type: "personne",
-                nom: "",
-                email: "",
-                telephone: "",
-                organisme: "",
-                numeroDossier: "",
-              });
-              toastOk("Garant ajouté.");
-            }}
-            className="h-9 rounded-card border border-line px-3 text-xs"
-          >
-            Ajouter le garant
-          </button>
+              className="h-10 w-full rounded-card border border-line px-3 text-sm"
+            >
+              <option value="personne">Garant personne physique</option>
+              <option value="institutionnel">Garant institutionnel</option>
+            </select>
+            <input
+              value={garant.nom}
+              onChange={(e) => setGarant({ ...garant, nom: e.target.value })}
+              placeholder="Nom"
+              className="h-10 w-full rounded-card border border-line px-3 text-sm"
+            />
+            {garant.type === "institutionnel" && (
+              <>
+                <input
+                  value={garant.organisme ?? ""}
+                  onChange={(e) => setGarant({ ...garant, organisme: e.target.value })}
+                  placeholder="Organisme"
+                  className="h-10 w-full rounded-card border border-line px-3 text-sm"
+                />
+                <input
+                  value={garant.numeroDossier ?? ""}
+                  onChange={(e) => setGarant({ ...garant, numeroDossier: e.target.value })}
+                  placeholder="N° de dossier"
+                  className="h-10 w-full rounded-card border border-line px-3 text-sm"
+                />
+              </>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                if (!garant.nom.trim()) {
+                  toastErreur("Indiquez le nom du garant.");
+                  return;
+                }
+                if (
+                  garant.type === "institutionnel" &&
+                  (!garant.organisme?.trim() || !garant.numeroDossier?.trim())
+                ) {
+                  toastErreur("Indiquez l'organisme et le n° de dossier.");
+                  return;
+                }
+                setGarants((liste) => [...liste, { ...garant, id: idNouveau("g") }]);
+                setGarant({
+                  id: "",
+                  type: "personne",
+                  nom: "",
+                  email: "",
+                  telephone: "",
+                  organisme: "",
+                  numeroDossier: "",
+                });
+                toastOk("Garant ajouté.");
+              }}
+              className="h-9 rounded-card border border-line px-3 text-xs"
+            >
+              Ajouter le garant
+            </button>
           </div>
         </div>
       )}
       <div className="flex gap-2">
         {etape === 1 && (
-          <button type="button" onClick={() => setEtape(0)} className="h-9 rounded-card border border-line px-3 text-xs">
+          <button
+            type="button"
+            onClick={() => setEtape(0)}
+            className="h-9 rounded-card border border-line px-3 text-xs"
+          >
             Retour
           </button>
         )}
@@ -1177,7 +1265,8 @@ export function DossierPortail() {
         {session.partagesDossier.map((p) => (
           <div key={p.id} className="mt-2 flex items-center justify-between text-xs">
             <span>
-              {p.destinataire} · {p.autorise === true ? "accepté" : p.autorise === false ? "refusé" : "en attente"}
+              {p.destinataire} ·{" "}
+              {p.autorise === true ? "accepté" : p.autorise === false ? "refusé" : "en attente"}
             </span>
             {p.autorise === null && (
               <span className="flex gap-1">
@@ -1217,8 +1306,9 @@ export function CandidaturePortail() {
   const auth = useAuth();
   const peutValider = useDroit("mod-reservations");
   const dossier =
-    session.dossiersLocation.find((d) => d.email.toLowerCase() === (auth?.email ?? "").toLowerCase()) ??
-    session.dossiersLocation[0];
+    session.dossiersLocation.find(
+      (d) => d.email.toLowerCase() === (auth?.email ?? "").toLowerCase(),
+    ) ?? session.dossiersLocation[0];
   const [bienId, setBienId] = useState(session.biens[0]?.id ?? "");
   const [arrivee, setArrivee] = useState("");
   const [depart, setDepart] = useState("");
@@ -1248,7 +1338,11 @@ export function CandidaturePortail() {
       )}
       <label className="block text-xs text-ink-muted">
         Logement
-        <select value={bienId} onChange={(e) => setBienId(e.target.value)} className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm">
+        <select
+          value={bienId}
+          onChange={(e) => setBienId(e.target.value)}
+          className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm"
+        >
           {session.biens.map((b) => (
             <option key={b.id} value={b.id}>
               {b.nom}
@@ -1258,15 +1352,25 @@ export function CandidaturePortail() {
       </label>
       <label className="block text-xs text-ink-muted">
         Arrivée souhaitée
-        <input type="date" value={arrivee} onChange={(e) => setArrivee(e.target.value)} className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm" />
+        <input
+          type="date"
+          value={arrivee}
+          onChange={(e) => setArrivee(e.target.value)}
+          className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm"
+        />
       </label>
       <label className="block text-xs text-ink-muted">
         Départ
-        <input type="date" value={depart} onChange={(e) => setDepart(e.target.value)} className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm" />
+        <input
+          type="date"
+          value={depart}
+          onChange={(e) => setDepart(e.target.value)}
+          className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm"
+        />
       </label>
       <p className="text-sm text-ink">
-        Prorata {formatMontant(estimation.prorata)} + commissions {formatMontant(estimation.commissions)}{" "}
-        = {formatMontant(estimation.total)}
+        Prorata {formatMontant(estimation.prorata)} + commissions{" "}
+        {formatMontant(estimation.commissions)} = {formatMontant(estimation.total)}
       </p>
       <div className="flex flex-col gap-2">
         <button
@@ -1363,7 +1467,9 @@ export function CandidaturePortail() {
                     return;
                   }
                   const b = session.biens.find((x) => x.id === c.bienId);
-                  toastOk(`Date validée${b ? ` pour ${b.nom}` : ""}. Les deux calendriers sont à jour.`);
+                  toastOk(
+                    `Date validée${b ? ` pour ${b.nom}` : ""}. Les deux calendriers sont à jour.`,
+                  );
                 }}
               >
                 Valider la date

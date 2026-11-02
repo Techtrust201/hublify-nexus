@@ -77,13 +77,9 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-xl text-ink">Team Mate</h2>
-          <p className="mt-1 text-sm text-ink-subtle">
-            Constituez votre équipe afin de vous assister au quotidien. Actions en cours et
-            invitations restent visibles ci-dessous.
-          </p>
-        </div>
+        <p className="text-sm text-ink-subtle">
+          Actions en cours et invitations restent visibles ci-dessous.
+        </p>
         <button
           type="button"
           onClick={() => setInviter(true)}

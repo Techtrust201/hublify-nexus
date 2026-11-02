@@ -310,11 +310,7 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
 
   return (
     <div>
-      <div className="mb-8 text-center">
-        <h2 className="hidden text-2xl text-ink md:block">Lieux</h2>
-        <p className="mx-auto mt-2 hidden max-w-lg text-sm text-ink-subtle md:block">
-          Logements, immeubles, lieux d'événements
-        </p>
+      <div className="mb-4 text-center">
         {peutMod && (
           <BtnNavy
             className="h-11 w-full max-w-sm px-5 text-sm md:mt-4 md:h-10 md:w-auto"

@@ -16,7 +16,30 @@ Développée par **TECHTRUST AGENCY**.
 
 Copier `.env.example` vers `.env.local` (gitignoré) avec `DATABASE_URL`, **sans** préfixe `VITE_`.
 
-Pour reproduire la CI en local :
+Démo locale réutilisable (Docker si le démon tourne, sinon PostgreSQL du système) :
+
+```bash
+./scripts/demo-local.sh
+npm run dev
+```
+
+Le script crée l'utilisateur et la base `hublify` / `hublify`, écrit `.env.local` s'il manque (secret, mot de passe de démo, clé de chiffrement) et lance `npm run db:prepare`. Le mot de passe des comptes est `DEMO_AUTH_PASSWORD` dans `.env.local`, jamais dans le dépôt.
+
+Comptes semés :
+
+| Compte                      | Rôle                                                   |
+| --------------------------- | ------------------------------------------------------ |
+| `amelie.dubois@hublify.app` | Gestionnaire                                           |
+| `redris.gestion@gmail.com`  | Super-administrateur (Yannick Ratti, Team mate inclus) |
+| `contact@tech-trust.fr`     | Super-administrateur                                   |
+
+Captures Chrome headless du dashboard (serveur déjà lancé) :
+
+```bash
+node --env-file=.env.local scripts/captures-dashboard.mjs
+```
+
+Pour reproduire seulement la CI :
 
 ```bash
 docker compose up -d
@@ -56,15 +79,15 @@ L'application démarre sur `http://localhost:8080`.
 
 ## Scripts
 
-| Commande | Description |
-| --- | --- |
-| `bun run dev` | Serveur de développement |
-| `bun run build` | Build de production |
-| `bun run preview` | Prévisualisation du build |
-| `bun run lint` | Analyse statique ESLint |
-| `bun run format` | Formatage Prettier |
-| `npm test` | Tests unitaires Vitest |
-| `npm run e2e` | Tests Playwright (exige `DATABASE_URL` + seed) |
+| Commande             | Description                                    |
+| -------------------- | ---------------------------------------------- |
+| `bun run dev`        | Serveur de développement                       |
+| `bun run build`      | Build de production                            |
+| `bun run preview`    | Prévisualisation du build                      |
+| `bun run lint`       | Analyse statique ESLint                        |
+| `bun run format`     | Formatage Prettier                             |
+| `npm test`           | Tests unitaires Vitest                         |
+| `npm run e2e`        | Tests Playwright (exige `DATABASE_URL` + seed) |
 | `npm run db:prepare` | Applique le schéma et sème les comptes de démo |
 
 ## Structure
