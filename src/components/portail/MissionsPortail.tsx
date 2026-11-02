@@ -3,6 +3,7 @@ import { useAuth, useDroit } from "@/auth/auth-context";
 import { Bouton, Carte, Ecran, Entete } from "@/components/portail/chrome";
 import { champClasse } from "@/components/portail/chrome";
 import { ajouterRapport, changerStatutMission, idNouveau, useSession } from "@/data/session";
+import { descriptionVisible } from "@/lib/gestionnaire-planning";
 import { TACHES_DEMO_PRESTATAIRE } from "@/lib/portail-mobile";
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { useRef } from "react";
@@ -53,7 +54,7 @@ export function MissionsPortail() {
                 <p className="text-xs text-[#667085]">
                   {m.date} · {m.heure} · {m.statut.replace("_", " ")}
                 </p>
-                <p className="text-sm text-[#344054]">{m.description}</p>
+                <p className="text-sm text-[#344054]">{descriptionVisible(m.description)}</p>
                 {peutMod && m.statut !== "terminee" && (
                   <Bouton
                     onClick={() => {
