@@ -17,6 +17,7 @@ import {
   ajouterEvenement,
   ajouterNotif,
   marquerQuittance,
+  rembourserLoyer,
   useSession,
   validerLoyer,
 } from "@/data/session";
@@ -62,7 +63,7 @@ function VueGenerale() {
       <KpiCards />
 
       {voirCalendrier && (
-        <div className="mt-4">
+        <div id="planning" className="mt-4">
           <PlanningGrid
             onglet={onglet}
             onOnglet={allerOnglet}
@@ -127,6 +128,18 @@ function VueGenerale() {
           onQuittance={(id) => {
             const l = session.loyers.find((x) => x.id === id);
             if (l) setLoyerQuittance(l);
+          }}
+          onRembourser={(id, montant) => {
+            if (!rembourserLoyer(id, montant)) {
+              toastErreur("Montant de remboursement invalide.");
+              return;
+            }
+            ajouterNotif({
+              titre: "Remboursement émis",
+              detail: `${montant.toLocaleString("fr-FR")} €`,
+              href: "/#paiements",
+            });
+            toastOk("Remboursement enregistré sur le reste à devoir.");
           }}
         />
       )}

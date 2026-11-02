@@ -32,6 +32,13 @@ import {
 } from "@/data/planning-mo1";
 import { useSession } from "@/data/session";
 import { nuitsEntre } from "@/data/reservations-mo1";
+import {
+  descriptionVisible,
+  facturationPrestation,
+  lireMetaPrestation,
+  lirePortee,
+  noterPortee,
+} from "@/lib/gestionnaire-planning";
 import { cn } from "@/lib/utils";
 
 export function MissionsPlusPopover({
@@ -218,7 +225,12 @@ export function MissionInfoDialog({
               </div>
               <div className="mt-2 rounded-card border border-surface-soft p-2.5">
                 <p className="text-xs text-ink-muted">Description</p>
-                <p className="mt-1 text-xs leading-5 text-ink-body">{mission.description}</p>
+                <p className="mt-1 text-xs leading-5 text-ink-body">
+                  {descriptionVisible(mission.description) || "Aucune consigne."}
+                </p>
+                <p className="mt-2 text-xs text-ink-subtle">
+                  {facturationPrestation(lireMetaPrestation(mission.description)).libelle}
+                </p>
               </div>
             </div>
             <div className="flex items-center justify-between border-t border-surface-soft px-5 py-3">
@@ -681,6 +693,7 @@ export function CreateRegleDialog({
   const [ensembleId, setEnsembleId] = useState("en1");
   const [nomEnsemble, setNomEnsemble] = useState("");
   const [creerEnsemble, setCreerEnsemble] = useState(false);
+  const [periodeSeule, setPeriodeSeule] = useState(true);
 
   useEffect(() => {
     if (!ouvert) return;
@@ -688,6 +701,7 @@ export function CreateRegleDialog({
     setNote("");
     setNomEnsemble("");
     setCreerEnsemble(false);
+    setPeriodeSeule(true);
     setDebut(dateInitiale ?? "2026-03-13");
     setFin(dateInitiale ?? "2026-03-13");
     setBienId(bienIdInitial ?? session.biens[0]?.id ?? "");
@@ -876,6 +890,22 @@ export function CreateRegleDialog({
               )}
             </div>
           </div>
+          <label className="flex items-start gap-2 rounded-card border border-ink bg-surface px-3 py-2 text-xs text-ink">
+            <input
+              type="checkbox"
+              checked={periodeSeule}
+              onChange={(e) => setPeriodeSeule(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              Enregistrer uniquement pour cette période.
+              <span className="mt-1 block text-[11px] text-ink-muted">
+                {lirePortee(noterPortee(note, periodeSeule)).periodeSeule
+                  ? "La règle ne se répète pas au-delà des dates saisies."
+                  : "La règle reste locale : aucune API channel manager n'est connectée en V1."}
+              </span>
+            </span>
+          </label>
           <div className="rounded-card border border-line p-3">
             <p className="flex items-center gap-2 text-xs text-ink">
               <CheckCircle className="size-3" />
@@ -928,7 +958,9 @@ export function CreateRegleDialog({
                   nuits: Math.max(1, nuitsEntre(debut, fin)),
                   biens: bienId,
                   variation,
-                  ...(note.trim() ? { note: note.trim() } : {}),
+                  ...(note.trim() || periodeSeule
+                    ? { note: noterPortee(note.trim(), periodeSeule) }
+                    : {}),
                 },
                 creerEnsemble && nomEnsemble.trim() ? nomEnsemble.trim() : undefined,
               );

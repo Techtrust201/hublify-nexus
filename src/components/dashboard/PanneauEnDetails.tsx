@@ -43,6 +43,7 @@ import {
   useSession,
 } from "@/data/session";
 import { confirmer, toastErreur, toastOk } from "@/lib/feedback";
+import { descriptionVisible } from "@/lib/gestionnaire-planning";
 import { emettreAvoir } from "@/data/avoirs";
 import {
   telechargerAvoir,
@@ -163,7 +164,7 @@ function PanneauMission({
               <div className="mt-2 rounded-card border border-surface-soft bg-surface p-3">
                 <p className="text-xs text-ink-muted">Consignes</p>
                 <p className="mt-1 text-xs leading-5 text-ink-body">
-                  {live.description || "Aucune consigne."}
+                  {descriptionVisible(live.description) || "Aucune consigne."}
                 </p>
               </div>
               {resaLiee && (

@@ -23,6 +23,11 @@ function PageTarifs() {
 
   return (
     <AppShell attendDonnees titre="Tarifs" sousTitre="Prix par nuit, règles et ensembles de règles">
+      <p className="mb-3 rounded-card border border-line bg-white px-4 py-3 text-xs text-ink-muted">
+        Les tarifs se modifient ici. En V1, aucune API channel manager ni Stripe n'est connectée :
+        les OTA ne sont pas mis à jour automatiquement. Cochez « Enregistrer uniquement pour cette
+        période » pour qu'une règle ne dépasse pas les dates saisies.
+      </p>
       <PlanningGrid
         onglet={onglet}
         vueInitiale="mois"

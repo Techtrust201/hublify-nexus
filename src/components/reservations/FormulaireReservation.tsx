@@ -18,6 +18,7 @@ import {
   type TypeReservationMo1,
 } from "@/data/reservations-mo1";
 import {
+  ajouterMission,
   ajouterNotif,
   ajouterReservation,
   idNouveau,
@@ -26,6 +27,11 @@ import {
   useSession,
 } from "@/data/session";
 import { toastErreur, toastOk } from "@/lib/feedback";
+import {
+  estImportOta,
+  lignesServicesImport,
+  missionDepuisLigne,
+} from "@/lib/gestionnaire-planning";
 import { cn } from "@/lib/utils";
 import {
   METHODES_PAIEMENT,
@@ -381,6 +387,17 @@ export function FormulaireReservation({
         depart: checkOut,
       },
     });
+    if (estImportOta(plateformeDe(plateforme))) {
+      lignesServicesImport().forEach((ligne) => {
+        ajouterMission(
+          missionDepuisLigne(ligne, {
+            id: idNouveau("ms"),
+            bienId: logement,
+            date: checkOut,
+          }),
+        );
+      });
+    }
     ajouterNotif({
       titre: "Réservation créée",
       detail: `${occupant} · ${checkIn} → ${checkOut}`,

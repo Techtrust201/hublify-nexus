@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth, useDroit } from "@/auth/auth-context";
+import { descriptionVisible } from "@/lib/gestionnaire-planning";
 import { DialoguePrecheckin } from "@/components/reservations/DialoguePrecheckin";
 import {
   PIECES_DOSSIER_DEFAUT,
@@ -196,7 +197,7 @@ export function MissionsPortail() {
             <p className="text-xs text-ink-muted">
               {m.date} · {m.heure} · {m.statut.replace("_", " ")}
             </p>
-            <p className="mt-2 text-sm text-ink-body">{m.description}</p>
+            <p className="mt-2 text-sm text-ink-body">{descriptionVisible(m.description)}</p>
             {peutMod && m.statut !== "terminee" && (
               <button
                 type="button"

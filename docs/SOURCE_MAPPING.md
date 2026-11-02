@@ -71,3 +71,17 @@ Reprend les lignes 1A pour le gestionnaire, plus :
 7. Écran de connexion (absent des deux sources connues).
 8. Maintien de TanStack Router ou bascule React Router.
 9. Fourniture de l'export `.fig` de l'ancienne maquette Redris V2 (condition du lot 1B).
+
+## Hublify V1.0 — dashboard gestionnaire (2026-11)
+
+Source : fichier Figma `Hublify V1.0` (`kBd9QQDfrAlr59dtwyUQZq`), exports section + annotations Yannick Ratti. Le socle MO1 est conservé.
+
+| Écran | Frame | Écart assumé |
+|---|---|---|
+| Vue générale | Accueil / Dashboard 3 jours + mois | Les pastilles de mission restent sur la grille existante. « Prestations seules » masque les séjours (commentaire calendrier) sans en faire la vue par défaut, le frame montrant séjours et missions ensemble. |
+| Case calendrier | Ajout presta / résa / modif | Clic = « Que souhaitez-vous faire ? » (prestation, réservation, note/événement, blocage). |
+| Pré-checkin | Pré chekin | La première carte Figma est vide : message et délai y sont placés. Upsells intégrés. Caution unique baux + voyageurs. Réglages sans colonne SQL (recto/verso, modes, caution, upsells proposés) restent dans le navigateur. |
+| Team mate | Vision TeamMate / droits | Personnalisé démarre restreint, cases par catégorie, plafond = profil du rôle. |
+| Tarifs | Calendar tarifs | Pas d'API channel manager ni Stripe en V1. Bulle « uniquement pour cette période ». |
+| Lieux | Vision patrimoines | Types jardin, villa, garage, bateau et occupations meublé / vide / événement / travaux. Import-export CSV, pas d'OTA. |
+| Loyers | Notes dashboard | Reste à devoir, relance copiée (mail/SMS/lien), remboursement local. Stripe non connecté. |

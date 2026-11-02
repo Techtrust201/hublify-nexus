@@ -1,11 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import {
+  ACCES_RESTREINT,
   aLeDroit,
+  bornesDroits,
   droitsEffectifs,
   estDroitId,
   labelDuRole,
   roleParLabel,
-  type DroitId,
   type RoleId,
 } from "@/auth/permissions";
 import { auth, avecInscriptionInterne } from "@/lib/auth";
@@ -68,7 +69,7 @@ export const listerEquipe = createServerFn({ method: "GET" }).handler(async () =
 export const enregistrerDroitsMembre = createServerFn({ method: "POST" })
   .validator((input: { userId: string; droits: string[] }) => ({
     userId: input.userId,
-    droits: input.droits.filter(estDroitId),
+    droits: input.droits.filter((id) => estDroitId(id) || id === ACCES_RESTREINT),
   }))
   .handler(async ({ data }) => {
     const moi = await sessionDepuisRequete();
@@ -86,9 +87,10 @@ export const enregistrerDroitsMembre = createServerFn({ method: "POST" })
     if (cible[0].role_id === "super-admin") {
       throw new Error("Les droits d'un super-administrateur ne peuvent pas être modifiés");
     }
+    const stockes = bornesDroits(cible[0].role_id, data.droits);
     await sql`
       update public.org_membres
-      set droits = ${`{${data.droits.join(",")}}`}::text[]
+      set droits = ${`{${stockes.join(",")}}`}::text[]
       where org_id = ${moi.orgId}::uuid and user_id = ${data.userId}::uuid
     `;
     return { ok: true as const };
@@ -118,7 +120,7 @@ export const inviterMembre = createServerFn({ method: "POST" })
         email,
         roleId,
         affectation: input.affectation.trim() || "Assignment",
-        droits: input.droits.filter(estDroitId) as DroitId[],
+        droits: bornesDroits(roleId, input.droits),
       };
     },
   )

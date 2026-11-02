@@ -41,6 +41,7 @@ import { Route as OutilsModelesRouteImport } from './routes/outils.modeles'
 import { Route as OutilsVueAnnuelleRouteImport } from './routes/outils.vue-annuelle'
 import { Route as ParametrageIndexRouteImport } from './routes/parametrage.index'
 import { Route as PatrimoinesIndexRouteImport } from './routes/patrimoines.index'
+import { Route as PrecheckinIndexRouteImport } from './routes/precheckin.index'
 import { Route as PrestatairesIndexRouteImport } from './routes/prestataires.index'
 import { Route as PrestatairesPrestataireIdRouteImport } from './routes/prestataires.$prestataireId'
 import { Route as PrestatairesNouveauRouteImport } from './routes/prestataires.nouveau'
@@ -211,6 +212,11 @@ const PatrimoinesIndexRoute = PatrimoinesIndexRouteImport.update({
   path: '/patrimoines/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrecheckinIndexRoute = PrecheckinIndexRouteImport.update({
+  id: '/precheckin/',
+  path: '/precheckin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrestatairesIndexRoute = PrestatairesIndexRouteImport.update({
   id: '/prestataires/',
   path: '/prestataires/',
@@ -294,6 +300,7 @@ export interface FileRoutesByFullPath {
   '/outils/': typeof OutilsIndexRoute
   '/parametrage/': typeof ParametrageIndexRoute
   '/patrimoines/': typeof PatrimoinesIndexRoute
+  '/precheckin/': typeof PrecheckinIndexRoute
   '/prestataires/': typeof PrestatairesIndexRoute
   '/reservations/': typeof ReservationsIndexRoute
   '/tarifs/': typeof TarifsIndexRoute
@@ -337,6 +344,7 @@ export interface FileRoutesByTo {
   '/outils': typeof OutilsIndexRoute
   '/parametrage': typeof ParametrageIndexRoute
   '/patrimoines': typeof PatrimoinesIndexRoute
+  '/precheckin': typeof PrecheckinIndexRoute
   '/prestataires': typeof PrestatairesIndexRoute
   '/reservations': typeof ReservationsIndexRoute
   '/tarifs': typeof TarifsIndexRoute
@@ -381,6 +389,7 @@ export interface FileRoutesById {
   '/outils/': typeof OutilsIndexRoute
   '/parametrage/': typeof ParametrageIndexRoute
   '/patrimoines/': typeof PatrimoinesIndexRoute
+  '/precheckin/': typeof PrecheckinIndexRoute
   '/prestataires/': typeof PrestatairesIndexRoute
   '/reservations/': typeof ReservationsIndexRoute
   '/tarifs/': typeof TarifsIndexRoute
@@ -426,6 +435,7 @@ export interface FileRouteTypes {
     | '/outils/'
     | '/parametrage/'
     | '/patrimoines/'
+    | '/precheckin/'
     | '/prestataires/'
     | '/reservations/'
     | '/tarifs/'
@@ -469,6 +479,7 @@ export interface FileRouteTypes {
     | '/outils'
     | '/parametrage'
     | '/patrimoines'
+    | '/precheckin'
     | '/prestataires'
     | '/reservations'
     | '/tarifs'
@@ -512,6 +523,7 @@ export interface FileRouteTypes {
     | '/outils/'
     | '/parametrage/'
     | '/patrimoines/'
+    | '/precheckin/'
     | '/prestataires/'
     | '/reservations/'
     | '/tarifs/'
@@ -556,6 +568,7 @@ export interface RootRouteChildren {
   OutilsIndexRoute: typeof OutilsIndexRoute
   ParametrageIndexRoute: typeof ParametrageIndexRoute
   PatrimoinesIndexRoute: typeof PatrimoinesIndexRoute
+  PrecheckinIndexRoute: typeof PrecheckinIndexRoute
   PrestatairesIndexRoute: typeof PrestatairesIndexRoute
   ReservationsIndexRoute: typeof ReservationsIndexRoute
   TarifsIndexRoute: typeof TarifsIndexRoute
@@ -790,6 +803,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatrimoinesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/precheckin/': {
+      id: '/precheckin/'
+      path: '/precheckin'
+      fullPath: '/precheckin/'
+      preLoaderRoute: typeof PrecheckinIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/prestataires/': {
       id: '/prestataires/'
       path: '/prestataires'
@@ -892,6 +912,7 @@ const rootRouteChildren: RootRouteChildren = {
   OutilsIndexRoute: OutilsIndexRoute,
   ParametrageIndexRoute: ParametrageIndexRoute,
   PatrimoinesIndexRoute: PatrimoinesIndexRoute,
+  PrecheckinIndexRoute: PrecheckinIndexRoute,
   PrestatairesIndexRoute: PrestatairesIndexRoute,
   ReservationsIndexRoute: ReservationsIndexRoute,
   TarifsIndexRoute: TarifsIndexRoute,

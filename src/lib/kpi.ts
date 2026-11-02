@@ -14,6 +14,8 @@ export function calculerKpi(s: EtatSession, aujourdhui = AUJOURD_HUI_MO1) {
   ).length;
   const missionsJour = s.missions.filter((m) => m.date === aujourdhui && m.statut !== "terminee");
   const menage = missionsJour.filter((m) => m.type === "Menage").length;
+  const checkInMissions = missionsJour.filter((m) => m.type === "Check-in").length;
+  const checkOutMissions = missionsJour.filter((m) => m.type === "Check-out").length;
   const plomberie = missionsJour.filter(
     (m) => m.titre.toLowerCase().includes("plomb") || m.assigne.toLowerCase().includes("plomb"),
   ).length;
@@ -28,6 +30,8 @@ export function calculerKpi(s: EtatSession, aujourdhui = AUJOURD_HUI_MO1) {
     missionsJour: missionsJour.length,
     interventionsEnCours: enCours,
     menage,
+    checkInMissions,
+    checkOutMissions,
     plomberie,
     reservationsActives,
   };

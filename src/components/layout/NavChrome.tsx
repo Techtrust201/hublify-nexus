@@ -7,6 +7,7 @@ import {
   CalendarDays,
   ClipboardCheck,
   ClipboardList,
+  KeyRound,
   FileText,
   Home,
   Info,
@@ -62,6 +63,7 @@ const OUTILS: Array<{ titre: string; url: string; icone: typeof Info; droit?: Dr
     droit: "voir-documents",
   },
   { titre: "Paramétrage", url: "/parametrage", icone: Settings, droit: "mod-biens" },
+  { titre: "Pré-checkin", url: "/precheckin", icone: KeyRound, droit: "voir-reservations" },
 ];
 
 export function estActif(pathname: string, url: string) {

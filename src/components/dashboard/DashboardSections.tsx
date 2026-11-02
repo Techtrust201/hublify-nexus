@@ -17,6 +17,8 @@ import type { CanalMo1, EvenementMo1, LoyerMo1, MessageMo1 } from "@/data/planni
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useKpiMo1, useSession } from "@/data/session";
 import { METHODES_PAIEMENT } from "@/data/v1-metier";
+import { copierTexte } from "@/lib/feedback";
+import { messageRelancePaiement, resteADevoir } from "@/lib/gestionnaire-planning";
 import { cn, useSessionBool } from "@/lib/utils";
 
 export function KpiCards() {
@@ -39,6 +41,7 @@ export function KpiCards() {
               <span className="text-ink-body">{kpi.impaye.toLocaleString("fr-FR")} €</span>
             </>
           }
+          href="#paiements"
         />
       )}
       <CarteKpi
@@ -64,10 +67,13 @@ export function KpiCards() {
         detail={
           <>
             Ménage : <span className="text-ink-body">{kpi.menage}</span>
-            {" · Plomberie : "}
-            <span className="text-ink-body">{kpi.plomberie}</span>
+            {" · Check-in : "}
+            <span className="text-ink-body">{kpi.checkInMissions}</span>
+            {" · Check-out : "}
+            <span className="text-ink-body">{kpi.checkOutMissions}</span>
           </>
         }
+        href="#planning"
       />
     </div>
   );
@@ -82,6 +88,7 @@ function CarteKpi({
   valeur,
   unite,
   detail,
+  href,
 }: {
   icone: typeof AlertTriangle;
   titre: string;
@@ -91,8 +98,9 @@ function CarteKpi({
   valeur: string;
   unite: string;
   detail: ReactNode;
+  href?: string;
 }) {
-  return (
+  const corps = (
     <div className="min-h-[116px] rounded-card border border-line bg-white p-4">
       <div className="flex items-center justify-between">
         <p
@@ -121,6 +129,15 @@ function CarteKpi({
       </p>
       <p className="mt-1 text-xs text-ink-muted">{detail}</p>
     </div>
+  );
+  if (!href) return corps;
+  return (
+    <a
+      href={href}
+      className="block rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+    >
+      {corps}
+    </a>
   );
 }
 
@@ -245,23 +262,30 @@ export function LoyersSection({
   loyers,
   onValider,
   onQuittance,
+  onRembourser,
   viaPlateforme,
 }: {
   loyers: LoyerMo1[];
   /** `null` : paiement reçu via la plateforme, la méthode se déduit de la réservation. */
   onValider: (id: string, details: { methode: string; reference: string } | null) => void;
   onQuittance: (id: string) => void;
+  onRembourser?: (id: string, montant: number) => void;
   viaPlateforme?: (l: LoyerMo1) => boolean;
 }) {
   const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.loyers", true);
   const peutValider = useDroit("mod-finances");
   const total = loyers.reduce((s, l) => s + l.montant, 0);
   const [aValider, setAValider] = useState<LoyerMo1 | null>(null);
+  const [aRembourser, setARembourser] = useState<LoyerMo1 | null>(null);
+  const [montantRembourse, setMontantRembourse] = useState("");
   const [methode, setMethode] = useState<string>("Virement");
   const [reference, setReference] = useState("");
 
   return (
-    <section className="mt-4 overflow-hidden rounded-card border border-line bg-white">
+    <section
+      id="paiements"
+      className="mt-4 overflow-hidden rounded-card border border-line bg-white"
+    >
       <button
         type="button"
         className="flex w-full items-start justify-between gap-2 border-b border-surface-soft px-4 py-3 text-left"
@@ -296,9 +320,14 @@ export function LoyersSection({
                   {l.bienNom} · Échéance : {l.echeance}
                 </p>
               </div>
-              <p className="text-sm font-medium text-ink-status">
-                {l.montant.toLocaleString("fr-FR")} €
-              </p>
+              <div className="text-right">
+                <p className="text-sm font-medium text-ink-status">
+                  {l.montant.toLocaleString("fr-FR")} €
+                </p>
+                <p className="text-[11px] text-ink-muted">
+                  Reste à devoir : {resteADevoir(l.montant, l.valide).toLocaleString("fr-FR")} €
+                </p>
+              </div>
               {!l.valide ? (
                 <div className="flex w-full flex-wrap gap-2 sm:w-auto">
                   {peutValider && (
@@ -318,6 +347,35 @@ export function LoyersSection({
                       {viaPlateforme?.(l) ? "Valider + quittance auto" : "Valider paiement"}
                     </button>
                   )}
+                  {peutValider && onRembourser && l.montant > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setARembourser(l);
+                        setMontantRembourse(String(l.montant));
+                      }}
+                      className="h-11 rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[26px]"
+                    >
+                      Rembourser
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const lien = `${window.location.origin}/reservations?vue=liste`;
+                      const texte = messageRelancePaiement({
+                        locataire: l.locataire,
+                        montant: resteADevoir(l.montant, l.valide),
+                        bienNom: l.bienNom,
+                        echeance: l.echeance,
+                        lien,
+                      });
+                      void copierTexte(texte, "Message copié : mail, SMS et lien de paiement.");
+                    }}
+                    className="h-11 rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[26px]"
+                  >
+                    Mail, SMS et lien
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
@@ -417,6 +475,48 @@ export function LoyersSection({
               className="inline-flex h-11 items-center rounded-card bg-ink px-3 text-xs font-medium text-white md:h-9"
             >
               Valider le paiement
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={Boolean(aRembourser)} onOpenChange={(o) => !o && setARembourser(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>Émettre un remboursement</DialogTitle>
+          <DialogDescription>
+            {aRembourser
+              ? `${aRembourser.locataire} · reste ${resteADevoir(aRembourser.montant, aRembourser.valide).toLocaleString("fr-FR")} €. Stripe n'est pas connecté : le montant est retiré du reste à devoir.`
+              : ""}
+          </DialogDescription>
+          <label className="mt-2 block text-xs text-ink-muted">
+            Montant
+            <input
+              inputMode="decimal"
+              value={montantRembourse}
+              onChange={(e) => setMontantRembourse(e.target.value)}
+              className="mt-1 h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none md:h-9"
+            />
+          </label>
+          <div className="mt-2 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setARembourser(null)}
+              className="inline-flex h-11 items-center rounded-card border border-line px-3 text-xs md:h-9"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!aRembourser || !onRembourser) return;
+                const montant = Number(montantRembourse.replace(",", "."));
+                if (!Number.isFinite(montant) || montant <= 0 || montant > aRembourser.montant)
+                  return;
+                onRembourser(aRembourser.id, montant);
+                setARembourser(null);
+              }}
+              className="inline-flex h-11 items-center rounded-card bg-ink px-3 text-xs font-medium text-white md:h-9"
+            >
+              Rembourser
             </button>
           </div>
         </DialogContent>
