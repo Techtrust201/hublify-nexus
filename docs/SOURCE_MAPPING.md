@@ -85,3 +85,15 @@ Source : fichier Figma `Hublify V1.0` (`kBd9QQDfrAlr59dtwyUQZq`), exports sectio
 | Tarifs | Calendar tarifs | Pas d'API channel manager ni Stripe en V1. Bulle « uniquement pour cette période ». |
 | Lieux | Vision patrimoines | Types jardin, villa, garage, bateau et occupations meublé / vide / événement / travaux. Import-export CSV, pas d'OTA. |
 | Loyers | Notes dashboard | Reste à devoir, relance copiée (mail/SMS/lien), remboursement local. Stripe non connecté. |
+
+## Analyse — Hublify V1.0
+
+| Écran construit | Source principale | Nom du frame | Fidèle | Adapté | Inventé |
+|---|---|---|---|---|---|
+| Tableau de bord Occupation, Revenus, Gestionnaires (`src/components/analyse/`) | Hublify V1.0 | `Dashboard` 227:1247, 227:3294, `Gestionnaires` 228:14117 | Onglets, cartes, graphiques, répartition par canal | Portefeuille réel à la place des 120 logements figés | — |
+| Encaissements | Hublify V1.0 | annotation 325:25448 + relevé Juliette | Colonnes et total | Lignes issues du dossier, formule des totaux | — |
+| Cautions | Hublify V1.0 | annotation 325:25521 | Titre et mouvement encaissement / remboursement | Règle d'arrivée et de départ | — |
+| Facture propriétaire | Hublify V1.0 | section 325:25500 | Prestations HT/TVA/TTC, deux montants | Application par canal | — |
+| Analyse 2 / Analyse 3 | Hublify V1.0 | `69:1700`, `69:2651` | Onglets, cartes, historique, fiche | Chiffres du dossier | — |
+
+Détail des écarts : `docs/ANALYSE-ECARTS.md`.
