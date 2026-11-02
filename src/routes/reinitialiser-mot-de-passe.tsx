@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { boutonAuth, CadreAuth, champAuth } from "@/components/marque/CadreAuth";
 import { ChampMotDePasse } from "@/components/ui/champ-mot-de-passe";
 import { toastErreur, toastOk } from "@/lib/feedback";
 
@@ -40,36 +41,33 @@ function PageReset() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-surface px-4 py-10">
-      <div className="w-full max-w-md rounded-card border border-line bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-medium text-ink">Nouveau mot de passe</h1>
-        <form className="mt-6 space-y-3" onSubmit={(ev) => void enregistrer(ev)}>
-          <div>
-            <label htmlFor="champ-mdp-reset" className="mb-1.5 block text-xs text-ink-body">
-              Mot de passe
-            </label>
-            <ChampMotDePasse
-              id="champ-mdp-reset"
-              name="password"
-              required
-              minLength={10}
-              className="h-11 w-full rounded-card border border-line px-3 text-sm outline-none"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={enCours || !pret}
-            className="flex h-11 w-full items-center justify-center rounded-card bg-ink text-sm font-medium text-white disabled:opacity-50"
-          >
-            {enCours ? "Enregistrement…" : "Enregistrer"}
-          </button>
-        </form>
-        <p className="mt-4 text-center text-sm">
-          <Link to="/connexion" className="text-ink">
-            Connexion
-          </Link>
-        </p>
-      </div>
-    </div>
+    <CadreAuth
+      titre="Nouveau mot de passe"
+      description="Choisissez un mot de passe d'au moins 10 caractères."
+    >
+      <form className="space-y-3" onSubmit={(ev) => void enregistrer(ev)}>
+        <div>
+          <label htmlFor="champ-mdp-reset" className="mb-1.5 block text-xs text-v1-ink-body">
+            Mot de passe
+          </label>
+          <ChampMotDePasse
+            id="champ-mdp-reset"
+            name="password"
+            required
+            minLength={10}
+            autoComplete="new-password"
+            className={champAuth}
+          />
+        </div>
+        <button type="submit" disabled={enCours || !pret} className={boutonAuth}>
+          {enCours ? "Enregistrement…" : "Enregistrer"}
+        </button>
+      </form>
+      <p className="mt-4 text-center text-sm">
+        <Link to="/connexion" className="font-medium text-v1-ink">
+          Connexion
+        </Link>
+      </p>
+    </CadreAuth>
   );
 }

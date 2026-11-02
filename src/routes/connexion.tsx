@@ -1,6 +1,7 @@
 import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { SUPER_ADMINS, accueilPourRole } from "@/auth/permissions";
+import { boutonAuth, CadreAuth, champAuth } from "@/components/marque/CadreAuth";
 import { ChampMotDePasse } from "@/components/ui/champ-mot-de-passe";
 import { authClient } from "@/lib/auth-client";
 import { getSession } from "@/lib/auth.functions";
@@ -77,6 +78,7 @@ function PageConnexion() {
     const { error } = await authClient.signIn.email({
       email: String(donnees.get("email") ?? "").trim(),
       password: String(donnees.get("password") ?? ""),
+      rememberMe: donnees.get("souvenir") === "on",
     });
     setEnCours(false);
     if (error) {
@@ -89,104 +91,118 @@ function PageConnexion() {
     await navigate({ to: accueilPourRole(session?.roleId ?? "lecteur") });
   }
 
+  async function google() {
+    const { error } = await authClient.signIn.social({
+      provider: "google",
+      callbackURL: "/",
+    });
+    if (error) toastErreur("La connexion Google n'est pas encore activée.");
+  }
+
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-surface px-4 py-10">
-      <div className="w-full max-w-md rounded-card border border-line bg-white p-6 shadow-sm">
-        <p className="text-[10px] uppercase tracking-[0.3px] text-ink-muted">Hublify</p>
-        <h1 className="mt-1 text-xl font-medium text-ink">Connexion</h1>
-        <p className="mt-1 text-sm text-ink-subtle">
-          Espace sécurisé — session chiffrée, cookie httpOnly, droits côté serveur.
-        </p>
-
-        <form className="mt-6 space-y-3" onSubmit={(ev) => void connecter(ev)}>
-          <label className="block">
-            <span className="mb-1.5 block text-xs text-ink-body">Email</span>
-            <input
-              ref={champEmail}
-              name="email"
-              type="email"
-              autoComplete="username"
-              required
-              defaultValue={MODE_DEMO ? "contact@tech-trust.fr" : ""}
-              className="h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
-            />
+    <CadreAuth
+      kicker="Commencer"
+      titre="Se connecter"
+      description="Accédez à votre espace Hublify et reprenez là où vous vous étiez arrêtés."
+    >
+      <button
+        type="button"
+        onClick={() => void google()}
+        className="mb-4 flex h-12 w-full items-center justify-center rounded-xl border border-v1-line-auth text-sm font-medium text-v1-ink"
+      >
+        Continuer avec Google
+      </button>
+      <p className="mb-4 text-center text-xs text-v1-ink-subtle">ou</p>
+      <form className="space-y-3" onSubmit={(ev) => void connecter(ev)}>
+        <label className="block">
+          <span className="mb-1.5 block text-xs text-ink-body">Adresse e-mail</span>
+          <input
+            ref={champEmail}
+            name="email"
+            type="email"
+            autoComplete="username"
+            required
+            defaultValue={MODE_DEMO ? "contact@tech-trust.fr" : ""}
+            className={champAuth}
+          />
+        </label>
+        <div>
+          <label htmlFor="champ-mdp" className="mb-1.5 block text-xs text-ink-body">
+            Mot de passe
           </label>
-          <div>
-            <label htmlFor="champ-mdp" className="mb-1.5 block text-xs text-ink-body">
-              Mot de passe
-            </label>
-            <ChampMotDePasse
-              ref={champMdp}
-              id="champ-mdp"
-              name="password"
-              autoComplete="current-password"
-              required
-              minLength={10}
-              defaultValue={MODE_DEMO ? MDP_DEMO : ""}
-            />
+          <div className="mb-1 flex justify-end">
+            <Link to="/mot-de-passe-oublie" className="text-xs text-v1-ink-muted">
+              Mot de passe oublié ?
+            </Link>
           </div>
-          <button
-            type="submit"
-            disabled={enCours || !pret}
-            className="flex h-11 w-full items-center justify-center rounded-card bg-ink text-sm font-medium text-white disabled:opacity-50"
-          >
-            {enCours ? "Connexion…" : "Se connecter"}
-          </button>
-        </form>
-        <p className="mt-4 text-center text-sm text-ink-subtle">
-          <Link to="/inscription" className="font-medium text-ink">
-            Créer un espace
-          </Link>
-          {" · "}
-          <Link to="/mot-de-passe-oublie" className="font-medium text-ink">
-            Mot de passe oublié
-          </Link>
-        </p>
+          <ChampMotDePasse
+            ref={champMdp}
+            id="champ-mdp"
+            name="password"
+            autoComplete="current-password"
+            required
+            minLength={10}
+            defaultValue={MODE_DEMO ? MDP_DEMO : ""}
+          />
+        </div>
+        <label className="flex items-center gap-2 text-sm text-v1-ink-body">
+          <input type="checkbox" name="souvenir" className="size-4 accent-v1-brand" />
+          Se souvenir de moi
+        </label>
+        <button type="submit" disabled={enCours || !pret} className={boutonAuth}>
+          {enCours ? "Connexion…" : "Se connecter"}
+        </button>
+      </form>
+      <p className="mt-4 text-center text-sm text-ink-subtle">
+        Nouveau sur Hublify ?{" "}
+        <Link to="/inscription" className="font-medium text-v1-brand">
+          Créer un compte
+        </Link>
+      </p>
 
-        {MODE_DEMO && (
-          <div className="mt-6 rounded-card border border-surface-soft bg-surface px-3 py-3">
-            <p className="text-[10px] uppercase tracking-[0.3px] text-ink-muted">
-              Comptes fondateurs
+      {MODE_DEMO && (
+        <div className="mt-6 rounded-card border border-surface-soft bg-surface px-3 py-3">
+          <p className="text-[10px] uppercase tracking-[0.3px] text-ink-muted">
+            Comptes fondateurs
+          </p>
+          <ul className="mt-2 space-y-1.5">
+            {COMPTES_FONDATEURS.map((c) => (
+              <li key={c.email}>
+                <button
+                  type="button"
+                  onClick={() => remplirCompte(c.email)}
+                  className="flex min-h-11 w-full flex-col justify-center text-left text-xs text-ink-body hover:text-ink md:min-h-0"
+                >
+                  <span className="font-medium text-ink">{c.nom}</span>
+                  <span className="ml-1 text-ink-muted">· {c.role}</span>
+                  <span className="block text-ink-muted">{c.email}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-[10px] uppercase tracking-[0.3px] text-ink-muted">Rôles démo</p>
+          <ul className="mt-2 space-y-1.5">
+            {COMPTES_DEMO.map((c) => (
+              <li key={c.email}>
+                <button
+                  type="button"
+                  onClick={() => remplirCompte(c.email)}
+                  className="flex min-h-11 w-full flex-col justify-center text-left text-xs text-ink-body hover:text-ink md:min-h-0"
+                >
+                  <span className="font-medium text-ink">{c.role}</span>
+                  <span className="block text-ink-muted">{c.email}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          {MDP_DEMO && (
+            <p className="mt-3 text-xs text-ink-body">
+              Mot de passe de tous ces comptes :{" "}
+              <span className="font-medium text-ink">{MDP_DEMO}</span>
             </p>
-            <ul className="mt-2 space-y-1.5">
-              {COMPTES_FONDATEURS.map((c) => (
-                <li key={c.email}>
-                  <button
-                    type="button"
-                    onClick={() => remplirCompte(c.email)}
-                    className="flex min-h-11 w-full flex-col justify-center text-left text-xs text-ink-body hover:text-ink md:min-h-0"
-                  >
-                    <span className="font-medium text-ink">{c.nom}</span>
-                    <span className="ml-1 text-ink-muted">· {c.role}</span>
-                    <span className="block text-ink-muted">{c.email}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-3 text-[10px] uppercase tracking-[0.3px] text-ink-muted">Rôles démo</p>
-            <ul className="mt-2 space-y-1.5">
-              {COMPTES_DEMO.map((c) => (
-                <li key={c.email}>
-                  <button
-                    type="button"
-                    onClick={() => remplirCompte(c.email)}
-                    className="flex min-h-11 w-full flex-col justify-center text-left text-xs text-ink-body hover:text-ink md:min-h-0"
-                  >
-                    <span className="font-medium text-ink">{c.role}</span>
-                    <span className="block text-ink-muted">{c.email}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {MDP_DEMO && (
-              <p className="mt-3 text-xs text-ink-body">
-                Mot de passe de tous ces comptes :{" "}
-                <span className="font-medium text-ink">{MDP_DEMO}</span>
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+          )}
+        </div>
+      )}
+    </CadreAuth>
   );
 }

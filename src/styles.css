@@ -21,6 +21,7 @@
 
 @theme inline {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Poppins", "Inter", ui-sans-serif, system-ui, sans-serif;
 
   /*
    * Tokens MO1 (source de vérité visuelle). Hex exacts de la maquette.
@@ -68,6 +69,37 @@
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-soft: var(--brand-soft);
   --color-brand-strong: var(--brand-strong);
+
+  /*
+   * Palette Hublify V1.0 (fichier Figma kBd9QQDfrAlr59dtwyUQZq, page 1).
+   * Utilitaires : bg-v1-brand, text-v1-ink, border-v1-line, font-display…
+   * La palette opérationnelle MO1 (--canvas, --ink, --line) reste en place
+   * tant que les écrans métier ne sont pas repris frame par frame.
+   */
+  --color-v1-brand: var(--v1-brand);
+  --color-v1-brand-soft: var(--v1-brand-soft);
+  --color-v1-brand-pill: var(--v1-brand-pill);
+  --color-v1-ink: var(--v1-ink);
+  --color-v1-ink-strong: var(--v1-ink-strong);
+  --color-v1-ink-body: var(--v1-ink-body);
+  --color-v1-ink-muted: var(--v1-ink-muted);
+  --color-v1-ink-subtle: var(--v1-ink-subtle);
+  --color-v1-canvas: var(--v1-canvas);
+  --color-v1-canvas-warm: var(--v1-canvas-warm);
+  --color-v1-canvas-auth: var(--v1-canvas-auth);
+  --color-v1-line: var(--v1-line);
+  --color-v1-line-strong: var(--v1-line-strong);
+  --color-v1-line-auth: var(--v1-line-auth);
+  --color-v1-green: var(--v1-green);
+  --color-v1-green-soft: var(--v1-green-soft);
+  --color-v1-green-ink: var(--v1-green-ink);
+  --color-v1-green-deep: var(--v1-green-deep);
+  --color-v1-success: var(--v1-success);
+  --color-v1-muted: var(--v1-muted);
+  --color-v1-warning: var(--v1-warning);
+  --color-v1-warning-soft: var(--v1-warning-soft);
+  --color-v1-mark: var(--v1-mark);
+  --color-v1-pro: var(--v1-pro);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-success-strong: var(--success-strong);
@@ -165,11 +197,41 @@
   --dot-edit: #f97316;
   --star: #facc15;
 
-  /* Maquette MO1 : navy pour l'actif, fond page gris très clair. */
-  --brand: oklch(0.32 0.05 264);
-  --brand-foreground: oklch(0.99 0 0);
-  --brand-soft: oklch(0.96 0.01 264);
-  --brand-strong: oklch(0.28 0.05 264);
+  /*
+   * Marque validée sur Hublify V1.0 : bleu #002fa7 (CTA, filet, liens actifs).
+   * --brand-strong est un assombrissement pour le survol, pas un aplat de la maquette.
+   * Nunito Sans n'apparaît pas dans ce fichier : Inter pour l'UI, Poppins pour les titres marketing.
+   */
+  --brand: #002fa7;
+  --brand-foreground: #ffffff;
+  --brand-soft: #f0f3fc;
+  --brand-strong: #001f73;
+  /* --primary et --ring restent les valeurs shadcn d'origine : les autres lots ne changent pas de bouton. */
+
+  --v1-brand: #002fa7;
+  --v1-brand-soft: #f0f3fc;
+  --v1-brand-pill: #c4d7e8;
+  --v1-ink: #16211d;
+  --v1-ink-strong: #171a22;
+  --v1-ink-body: #4e5b55;
+  --v1-ink-muted: #686d7a;
+  --v1-ink-subtle: #8b90a0;
+  --v1-canvas: #f7f6f2;
+  --v1-canvas-warm: #f7f5f0;
+  --v1-canvas-auth: #f6f7fb;
+  --v1-line: #d9dfdb;
+  --v1-line-strong: #c6cec9;
+  --v1-line-auth: #dadde6;
+  --v1-green: #167a5a;
+  --v1-green-soft: #ddf0e8;
+  --v1-green-ink: #0d5e43;
+  --v1-green-deep: #12211c;
+  --v1-success: #18815c;
+  --v1-muted: #76817b;
+  --v1-warning: #b97418;
+  --v1-warning-soft: #f7e8d3;
+  --v1-mark: #9e2f1e;
+  --v1-pro: #ffc0b6;
 
   --success: oklch(0.62 0.13 155);
   --success-soft: oklch(0.96 0.03 155);

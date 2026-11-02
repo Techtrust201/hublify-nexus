@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { boutonAuth, CadreAuth, champAuth } from "@/components/marque/CadreAuth";
 import { authClient } from "@/lib/auth-client";
 import { toastErreur, toastOk } from "@/lib/feedback";
 
@@ -32,36 +33,45 @@ function PageOublie() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-surface px-4 py-10">
-      <div className="w-full max-w-md rounded-card border border-line bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-medium text-ink">Mot de passe oublié</h1>
-        <p className="mt-1 text-sm text-ink-subtle">
-          Indiquez votre e-mail. Vous recevrez un lien de réinitialisation.
-        </p>
-        <form className="mt-6 space-y-3" onSubmit={(ev) => void envoyer(ev)}>
-          <label className="block">
-            <span className="mb-1.5 block text-xs text-ink-body">Email</span>
-            <input
-              name="email"
-              type="email"
-              required
-              className="h-11 w-full rounded-card border border-line px-3 text-sm outline-none"
-            />
-          </label>
-          <button
-            type="submit"
-            disabled={enCours || !pret}
-            className="flex h-11 w-full items-center justify-center rounded-card bg-ink text-sm font-medium text-white disabled:opacity-50"
-          >
-            {enCours ? "Envoi…" : "Envoyer le lien"}
-          </button>
-        </form>
-        <p className="mt-4 text-center text-sm">
-          <Link to="/connexion" className="text-ink">
-            Retour à la connexion
-          </Link>
+    <CadreAuth
+      kicker="Récupération du compte"
+      titre="Mot de passe oublié ?"
+      description="Indiquez l'adresse e-mail utilisée lors de votre inscription. Nous vous enverrons un lien sécurisé."
+    >
+      <form className="space-y-3" onSubmit={(ev) => void envoyer(ev)}>
+        <label className="block">
+          <span className="mb-1.5 block text-xs text-v1-ink-body">Email</span>
+          <input
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder="camille@atelier.fr"
+            className={champAuth}
+          />
+        </label>
+        <button type="submit" disabled={enCours || !pret} className={boutonAuth}>
+          {enCours ? "Envoi…" : "Envoyer le lien de réinitialisation"}
+        </button>
+      </form>
+      <div className="mt-4 rounded-xl bg-v1-brand-soft px-4 py-3 text-sm text-v1-ink">
+        <p className="font-semibold">Lien valable 30 minutes</p>
+        <p className="mt-1 text-v1-ink-body">
+          Pour votre sécurité, le lien ne pourra être utilisé qu'une seule fois.
         </p>
       </div>
-    </div>
+      <p className="mt-4 text-center text-sm text-v1-ink-body">
+        Vous vous souvenez de votre mot de passe ?{" "}
+        <Link to="/connexion" className="font-medium text-v1-brand">
+          Se connecter
+        </Link>
+      </p>
+      <p className="mt-2 text-center text-sm text-v1-ink-muted">
+        Vous n'avez plus accès à cet e-mail ?{" "}
+        <Link to="/faq" className="font-medium text-v1-ink">
+          Contactez notre équipe
+        </Link>
+      </p>
+    </CadreAuth>
   );
 }

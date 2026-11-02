@@ -24,6 +24,7 @@ import { DialogueConfirmation } from "@/components/ui/dialogue-confirmation";
 import { Toaster } from "@/components/ui/sonner";
 import { hydraterSession } from "@/data/session";
 import { getSession } from "@/lib/auth.functions";
+import { estCheminAuth, estCheminMarketing } from "@/lib/routes-publiques";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -97,15 +98,12 @@ export const Route = createRootRouteWithContext<{
   auth: AuthContexte | null;
 }>()({
   beforeLoad: async ({ location }): Promise<{ auth: AuthContexte | null }> => {
-    const estPublic =
-      location.pathname === "/connexion" ||
-      location.pathname === "/inscription" ||
-      location.pathname === "/mot-de-passe-oublie" ||
-      location.pathname === "/reinitialiser-mot-de-passe" ||
-      location.pathname.startsWith("/api/");
-    if (estPublic) return { auth: null };
+    if (estCheminAuth(location.pathname) || location.pathname.startsWith("/api/")) {
+      return { auth: null };
+    }
     const auth = await getSession();
     if (!auth) {
+      if (estCheminMarketing(location.pathname)) return { auth: null };
       throw redirect({ to: "/connexion" });
     }
     if (estRolePortail(auth.roleId)) {
@@ -113,9 +111,13 @@ export const Route = createRootRouteWithContext<{
         location.pathname === "/espace" ||
         location.pathname.startsWith("/espace/") ||
         location.pathname === "/profil";
-      if (!portail) {
+      const marketing = estCheminMarketing(location.pathname) && location.pathname !== "/";
+      if (!portail && !marketing) {
         throw redirect({ to: "/espace" });
       }
+      return { auth };
+    }
+    if (estCheminMarketing(location.pathname) && location.pathname !== "/") {
       return { auth };
     }
     const besoin = droitRequisPourChemin(location.pathname);
@@ -156,7 +158,7 @@ export const Route = createRootRouteWithContext<{
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap",
       },
       { rel: "icon", href: "/favicon.ico?v=2", type: "image/x-icon" },
       { rel: "icon", href: "/hublify-mark.png?v=2", type: "image/png", sizes: "128x128" },
