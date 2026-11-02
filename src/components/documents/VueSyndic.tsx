@@ -11,8 +11,7 @@ import type { ContactCopro } from "@/data/v1-metier";
 import { confirmer, telechargerPdf, toastErreur, toastOk } from "@/lib/feedback";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
-const champ =
-  "mt-1 h-10 w-full rounded-card border border-line px-3 text-sm text-ink outline-none";
+const champ = "mt-1 h-10 w-full rounded-card border border-line px-3 text-sm text-ink outline-none";
 
 export function VueSyndic({
   docs,
@@ -80,7 +79,9 @@ export function VueSyndic({
       </div>
 
       <section className="overflow-hidden rounded-card border border-line bg-white">
-        <header className="border-b border-surface-soft px-5 py-3 text-sm text-ink">Documents</header>
+        <header className="border-b border-surface-soft px-5 py-3 text-sm text-ink">
+          Documents
+        </header>
         {docs.length === 0 ? (
           <p className="px-5 py-4 text-sm text-ink-muted">Aucun document syndic pour le moment.</p>
         ) : (
@@ -113,9 +114,7 @@ export function VueSyndic({
                     className="text-xs text-ink-muted"
                     onClick={() => {
                       poserCollection("documents", (liste) =>
-                        liste.map((x) =>
-                          x.id === d.id ? { ...x, filtre: "Archivé" } : x,
-                        ),
+                        liste.map((x) => (x.id === d.id ? { ...x, filtre: "Archivé" } : x)),
                       );
                       toastOk("Document archivé.");
                     }}
@@ -130,7 +129,9 @@ export function VueSyndic({
       </section>
 
       <section className="overflow-hidden rounded-card border border-line bg-white">
-        <header className="border-b border-surface-soft px-5 py-3 text-sm text-ink">Contacts copropriété</header>
+        <header className="border-b border-surface-soft px-5 py-3 text-sm text-ink">
+          Contacts copropriété
+        </header>
         {session.contactsCopro.length === 0 ? (
           <p className="px-5 py-4 text-sm text-ink-muted">Aucun contact. Ajoutez le syndic.</p>
         ) : (
@@ -195,7 +196,9 @@ export function VueSyndic({
       <Dialog open={Boolean(form)} onOpenChange={(o) => !o && setForm(null)}>
         <DialogContent className="max-w-md">
           <DialogTitle>{form?.id ? "Contact copropriété" : "Nouveau contact"}</DialogTitle>
-          <DialogDescription>Nom, copropriété et coordonnées pour relancer le syndic.</DialogDescription>
+          <DialogDescription>
+            Nom, copropriété et coordonnées pour relancer le syndic.
+          </DialogDescription>
           {form && (
             <div className="mt-3 space-y-2">
               <label className="block text-xs text-ink-muted">

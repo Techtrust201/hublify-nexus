@@ -184,8 +184,8 @@ export function CompteGestionnaire() {
             },
           }).then((res) => {
             if (!res.ok) {
-              toastOk(
-                "Entreprise enregistrée sur cet appareil. L'identité n'a pas rejoint la base.",
+              toastErreur(
+                "Le compte entreprise est enregistré, mais l'identité n'a pas rejoint la base.",
               );
               return;
             }

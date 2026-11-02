@@ -1,5 +1,4 @@
-import { creerMagasin } from "@/data/magasin-local";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 
 /**
  * SOURCE: Hublify V1.0 — Maq V1 Gestionnaire / Patrimoine
@@ -691,49 +690,121 @@ export function annoncePublable(fiche: FicheLieu): string | null {
 }
 
 const FICHES_VIDES: Record<string, FicheLieu> = {};
-const magasinFiches = creerMagasin<Record<string, FicheLieu>>(
-  "hublify.fiches-lieu.v1",
-  FICHES_VIDES,
-  (brut) => {
-    if (!brut || typeof brut !== "object") return FICHES_VIDES;
+const CLE_FICHES = "hublify.fiches-lieu.v1";
+const CLE_TYPES = "hublify.types-lieu.v1";
+
+function lireFichesLegacyPuisPurger(): Record<string, FicheLieu> | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const brut = localStorage.getItem(CLE_FICHES);
+    localStorage.removeItem(CLE_FICHES);
+    if (!brut) return null;
+    const lu = JSON.parse(brut) as unknown;
+    if (!lu || typeof lu !== "object") return null;
     const sortie: Record<string, FicheLieu> = {};
-    for (const [id, fiche] of Object.entries(brut as Record<string, unknown>)) {
+    for (const [id, fiche] of Object.entries(lu as Record<string, unknown>)) {
       sortie[id] = normaliserFiche(fiche);
     }
     return sortie;
-  },
-);
+  } catch {
+    try {
+      localStorage.removeItem(CLE_FICHES);
+    } catch {
+      /* ignore */
+    }
+    return null;
+  }
+}
 
-const magasinTypes = creerMagasin<string[]>("hublify.types-lieu.v1", [], (brut) =>
-  Array.isArray(brut) ? brut.filter((x) => typeof x === "string" && x.trim()) : [],
-);
+function lireTypesLegacyPuisPurger(): string[] | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const brut = localStorage.getItem(CLE_TYPES);
+    localStorage.removeItem(CLE_TYPES);
+    if (!brut) return null;
+    const lu = JSON.parse(brut) as unknown;
+    return Array.isArray(lu) ? lu.filter((x) => typeof x === "string" && x.trim()) : null;
+  } catch {
+    try {
+      localStorage.removeItem(CLE_TYPES);
+    } catch {
+      /* ignore */
+    }
+    return null;
+  }
+}
 
 export function useFichesLieu() {
-  const fiches = useSyncExternalStore(
-    magasinFiches.souscrire,
-    magasinFiches.lire,
-    magasinFiches.lireServeur,
-  );
-  const typesPerso = useSyncExternalStore(
-    magasinTypes.souscrire,
-    magasinTypes.lire,
-    magasinTypes.lireServeur,
-  );
+  const [fiches, setFiches] = useState<Record<string, FicheLieu>>(FICHES_VIDES);
+  const [typesPerso, setTypesPerso] = useState<string[]>([]);
+
+  useEffect(() => {
+    let actif = true;
+    const legacyFiches = lireFichesLegacyPuisPurger();
+    const legacyTypes = lireTypesLegacyPuisPurger();
+    void import("@/data/parametres-remote").then(
+      ({ chargerFichesLieuDistantes, sauverFicheLieuDistante, sauverTypesLieuDistants }) =>
+        chargerFichesLieuDistantes().then(async (res) => {
+          if (!actif) return;
+          if (res.ok) {
+            const distant = res.data;
+            const fichesFinal =
+              Object.keys(distant.fiches).length === 0 && legacyFiches
+                ? legacyFiches
+                : distant.fiches;
+            const typesFinal =
+              distant.typesPerso.length === 0 && legacyTypes ? legacyTypes : distant.typesPerso;
+            setFiches(fichesFinal);
+            setTypesPerso(typesFinal);
+            if (legacyFiches && Object.keys(distant.fiches).length === 0) {
+              for (const [id, fiche] of Object.entries(legacyFiches)) {
+                await sauverFicheLieuDistante({ data: { bienId: id, fiche } });
+              }
+            }
+            if (legacyTypes && distant.typesPerso.length === 0) {
+              await sauverTypesLieuDistants({ data: { types: legacyTypes } });
+            }
+          } else {
+            if (legacyFiches) setFiches(legacyFiches);
+            if (legacyTypes) setTypesPerso(legacyTypes);
+          }
+        }),
+    );
+    return () => {
+      actif = false;
+    };
+  }, []);
+
   return {
     fiches,
     typesPerso,
     sauver(id: string, fiche: FicheLieu) {
-      magasinFiches.ecrire({ ...magasinFiches.lire(), [id]: normaliserFiche(fiche) });
+      const propre = normaliserFiche(fiche);
+      setFiches((prev) => ({ ...prev, [id]: propre }));
+      void import("@/data/parametres-remote").then(({ sauverFicheLieuDistante }) =>
+        sauverFicheLieuDistante({ data: { bienId: id, fiche: propre } }),
+      );
     },
     retirer(ids: string[]) {
-      const suivant = { ...magasinFiches.lire() };
-      ids.forEach((id) => delete suivant[id]);
-      magasinFiches.ecrire(suivant);
+      setFiches((prev) => {
+        const suivant = { ...prev };
+        ids.forEach((id) => delete suivant[id]);
+        return suivant;
+      });
+      void import("@/data/parametres-remote").then(({ sauverFicheLieuDistante }) => {
+        for (const id of ids) {
+          void sauverFicheLieuDistante({ data: { bienId: id, fiche: ficheVierge() } });
+        }
+      });
     },
     ajouterType(nom: string) {
       const propre = nom.trim();
-      if (!propre || TYPES_LIEU.includes(propre) || magasinTypes.lire().includes(propre)) return;
-      magasinTypes.ecrire([...magasinTypes.lire(), propre]);
+      if (!propre || TYPES_LIEU.includes(propre) || typesPerso.includes(propre)) return;
+      const suivant = [...typesPerso, propre];
+      setTypesPerso(suivant);
+      void import("@/data/parametres-remote").then(({ sauverTypesLieuDistants }) =>
+        sauverTypesLieuDistants({ data: { types: suivant } }),
+      );
     },
   };
 }

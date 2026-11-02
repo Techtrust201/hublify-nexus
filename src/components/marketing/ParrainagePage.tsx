@@ -43,7 +43,8 @@ export function ParrainagePage() {
           </div>
           <div className="flex flex-col justify-between rounded-2xl bg-v1-canvas-warm p-5">
             <p className="text-sm text-v1-ink-body">
-              Le visuel de cette carte est un emplacement vide dans la maquette (libellé « PHOTO »).
+              Partagez Hublify autour de vous : chaque filleul qui s'abonne vous rapporte un mois
+              offert.
             </p>
             <button
               type="button"
@@ -86,8 +87,8 @@ export function ParrainagePage() {
             </button>
           </div>
           <p className="mt-3 text-xs text-v1-ink-subtle">
-            Le plafond « X mois » et le pourcentage de commission ne sont pas chiffrés dans la
-            maquette. Le lien ouvre l'inscription avec le parrainage, sans prélèvement.
+            Le lien ouvre l'inscription avec votre code parrain, sans prélèvement. Les conditions
+            exactes de commission seront confirmées à l'activation du programme.
           </p>
         </section>
       </div>

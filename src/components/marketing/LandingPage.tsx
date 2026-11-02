@@ -33,16 +33,27 @@ export function LandingPage() {
       <Profils />
       <Equipe />
       <Comparaison />
-      <Temoignages />
+      {AFFICHER_TEMOIGNAGES ? <Temoignages /> : <PointsForts />}
       <Tarifs />
       <Faq />
     </>
   );
 }
 
-function Sourcil({ children }: { children: string }) {
+function Sourcil({
+  children,
+  variante = "marque",
+}: {
+  children: string;
+  variante?: "marque" | "clair";
+}) {
   return (
-    <p className="inline-flex rounded-full border border-v1-brand px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.8px] text-v1-brand">
+    <p
+      className={cn(
+        "inline-flex rounded-full border px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.8px]",
+        variante === "clair" ? "border-white/45 text-white" : "border-v1-brand text-v1-brand",
+      )}
+    >
       {children}
     </p>
   );
@@ -336,11 +347,9 @@ function Dossier() {
           Votre dossier de location, chargé une seule fois, partagé en toute sécurité.
         </h2>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-v1-ink-body">
-          Hublify propose un espace sécurisé pour centraliser et recevoir vos documents, pour une
-          meilleure gestion fidèle au quotidien. Créez votre espace, chargez vos documents et
-          partagez un lien unique sur la plateforme mais aussi sur toutes les autres plateformes de
-          location. Une fois le lien envoyé vous recevrez une demande d'accès validée 72 jours, ou
-          les jours entre chaque à tout moment.
+          Centralisez vos pièces dans un espace sécurisé, puis partagez un lien unique avec les
+          agences et plateformes de votre choix. Chaque destinataire demande l'accès ; vous validez
+          ou retirez la consultation à tout moment, sans renvoyer les mêmes documents.
         </p>
         <div className="mt-8 grid gap-4 lg:grid-cols-3">
           <article className="rounded-[20px] border border-v1-line p-5">
@@ -354,15 +363,15 @@ function Dossier() {
           <article className="rounded-[20px] border border-v1-line p-5">
             <h3 className="font-semibold text-v1-ink">Documents confidentiels</h3>
             <p className="mt-2 text-sm text-v1-ink-body">
-              Une fois chargé, vos documents confidentiels sont légitimes et ne peuvent être copiés.
-              Vous pouvez révéler l'accès de consultation à tout moment.
+              Vos documents sensibles restent protégés : seuls les destinataires que vous autorisez
+              peuvent les consulter, et vous pouvez retirer cet accès à tout moment.
             </p>
           </article>
           <article className="rounded-[20px] border border-v1-line bg-v1-brand-soft p-5">
             <h3 className="font-semibold text-v1-ink">Annonces au même endroit</h3>
             <p className="mt-2 text-sm text-v1-ink-body">
-              Les annonces vues dans la maquette affichent 890 € et 620 €. Le fond de carte n'est
-              pas un fichier livré : le texte du bloc est conservé, pas une capture.
+              Suivez vos candidatures et les annonces qui vous intéressent au même endroit, sans
+              disperser vos pièces entre plusieurs plateformes.
             </p>
           </article>
         </div>
@@ -463,11 +472,11 @@ function Equipe() {
     <section className="bg-v1-green-deep px-5 py-16 text-white lg:px-[72px]">
       <div className="mx-auto grid max-w-[1440px] gap-8 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
         <p className="text-sm text-white/80">
-          Satisfaction utilisateurs. Le commentaire est un champ de la maquette, sans citation
-          rédigée.
+          Pensé pour les propriétaires, conciergeries et gestionnaires qui veulent un outil clair au
+          quotidien.
         </p>
         <div>
-          <Sourcil>Gestion pour tous les profils</Sourcil>
+          <Sourcil variante="clair">Gestion pour tous les profils</Sourcil>
           <h2 className="mt-4 font-display text-3xl tracking-tight">
             Hublify est créé par des particuliers devenus professionnels.
           </h2>
@@ -513,8 +522,8 @@ function Comparaison() {
         <div className="mt-8 overflow-x-auto rounded-2xl border border-v1-line bg-white">
           <table className="w-full min-w-[640px] text-left text-sm">
             <caption className="px-4 py-3 text-left text-xs text-v1-ink-muted">
-              Données 2026 issues d'un parc locatif basé à Cannes (06). L'annotation « à tester un
-              code couleur » n'est pas un aplat : la colonne hybride est la seule mise en avant.
+              Exemple illustratif 2026, parc locatif à Cannes (06). La colonne hybride est mise en
+              avant pour comparer occupation et revenus.
             </caption>
             <thead>
               <tr className="border-b border-v1-line">
@@ -548,63 +557,54 @@ function Comparaison() {
   );
 }
 
-const TEMOIGNAGES = [
+/** Masqué tant qu'aucun témoignage réel n'est disponible — pas de citations inventées en prod. */
+const AFFICHER_TEMOIGNAGES = false;
+
+const POINTS_FORTS = [
   {
-    quote:
-      "Je suis enfin au clair sans avoir trois tableurs. Les quittances partent seules et je ne découvre plus les retards dix jours après.",
-    nom: "Sophie Lemoine",
-    role: "Propriétaire de 7 lots, Nantes",
-    sombre: false,
+    titre: "Suivi des loyers sans tableur",
+    texte:
+      "Échéances, relances et quittances restent rattachées au bon logement et au bon occupant.",
   },
   {
-    quote:
-      "Cela nous a permis de conserver une relation très humaine avec nos locataires tout en absorbant deux fois plus de mandats.",
-    nom: "Thomas Rodière",
-    role: "Fondateur, Agence Rive Gauche, Lyon",
-    sombre: true,
+    titre: "Équipe et portail au même rythme",
+    texte:
+      "Gestionnaires, prestataires et locataires partagent le même fil d'événements, sans doublons.",
   },
   {
-    quote:
-      "Mon comptable reçoit un export propre, mes documents sont au bon endroit, et je prépare facilement une demi-journée chaque mois.",
-    nom: "Nadia Ben Amar",
-    role: "Propriétaire de 4 lots, Montpellier",
-    sombre: false,
+    titre: "Documents prêts pour le comptable",
+    texte:
+      "Exports et dossiers restent classés au bon nom, pour une clôture mensuelle plus courte.",
   },
 ] as const;
 
-function Temoignages() {
+function PointsForts() {
   return (
     <section className="bg-white px-5 py-16 lg:px-[72px]">
       <div className="mx-auto max-w-[1440px]">
-        <Sourcil>Ils respirent mieux</Sourcil>
+        <Sourcil>Ce que change Hublify</Sourcil>
         <h2 className="mt-4 font-display text-3xl tracking-tight text-v1-ink">
-          La sérénité, racontée par ceux qui gèrent
+          Une gestion plus claire, sans promesse inventée
         </h2>
         <p className="mt-3 text-sm text-v1-ink-body">
-          Des portefeuilles différents, le même soulagement : savoir que tout est suivi au bon nom.
+          Des bénéfices concrets pour le quotidien — les retours clients nommés arriveront quand ils
+          seront disponibles.
         </p>
         <ul className="mt-8 grid gap-4 lg:grid-cols-3">
-          {TEMOIGNAGES.map((t) => (
-            <li
-              key={t.nom}
-              className={cn(
-                "rounded-[20px] border p-5",
-                t.sombre
-                  ? "border-v1-green-deep bg-v1-green-deep text-white"
-                  : "border-v1-line bg-white",
-              )}
-            >
-              <p className="text-sm leading-relaxed">« {t.quote} »</p>
-              <p className="mt-4 text-sm font-semibold">{t.nom}</p>
-              <p className={cn("text-xs", t.sombre ? "text-white/70" : "text-v1-ink-muted")}>
-                {t.role}
-              </p>
+          {POINTS_FORTS.map((p) => (
+            <li key={p.titre} className="rounded-[20px] border border-v1-line bg-white p-5">
+              <p className="text-sm font-semibold text-v1-ink">{p.titre}</p>
+              <p className="mt-2 text-sm leading-relaxed text-v1-ink-body">{p.texte}</p>
             </li>
           ))}
         </ul>
       </div>
     </section>
   );
+}
+
+function Temoignages() {
+  return null;
 }
 
 function Tarifs() {

@@ -1,9 +1,8 @@
-import { creerMagasin } from "@/data/magasin-local";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 
 /**
  * Réglages visibles sur la frame Paramètres et absents de `public.parametrage`.
- * Les interrupteurs déjà en base restent dans ParametrageSession.
+ * Persistés en base (`org_reglages_etendus`).
  */
 
 export type OffreAbonnement = "essentiel" | "confort" | "agence";
@@ -75,14 +74,72 @@ export function planPrestationsAuto(
   return lignes;
 }
 
-const magasin = creerMagasin("hublify.reglages-etendus.v1", REGLAGES_DEFAUT, normaliserReglages);
+const CLE_LEGACY = "hublify.reglages-etendus.v1";
+
+function lireLegacyPuisPurger(): ReglagesEtendus | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const brut = localStorage.getItem(CLE_LEGACY);
+    localStorage.removeItem(CLE_LEGACY);
+    if (!brut) return null;
+    return normaliserReglages(JSON.parse(brut) as unknown);
+  } catch {
+    try {
+      localStorage.removeItem(CLE_LEGACY);
+    } catch {
+      /* ignore */
+    }
+    return null;
+  }
+}
 
 export function useReglagesEtendus() {
-  const reglages = useSyncExternalStore(magasin.souscrire, magasin.lire, magasin.lireServeur);
+  const [reglages, setReglages] = useState<ReglagesEtendus>(REGLAGES_DEFAUT);
+
+  useEffect(() => {
+    let actif = true;
+    const legacy = lireLegacyPuisPurger();
+    void import("@/data/parametres-remote").then(
+      ({ chargerReglagesEtendusDistants, sauverReglagesEtendusDistants }) =>
+        chargerReglagesEtendusDistants().then(async (res) => {
+          if (!actif) return;
+          if (res.ok) {
+            const distant = res.data;
+            const estDefaut =
+              distant.messageRelanceLoyer === REGLAGES_DEFAUT.messageRelanceLoyer &&
+              distant.abonnementRef === REGLAGES_DEFAUT.abonnementRef &&
+              distant.offre === REGLAGES_DEFAUT.offre;
+            if (estDefaut && legacy) {
+              setReglages(legacy);
+              await sauverReglagesEtendusDistants({ data: legacy });
+            } else {
+              setReglages(distant);
+            }
+          } else if (legacy) {
+            setReglages(legacy);
+          }
+        }),
+    );
+    return () => {
+      actif = false;
+    };
+  }, []);
+
   return {
     reglages,
     sauver(suivant: ReglagesEtendus) {
-      magasin.ecrire(normaliserReglages(suivant));
+      const propre = normaliserReglages(suivant);
+      setReglages(propre);
+      if (typeof localStorage !== "undefined") {
+        try {
+          localStorage.removeItem(CLE_LEGACY);
+        } catch {
+          /* ignore */
+        }
+      }
+      void import("@/data/parametres-remote").then(({ sauverReglagesEtendusDistants }) =>
+        sauverReglagesEtendusDistants({ data: propre }),
+      );
     },
   };
 }

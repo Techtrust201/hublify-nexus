@@ -7,7 +7,7 @@ export type ReglagesMessagerie = {
   propositions: Record<string, BrouillonBail>;
 };
 
-const CLE = "hublify.messagerie.reglages.v1";
+export const CLE_REGLAGES_MESSAGERIE = "hublify.messagerie.reglages.v1";
 
 export function reglagesParDefaut(): ReglagesMessagerie {
   return { parcours: parcoursInitiaux(), situations: {}, propositions: {} };
@@ -34,20 +34,41 @@ export function normaliserReglages(brut: unknown): ReglagesMessagerie {
   };
 }
 
-export function lireReglages(): ReglagesMessagerie {
-  if (typeof localStorage === "undefined") return reglagesParDefaut();
+/** Lecture one-shot du legacy local — puis purge. */
+export function lireReglagesLegacyPuisPurger(): ReglagesMessagerie | null {
+  if (typeof localStorage === "undefined") return null;
   try {
-    const brut = localStorage.getItem(CLE);
-    if (!brut) return reglagesParDefaut();
+    const brut = localStorage.getItem(CLE_REGLAGES_MESSAGERIE);
+    localStorage.removeItem(CLE_REGLAGES_MESSAGERIE);
+    if (!brut) return null;
     return normaliserReglages(JSON.parse(brut) as unknown);
   } catch {
-    return reglagesParDefaut();
+    try {
+      localStorage.removeItem(CLE_REGLAGES_MESSAGERIE);
+    } catch {
+      /* ignore */
+    }
+    return null;
   }
 }
 
-export function ecrireReglages(reglages: ReglagesMessagerie) {
+export function purgerReglagesMessagerieLocal() {
   if (typeof localStorage === "undefined") return;
-  localStorage.setItem(CLE, JSON.stringify(reglages));
+  try {
+    localStorage.removeItem(CLE_REGLAGES_MESSAGERIE);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** @deprecated Conservé pour compat tests — préférer la base. */
+export function lireReglages(): ReglagesMessagerie {
+  return lireReglagesLegacyPuisPurger() ?? reglagesParDefaut();
+}
+
+/** @deprecated Ne plus écrire en localStorage. */
+export function ecrireReglages(_reglages: ReglagesMessagerie) {
+  purgerReglagesMessagerieLocal();
 }
 
 export function propositionPour(

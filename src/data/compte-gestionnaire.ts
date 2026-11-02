@@ -1,9 +1,11 @@
-import { creerMagasin } from "@/data/magasin-local";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
+import { ibanValide } from "@/lib/iban";
+
+export { ibanValide } from "@/lib/iban";
 
 /**
- * Champs du compte gestionnaire absents du schéma `profils`
- * (raison sociale, SIRET, carte T, RIB, équipe). Persistés localement.
+ * Champs du compte gestionnaire (raison sociale, SIRET, carte T, RIB, équipe).
+ * Persistés en base (`org_compte`). Le RIB ne doit plus rester dans localStorage.
  * SOURCE: Hublify V1.0 — Compte gestionnaire, annotation 220:20741.
  */
 
@@ -68,21 +70,6 @@ export function siretValide(valeur: string): boolean {
   return chiffres.length === 14 && luhnValide(chiffres);
 }
 
-export function ibanValide(valeur: string): boolean {
-  const compact = valeur.replace(/\s/g, "").toUpperCase();
-  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(compact)) return false;
-  const tourne = compact.slice(4) + compact.slice(0, 4);
-  const chiffres = tourne
-    .split("")
-    .map((c) => (c >= "A" && c <= "Z" ? String(c.charCodeAt(0) - 55) : c))
-    .join("");
-  let reste = 0;
-  for (const c of chiffres) {
-    reste = (reste * 10 + Number(c)) % 97;
-  }
-  return reste === 1;
-}
-
 export function profilCarteTVerifie(input: {
   detenteurCarteT: boolean;
   numeroAgrement: string;
@@ -106,14 +93,76 @@ export function messageCompte(compte: CompteEntreprise): string | null {
   return null;
 }
 
-const magasin = creerMagasin("hublify.compte-entreprise.v1", COMPTE_DEFAUT, normaliserCompte);
+const CLE_LEGACY = "hublify.compte-entreprise.v1";
+
+function lireLegacyPuisPurger(): CompteEntreprise | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const brut = localStorage.getItem(CLE_LEGACY);
+    localStorage.removeItem(CLE_LEGACY);
+    if (!brut) return null;
+    return normaliserCompte(JSON.parse(brut) as unknown);
+  } catch {
+    try {
+      localStorage.removeItem(CLE_LEGACY);
+    } catch {
+      /* ignore */
+    }
+    return null;
+  }
+}
+
+export function purgerCompteLocal() {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.removeItem(CLE_LEGACY);
+  } catch {
+    /* ignore */
+  }
+}
 
 export function useCompteEntreprise() {
-  const compte = useSyncExternalStore(magasin.souscrire, magasin.lire, magasin.lireServeur);
+  const [compte, setCompte] = useState<CompteEntreprise>(COMPTE_DEFAUT);
+
+  useEffect(() => {
+    let actif = true;
+    const legacy = lireLegacyPuisPurger();
+    void import("@/data/parametres-remote").then(({ chargerCompteDistant, sauverCompteDistant }) =>
+      chargerCompteDistant().then(async (res) => {
+        if (!actif) return;
+        if (res.ok) {
+          const distant = res.data;
+          const vide =
+            !distant.iban && !distant.raisonSociale && !distant.siret && !distant.titulaireRib;
+          if (vide && legacy) {
+            setCompte(legacy);
+            const sauve = await sauverCompteDistant({ data: legacy });
+            if (sauve.ok) purgerCompteLocal();
+          } else {
+            setCompte(distant);
+          }
+        } else if (legacy) {
+          setCompte(legacy);
+        }
+        purgerCompteLocal();
+      }),
+    );
+    return () => {
+      actif = false;
+    };
+  }, []);
+
   return {
     compte,
     sauver(suivant: CompteEntreprise) {
-      magasin.ecrire(normaliserCompte(suivant));
+      const propre = normaliserCompte(suivant);
+      setCompte(propre);
+      purgerCompteLocal();
+      void import("@/data/parametres-remote").then(({ sauverCompteDistant }) =>
+        sauverCompteDistant({ data: propre }).finally(() => {
+          purgerCompteLocal();
+        }),
+      );
     },
   };
 }

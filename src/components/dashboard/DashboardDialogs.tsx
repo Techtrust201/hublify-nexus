@@ -16,6 +16,7 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import {
+  AUJOURD_HUI_MO1,
   ENSEMBLES_MO1,
   TYPES_REGLE,
   emojiType,
@@ -30,6 +31,10 @@ import {
   type TypeModifTarif,
   type TypeRegle,
 } from "@/data/planning-mo1";
+
+function jourLocalIso() {
+  return AUJOURD_HUI_MO1;
+}
 import { useSession } from "@/data/session";
 import { nuitsEntre } from "@/data/reservations-mo1";
 import {
@@ -683,8 +688,8 @@ export function CreateRegleDialog({
   const session = useSession();
   const [nom, setNom] = useState("");
   const [type, setType] = useState<TypeRegle>("weekend");
-  const [debut, setDebut] = useState("2026-03-13");
-  const [fin, setFin] = useState("2026-03-13");
+  const [debut, setDebut] = useState(() => dateInitiale ?? jourLocalIso());
+  const [fin, setFin] = useState(() => dateInitiale ?? jourLocalIso());
   const [bienId, setBienId] = useState(session.biens[0]?.id ?? "");
   const [modif, setModif] = useState<TypeModifTarif>("majoration");
   const [valeur, setValeur] = useState(20);
@@ -701,8 +706,9 @@ export function CreateRegleDialog({
     setNomEnsemble("");
     setCreerEnsemble(false);
     setPeriodeSeule(true);
-    setDebut(dateInitiale ?? "2026-03-13");
-    setFin(dateInitiale ?? "2026-03-13");
+    const jour = dateInitiale ?? jourLocalIso();
+    setDebut(jour);
+    setFin(jour);
     setBienId(bienIdInitial ?? session.biens[0]?.id ?? "");
   }, [ouvert, dateInitiale, bienIdInitial]);
 

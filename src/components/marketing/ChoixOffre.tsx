@@ -125,8 +125,8 @@ export function ChoixOffre() {
         })}
       </fieldset>
       <p className="mt-3 text-xs text-v1-ink-muted">
-        L'annuel reprend la remise de 20 % indiquée sur la landing. La durée d'essai du freemium
-        n'est pas chiffrée dans la maquette (marquée « X jours »). Aucune carte n'est demandée.
+        L'annuel reprend la remise de 20 % indiquée sur la landing. L'essai freemium ne demande
+        aucune carte bancaire.
       </p>
       <button
         type="button"
