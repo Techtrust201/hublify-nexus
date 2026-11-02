@@ -755,12 +755,20 @@ function Hub({
           const Icone = iconeDossier(c.id);
           return (
             <article key={c.id} className="pt-2">
-              <button type="button" onClick={() => onOuvrirCarte(c)} className="w-full text-left">
-                <span className="relative block">
-                  <span className="inline-flex max-w-[78%] rounded-t-xl bg-[#e7eef8] px-3 pt-2 pb-1 text-xs font-medium text-ink">
-                    {c.titre}
-                  </span>
-                  <span className="block overflow-hidden rounded-xl rounded-tl-none border border-[#d5deea] bg-white">
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => onOuvrirCarte(c)}
+                  className="inline-flex max-w-[78%] rounded-t-xl bg-[#e7eef8] px-3 pt-2 pb-1 text-left text-xs font-medium text-ink"
+                >
+                  {c.titre}
+                </button>
+                <div className="overflow-hidden rounded-xl rounded-tl-none border border-[#d5deea] bg-white">
+                  <button
+                    type="button"
+                    onClick={() => onOuvrirCarte(c)}
+                    className="w-full text-left"
+                  >
                     <span className="block bg-[#eef3f8] px-3 py-1.5 text-[11px] text-ink-muted">
                       {c.desc}
                     </span>
@@ -772,18 +780,18 @@ function Hub({
                         {c.badge}
                       </span>
                     ) : null}
-                  </span>
-                </span>
-              </button>
-              {c.href && c.vue ? (
-                <button
-                  type="button"
-                  onClick={() => onAcceder(c.vue!)}
-                  className="mt-1 inline-flex min-h-11 items-center px-1 text-xs text-ink-muted hover:text-ink"
-                >
-                  Documents archivés
-                </button>
-              ) : null}
+                  </button>
+                  {c.href && c.vue ? (
+                    <button
+                      type="button"
+                      onClick={() => onAcceder(c.vue!)}
+                      className="flex min-h-11 w-full items-center justify-center border-t border-[#e7eef8] text-[11px] text-ink-muted hover:text-ink"
+                    >
+                      Documents archivés
+                    </button>
+                  ) : null}
+                </div>
+              </div>
             </article>
           );
         })}
