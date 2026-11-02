@@ -49,6 +49,7 @@ const OUTILS: Array<{ titre: string; url: string; icone: typeof Info; droit?: Dr
     icone: FileText,
     droit: "voir-documents",
   },
+  { titre: "Baux", url: "/outils/baux", icone: FileText, droit: "voir-documents" },
   {
     titre: "Vue annuelle",
     url: "/outils/vue-annuelle",

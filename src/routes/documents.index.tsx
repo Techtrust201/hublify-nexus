@@ -34,7 +34,11 @@ function PageDocuments() {
   const { vue, logement } = Route.useSearch();
   const navigate = useNavigate({ from: "/documents/" });
   return (
-    <AppShell attendDonnees titre="Documents" sousTitre="Baux, diagnostics et dossiers — les quittances sont côté résidents">
+    <AppShell
+      attendDonnees
+      titre="Documents"
+      sousTitre="Occupants, états des lieux, logements, prestataires, propriétaires, accès"
+    >
       <DocumentsApp
         vue={vue ?? "hub"}
         {...(logement ? { logement } : {})}

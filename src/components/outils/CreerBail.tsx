@@ -1,28 +1,48 @@
+// SOURCE: Hublify V1.0 — Bail / Espace de rédaction (affichage par page)
+// et annotation « Voir systeme prise de caution ».
+
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { EspaceRedaction, type PageRedaction } from "@/components/documents/EspaceRedaction";
 import { AppShell } from "@/components/layout/AppShell";
-import { TYPES_RESERVATION, messageChevauchement, nuitsEntre, trouverChevauchement } from "@/data/reservations-mo1";
-import type { TypeReservationMo1 } from "@/data/reservations-mo1";
 import { ajouterDocument } from "@/data/documents-store";
 import {
-  ajouterNotif,
-  ajouterReservation,
-  idNouveau,
-  useSession,
-} from "@/data/session";
+  TYPES_RESERVATION,
+  messageChevauchement,
+  nuitsEntre,
+  trouverChevauchement,
+} from "@/data/reservations-mo1";
+import type { TypeReservationMo1 } from "@/data/reservations-mo1";
+import { ajouterNotif, ajouterReservation, idNouveau, useSession } from "@/data/session";
+import {
+  cautionSuggeree,
+  libelleStatutCaution,
+  peutEncaisserCaution,
+  type StatutCaution,
+} from "@/lib/caution";
 import { telechargerPdf, toastErreur, toastOk } from "@/lib/feedback";
-import { cn } from "@/lib/utils";
 
 const champ =
   "mt-1 h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none md:h-9";
 
 const TYPES_BAIL = TYPES_RESERVATION.flatMap((g) => g.options).filter((t) => t.startsWith("Bail"));
 
+const PAGES = [
+  "type",
+  "designations",
+  "periode",
+  "loyer",
+  "caution",
+  "conditions",
+  "surloyer",
+] as const;
+
+type PageBail = (typeof PAGES)[number];
+
 export function CreerBail() {
   const session = useSession();
   const navigate = useNavigate();
-  const [etape, setEtape] = useState(0);
+  const [page, setPage] = useState<PageBail>("type");
   const [bienId, setBienId] = useState(session.biens[0]?.id ?? "");
   const [parties, setParties] = useState({ bailleur: "", locataire: "", email: "", telephone: "" });
   const [dates, setDates] = useState({ debut: "", fin: "" });
@@ -30,18 +50,60 @@ export function CreerBail() {
   const [loyer, setLoyer] = useState("850");
   const [charges, setCharges] = useState("50");
   const [caution, setCaution] = useState("1700");
+  const [statutCaution, setStatutCaution] = useState<StatutCaution>("a_encaisser");
+  const [modeCaution, setModeCaution] = useState("Virement");
+  const [garant, setGarant] = useState({ nom: "", contrat: false, identite: false });
+  const [conditions, setConditions] = useState(
+    "Le logement est loué meublé. L'état des lieux d'entrée est annexé.",
+  );
+  const [surloyer, setSurloyer] = useState("");
   const [calendrier, setCalendrier] = useState(true);
 
+  useEffect(() => {
+    if (!bienId && session.biens[0]) setBienId(session.biens[0].id);
+  }, [bienId, session.biens]);
+
   const bien = session.biens.find((b) => b.id === bienId);
-  const etapes = ["Logement", "Parties", "Dates", "Loyer", "Générer"];
+  const loyerN = Number(loyer.replace(",", ".")) || 0;
+  const chargesN = Number(charges.replace(",", ".")) || 0;
+  const cautionN = Number(caution.replace(",", ".")) || 0;
+  const suggestion = cautionSuggeree(loyerN, chargesN);
+
+  const pages: PageRedaction[] = useMemo(
+    () => [
+      { id: "type", label: "Type de bail", fait: Boolean(type && bienId) },
+      {
+        id: "designations",
+        label: "Désignations",
+        fait: Boolean(parties.locataire.trim() && (parties.bailleur.trim() || bien?.proprietaire)),
+      },
+      { id: "periode", label: "Période de location", fait: Boolean(dates.debut && dates.fin) },
+      { id: "loyer", label: "Loyer et charges", fait: loyerN > 0 },
+      { id: "caution", label: "Caution et garantie", fait: cautionN > 0 },
+      { id: "conditions", label: "Conditions diverses", fait: conditions.trim().length > 12 },
+      { id: "surloyer", label: "Surloyer", detail: "Optionnel", fait: surloyer.trim().length > 0 },
+    ],
+    [type, bienId, parties, bien?.proprietaire, dates, loyerN, cautionN, conditions, surloyer],
+  );
+
+  const encaisser = () => {
+    if (!peutEncaisserCaution(cautionN, statutCaution)) {
+      toastErreur("Indiquez un montant de caution encore à encaisser.");
+      return;
+    }
+    setStatutCaution("encaissee");
+    toastOk(`Caution de ${cautionN} € marquée encaissée (${modeCaution}).`);
+  };
 
   const generer = async () => {
     if (!bienId || !parties.locataire.trim() || !dates.debut || !dates.fin) {
       toastErreur("Complétez le logement, le locataire et les dates.");
+      setPage(!parties.locataire.trim() ? "designations" : "periode");
       return;
     }
     if (dates.fin <= dates.debut) {
       toastErreur("La date de fin doit être après le début.");
+      setPage("periode");
       return;
     }
     if (calendrier) {
@@ -55,9 +117,6 @@ export function CreerBail() {
         return;
       }
     }
-    const loyerN = Number(loyer.replace(",", ".")) || 0;
-    const chargesN = Number(charges.replace(",", ".")) || 0;
-    const cautionN = Number(caution.replace(",", ".")) || 0;
     const extra = [
       `Type : ${type}`,
       `Logement : ${bien?.nom ?? bienId}`,
@@ -67,8 +126,12 @@ export function CreerBail() {
       `Du ${dates.debut} au ${dates.fin}`,
       `Loyer : ${loyerN} EUR`,
       `Charges : ${chargesN} EUR`,
-      `Caution : ${cautionN} EUR`,
-    ];
+      `Caution : ${cautionN} EUR (${libelleStatutCaution(statutCaution)}, ${modeCaution})`,
+      garant.nom.trim() ? `Garant : ${garant.nom.trim()}` : "Garant : aucun",
+      garant.contrat ? "Contrat de travail ou avis de situation : fourni" : "",
+      surloyer.trim() ? `Surloyer : ${surloyer.trim()}` : "",
+      conditions.trim(),
+    ].filter(Boolean);
     try {
       await telechargerPdf(`Bail ${parties.locataire}`, extra, {
         titulaire: parties.bailleur || bien?.proprietaire || "Hublify",
@@ -94,6 +157,21 @@ export function CreerBail() {
       vue: "residents",
       occupant: "locataires",
     });
+    if (garant.nom.trim()) {
+      ajouterDocument({
+        id: idNouveau("doc"),
+        titre: `Dossier garant — ${garant.nom.trim()}`,
+        type: "Dossier",
+        filtre: "Dossiers",
+        logement: bien?.nom ?? "—",
+        date: new Date().toLocaleDateString("fr-FR"),
+        taille: "—",
+        modifiePar: "Vous",
+        photos: 0,
+        vue: "residents",
+        occupant: "locataires",
+      });
+    }
     if (calendrier) {
       const id = idNouveau("r");
       const initiales = parties.locataire
@@ -135,39 +213,17 @@ export function CreerBail() {
     }
     ajouterNotif({
       titre: "Bail créé",
-      detail: `${parties.locataire} · ${bien?.nom}`,
+      detail: `${parties.locataire} · ${bien?.nom} · caution ${libelleStatutCaution(statutCaution)}`,
       href: "/documents?vue=residents",
     });
     toastOk("Bail enregistré dans Documents.");
     await navigate({ to: "/documents", search: { vue: "residents" } });
   };
 
-  return (
-    <AppShell titre="Créer un bail" sousTitre="Du logement au document, puis au calendrier">
-      <div className="flex items-center gap-2 text-xs text-ink-muted">
-        <Link to="/outils" className="hover:text-ink-body">
-          Outils
-        </Link>
-        <ChevronRight className="size-3" />
-        <span>Baux</span>
-      </div>
-
-      <ol className="mt-4 flex flex-wrap gap-2">
-        {etapes.map((e, i) => (
-          <li
-            key={e}
-            className={cn(
-              "rounded-full px-3 py-1 text-xs",
-              i === etape ? "bg-ink text-white" : "bg-surface-soft text-ink-muted",
-            )}
-          >
-            {i + 1}. {e}
-          </li>
-        ))}
-      </ol>
-
-      <div className="mt-4 max-w-xl rounded-card border border-line bg-white p-5">
-        {etape === 0 && (
+  const apercu = (
+    <div className="space-y-3 text-sm text-ink">
+      {page === "type" && (
+        <>
           <label className="block text-xs text-ink-muted">
             Logement
             <select value={bienId} onChange={(e) => setBienId(e.target.value)} className={champ}>
@@ -178,155 +234,268 @@ export function CreerBail() {
               ))}
             </select>
           </label>
-        )}
-        {etape === 1 && (
-          <div className="space-y-3">
-            <label className="block text-xs text-ink-muted">
-              Bailleur
-              <input
-                value={parties.bailleur}
-                onChange={(e) => setParties({ ...parties, bailleur: e.target.value })}
-                placeholder={bien?.proprietaire || "Nom du bailleur"}
-                className={champ}
-              />
-            </label>
-            <label className="block text-xs text-ink-muted">
-              Locataire *
-              <input
-                value={parties.locataire}
-                onChange={(e) => setParties({ ...parties, locataire: e.target.value })}
-                className={champ}
-              />
-            </label>
-            <label className="block text-xs text-ink-muted">
-              Email
-              <input
-                type="email"
-                value={parties.email}
-                onChange={(e) => setParties({ ...parties, email: e.target.value })}
-                className={champ}
-              />
-            </label>
-            <label className="block text-xs text-ink-muted">
-              Téléphone
-              <input
-                value={parties.telephone}
-                onChange={(e) => setParties({ ...parties, telephone: e.target.value })}
-                className={champ}
-              />
-            </label>
-          </div>
-        )}
-        {etape === 2 && (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block text-xs text-ink-muted">
-              Début *
-              <input
-                type="date"
-                value={dates.debut}
-                onChange={(e) => setDates({ ...dates, debut: e.target.value })}
-                className={champ}
-              />
-            </label>
-            <label className="block text-xs text-ink-muted">
-              Fin *
-              <input
-                type="date"
-                value={dates.fin}
-                onChange={(e) =>
-                  setDates({
-                    ...dates,
-                    fin: e.target.value,
-                  })
-                }
-                className={champ}
-              />
-            </label>
-            <label className="col-span-2 block text-xs text-ink-muted">
-              Type
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value as TypeReservationMo1)}
-                className={champ}
-              >
-                {TYPES_BAIL.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        )}
-        {etape === 3 && (
-          <div className="grid gap-3 sm:grid-cols-3">
-            <label className="block text-xs text-ink-muted">
-              Loyer
-              <input value={loyer} onChange={(e) => setLoyer(e.target.value)} className={champ} />
-            </label>
-            <label className="block text-xs text-ink-muted">
-              Charges
-              <input value={charges} onChange={(e) => setCharges(e.target.value)} className={champ} />
-            </label>
-            <label className="block text-xs text-ink-muted">
-              Caution
-              <input value={caution} onChange={(e) => setCaution(e.target.value)} className={champ} />
-            </label>
-          </div>
-        )}
-        {etape === 4 && (
-          <div className="space-y-3 text-sm text-ink-body">
-            <p>
-              {bien?.nom} · {type}
+          <label className="block text-xs text-ink-muted">
+            Type de bail
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value as TypeReservationMo1)}
+              className={champ}
+            >
+              {TYPES_BAIL.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </label>
+        </>
+      )}
+      {page === "designations" && (
+        <>
+          <label className="block text-xs text-ink-muted">
+            Bailleur
+            <input
+              value={parties.bailleur}
+              onChange={(e) => setParties({ ...parties, bailleur: e.target.value })}
+              placeholder={bien?.proprietaire || "Nom du bailleur"}
+              className={champ}
+            />
+          </label>
+          <label className="block text-xs text-ink-muted">
+            Locataire
+            <input
+              value={parties.locataire}
+              onChange={(e) => setParties({ ...parties, locataire: e.target.value })}
+              className={champ}
+            />
+          </label>
+          <label className="block text-xs text-ink-muted">
+            E-mail
+            <input
+              type="email"
+              value={parties.email}
+              onChange={(e) => setParties({ ...parties, email: e.target.value })}
+              className={champ}
+            />
+          </label>
+          <label className="block text-xs text-ink-muted">
+            Téléphone
+            <input
+              value={parties.telephone}
+              onChange={(e) => setParties({ ...parties, telephone: e.target.value })}
+              className={champ}
+            />
+          </label>
+        </>
+      )}
+      {page === "periode" && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block text-xs text-ink-muted">
+            Début
+            <input
+              type="date"
+              value={dates.debut}
+              onChange={(e) => setDates({ ...dates, debut: e.target.value })}
+              className={champ}
+            />
+          </label>
+          <label className="block text-xs text-ink-muted">
+            Fin
+            <input
+              type="date"
+              value={dates.fin}
+              onChange={(e) => setDates({ ...dates, fin: e.target.value })}
+              className={champ}
+            />
+          </label>
+          {dates.debut && dates.fin ? (
+            <p className="text-xs text-ink-muted sm:col-span-2">
+              {nuitsEntre(dates.debut, dates.fin)} nuits
             </p>
-            <p>
-              {parties.locataire} · {dates.debut} → {dates.fin}
-              {dates.debut && dates.fin
-                ? ` (${nuitsEntre(dates.debut, dates.fin)} nuits)`
-                : ""}
+          ) : null}
+        </div>
+      )}
+      {page === "loyer" && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block text-xs text-ink-muted">
+            Loyer hors charges
+            <input value={loyer} onChange={(e) => setLoyer(e.target.value)} className={champ} />
+          </label>
+          <label className="block text-xs text-ink-muted">
+            Charges
+            <input value={charges} onChange={(e) => setCharges(e.target.value)} className={champ} />
+          </label>
+        </div>
+      )}
+      {page === "caution" && (
+        <div className="space-y-3">
+          <p className="text-xs text-ink-muted">
+            Prise de caution suggérée : {suggestion} € (deux mois, charges comprises). Le dépôt
+            reste restituable en fin de bail.
+          </p>
+          <label className="block text-xs text-ink-muted">
+            Montant
+            <input value={caution} onChange={(e) => setCaution(e.target.value)} className={champ} />
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setCaution(String(suggestion))}
+              className="inline-flex h-11 items-center rounded-card border border-line px-3 text-xs md:h-9"
+            >
+              Appliquer {suggestion} €
+            </button>
+          </div>
+          <label className="block text-xs text-ink-muted">
+            Mode d'encaissement
+            <select
+              value={modeCaution}
+              onChange={(e) => setModeCaution(e.target.value)}
+              className={champ}
+            >
+              <option>Virement</option>
+              <option>Chèque</option>
+              <option>Espèces</option>
+            </select>
+          </label>
+          <p className="text-[11px] text-ink-muted">
+            Stripe n'est proposé qu'une fois le compte de paiement connecté.
+          </p>
+          <p className="text-sm">
+            Statut : <span className="font-medium">{libelleStatutCaution(statutCaution)}</span>
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={encaisser}
+              className="inline-flex h-11 items-center rounded-card bg-ink px-3 text-xs font-medium text-white md:h-9"
+            >
+              Encaisser la caution
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatutCaution("restituee")}
+              className="inline-flex h-11 items-center rounded-card border border-line px-3 text-xs md:h-9"
+            >
+              Marquer restituée
+            </button>
+          </div>
+          <fieldset className="rounded-card border border-line p-3">
+            <legend className="px-1 text-xs font-medium text-ink">Garant</legend>
+            <p className="text-[11px] text-ink-muted">
+              S'il y a un garant, ses pièces suivent le même tableau que le dossier locataire :
+              contrat de travail ou avis de situation, pièce d'identité recto puis verso.
             </p>
-            <p>
-              Loyer {loyer} € + charges {charges} € · caution {caution} €
-            </p>
-            <label className="flex items-center gap-2 text-xs">
+            <label className="mt-2 block text-xs text-ink-muted">
+              Nom du garant
+              <input
+                value={garant.nom}
+                onChange={(e) => setGarant({ ...garant, nom: e.target.value })}
+                className={champ}
+              />
+            </label>
+            <label className="mt-2 flex items-center gap-2 text-xs text-ink-body">
               <input
                 type="checkbox"
-                checked={calendrier}
-                onChange={(e) => setCalendrier(e.target.checked)}
+                checked={garant.contrat}
+                onChange={(e) => setGarant({ ...garant, contrat: e.target.checked })}
               />
-              Créer l'entrée calendrier
+              Contrat de travail ou avis de situation
             </label>
-          </div>
-        )}
-
-        <div className="mt-6 flex justify-between">
+            <label className="mt-2 flex items-center gap-2 text-xs text-ink-body">
+              <input
+                type="checkbox"
+                checked={garant.identite}
+                onChange={(e) => setGarant({ ...garant, identite: e.target.checked })}
+              />
+              Pièce d'identité, recto et verso
+            </label>
+            {garant.nom.trim() ? (
+              <Link
+                to="/documents"
+                search={{ vue: "residents" }}
+                className="mt-2 inline-flex text-xs font-medium text-ink underline"
+              >
+                Ouvrir les documents du garant
+              </Link>
+            ) : null}
+          </fieldset>
+        </div>
+      )}
+      {page === "conditions" && (
+        <label className="block text-xs text-ink-muted">
+          Conditions
+          <textarea
+            value={conditions}
+            onChange={(e) => setConditions(e.target.value)}
+            rows={6}
+            className="mt-1 w-full rounded-card border border-line px-3 py-2 text-sm text-ink outline-none"
+          />
+        </label>
+      )}
+      {page === "surloyer" && (
+        <>
+          <label className="block text-xs text-ink-muted">
+            Surloyer éventuel
+            <input
+              value={surloyer}
+              onChange={(e) => setSurloyer(e.target.value)}
+              placeholder="Laisser vide s'il n'y en a pas"
+              className={champ}
+            />
+          </label>
+          <label className="flex items-center gap-2 text-xs text-ink-body">
+            <input
+              type="checkbox"
+              checked={calendrier}
+              onChange={(e) => setCalendrier(e.target.checked)}
+            />
+            Créer l'entrée au calendrier
+          </label>
           <button
             type="button"
-            disabled={etape === 0}
-            onClick={() => setEtape((e) => e - 1)}
-            className="inline-flex h-9 items-center gap-1 rounded-card border border-line px-3 text-xs disabled:opacity-40"
+            onClick={() => void generer()}
+            className="inline-flex h-11 items-center rounded-card bg-ink px-4 text-sm font-medium text-white md:h-9"
           >
-            <ChevronLeft className="size-3" /> Retour
+            Générer et enregistrer le bail
           </button>
-          {etape < 4 ? (
-            <button
-              type="button"
-              onClick={() => setEtape((e) => e + 1)}
-              className="h-9 rounded-card bg-ink px-3 text-xs font-medium text-white"
-            >
-              Continuer
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => void generer()}
-              className="inline-flex h-9 items-center gap-1 rounded-card bg-ink px-3 text-xs font-medium text-white"
-            >
-              <Check className="size-3" /> Générer et enregistrer
-            </button>
-          )}
-        </div>
-      </div>
+        </>
+      )}
+    </div>
+  );
+
+  const nomLocataire = parties.locataire.trim() || "Locataire";
+
+  return (
+    <AppShell titre="Baux" sousTitre="Espace de rédaction, page par page">
+      <p className="mb-3 text-xs text-ink-muted">
+        <Link to="/outils" className="hover:text-ink">
+          Outils
+        </Link>
+        <span> · Baux</span>
+      </p>
+      <EspaceRedaction
+        titre={`Bail ${nomLocataire}`}
+        sousTitre={
+          bien
+            ? `${bien.nom}${bien.adresse ? ` · ${bien.adresse}` : ""} · Rédacteur : vous`
+            : "Choisissez un logement"
+        }
+        meta={
+          <>
+            <span className="rounded-card bg-surface-soft px-2 py-1 text-[11px] text-ink-muted">
+              {new Date().toLocaleDateString("fr-FR")}
+            </span>
+            <span className="rounded-card bg-surface-soft px-2 py-1 text-[11px] text-ink-muted">
+              {new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          </>
+        }
+        pages={pages}
+        pageActive={page}
+        onPage={(id) => setPage(id as PageBail)}
+        apercu={apercu}
+      />
     </AppShell>
   );
 }
