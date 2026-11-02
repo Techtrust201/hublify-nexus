@@ -43,6 +43,11 @@ export type KindMessage = "systeme" | "recu" | "envoye";
 
 export type IconeSysteme = "login" | "usercheck" | "key";
 
+export type ActionFil = {
+  id: "voir-dossier" | "proposer-bail";
+  libelle: string;
+};
+
 export type MessageFil = {
   id: string;
   conversationId: string;
@@ -51,6 +56,9 @@ export type MessageFil = {
   heure?: string;
   iconeSysteme?: IconeSysteme;
   pieces?: PieceJointe[];
+  /** Carte de synthèse (période, loyer) affichée sous la bulle. */
+  fiche?: string[];
+  actions?: ActionFil[];
 };
 
 export type StatutMembre = "actif" | "externe" | "attente";
@@ -158,9 +166,9 @@ export const CONVERSATIONS_MO1: Conversation[] = [
     nom: "Albert Flores",
     initiales: "AF",
     type: "voyageur",
-    badge: "Voyageur",
-    bienNom: "Villa Lavandrix",
-    extrait: "Je suis très intéressé par votre villa pour août.",
+    badge: "Prospect",
+    bienNom: "Appartement Colette",
+    extrait: "Je suis très intéressé par votre location pour août.",
     ilYa: "Il y a 1 min",
     nonLu: true,
     archivee: false,
@@ -258,7 +266,8 @@ export const MESSAGES_MO1: MessageFil[] = [
     conversationId: "c-jean-martin",
     kind: "envoye",
     heure: "09h40",
-    texte: "Les charges de mars s'élèvent à 50 €, incluses dans l'échéance. La quittance est dans Documents.",
+    texte:
+      "Les charges de mars s'élèvent à 50 €, incluses dans l'échéance. La quittance est dans Documents.",
   },
   {
     id: "m-sm-1",
@@ -272,7 +281,7 @@ export const MESSAGES_MO1: MessageFil[] = [
     conversationId: "c-brian",
     kind: "systeme",
     iconeSysteme: "login",
-    texte: "Brian Griffin s'est connecté à son compte personnel",
+    texte: "Brian Griffin s'est connecté à son compte personnel à 11h35 le 01/01/2026",
   },
   {
     id: "m-bg-2",
@@ -317,11 +326,55 @@ export const MESSAGES_MO1: MessageFil[] = [
     texte: "Pouvez-vous m'envoyer le règlement intérieur ?",
   },
   {
+    id: "m-af-sys",
+    conversationId: "c-albert",
+    kind: "systeme",
+    iconeSysteme: "usercheck",
+    texte: "Albert Flores a émis une demande de location à 11h40 le 01/01/2026",
+  },
+  {
     id: "m-af-1",
     conversationId: "c-albert",
     kind: "recu",
-    heure: "10h04",
-    texte: "Je suis très intéressé par votre villa pour août.",
+    heure: "11h20",
+    texte: "Je suis très intéressé par votre location pour août.",
+    fiche: ["Période souhaitée : du 15/09/2026 au 10/05/2026", "Loyer mensuel : 750 €"],
+    actions: [
+      { id: "voir-dossier", libelle: "Voir le dossier du prospect" },
+      { id: "proposer-bail", libelle: "Proposer un bail" },
+    ],
+  },
+  {
+    id: "m-af-2",
+    conversationId: "c-albert",
+    kind: "envoye",
+    heure: "11h35",
+    texte:
+      "Merci pour votre message.\nNous étudions votre demande et ne manquerons pas de revenir vers vous.\nBien à vous,\nClément Dubois – Gestionnaire",
+  },
+  {
+    id: "m-af-3",
+    conversationId: "c-albert",
+    kind: "recu",
+    heure: "11h42",
+    texte:
+      "Merci j’attend votre retour rapide, je me suis trompé est’il possible de débuter le bail le 12 septembre?.",
+  },
+  {
+    id: "m-af-sys-bail",
+    conversationId: "c-albert",
+    kind: "systeme",
+    iconeSysteme: "key",
+    texte: "Le gestionnaire a émis une proposition de bail à 14h35 le 01/01/2026",
+  },
+  {
+    id: "m-af-4",
+    conversationId: "c-albert",
+    kind: "envoye",
+    heure: "14h35",
+    texte:
+      "Bonjour,\nEn retour de votre demande vous trouverez ci-joint une proposition de bail. Merci de bien lire les conditions et de suivre le parcours de signature.\nBien à vous,\nClément Dubois – Gestionnaire",
+    pieces: [{ nom: "Proposition de bail - Albert Flores - App. Colette", taille: "186 Ko" }],
   },
   {
     id: "m-fm-1",
@@ -377,7 +430,7 @@ export const MESSAGES_MO1: MessageFil[] = [
     conversationId: "c-louisette",
     kind: "envoye",
     heure: "15h15",
-    texte: "Super, merci Louisette !",
+    texte: "Super, merci !",
   },
   {
     id: "m-ta-1",
@@ -409,11 +462,22 @@ export const MODELES_MESSAGE = [
   "Le ménage est confirmé pour le jour du départ.",
 ];
 
-export const ASSIGNEES_CONVERSATION = [
-  { id: "a-tl", nom: "Team Louisette", initiales: "TE" },
-  { id: "a-ta", nom: "Team Arborio", initiales: "TE" },
-  { id: "a-cg", nom: "Clément G.", initiales: "CL" },
-  { id: "a-em", nom: "Emily Smith", initiales: "EM" },
+export type GroupeAssigne = "equipe" | "prestataire";
+
+export type AssigneConversation = {
+  id: string;
+  nom: string;
+  initiales: string;
+  groupe: GroupeAssigne;
+};
+
+export const ASSIGNEES_CONVERSATION: AssigneConversation[] = [
+  { id: "a-tl", nom: "Team Louisette", initiales: "TL", groupe: "equipe" },
+  { id: "a-ta", nom: "Team Arborio", initiales: "TA", groupe: "equipe" },
+  { id: "a-cg", nom: "Clément G.", initiales: "CG", groupe: "equipe" },
+  { id: "a-em", nom: "Emily Smith", initiales: "EM", groupe: "equipe" },
+  { id: "a-le", nom: "Lentil Entertainment", initiales: "LE", groupe: "prestataire" },
+  { id: "a-ss", nom: "Silverlight Studio", initiales: "SS", groupe: "prestataire" },
 ];
 
 export const SECTIONS_DEPLACEMENT: { id: SectionConversation; label: string }[] = [
@@ -523,4 +587,34 @@ export const DROIT_PERSONNALISE_INITIAL: DroitPersonnalise = {
 
 export function nomComplet(m: MembreEquipe) {
   return `${m.prenom} ${m.nom}`;
+}
+
+/**
+ * Les colonnes SQL du fil ne portent pas la fiche ni les actions (boutons
+ * « Proposer un bail », « Voir le dossier »). On les réapplique depuis le
+ * catalogue maquette, sans migration.
+ */
+export function completerMessagesFil(messages: MessageFil[]): MessageFil[] {
+  const catalogue = new Map(MESSAGES_MO1.map((m) => [m.id, m]));
+  const rang = new Map(MESSAGES_MO1.map((m, index) => [m.id, index]));
+  return messages
+    .map((message, index) => ({ message, index }))
+    .sort((a, b) => {
+      const rangA = rang.get(a.message.id);
+      const rangB = rang.get(b.message.id);
+      if (rangA !== undefined && rangB !== undefined) return rangA - rangB;
+      if (rangA !== undefined) return -1;
+      if (rangB !== undefined) return 1;
+      return a.index - b.index;
+    })
+    .map(({ message }) => {
+      const source = catalogue.get(message.id);
+      if (!source) return message;
+      return {
+        ...message,
+        ...(source.fiche ? { fiche: source.fiche } : {}),
+        ...(source.actions ? { actions: source.actions } : {}),
+        ...(source.pieces?.length && !message.pieces?.length ? { pieces: source.pieces } : {}),
+      };
+    });
 }
