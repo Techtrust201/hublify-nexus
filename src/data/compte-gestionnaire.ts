@@ -5,7 +5,8 @@ export { ibanValide } from "@/lib/iban";
 
 /**
  * Champs du compte gestionnaire (raison sociale, SIRET, carte T, RIB, équipe).
- * Persistés en base (`org_compte`). Le RIB ne doit plus rester dans localStorage.
+ * Persistés en base (`org_compte`). Le RIB ne doit plus rester dans localStorage
+ * une fois la sauvegarde distante confirmée.
  * SOURCE: Hublify V1.0 — Compte gestionnaire, annotation 220:20741.
  */
 
@@ -34,6 +35,8 @@ export const COMPTE_DEFAUT: CompteEntreprise = {
   equipeHote: "THIERRY",
   equipeQuittee: false,
 };
+
+export const CLE_COMPTE_LEGACY = "hublify.compte-entreprise.v1";
 
 export function normaliserCompte(brut: unknown): CompteEntreprise {
   if (!brut || typeof brut !== "object") return { ...COMPTE_DEFAUT };
@@ -93,31 +96,87 @@ export function messageCompte(compte: CompteEntreprise): string | null {
   return null;
 }
 
-const CLE_LEGACY = "hublify.compte-entreprise.v1";
-
-function lireLegacyPuisPurger(): CompteEntreprise | null {
-  if (typeof localStorage === "undefined") return null;
+/** Lecture seule du legacy — ne purge jamais. */
+export function lireCompteLegacy(
+  stockage: Storage | null = defautStorage(),
+): CompteEntreprise | null {
+  if (!stockage) return null;
   try {
-    const brut = localStorage.getItem(CLE_LEGACY);
-    localStorage.removeItem(CLE_LEGACY);
+    const brut = stockage.getItem(CLE_COMPTE_LEGACY);
     if (!brut) return null;
     return normaliserCompte(JSON.parse(brut) as unknown);
   } catch {
-    try {
-      localStorage.removeItem(CLE_LEGACY);
-    } catch {
-      /* ignore */
-    }
     return null;
   }
 }
 
-export function purgerCompteLocal() {
-  if (typeof localStorage === "undefined") return;
+export function ecrireCompteLegacy(
+  compte: CompteEntreprise,
+  stockage: Storage | null = defautStorage(),
+) {
+  if (!stockage) return;
   try {
-    localStorage.removeItem(CLE_LEGACY);
+    stockage.setItem(CLE_COMPTE_LEGACY, JSON.stringify(normaliserCompte(compte)));
+  } catch {
+    /* quota */
+  }
+}
+
+export function purgerCompteLocal(stockage: Storage | null = defautStorage()) {
+  if (!stockage) return;
+  try {
+    stockage.removeItem(CLE_COMPTE_LEGACY);
   } catch {
     /* ignore */
+  }
+}
+
+function defautStorage(): Storage | null {
+  if (typeof localStorage === "undefined") return null;
+  return localStorage;
+}
+
+export type ResultatSauverCompte =
+  | { ok: true }
+  | { ok: false; raison: "non_authentifie" | "non_configure" | "interdit" | "reseau" | "invalide" };
+
+/**
+ * Persiste le compte distant. Ne purge le RIB local qu'après succès confirmé.
+ * En cas d'échec, conserve (ou réécrit) le legacy pour ne pas perdre la saisie.
+ */
+export async function persisterCompteEntreprise(
+  suivant: CompteEntreprise,
+  deps?: {
+    sauverDistant?: (
+      data: CompteEntreprise,
+    ) => Promise<
+      | { ok: true; data: CompteEntreprise }
+      | { ok: false; raison: "non_authentifie" | "non_configure" | "interdit" }
+    >;
+    stockage?: Storage | null;
+  },
+): Promise<ResultatSauverCompte> {
+  const propre = normaliserCompte(suivant);
+  const err = messageCompte(propre);
+  if (err) return { ok: false, raison: "invalide" };
+  const stockage = deps?.stockage === undefined ? defautStorage() : deps.stockage;
+  try {
+    const sauver =
+      deps?.sauverDistant ??
+      (async (data: CompteEntreprise) => {
+        const mod = await import("@/data/parametres-remote");
+        return mod.sauverCompteDistant({ data });
+      });
+    const res = await sauver(propre);
+    if (res.ok) {
+      purgerCompteLocal(stockage);
+      return { ok: true };
+    }
+    ecrireCompteLegacy(propre, stockage);
+    return { ok: false, raison: res.raison };
+  } catch {
+    ecrireCompteLegacy(propre, stockage);
+    return { ok: false, raison: "reseau" };
   }
 }
 
@@ -126,7 +185,7 @@ export function useCompteEntreprise() {
 
   useEffect(() => {
     let actif = true;
-    const legacy = lireLegacyPuisPurger();
+    const legacy = lireCompteLegacy();
     void import("@/data/parametres-remote").then(({ chargerCompteDistant, sauverCompteDistant }) =>
       chargerCompteDistant().then(async (res) => {
         if (!actif) return;
@@ -138,13 +197,14 @@ export function useCompteEntreprise() {
             setCompte(legacy);
             const sauve = await sauverCompteDistant({ data: legacy });
             if (sauve.ok) purgerCompteLocal();
+            // Échec : on garde le legacy intact jusqu'à une sauvegarde réussie.
           } else {
             setCompte(distant);
+            if (!vide) purgerCompteLocal();
           }
         } else if (legacy) {
           setCompte(legacy);
         }
-        purgerCompteLocal();
       }),
     );
     return () => {
@@ -154,15 +214,10 @@ export function useCompteEntreprise() {
 
   return {
     compte,
-    sauver(suivant: CompteEntreprise) {
+    async sauver(suivant: CompteEntreprise): Promise<ResultatSauverCompte> {
       const propre = normaliserCompte(suivant);
       setCompte(propre);
-      purgerCompteLocal();
-      void import("@/data/parametres-remote").then(({ sauverCompteDistant }) =>
-        sauverCompteDistant({ data: propre }).finally(() => {
-          purgerCompteLocal();
-        }),
-      );
+      return persisterCompteEntreprise(propre);
     },
   };
 }

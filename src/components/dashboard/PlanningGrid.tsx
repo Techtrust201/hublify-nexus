@@ -122,6 +122,10 @@ export function PlanningGrid({
   } | null>(null);
   const [actionDate, setActionDate] = useState<{ bienId: string; date: string } | null>(null);
   const [creerEvent, setCreerEvent] = useState(false);
+  const [eventContexte, setEventContexte] = useState<{
+    debut: string;
+    bienId: string;
+  } | null>(null);
   const [prestationsSeules, setPrestationsSeules] = useState(false);
   const ensembles = session.ensembles;
   const regles = session.regles;
@@ -168,9 +172,8 @@ export function PlanningGrid({
     let list = missions;
     if (affichage === "checkin") list = list.filter((m) => m.type === "Check-in");
     if (affichage === "checkout") list = list.filter((m) => m.type === "Check-out");
-    if (prestationsSeules) {
-      list = list.filter((m) => m.type !== "Maintenance");
-    }
+    // « Prestations seules » masque les séjours (voir montrerResas), pas les
+    // missions — y compris les types custom stockés sous Maintenance + typeLibre.
     const q = rechercheCal.trim().toLowerCase();
     if (q) {
       const ids = new Set(biensFiltres.map((b) => b.id));
@@ -182,7 +185,7 @@ export function PlanningGrid({
       );
     }
     return list;
-  }, [affichage, missions, rechercheCal, biensFiltres, prestationsSeules]);
+  }, [affichage, missions, rechercheCal, biensFiltres]);
   const montrerResas =
     !prestationsSeules && (affichage === "missions" || affichage === "ouverture");
   const montrerMissions = affichage !== "ouverture";
@@ -206,6 +209,7 @@ export function PlanningGrid({
       return;
     }
     if (action === "evenement") {
+      setEventContexte({ debut: jour, bienId: bienChoisi });
       setCreerEvent(true);
       return;
     }
@@ -558,12 +562,18 @@ export function PlanningGrid({
       />
       <CreateEventDialog
         ouvert={creerEvent}
-        onFermer={() => setCreerEvent(false)}
+        debutInitial={eventContexte?.debut}
+        bienInitial={biens.find((b) => b.id === eventContexte?.bienId)?.nom}
+        onFermer={() => {
+          setCreerEvent(false);
+          setEventContexte(null);
+        }}
         onCreer={(e) => {
           ajouterEvenement(e);
           ajouterNotif({ titre: "Événement ajouté", detail: e.titre, href: "/" });
           toastOk("Note ou événement ajouté au calendrier.");
           setCreerEvent(false);
+          setEventContexte(null);
         }}
       />
       <Dialog

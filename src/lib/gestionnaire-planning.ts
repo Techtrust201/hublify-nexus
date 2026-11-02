@@ -77,6 +77,41 @@ export function ecrireDescription(texte: string, meta: MetaPrestation) {
   return `${propre}${SEP}${JSON.stringify(utile)}`;
 }
 
+/** Type libre saisi par l'utilisateur (bucket SQL = Maintenance). */
+export function typeLibrePrestation(mission: {
+  type: MissionMo1["type"];
+  titre: string;
+  description: string;
+}): string | null {
+  const meta = lireMetaPrestation(mission.description);
+  if (meta.typeLibre?.trim()) return meta.typeLibre.trim();
+  if (mission.type === "Maintenance") {
+    const libelleCatalogue = TYPES_PRESTATION.find((t) => t.id === "Maintenance")?.label;
+    const titre = descriptionVisible(mission.titre).trim();
+    if (titre && titre !== libelleCatalogue && titre !== "Maintenance") return titre;
+  }
+  return null;
+}
+
+/**
+ * « Prestations seules » ne doit pas masquer les missions custom (Maintenance + typeLibre).
+ * Les séjours sont masqués séparément côté grille.
+ */
+export function filtrerPrestationsSeules<
+  T extends { type: MissionMo1["type"]; description: string; titre: string },
+>(missions: T[]): T[] {
+  return missions;
+}
+
+export function typeMissionPourSaisie(typeLibre: string | undefined, type: MissionMo1["type"]) {
+  const libre = typeLibre?.trim() ?? "";
+  return {
+    typeStocke: (libre ? "Maintenance" : type) as MissionMo1["type"],
+    typeLibre: libre || undefined,
+    libelle: libre || TYPES_PRESTATION.find((t) => t.id === type)?.label || type,
+  };
+}
+
 export function heureAffichee(heure: string, meta: MetaPrestation) {
   if (meta.horairePrecise) return meta.horairePrecise;
   if (meta.plageDebut && meta.plageFin) return `${meta.plageDebut}–${meta.plageFin}`;

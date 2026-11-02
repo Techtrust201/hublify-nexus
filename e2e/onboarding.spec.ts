@@ -24,7 +24,9 @@ test("une inscription crée un org vide, sans parc Redris", async ({ page }) => 
   await page.locator('input[name="nomOrg"]').fill(`Org ${suffixe}`);
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill("Hublify-Adherent-2026!");
-  await page.getByRole("button", { name: "Créer mon espace" }).click();
+  await page.locator('input[name="confirmation"]').fill("Hublify-Adherent-2026!");
+  await page.locator('input[name="cgu"]').check();
+  await page.getByRole("button", { name: "Continuer" }).click();
 
   await expect(page).toHaveURL((u) => u.pathname === "/", { timeout: 20_000 });
   await expect(page.getByText("Suzette")).toHaveCount(0);

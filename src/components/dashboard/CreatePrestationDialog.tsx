@@ -132,12 +132,17 @@ export function CreatePrestationDialog({
       toastErreur("L'horaire précis doit rester dans la plage indiquée au prestataire.");
       return;
     }
+    const typeLibrePropre = creerType ? typeLibre.trim() : "";
+    if (creerType && !typeLibrePropre) {
+      toastErreur("Indiquez le nom du type de prestation.");
+      return;
+    }
     const meta = metaCourante();
-    const typeStocke: MissionMo1["type"] = creerType && typeLibre.trim() ? "Maintenance" : type;
+    // Les types custom restent sous le bucket enum « Maintenance » (contrainte SQL)
+    // mais le libellé et typeLibre sont persistés pour l'affichage et le filtre.
+    const typeStocke: MissionMo1["type"] = typeLibrePropre ? "Maintenance" : type;
     const libelle =
-      (creerType ? typeLibre.trim() : titre.trim()) ||
-      TYPES_PRESTATION.find((t) => t.id === type)?.label ||
-      type;
+      typeLibrePropre || titre.trim() || TYPES_PRESTATION.find((t) => t.id === type)?.label || type;
     const nomAssigne =
       porteur === "proprietaire" ? "Propriétaire" : assigne.trim() || "Non assigné";
     const commun = {

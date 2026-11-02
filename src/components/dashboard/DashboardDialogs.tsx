@@ -495,7 +495,10 @@ export function CreateEventDialog({
 
   useEffect(() => {
     if (!ouvert) return;
-    if (debutInitial) setDebut(debutInitial);
+    if (debutInitial) {
+      setDebut(debutInitial);
+      setFin((f) => f || debutInitial);
+    }
     if (bienInitial) setBiens([bienInitial]);
   }, [ouvert, debutInitial, bienInitial]);
 

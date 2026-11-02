@@ -172,25 +172,34 @@ export function CompteGestionnaire() {
             toastErreur("Date de naissance attendue au format JJ/MM/AAAA.");
             return;
           }
-          sauver(brouillon);
           setTouche(false);
-          void sauverIdentiteDistante({
-            data: {
-              prenom: prenom.trim(),
-              nom: nom.trim(),
-              telephone1: tel1.trim(),
-              telephone2: tel2.trim(),
-              naissance: naissanceIso,
-            },
-          }).then((res) => {
-            if (!res.ok) {
+          void (async () => {
+            const resCompte = await sauver(brouillon);
+            if (!resCompte.ok) {
+              toastErreur(
+                resCompte.raison === "interdit"
+                  ? "Droits insuffisants pour enregistrer le RIB et le compte entreprise."
+                  : "Le compte entreprise n'a pas pu être enregistré. Vos saisies restent sur cet appareil jusqu'à une prochaine tentative.",
+              );
+              return;
+            }
+            const resIdentite = await sauverIdentiteDistante({
+              data: {
+                prenom: prenom.trim(),
+                nom: nom.trim(),
+                telephone1: tel1.trim(),
+                telephone2: tel2.trim(),
+                naissance: naissanceIso,
+              },
+            });
+            if (!resIdentite.ok) {
               toastErreur(
                 "Le compte entreprise est enregistré, mais l'identité n'a pas rejoint la base.",
               );
               return;
             }
             toastOk(verifie ? "Profil vérifié et enregistré." : "Profil enregistré.");
-          });
+          })();
         }}
       >
         <Bloc
@@ -324,11 +333,15 @@ export function CompteGestionnaire() {
                       "La sortie est notée sur cet appareil. Les droits déjà posés dans Team mate ne sont pas réécrits d'ici.",
                     libelleConfirmer: "Partir de cette team",
                     danger: true,
-                  }).then((ok) => {
+                  }).then(async (ok) => {
                     if (!ok) return;
                     const suivant = { ...brouillon, equipeQuittee: true };
                     setBrouillon(suivant);
-                    sauver(suivant);
+                    const res = await sauver(suivant);
+                    if (!res.ok) {
+                      toastErreur("Impossible d'enregistrer la sortie d'équipe pour le moment.");
+                      return;
+                    }
                     toastOk("Vous avez quitté l'équipe.");
                   });
                 }}

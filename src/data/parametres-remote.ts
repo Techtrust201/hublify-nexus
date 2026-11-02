@@ -1,6 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
-import { aLeDroit } from "@/auth/permissions";
 import { COMPTE_DEFAUT, normaliserCompte, type CompteEntreprise } from "@/data/compte-gestionnaire";
+import {
+  decisionLectureCompte,
+  peutEcrireFichesLieu,
+  peutEcrireReglagesEtendus,
+  peutEcrireReglagesMessagerie,
+  peutGererCompteEntreprise,
+  peutLireFichesLieu,
+  peutLireReglagesEtendus,
+  peutLireReglagesMessagerie,
+} from "@/data/parametres-droits";
 import { ibanValide } from "@/lib/iban";
 import { normaliserFiche, type FicheLieu } from "@/data/patrimoine-fiche";
 import {
@@ -43,6 +52,7 @@ export const chargerCompteDistant = createServerFn({ method: "GET" }).handler(
   async (): Promise<ResultatOk<CompteEntreprise> | ResultatKo> => {
     const s = await sessionOrg();
     if (!s) return refuse();
+    if (decisionLectureCompte(s.droits).acces === "interdit") return interdit();
     const sql = getSql();
     if (!sql) return nonConfigure();
     const rows = (await sql.query(
@@ -82,9 +92,7 @@ export const sauverCompteDistant = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<ResultatOk<CompteEntreprise> | ResultatKo> => {
     const s = await sessionOrg();
     if (!s) return refuse();
-    if (!aLeDroit(s.droits, "gerer-equipe") && !aLeDroit(s.droits, "mod-biens")) {
-      return interdit();
-    }
+    if (!peutGererCompteEntreprise(s.droits)) return interdit();
     const sql = getSql();
     if (!sql) return nonConfigure();
     await sql.query(
@@ -129,6 +137,7 @@ export const chargerFichesLieuDistantes = createServerFn({ method: "GET" }).hand
   > => {
     const s = await sessionOrg();
     if (!s) return refuse();
+    if (!peutLireFichesLieu(s.droits)) return interdit();
     const sql = getSql();
     if (!sql) return nonConfigure();
     const biens = (await sql.query(`select id, fiche from public.biens where org_id = $1::uuid`, [
@@ -162,7 +171,7 @@ export const sauverFicheLieuDistante = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<ResultatOk<true> | ResultatKo> => {
     const s = await sessionOrg();
     if (!s) return refuse();
-    if (!aLeDroit(s.droits, "mod-biens")) return interdit();
+    if (!peutEcrireFichesLieu(s.droits)) return interdit();
     const sql = getSql();
     if (!sql) return nonConfigure();
     const res = (await sql.query(
@@ -182,7 +191,7 @@ export const sauverTypesLieuDistants = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<ResultatOk<true> | ResultatKo> => {
     const s = await sessionOrg();
     if (!s) return refuse();
-    if (!aLeDroit(s.droits, "mod-biens")) return interdit();
+    if (!peutEcrireFichesLieu(s.droits)) return interdit();
     const sql = getSql();
     if (!sql) return nonConfigure();
     await sql.query(
@@ -200,6 +209,7 @@ export const chargerReglagesEtendusDistants = createServerFn({ method: "GET" }).
   async (): Promise<ResultatOk<ReglagesEtendus> | ResultatKo> => {
     const s = await sessionOrg();
     if (!s) return refuse();
+    if (!peutLireReglagesEtendus(s.droits)) return interdit();
     const sql = getSql();
     if (!sql) return nonConfigure();
     const rows = (await sql.query(
@@ -234,7 +244,7 @@ export const sauverReglagesEtendusDistants = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<ResultatOk<ReglagesEtendus> | ResultatKo> => {
     const s = await sessionOrg();
     if (!s) return refuse();
-    if (!aLeDroit(s.droits, "mod-biens")) return interdit();
+    if (!peutEcrireReglagesEtendus(s.droits)) return interdit();
     const sql = getSql();
     if (!sql) return nonConfigure();
     await sql.query(
@@ -277,6 +287,7 @@ export const chargerReglagesMessagerieDistants = createServerFn({ method: "GET" 
   async (): Promise<ResultatOk<ReglagesMessagerie> | ResultatKo> => {
     const s = await sessionOrg();
     if (!s) return refuse();
+    if (!peutLireReglagesMessagerie(s.droits)) return interdit();
     const sql = getSql();
     if (!sql) return nonConfigure();
     const rows = (await sql.query(
@@ -293,9 +304,7 @@ export const sauverReglagesMessagerieDistants = createServerFn({ method: "POST" 
   .handler(async ({ data }): Promise<ResultatOk<ReglagesMessagerie> | ResultatKo> => {
     const s = await sessionOrg();
     if (!s) return refuse();
-    if (!aLeDroit(s.droits, "messagerie") && !aLeDroit(s.droits, "mod-biens")) {
-      return interdit();
-    }
+    if (!peutEcrireReglagesMessagerie(s.droits)) return interdit();
     const sql = getSql();
     if (!sql) return nonConfigure();
     await sql.query(
