@@ -71,3 +71,15 @@ Reprend les lignes 1A pour le gestionnaire, plus :
 7. Écran de connexion (absent des deux sources connues).
 8. Maintien de TanStack Router ou bascule React Router.
 9. Fourniture de l'export `.fig` de l'ancienne maquette Redris V2 (condition du lot 1B).
+
+## Analyse — Hublify V1.0
+
+| Écran construit | Source principale | Nom du frame | Fidèle | Adapté | Inventé |
+|---|---|---|---|---|---|
+| Tableau de bord Occupation, Revenus, Gestionnaires (`src/components/analyse/`) | Hublify V1.0 | `Dashboard` 227:1247, 227:3294, `Gestionnaires` 228:14117 | Onglets, cartes, graphiques, répartition par canal | Portefeuille réel à la place des 120 logements figés | — |
+| Encaissements | Hublify V1.0 | annotation 325:25448 + relevé Juliette | Colonnes et total | Lignes issues du dossier, formule des totaux | — |
+| Cautions | Hublify V1.0 | annotation 325:25521 | Titre et mouvement encaissement / remboursement | Règle d'arrivée et de départ | — |
+| Facture propriétaire | Hublify V1.0 | section 325:25500 | Prestations HT/TVA/TTC, deux montants | Application par canal | — |
+| Analyse 2 / Analyse 3 | Hublify V1.0 | `69:1700`, `69:2651` | Onglets, cartes, historique, fiche | Chiffres du dossier | — |
+
+Détail des écarts : `docs/ANALYSE-ECARTS.md`.
