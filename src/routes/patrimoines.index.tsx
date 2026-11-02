@@ -8,7 +8,7 @@ export const Route = createFileRoute("/patrimoines/")({
     return logement ? { logement } : {};
   },
   head: () => ({
-    meta: [{ title: "Lieux — Hublify" }],
+    meta: [{ title: "Patrimoine — Hublify" }],
   }),
   component: PagePatrimoines,
 });
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/patrimoines/")({
 function PagePatrimoines() {
   const { logement } = Route.useSearch();
   return (
-    <AppShell attendDonnees titre="Lieux" sousTitre="Logements, immeubles, lieux d'événements">
+    <AppShell attendDonnees titre="Patrimoine" sousTitre="Logements, immeubles, lieux d'événements">
       <PatrimoineApp {...(logement ? { logementCible: logement } : {})} />
     </AppShell>
   );
