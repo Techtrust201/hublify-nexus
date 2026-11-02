@@ -1,5 +1,15 @@
-import { ChevronDown, ChevronRight, Home, Plane, Plus, Search, Users, Wrench } from "lucide-react";
-import { useSession } from "@/data/session";
+import {
+  Bot,
+  ChevronDown,
+  ChevronRight,
+  Home,
+  MessageSquare,
+  Plane,
+  Plus,
+  Search,
+  Users,
+  Wrench,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Conversation, SectionConversation, TypeInterlocuteur } from "@/data/messagerie-mo1";
 
@@ -20,40 +30,38 @@ function LigneConversation({
   conversation,
   active,
   onSelect,
-  volume,
 }: {
   conversation: Conversation;
   active: boolean;
   onSelect: () => void;
-  volume?: number;
 }) {
   const Icone = ICONE_TYPE[conversation.type];
   return (
     <button
       type="button"
       onClick={onSelect}
+      aria-current={active ? "true" : undefined}
       className={cn(
         "relative flex min-h-11 w-full gap-2.5 border-b border-surface-soft px-3 py-3 text-left",
         active && "bg-surface-soft",
       )}
     >
-      <span className="relative mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-line text-[10px] text-ink-body">
+      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-line text-[10px] text-ink-body">
         {conversation.initiales}
-        {conversation.nonLu && (
-          <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-ink" />
-        )}
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1">
+          {conversation.nonLu && (
+            <span className="size-1.5 shrink-0 rounded-full bg-ink" aria-hidden />
+          )}
           <span className="truncate text-xs text-ink-body">{conversation.nom}</span>
           <Icone className="size-2.5 shrink-0 text-ink-deep" aria-hidden />
+          <span className="sr-only">{conversation.nonLu ? "Non lu. " : ""}</span>
           <span className="ml-auto shrink-0 text-[10px] text-ink-muted">{conversation.ilYa}</span>
         </span>
-        {conversation.section === "prospections" && (
-          <span className="mt-0.5 block text-[10px] text-ink-muted">
-            Volume {volume ?? 0} · {conversation.nonLu ? "activité récente" : "suivi"}
-          </span>
-        )}
+        <span className="mt-0.5 line-clamp-2 block text-[11px] leading-snug text-ink-muted">
+          {conversation.extrait}
+        </span>
       </span>
     </button>
   );
@@ -66,6 +74,8 @@ export function ListeConversations({
   onRecherche,
   onSelection,
   onEcrire,
+  onAutomatiques,
+  nonLus,
   sectionsOuvertes,
   onToggleSection,
   className,
@@ -76,13 +86,13 @@ export function ListeConversations({
   onRecherche: (v: string) => void;
   onSelection: (id: string) => void;
   onEcrire: () => void;
+  onAutomatiques: () => void;
+  nonLus: number;
   sectionsOuvertes: Record<SectionConversation, boolean>;
   onToggleSection: (s: SectionConversation) => void;
   className?: string;
 }) {
-  const session = useSession();
   const inbox = conversations.filter((c) => c.section === "inbox");
-  const volumeDe = (id: string) => session.messagesFil.filter((m) => m.conversationId === id).length;
 
   return (
     <aside
@@ -91,6 +101,28 @@ export function ListeConversations({
         className,
       )}
     >
+      <div className="flex items-center justify-between gap-2 px-3 pb-1 pt-3">
+        <p className="flex items-center gap-2 text-sm text-ink">
+          <MessageSquare className="size-[15px]" aria-hidden />
+          Messagerie
+          {nonLus > 0 && (
+            <span className="inline-flex h-[19px] min-w-[17px] items-center justify-center rounded-full bg-ink px-1.5 text-[10px] text-white">
+              <span className="sr-only">
+                {nonLus} non lu{nonLus > 1 ? "s" : ""}
+              </span>
+              <span aria-hidden>{nonLus}</span>
+            </span>
+          )}
+        </p>
+        <button
+          type="button"
+          onClick={onAutomatiques}
+          className="inline-flex h-11 items-center gap-1.5 rounded-card px-2 text-[11px] text-ink-body"
+        >
+          <Bot className="size-3.5" aria-hidden />
+          Messages automatiques
+        </button>
+      </div>
       <div className="flex items-center gap-2 border-b border-surface-soft px-3 py-2.5">
         <label className="flex h-11 min-w-0 flex-1 items-center gap-1.5 rounded-card border border-line bg-white px-2.5">
           <Search className="size-3 shrink-0 text-ink-muted" />
@@ -127,19 +159,9 @@ export function ListeConversations({
           />
         ))}
         {SECTIONS.map((s) => {
-          const items = conversations
-            .filter((c) => c.section === s.id)
-            .slice()
-            .sort((a, b) => {
-              if (s.id !== "prospections") return 0;
-              const vol = volumeDe(b.id) - volumeDe(a.id);
-              if (vol !== 0) return vol;
-              if (a.nonLu !== b.nonLu) return a.nonLu ? -1 : 1;
-              return 0;
-            });
+          const items = conversations.filter((c) => c.section === s.id);
           if (items.length === 0) return null;
           const aNonLu = items.some((c) => c.nonLu);
-          const volumeSection = items.reduce((s0, c) => s0 + volumeDe(c.id), 0);
           const ouverte = sectionsOuvertes[s.id];
           return (
             <div key={s.id}>
@@ -150,12 +172,7 @@ export function ListeConversations({
               >
                 <span className="flex items-center gap-1.5">
                   {s.label}
-                  {s.id === "prospections" && (
-                    <span className="text-[10px] text-ink-muted">
-                      {items.length} · {volumeSection} msg
-                    </span>
-                  )}
-                  {aNonLu && <span className="size-1.5 rounded-full bg-ink" />}
+                  {aNonLu && <span className="size-1.5 rounded-full bg-ink" aria-hidden />}
                 </span>
                 {ouverte ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
               </button>
@@ -166,7 +183,6 @@ export function ListeConversations({
                     conversation={c}
                     active={selectionId === c.id}
                     onSelect={() => onSelection(c.id)}
-                    {...(s.id === "prospections" ? { volume: volumeDe(c.id) } : {})}
                   />
                 ))}
             </div>

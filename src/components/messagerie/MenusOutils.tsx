@@ -194,29 +194,40 @@ export function MenuAssigner({
   onChoisir: (nom: string) => void;
   onFermer: () => void;
 }) {
+  const groupes = [
+    { id: "equipe" as const, label: "Team mates" },
+    { id: "prestataire" as const, label: "Prestataires" },
+  ];
   return (
     <MenuFlottant titre="Assigner à" onFermer={onFermer}>
-      {ASSIGNEES_CONVERSATION.map((a) => (
-        <button
-          key={a.id}
-          type="button"
-          onClick={() => {
-            onChoisir(a.nom);
-            toastOk(`Assigné à ${a.nom}.`);
-            onFermer();
-          }}
-          className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-ink-body hover:bg-surface"
-        >
-          {actuel === a.nom ? (
-            <Check className="size-2.5 shrink-0" />
-          ) : (
-            <span className="size-2.5 shrink-0" />
-          )}
-          <span className="flex size-5 items-center justify-center rounded-full bg-line text-[10px] text-ink-body">
-            {a.initiales}
-          </span>
-          {a.nom}
-        </button>
+      {groupes.map((groupe) => (
+        <div key={groupe.id}>
+          <p className="px-3 pb-1 pt-2 text-[10px] uppercase tracking-wide text-ink-muted">
+            {groupe.label}
+          </p>
+          {ASSIGNEES_CONVERSATION.filter((a) => a.groupe === groupe.id).map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => {
+                onChoisir(a.nom);
+                toastOk(`Assigné à ${a.nom}.`);
+                onFermer();
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-ink-body hover:bg-surface"
+            >
+              {actuel === a.nom ? (
+                <Check className="size-2.5 shrink-0" />
+              ) : (
+                <span className="size-2.5 shrink-0" />
+              )}
+              <span className="flex size-5 items-center justify-center rounded-full bg-line text-[10px] text-ink-body">
+                {a.initiales}
+              </span>
+              {a.nom}
+            </button>
+          ))}
+        </div>
       ))}
     </MenuFlottant>
   );

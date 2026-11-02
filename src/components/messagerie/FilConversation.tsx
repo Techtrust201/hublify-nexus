@@ -19,6 +19,7 @@ import {
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   MODELES_MESSAGE,
+  type ActionFil,
   type Conversation,
   type IconeSysteme,
   type MessageFil,
@@ -50,6 +51,11 @@ export function FilConversation({
   onSupprimer,
   enfantsPanneau,
   onRetour,
+  onVoirProfil,
+  onAction,
+  nbArchives,
+  archivesOuvertes,
+  onBasculerArchives,
   className,
 }: {
   conversation: Conversation;
@@ -66,10 +72,17 @@ export function FilConversation({
   onSupprimer: () => void;
   enfantsPanneau: ReactNode;
   onRetour?: () => void;
+  onVoirProfil: () => void;
+  onAction: (id: ActionFil["id"]) => void;
+  nbArchives: number;
+  archivesOuvertes: boolean;
+  onBasculerArchives: () => void;
   className?: string;
 }) {
   const [modelesOuverts, setModelesOuverts] = useState(false);
   const zoneModeles = useRef<HTMLDivElement>(null);
+  const zoneFil = useRef<HTMLDivElement>(null);
+  const nombreConnu = useRef(messages.length);
   const peutEnvoyer = Boolean(brouillon.trim() || piecesBrouillon.length);
 
   useEffect(() => {
@@ -87,6 +100,13 @@ export function FilConversation({
       document.removeEventListener("keydown", auClavier);
     };
   }, [modelesOuverts]);
+
+  useEffect(() => {
+    if (messages.length > nombreConnu.current) {
+      zoneFil.current?.scrollTo({ top: zoneFil.current.scrollHeight });
+    }
+    nombreConnu.current = messages.length;
+  }, [messages.length]);
 
   return (
     <section className={cn("flex min-h-0 min-w-0 flex-1 flex-col", className)}>
@@ -106,7 +126,14 @@ export function FilConversation({
         </span>
         <div className="min-w-0 flex-1 basis-40">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm text-ink">{conversation.nom}</p>
+            <button
+              type="button"
+              onClick={onVoirProfil}
+              className="text-left text-sm text-ink underline-offset-2 hover:underline"
+            >
+              {conversation.nom}
+              <span className="sr-only">, ouvrir le profil</span>
+            </button>
             <span className="rounded border border-line bg-surface px-1.5 py-0.5 text-[10px] text-ink-subtle">
               {conversation.badge}
             </span>
@@ -119,6 +146,17 @@ export function FilConversation({
           )}
         </div>
         <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+          <button
+            type="button"
+            onClick={onBasculerArchives}
+            className={cn(
+              "inline-flex h-11 items-center gap-1.5 rounded-card border px-3 text-xs md:h-[30px]",
+              archivesOuvertes ? "border-ink text-ink" : "border-line text-ink-subtle",
+            )}
+          >
+            <Archive className="size-3" />
+            Messages archivés ({nbArchives})
+          </button>
           <BoutonOutil
             label="Partager"
             actif={panneau === "partage"}
@@ -160,7 +198,10 @@ export function FilConversation({
         {enfantsPanneau}
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-[color-mix(in srgb, var(--surface) 30%, transparent)] p-4">
+      <div
+        ref={zoneFil}
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-[color-mix(in srgb, var(--surface) 30%, transparent)] p-4"
+      >
         {messages.length === 0 && (
           <p className="m-auto max-w-xs text-center text-xs text-ink-muted">
             Aucun message dans ce fil. Écrivez le premier ci-dessous.
@@ -225,6 +266,38 @@ export function FilConversation({
                   ))}
                 </div>
               )}
+              {m.fiche && m.fiche.length > 0 && (
+                <div className="max-w-[70%] rounded-card border border-line bg-white px-3 py-2.5 text-xs leading-relaxed text-ink shadow-sm">
+                  {m.fiche.map((ligne) => (
+                    <p key={ligne}>{ligne}</p>
+                  ))}
+                  {m.actions && m.actions.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {m.actions.map((action) => (
+                        <button
+                          key={action.id}
+                          type="button"
+                          onClick={() => onAction(action.id)}
+                          className="inline-flex h-9 items-center rounded-full border border-line px-3 text-[11px] text-ink"
+                        >
+                          {action.libelle}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              {!m.fiche &&
+                m.actions?.map((action) => (
+                  <button
+                    key={action.id}
+                    type="button"
+                    onClick={() => onAction(action.id)}
+                    className="inline-flex h-9 items-center rounded-full border border-line bg-white px-3 text-[11px] text-ink"
+                  >
+                    {action.libelle}
+                  </button>
+                ))}
               {m.heure && <span className="px-1 text-[10px] text-ink-muted">{m.heure}</span>}
             </div>
           );
