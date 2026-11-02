@@ -2,10 +2,10 @@ import { expect, test } from "@playwright/test";
 
 const MOT_DE_PASSE = process.env["DEMO_AUTH_PASSWORD"] ?? "";
 
-test("sans session, l'app redirige vers la connexion", async ({ page }) => {
+test("sans session, l'accueil est la landing", async ({ page }) => {
   await page.goto("/");
-  await expect(page).toHaveTitle(/Connexion/);
-  await expect(page.getByRole("heading", { name: "Connexion" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Tous vos biens/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Essayer gratuitement" }).first()).toBeVisible();
 });
 
 test("une route inconnue sans session mène à la connexion", async ({ page }) => {

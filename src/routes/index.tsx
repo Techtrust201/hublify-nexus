@@ -1,7 +1,9 @@
 // SOURCE: Maquette MO1 — Dashboard/Calendar/Missions/3days
 
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { LandingPage } from "@/components/marketing/LandingPage";
+import { SitePublic } from "@/components/marque/SitePublic";
 import { useDroit } from "@/auth/auth-context";
 import { CreateEventDialog, QuittanceDialog } from "@/components/dashboard/DashboardDialogs";
 import {
@@ -28,18 +30,32 @@ import { paiementViaPlateforme } from "@/data/v1-metier";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Vue générale — Hublify" },
+      { title: "Hublify — Tous vos biens. Un seul tableau de bord." },
       {
         name: "description",
-        content:
-          "Vue générale Hublify : loyers, check-in, interventions, planning des missions et messages.",
+        content: "Hublify centralise calendriers, loyers, quittances, documents et ménages.",
       },
     ],
   }),
-  component: VueGenerale,
+  component: PageAccueil,
 });
 
+function PageAccueil() {
+  const { auth } = Route.useRouteContext();
+  if (!auth) {
+    return (
+      <SitePublic>
+        <LandingPage />
+      </SitePublic>
+    );
+  }
+  return <VueGenerale />;
+}
+
 function VueGenerale() {
+  useEffect(() => {
+    document.title = "Vue générale — Hublify";
+  }, []);
   const navigate = useNavigate();
   const session = useSession();
   const voirFinances = useDroit("voir-finances");

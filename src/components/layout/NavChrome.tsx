@@ -173,6 +173,23 @@ export function NavChrome({
           </div>
         )}
 
+        <p className="px-3 pt-4 text-xs uppercase tracking-[0.3px] text-ink-muted">Ressources</p>
+        <Link
+          to="/faq"
+          onClick={onNavigate}
+          className={cn(lien, estActif(pathname, "/faq") && "bg-surface-soft text-ink")}
+        >
+          <Info className="size-4 shrink-0" />
+          FAQ
+        </Link>
+        <Link
+          to="/parrainage"
+          onClick={onNavigate}
+          className={cn(lien, estActif(pathname, "/parrainage") && "bg-surface-soft text-ink")}
+        >
+          <Info className="size-4 shrink-0" />
+          Parrainage
+        </Link>
         <p className="px-3 pt-4 text-xs uppercase tracking-[0.3px] text-ink-muted">
           Tous les outils
         </p>

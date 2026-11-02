@@ -9,6 +9,7 @@ import {
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth, useDroit } from "@/auth/auth-context";
 import { BandeauSync } from "@/components/layout/BandeauSync";
+import { BarreOngletsMobile } from "@/components/layout/BarreOngletsMobile";
 import { NavChrome } from "@/components/layout/NavChrome";
 import {
   DropdownMenu,
@@ -256,10 +257,11 @@ export function AppShell({
 
         <main
           id="contenu-principal"
-          className="flex-1 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] lg:p-6"
+          className="flex-1 p-4 pb-[calc(4.75rem+env(safe-area-inset-bottom))] lg:p-6 lg:pb-6"
         >
           {attendDonnees && !chargee ? <CorpsEnAttente /> : children}
         </main>
+        <BarreOngletsMobile pathname={pathname} onMenu={() => setMobileOuvert(true)} />
       </div>
     </div>
   );
