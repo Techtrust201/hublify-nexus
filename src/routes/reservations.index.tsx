@@ -78,6 +78,12 @@ function PageReservations() {
             >
               Planning
             </button>
+            <Link
+              to="/precheckin"
+              className="inline-flex h-11 items-center rounded-card border border-line px-4 text-sm font-medium text-ink-body md:h-10"
+            >
+              Pré-checkin
+            </Link>
             {peutReserver && (
               <Link
                 to="/reservations/nouveau"

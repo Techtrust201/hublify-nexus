@@ -39,6 +39,38 @@ import { cn } from "@/lib/utils";
 
 type FiltrePeriode = "tous" | "en_cours" | "a_venir" | "departs" | "passes";
 
+const MOIS_FR = [
+  "janvier",
+  "février",
+  "mars",
+  "avril",
+  "mai",
+  "juin",
+  "juillet",
+  "août",
+  "septembre",
+  "octobre",
+  "novembre",
+  "décembre",
+];
+
+function libelleMois(mois: string) {
+  const [annee, m] = mois.split("-");
+  const nom = MOIS_FR[Number(m) - 1] ?? mois;
+  return `${nom.charAt(0).toUpperCase()}${nom.slice(1)} ${annee}`;
+}
+
+function finDeMois(mois: string) {
+  const annee = Number(mois.slice(0, 4));
+  const m = Number(mois.slice(5, 7));
+  const jour = new Date(annee, m, 0).getDate();
+  return `${mois}-${String(jour).padStart(2, "0")}`;
+}
+
+function moisDisponibles(reservations: { arrivee: string }[]) {
+  return [...new Set(reservations.map((r) => r.arrivee.slice(0, 7)))].sort();
+}
+
 const PAGE = 8;
 
 export function TableauReservations({
@@ -58,6 +90,7 @@ export function TableauReservations({
   const [recherche, setRecherche] = useState("");
   const [statut, setStatut] = useState<"tout" | StatutReservationMo1>("tout");
   const [periode, setPeriode] = useState<FiltrePeriode>("tous");
+  const [mois, setMois] = useState("tous");
   const [page, setPage] = useState(1);
   const [detail, setDetail] = useState<ReservationMo1 | null>(null);
   const [selection, setSelection] = useState<string[]>([]);
@@ -102,9 +135,13 @@ export function TableauReservations({
       if (periode === "a_venir") return r.arrivee > AUJOURD_HUI_MO1;
       if (periode === "departs") return r.depart === AUJOURD_HUI_MO1;
       if (periode === "passes") return r.depart < AUJOURD_HUI_MO1;
+      if (mois !== "tous") {
+        const fin = finDeMois(mois);
+        if (r.depart < `${mois}-01` || r.arrivee > fin) return false;
+      }
       return true;
     });
-  }, [recherche, statut, periode, reservations]);
+  }, [recherche, statut, periode, mois, reservations]);
 
   const comptes = useMemo(() => {
     const base = reservations.filter((r) => r.statut !== "Annulé");
@@ -181,7 +218,7 @@ export function TableauReservations({
             En attente <span className="text-ink-muted">{comptes.attente}</span>
           </li>
           <li className="flex justify-between text-ink-body">
-            Supprimées <span className="text-ink-muted">{comptes.annule}</span>
+            Annulé <span className="text-ink-muted">{comptes.annule}</span>
           </li>
         </ul>
       </aside>
@@ -206,7 +243,7 @@ export function TableauReservations({
                 ["tout", "Tout"],
                 ["Confirmé", "Confirmé"],
                 ["En attente", "En attente"],
-                ["Annulé", "Supprimées"],
+                ["Annulé", "Annulé"],
               ] as const
             ).map(([id, label]) => (
               <button
@@ -245,13 +282,25 @@ export function TableauReservations({
             <Download className="size-3" />
             {selection.length > 0 ? `Exporter (${selection.length})` : "Exporter"}
           </button>
-          <Link
-            to="/outils/vue-annuelle"
-            className="inline-flex h-11 items-center gap-1 rounded-card border border-line px-3 text-xs font-medium text-ink-body md:h-[34px]"
-          >
+          <label className="inline-flex h-11 items-center gap-1 rounded-card border border-line px-2 text-xs font-medium text-ink-body md:h-[34px]">
             <Calendar className="size-3.5" />
-            Année 2026
-          </Link>
+            <select
+              aria-label="Mois"
+              value={mois}
+              onChange={(e) => {
+                setMois(e.target.value);
+                setPage(1);
+              }}
+              className="bg-transparent text-xs outline-none"
+            >
+              <option value="tous">Tous les mois</option>
+              {moisDisponibles(reservations).map((m) => (
+                <option key={m} value={m}>
+                  {libelleMois(m)}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
 
         <div className="flex flex-wrap gap-2 px-4 py-3 md:hidden">
@@ -449,7 +498,7 @@ export function TableauReservations({
                               void (async () => {
                                 const ok = await confirmer({
                                   titre: "Supprimer cette réservation ?",
-                                  description: `${r.occupant} disparaît du planning et de la liste. Retrouvez-la dans Supprimées.`,
+                                  description: `${r.occupant} disparaît du planning et de la liste. Retrouvez-la dans Annulé.`,
                                   libelleConfirmer: "Supprimer",
                                   danger: true,
                                 });
@@ -770,7 +819,7 @@ function PanneauDetail({
           <DialogTitle>Supprimer cette réservation ?</DialogTitle>
           <DialogDescription>
             {reservation.occupant} disparaît du planning et de la liste. Vous la retrouverez
-            uniquement dans Supprimées.
+            uniquement dans Annulé.
           </DialogDescription>
           <div className="mt-4 flex justify-end gap-2">
             <button

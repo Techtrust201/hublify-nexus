@@ -1,6 +1,6 @@
 // SOURCE: Maquette MO1 — grille biens × jours (Missions / Tarifs, 3 jours / 5 jours / mois)
 
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Plus, SlidersHorizontal, Tag } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useDroit } from "@/auth/auth-context";
@@ -16,7 +16,9 @@ import {
   type BienCalendrierChrome,
 } from "@/components/dashboard/CalendrierLigne";
 import { CreatePrestationDialog } from "@/components/dashboard/CreatePrestationDialog";
+import { DialogueActionDate } from "@/components/dashboard/DialogueActionDate";
 import {
+  CreateEventDialog,
   CreateRegleDialog,
   GererReglesPanel,
   MissionInfoDialog,
@@ -45,7 +47,15 @@ import {
   type VuePlanning,
 } from "@/data/planning-mo1";
 import type { DateBloqueeMo1 } from "@/data/reservations-mo1";
-import { modifierSession, poserOuverturesBail, retirerMission, useSession } from "@/data/session";
+import {
+  ajouterEvenement,
+  ajouterNotif,
+  modifierSession,
+  poserOuverturesBail,
+  retirerMission,
+  useSession,
+} from "@/data/session";
+import type { ActionDate } from "@/lib/gestionnaire-planning";
 import { confirmer, toastOk } from "@/lib/feedback";
 import { idDossierPourCalendrier } from "@/data/v1-metier";
 import { cn } from "@/lib/utils";
@@ -70,6 +80,7 @@ export function PlanningGrid({
   selectedMissionId?: string | null | undefined;
 }) {
   const session = useSession();
+  const navigate = useNavigate();
   const peutReserver = useDroit("mod-reservations");
   const missions = session.missions;
   const sejoursCal = useMemo(() => {
@@ -109,6 +120,9 @@ export function PlanningGrid({
     date: string;
     mission?: MissionMo1;
   } | null>(null);
+  const [actionDate, setActionDate] = useState<{ bienId: string; date: string } | null>(null);
+  const [creerEvent, setCreerEvent] = useState(false);
+  const [prestationsSeules, setPrestationsSeules] = useState(false);
   const ensembles = session.ensembles;
   const regles = session.regles;
   const setEnsembles = (
@@ -154,6 +168,9 @@ export function PlanningGrid({
     let list = missions;
     if (affichage === "checkin") list = list.filter((m) => m.type === "Check-in");
     if (affichage === "checkout") list = list.filter((m) => m.type === "Check-out");
+    if (prestationsSeules) {
+      list = list.filter((m) => m.type !== "Maintenance");
+    }
     const q = rechercheCal.trim().toLowerCase();
     if (q) {
       const ids = new Set(biensFiltres.map((b) => b.id));
@@ -165,8 +182,9 @@ export function PlanningGrid({
       );
     }
     return list;
-  }, [affichage, missions, rechercheCal, biensFiltres]);
-  const montrerResas = affichage === "missions" || affichage === "ouverture";
+  }, [affichage, missions, rechercheCal, biensFiltres, prestationsSeules]);
+  const montrerResas =
+    !prestationsSeules && (affichage === "missions" || affichage === "ouverture");
   const montrerMissions = affichage !== "ouverture";
   const montrerOuverture = affichage === "ouverture";
   const selectionActive = Boolean(selectedResaId || selectedMissionId);
@@ -176,6 +194,39 @@ export function PlanningGrid({
   const choisirMission = (m: MissionMo1) => {
     if (onMission) onMission(m);
     else setMissionOuverte(m);
+  };
+
+  const choisirActionDate = (action: ActionDate, bienChoisi: string, jour: string) => {
+    if (action === "prestation") {
+      setPrestation({ bienId: bienChoisi, date: jour });
+      return;
+    }
+    if (action === "reservation") {
+      void navigate({ to: "/reservations/nouveau", search: { bien: bienChoisi, arrivee: jour } });
+      return;
+    }
+    if (action === "evenement") {
+      setCreerEvent(true);
+      return;
+    }
+    const blocage = session.datesBloquees.find(
+      (d) =>
+        d.bienId === bienChoisi &&
+        d.date === jour &&
+        d.motif !== "Ouverture" &&
+        d.motif !== "Ouverture BAIL",
+    );
+    modifierSession((e) => ({
+      ...e,
+      datesBloquees:
+        action === "debloquer" || blocage
+          ? e.datesBloquees.filter((d) => d.id !== blocage?.id)
+          : [
+              ...e.datesBloquees,
+              { id: `blk-${bienChoisi}-${jour}`, bienId: bienChoisi, date: jour, motif: "Bloqué" },
+            ],
+    }));
+    toastOk(action === "debloquer" || blocage ? "Date rouverte." : "Date bloquée.");
   };
 
   const biensTarif =
@@ -325,6 +376,21 @@ export function PlanningGrid({
                 <option value="ouverture">periode ouverture BAIL</option>
               </select>
             </label>
+            {onglet === "missions" ? (
+              <button
+                type="button"
+                aria-pressed={prestationsSeules}
+                onClick={() => setPrestationsSeules((v) => !v)}
+                className={cn(
+                  "inline-flex h-11 min-h-11 items-center rounded border px-2.5 text-xs font-medium md:h-[26px] md:min-h-[26px]",
+                  prestationsSeules
+                    ? "border-ink bg-ink text-white"
+                    : "border-line bg-white text-ink-body",
+                )}
+              >
+                Prestations seules
+              </button>
+            ) : null}
             {montrerOuverture ? (
               <button
                 type="button"
@@ -384,7 +450,7 @@ export function PlanningGrid({
           {...(montrerMissions
             ? {
                 onAjouter: (date: string) =>
-                  setPrestation({
+                  setActionDate({
                     bienId: biensFiltres[0]?.id ?? biens[0]?.id ?? "",
                     date,
                   }),
@@ -409,7 +475,7 @@ export function PlanningGrid({
           {...(montrerMissions
             ? {
                 onAjouterPrestation: (bienId: string, date: string) =>
-                  setPrestation({ bienId, date }),
+                  setActionDate({ bienId, date }),
               }
             : {})}
         />
@@ -460,6 +526,45 @@ export function PlanningGrid({
         bienId={prestation?.bienId}
         date={prestation?.date}
         mission={prestation?.mission}
+      />
+      <DialogueActionDate
+        ouvert={Boolean(actionDate)}
+        bienNom={biens.find((b) => b.id === actionDate?.bienId)?.nom ?? ""}
+        dateLabel={
+          actionDate
+            ? new Date(`${actionDate.date}T12:00:00`).toLocaleDateString("fr-FR", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              })
+            : ""
+        }
+        bloque={Boolean(
+          actionDate &&
+          session.datesBloquees.some(
+            (d) =>
+              d.bienId === actionDate.bienId &&
+              d.date === actionDate.date &&
+              d.motif !== "Ouverture" &&
+              d.motif !== "Ouverture BAIL",
+          ),
+        )}
+        onFermer={() => setActionDate(null)}
+        onChoisir={(action) => {
+          if (!actionDate) return;
+          choisirActionDate(action, actionDate.bienId, actionDate.date);
+          setActionDate(null);
+        }}
+      />
+      <CreateEventDialog
+        ouvert={creerEvent}
+        onFermer={() => setCreerEvent(false)}
+        onCreer={(e) => {
+          ajouterEvenement(e);
+          ajouterNotif({ titre: "Événement ajouté", detail: e.titre, href: "/" });
+          toastOk("Note ou événement ajouté au calendrier.");
+          setCreerEvent(false);
+        }}
       />
       <Dialog
         open={Boolean(periode)}

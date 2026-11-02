@@ -21,6 +21,14 @@ import type { ImmeubleSession } from "@/data/etat-session";
 import { chargerAccesLieux, sauverAccesLieu } from "@/data/session-remote";
 import { ajouterBien, idNouveau, poserCollection, retirerBien, useSession } from "@/data/session";
 import { copierTexte, confirmer, telechargerDemo, toastErreur, toastOk } from "@/lib/feedback";
+import {
+  OCCUPATIONS_LIEU,
+  TYPES_LIEU,
+  exporterAnnonces,
+  ficheDepuisOccupation,
+  importerAnnonces,
+  type OccupationLieu,
+} from "@/lib/gestionnaire-planning";
 import { cn } from "@/lib/utils";
 
 type ConfigLieu = {
@@ -99,6 +107,7 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
   const [nomNouveau, setNomNouveau] = useState("");
   const [adresseNouvelle, setAdresseNouvelle] = useState("");
   const [typologie, setTypologie] = useState("Appartement");
+  const [occupation, setOccupation] = useState<OccupationLieu>("Meublé");
   const [nomImm, setNomImm] = useState("");
   const [adresseImm, setAdresseImm] = useState("");
   const [configs, setConfigs] = useState<Record<string, ConfigLieu>>({});
@@ -189,12 +198,14 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
     }
     const id = idNouveau("bien");
     const adresse = adresseNouvelle.trim();
+    const fiche = ficheDepuisOccupation(typologie, occupation);
     ajouterBien({
       id,
       nom,
       baseNuit: 100,
-      typologie,
-      statut: "libre",
+      typologie: fiche.typologie,
+      statut: fiche.statut,
+      meuble: fiche.meuble,
       initiales: initialesDe(nom) || "??",
       ...(adresse ? { adresse } : {}),
     });
@@ -238,6 +249,57 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
     toastOk(ids.length > 1 ? `${ids.length} immeubles retirés.` : "Immeuble retiré.");
   };
 
+  const occupationDe = (meuble: boolean, statut: string, type: string): OccupationLieu => {
+    if (statut === "en travaux") return "Travaux";
+    if (type.toLowerCase().includes("événement")) return "Événement";
+    return meuble ? "Meublé" : "Vide";
+  };
+
+  const exporterAnnonce = () => {
+    telechargerDemo(
+      "annonces-hublify.csv",
+      exporterAnnonces(
+        visibles.map((l) => ({
+          nom: l.nom,
+          type: l.typologie,
+          occupation: occupationDe(l.meuble, l.statut, l.typologie),
+          adresse: l.adresse,
+          note: l.note,
+        })),
+      ),
+    );
+  };
+
+  const exporterNotation = () => {
+    const lignes = ["Nom;Note", ...visibles.map((l) => `${l.nom};${l.note.toFixed(1)}`)];
+    telechargerDemo("notations-hublify.csv", lignes.join("\n"));
+    toastOk("Notation extraite du parc Hublify. Les notes OTA ne sont pas lues sans API.");
+  };
+
+  const importerAnnonce = async (fichier: File) => {
+    const { lignes, ignorees } = importerAnnonces(await fichier.text());
+    let ajoutees = 0;
+    for (const ligne of lignes) {
+      if (session.biens.some((b) => b.nom.toLowerCase() === ligne.nom.toLowerCase())) continue;
+      const fiche = ficheDepuisOccupation(ligne.type, ligne.occupation);
+      ajouterBien({
+        id: idNouveau("bien"),
+        nom: ligne.nom,
+        baseNuit: 100,
+        typologie: fiche.typologie,
+        statut: fiche.statut,
+        meuble: fiche.meuble,
+        note: ligne.note,
+        initiales: initialesDe(ligne.nom) || "??",
+        ...(ligne.adresse ? { adresse: ligne.adresse } : {}),
+      });
+      ajoutees += 1;
+    }
+    toastOk(
+      `${ajoutees} annonce${ajoutees > 1 ? "s" : ""} importée${ajoutees > 1 ? "s" : ""}${ignorees ? `, ${ignorees} ligne${ignorees > 1 ? "s" : ""} ignorée${ignorees > 1 ? "s" : ""}` : ""}.`,
+    );
+  };
+
   const exporterLogements = () => {
     const lignes = [
       "Nom;Typologie;Adresse;Statut;Proprietaire",
@@ -248,11 +310,7 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
 
   return (
     <div>
-      <div className="mb-8 text-center">
-        <h2 className="hidden text-2xl text-ink md:block">Lieux</h2>
-        <p className="mx-auto mt-2 hidden max-w-lg text-sm text-ink-subtle md:block">
-          Logements, immeubles, lieux d'événements
-        </p>
+      <div className="mb-4 text-center">
         {peutMod && (
           <BtnNavy
             className="h-11 w-full max-w-sm px-5 text-sm md:mt-4 md:h-10 md:w-auto"
@@ -311,6 +369,27 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
               <BtnOutline onClick={exporterLogements}>
                 <Download className="size-3" /> Exporter
               </BtnOutline>
+              <BtnOutline onClick={exporterAnnonce}>
+                <Download className="size-3" /> Annonce
+              </BtnOutline>
+              <BtnOutline onClick={exporterNotation}>
+                <Star className="size-3" /> Notation
+              </BtnOutline>
+              {peutMod && (
+                <label className="inline-flex h-11 cursor-pointer items-center rounded-card border border-line px-3 text-sm text-ink-body md:h-9">
+                  Importer
+                  <input
+                    type="file"
+                    accept=".csv,text/csv"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const fichier = e.target.files?.[0];
+                      e.target.value = "";
+                      if (fichier) void importerAnnonce(fichier);
+                    }}
+                  />
+                </label>
+              )}
               {peutMod && (
                 <BtnNavy onClick={() => setAjouterOuvert(true)}>
                   <Plus className="size-3" /> Ajouter
@@ -804,12 +883,26 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
               onChange={(e) => setTypologie(e.target.value)}
               className="mt-1 h-9 w-full rounded-card border border-line bg-white px-3 text-sm text-ink"
             >
-              <option>Appartement</option>
-              <option>Villa</option>
-              <option>Studio</option>
-              <option>Maison</option>
+              {TYPES_LIEU.map((t) => (
+                <option key={t}>{t}</option>
+              ))}
             </select>
           </label>
+          <label className="mt-3 block text-xs text-ink-muted">
+            Occupation
+            <select
+              value={occupation}
+              onChange={(e) => setOccupation(e.target.value as OccupationLieu)}
+              className="mt-1 h-9 w-full rounded-card border border-line bg-white px-3 text-sm text-ink"
+            >
+              {OCCUPATIONS_LIEU.map((o) => (
+                <option key={o}>{o}</option>
+              ))}
+            </select>
+          </label>
+          <p className="mt-2 text-[11px] text-ink-muted">
+            Import et export d'annonce en CSV. Aucune API OTA n'est branchée en V1.
+          </p>
           <BtnNavy className="mt-4 w-full justify-center" onClick={ajouterLieu}>
             Enregistrer
           </BtnNavy>

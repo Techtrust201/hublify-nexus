@@ -513,6 +513,23 @@ export function enregistrerEncaissement(
   });
 }
 
+export function rembourserLoyer(id: string, montant: number) {
+  const actuel = etat.loyers.find((l) => l.id === id);
+  const demande = Math.round(montant * 100) / 100;
+  if (!actuel || demande <= 0 || demande > actuel.montant) return false;
+  const reste = Math.round((actuel.montant - demande) * 100) / 100;
+  const patch = {
+    montant: reste,
+    reference: `Remboursement ${demande.toLocaleString("fr-FR")} €`,
+  };
+  appliquerLocal((e) => ({
+    ...e,
+    loyers: e.loyers.map((l) => (l.id === id ? { ...l, ...patch } : l)),
+  }));
+  void pousserPatch("loyers", id, patch).then((ok) => !ok && programmerReprise());
+  return true;
+}
+
 export function marquerQuittance(id: string) {
   appliquerLocal((e) => ({
     ...e,

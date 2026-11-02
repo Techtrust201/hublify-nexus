@@ -1,4 +1,4 @@
-import { droitsEffectifs, initialesDe, type DroitId, type RoleId } from "@/auth/permissions";
+import { droitsEffectifs, initialesDe, type RoleId } from "@/auth/permissions";
 import type { Sql } from "@/lib/sql";
 
 export async function rattacherUtilisateur(params: {
@@ -10,7 +10,7 @@ export async function rattacherUtilisateur(params: {
   affectation: string;
   statut: "actif" | "attente";
   orgId: string;
-  droits?: DroitId[];
+  droits?: readonly string[];
 }) {
   const nom = params.nom || params.prenom;
   const droits = params.droits ?? droitsEffectifs(params.roleId);
