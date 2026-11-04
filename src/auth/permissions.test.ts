@@ -82,6 +82,9 @@ describe("permissions", () => {
     expect(droitRequisPourChemin("/prestataires/nouveau")).toBe("mod-biens");
     expect(droitRequisPourChemin("/outils/etats-des-lieux")).toBe("voir-documents");
     expect(droitRequisPourChemin("/outils/baux")).toBe("voir-documents");
+    expect(droitRequisPourChemin("/outils/upsells")).toBe("mod-biens");
+    expect(droitRequisPourChemin("/outils/timeline")).toBe("voir-documents");
+    expect(droitRequisPourChemin("/outils/livret")).toBe("voir-documents");
     expect(droitRequisPourChemin("/espace")).toBe("messagerie");
     expect(droitRequisPourChemin("/dossiers/o3")).toBe("voir-reservations");
     expect(droitRequisPourChemin("/")).toBeUndefined();

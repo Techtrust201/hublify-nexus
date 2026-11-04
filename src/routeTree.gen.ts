@@ -43,7 +43,10 @@ import { Route as OutilsIndexRouteImport } from './routes/outils.index'
 import { Route as OutilsBauxRouteImport } from './routes/outils.baux'
 import { Route as OutilsDebuterRouteImport } from './routes/outils.debuter'
 import { Route as OutilsEtatsDesLieuxRouteImport } from './routes/outils.etats-des-lieux'
+import { Route as OutilsLivretRouteImport } from './routes/outils.livret'
 import { Route as OutilsModelesRouteImport } from './routes/outils.modeles'
+import { Route as OutilsTimelineRouteImport } from './routes/outils.timeline'
+import { Route as OutilsUpsellsRouteImport } from './routes/outils.upsells'
 import { Route as OutilsVueAnnuelleRouteImport } from './routes/outils.vue-annuelle'
 import { Route as ParametrageIndexRouteImport } from './routes/parametrage.index'
 import { Route as PatrimoinesIndexRouteImport } from './routes/patrimoines.index'
@@ -228,9 +231,24 @@ const OutilsEtatsDesLieuxRoute = OutilsEtatsDesLieuxRouteImport.update({
   path: '/outils/etats-des-lieux',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OutilsLivretRoute = OutilsLivretRouteImport.update({
+  id: '/outils/livret',
+  path: '/outils/livret',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OutilsModelesRoute = OutilsModelesRouteImport.update({
   id: '/outils/modeles',
   path: '/outils/modeles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OutilsTimelineRoute = OutilsTimelineRouteImport.update({
+  id: '/outils/timeline',
+  path: '/outils/timeline',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OutilsUpsellsRoute = OutilsUpsellsRouteImport.update({
+  id: '/outils/upsells',
+  path: '/outils/upsells',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OutilsVueAnnuelleRoute = OutilsVueAnnuelleRouteImport.update({
@@ -327,7 +345,10 @@ export interface FileRoutesByFullPath {
   '/outils/baux': typeof OutilsBauxRoute
   '/outils/debuter': typeof OutilsDebuterRoute
   '/outils/etats-des-lieux': typeof OutilsEtatsDesLieuxRoute
+  '/outils/livret': typeof OutilsLivretRoute
   '/outils/modeles': typeof OutilsModelesRoute
+  '/outils/timeline': typeof OutilsTimelineRoute
+  '/outils/upsells': typeof OutilsUpsellsRoute
   '/outils/vue-annuelle': typeof OutilsVueAnnuelleRoute
   '/prestataires/$prestataireId': typeof PrestatairesPrestataireIdRoute
   '/prestataires/nouveau': typeof PrestatairesNouveauRoute
@@ -377,7 +398,10 @@ export interface FileRoutesByTo {
   '/outils/baux': typeof OutilsBauxRoute
   '/outils/debuter': typeof OutilsDebuterRoute
   '/outils/etats-des-lieux': typeof OutilsEtatsDesLieuxRoute
+  '/outils/livret': typeof OutilsLivretRoute
   '/outils/modeles': typeof OutilsModelesRoute
+  '/outils/timeline': typeof OutilsTimelineRoute
+  '/outils/upsells': typeof OutilsUpsellsRoute
   '/outils/vue-annuelle': typeof OutilsVueAnnuelleRoute
   '/prestataires/$prestataireId': typeof PrestatairesPrestataireIdRoute
   '/prestataires/nouveau': typeof PrestatairesNouveauRoute
@@ -428,7 +452,10 @@ export interface FileRoutesById {
   '/outils/baux': typeof OutilsBauxRoute
   '/outils/debuter': typeof OutilsDebuterRoute
   '/outils/etats-des-lieux': typeof OutilsEtatsDesLieuxRoute
+  '/outils/livret': typeof OutilsLivretRoute
   '/outils/modeles': typeof OutilsModelesRoute
+  '/outils/timeline': typeof OutilsTimelineRoute
+  '/outils/upsells': typeof OutilsUpsellsRoute
   '/outils/vue-annuelle': typeof OutilsVueAnnuelleRoute
   '/prestataires/$prestataireId': typeof PrestatairesPrestataireIdRoute
   '/prestataires/nouveau': typeof PrestatairesNouveauRoute
@@ -480,7 +507,10 @@ export interface FileRouteTypes {
     | '/outils/baux'
     | '/outils/debuter'
     | '/outils/etats-des-lieux'
+    | '/outils/livret'
     | '/outils/modeles'
+    | '/outils/timeline'
+    | '/outils/upsells'
     | '/outils/vue-annuelle'
     | '/prestataires/$prestataireId'
     | '/prestataires/nouveau'
@@ -530,7 +560,10 @@ export interface FileRouteTypes {
     | '/outils/baux'
     | '/outils/debuter'
     | '/outils/etats-des-lieux'
+    | '/outils/livret'
     | '/outils/modeles'
+    | '/outils/timeline'
+    | '/outils/upsells'
     | '/outils/vue-annuelle'
     | '/prestataires/$prestataireId'
     | '/prestataires/nouveau'
@@ -580,7 +613,10 @@ export interface FileRouteTypes {
     | '/outils/baux'
     | '/outils/debuter'
     | '/outils/etats-des-lieux'
+    | '/outils/livret'
     | '/outils/modeles'
+    | '/outils/timeline'
+    | '/outils/upsells'
     | '/outils/vue-annuelle'
     | '/prestataires/$prestataireId'
     | '/prestataires/nouveau'
@@ -631,7 +667,10 @@ export interface RootRouteChildren {
   OutilsBauxRoute: typeof OutilsBauxRoute
   OutilsDebuterRoute: typeof OutilsDebuterRoute
   OutilsEtatsDesLieuxRoute: typeof OutilsEtatsDesLieuxRoute
+  OutilsLivretRoute: typeof OutilsLivretRoute
   OutilsModelesRoute: typeof OutilsModelesRoute
+  OutilsTimelineRoute: typeof OutilsTimelineRoute
+  OutilsUpsellsRoute: typeof OutilsUpsellsRoute
   OutilsVueAnnuelleRoute: typeof OutilsVueAnnuelleRoute
   PrestatairesPrestataireIdRoute: typeof PrestatairesPrestataireIdRoute
   PrestatairesNouveauRoute: typeof PrestatairesNouveauRoute
@@ -895,11 +934,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OutilsEtatsDesLieuxRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/outils/livret': {
+      id: '/outils/livret'
+      path: '/outils/livret'
+      fullPath: '/outils/livret'
+      preLoaderRoute: typeof OutilsLivretRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/outils/modeles': {
       id: '/outils/modeles'
       path: '/outils/modeles'
       fullPath: '/outils/modeles'
       preLoaderRoute: typeof OutilsModelesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/outils/timeline': {
+      id: '/outils/timeline'
+      path: '/outils/timeline'
+      fullPath: '/outils/timeline'
+      preLoaderRoute: typeof OutilsTimelineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/outils/upsells': {
+      id: '/outils/upsells'
+      path: '/outils/upsells'
+      fullPath: '/outils/upsells'
+      preLoaderRoute: typeof OutilsUpsellsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/outils/vue-annuelle': {
@@ -1023,7 +1083,10 @@ const rootRouteChildren: RootRouteChildren = {
   OutilsBauxRoute: OutilsBauxRoute,
   OutilsDebuterRoute: OutilsDebuterRoute,
   OutilsEtatsDesLieuxRoute: OutilsEtatsDesLieuxRoute,
+  OutilsLivretRoute: OutilsLivretRoute,
   OutilsModelesRoute: OutilsModelesRoute,
+  OutilsTimelineRoute: OutilsTimelineRoute,
+  OutilsUpsellsRoute: OutilsUpsellsRoute,
   OutilsVueAnnuelleRoute: OutilsVueAnnuelleRoute,
   PrestatairesPrestataireIdRoute: PrestatairesPrestataireIdRoute,
   PrestatairesNouveauRoute: PrestatairesNouveauRoute,
