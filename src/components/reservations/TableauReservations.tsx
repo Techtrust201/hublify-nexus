@@ -3,11 +3,15 @@ import { useDroit } from "@/auth/auth-context";
 import { ScrollHint } from "@/components/layout/ScrollHint";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import {
+  ArrowDown,
+  ArrowUp,
   Calendar,
   ChevronRight,
   Clock,
   Download,
   History,
+  Home,
+  KeyRound,
   LogIn,
   LogOut,
   Search,
@@ -33,11 +37,20 @@ import {
   useStatutSync,
 } from "@/data/session";
 import { methodeParDefaut } from "@/data/v1-metier";
+import {
+  comptesReservations,
+  filtrerReservations,
+  paginerReservations,
+  sejourAvecCle,
+  TAILLE_PAGE_RESERVATIONS,
+  trierReservations,
+  type ColonneTri,
+  type FiltrePeriode,
+  type SensTri,
+} from "@/components/reservations/tableau-vue";
 import { confirmer, telechargerDemo, toastErreur, toastOk } from "@/lib/feedback";
 import { telechargerFactureReservation } from "@/lib/exports-docs";
 import { cn } from "@/lib/utils";
-
-type FiltrePeriode = "tous" | "en_cours" | "a_venir" | "departs" | "passes";
 
 const MOIS_FR = [
   "janvier",
@@ -60,18 +73,9 @@ function libelleMois(mois: string) {
   return `${nom.charAt(0).toUpperCase()}${nom.slice(1)} ${annee}`;
 }
 
-function finDeMois(mois: string) {
-  const annee = Number(mois.slice(0, 4));
-  const m = Number(mois.slice(5, 7));
-  const jour = new Date(annee, m, 0).getDate();
-  return `${mois}-${String(jour).padStart(2, "0")}`;
-}
-
 function moisDisponibles(reservations: { arrivee: string }[]) {
   return [...new Set(reservations.map((r) => r.arrivee.slice(0, 7)))].sort();
 }
-
-const PAGE = 8;
 
 export function TableauReservations({
   focusId,
@@ -82,7 +86,6 @@ export function TableauReservations({
 }) {
   const session = useSession();
   const sync = useStatutSync();
-  const peutMod = useDroit("mod-reservations");
   const reservations = session.reservationsDossier;
   const attendHydrate =
     reservations.length === 0 && sync.etat !== "enregistre" && sync.etat !== "echec";
@@ -91,6 +94,7 @@ export function TableauReservations({
   const [statut, setStatut] = useState<"tout" | StatutReservationMo1>("tout");
   const [periode, setPeriode] = useState<FiltrePeriode>("tous");
   const [mois, setMois] = useState("tous");
+  const [tri, setTri] = useState<{ colonne: ColonneTri; sens: SensTri } | null>(null);
   const [page, setPage] = useState(1);
   const [detail, setDetail] = useState<ReservationMo1 | null>(null);
   const [selection, setSelection] = useState<string[]>([]);
@@ -113,7 +117,7 @@ export function TableauReservations({
     if (index < 0) return;
     const r = reservations[index]!;
     setDetail((actuel) => (actuel?.id === r.id ? actuel : r));
-    setPage(Math.floor(index / PAGE) + 1);
+    setPage(Math.floor(index / TAILLE_PAGE_RESERVATIONS) + 1);
     onSelectReservation?.(r.id);
   }, [focusId, reservations, onSelectReservation]);
 
@@ -122,44 +126,34 @@ export function TableauReservations({
     onSelectReservation?.(r.id);
   };
 
+  const biens = session.biens;
   const filtrees = useMemo(() => {
-    return reservations.filter((r) => {
-      const bien = bienParId(r.bienId);
-      const q = recherche.trim().toLowerCase();
-      if (q && !r.occupant.toLowerCase().includes(q) && !bien?.nom.toLowerCase().includes(q)) {
-        return false;
-      }
-      if (statut === "tout" && r.statut === "Annulé") return false;
-      if (statut !== "tout" && r.statut !== statut) return false;
-      if (periode === "en_cours") return r.arrivee <= AUJOURD_HUI_MO1 && r.depart > AUJOURD_HUI_MO1;
-      if (periode === "a_venir") return r.arrivee > AUJOURD_HUI_MO1;
-      if (periode === "departs") return r.depart === AUJOURD_HUI_MO1;
-      if (periode === "passes") return r.depart < AUJOURD_HUI_MO1;
-      if (mois !== "tous") {
-        const fin = finDeMois(mois);
-        if (r.depart < `${mois}-01` || r.arrivee > fin) return false;
-      }
-      return true;
+    const nomBien = (id: string) => biens.find((b) => b.id === id)?.nom ?? "";
+    return filtrerReservations(reservations, {
+      recherche,
+      statut,
+      periode,
+      mois,
+      aujourdHui: AUJOURD_HUI_MO1,
+      nomBien,
     });
-  }, [recherche, statut, periode, mois, reservations]);
+  }, [recherche, statut, periode, mois, reservations, biens]);
+  const triees = useMemo(() => {
+    const nomBien = (id: string) => biens.find((b) => b.id === id)?.nom ?? "";
+    return trierReservations(filtrees, tri, nomBien);
+  }, [filtrees, tri, biens]);
+  const comptes = useMemo(() => comptesReservations(reservations, AUJOURD_HUI_MO1), [reservations]);
 
-  const comptes = useMemo(() => {
-    const base = reservations.filter((r) => r.statut !== "Annulé");
-    return {
-      en_cours: base.filter((r) => r.arrivee <= AUJOURD_HUI_MO1 && r.depart > AUJOURD_HUI_MO1)
-        .length,
-      a_venir: base.filter((r) => r.arrivee > AUJOURD_HUI_MO1).length,
-      departs: base.filter((r) => r.depart === AUJOURD_HUI_MO1).length,
-      passes: base.filter((r) => r.depart < AUJOURD_HUI_MO1).length,
-      confirme: reservations.filter((r) => r.statut === "Confirmé").length,
-      attente: reservations.filter((r) => r.statut === "En attente").length,
-      annule: reservations.filter((r) => r.statut === "Annulé").length,
-    };
-  }, [reservations]);
+  const { page: pageCourante, pages, visibles } = paginerReservations(triees, page);
 
-  const pages = Math.max(1, Math.ceil(filtrees.length / PAGE));
-  const pageCourante = Math.min(page, pages);
-  const visibles = filtrees.slice((pageCourante - 1) * PAGE, pageCourante * PAGE);
+  const basculerTri = (colonne: ColonneTri) => {
+    setTri((actuel) => {
+      if (actuel?.colonne !== colonne) return { colonne, sens: "asc" };
+      if (actuel.sens === "asc") return { colonne, sens: "desc" };
+      return null;
+    });
+    setPage(1);
+  };
   const idsVisibles = visibles.map((r) => r.id);
   const toutSelectionne =
     idsVisibles.length > 0 && idsVisibles.every((id) => selection.includes(id));
@@ -237,7 +231,7 @@ export function TableauReservations({
               className="h-full w-full bg-transparent text-base text-ink outline-none placeholder:text-ink-muted md:text-xs"
             />
           </label>
-          <div className="grid w-full grid-cols-2 gap-1 rounded-card border border-line p-1 md:flex md:w-auto md:gap-0">
+          <div className="grid w-full grid-cols-2 gap-1 rounded-full border border-line p-1 md:flex md:w-auto md:gap-0">
             {(
               [
                 ["tout", "Tout"],
@@ -253,8 +247,9 @@ export function TableauReservations({
                   setStatut(id);
                   setPage(1);
                 }}
+                aria-pressed={statut === id}
                 className={cn(
-                  "h-11 min-h-11 rounded-md px-3 text-sm font-medium md:h-7 md:min-h-7 md:text-xs",
+                  "h-11 min-h-11 rounded-full px-3 text-sm font-medium md:h-7 md:min-h-7 md:text-xs",
                   statut === id ? "bg-ink text-white" : "text-ink-body",
                 )}
               >
@@ -264,24 +259,7 @@ export function TableauReservations({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 px-5 pb-3">
-          <button
-            type="button"
-            onClick={() => {
-              const lignes = [
-                "Occupant;Bien;Arrivee;Depart;Statut;Montant",
-                ...aExporter.map((r) => {
-                  const bien = bienParId(r.bienId);
-                  return `${r.occupant};${bien?.nom ?? r.bienId};${r.arrivee};${r.depart};${libelleStatutReservation(r.statut)};${r.montant}`;
-                }),
-              ];
-              telechargerDemo("reservations-hublify.csv", lignes.join("\n"));
-            }}
-            className="inline-flex h-11 items-center gap-1 rounded border border-line px-3 text-xs font-medium text-ink-body md:h-[30px]"
-          >
-            <Download className="size-3" />
-            {selection.length > 0 ? `Exporter (${selection.length})` : "Exporter"}
-          </button>
+        <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
           <label className="inline-flex h-11 items-center gap-1 rounded-card border border-line px-2 text-xs font-medium text-ink-body md:h-[34px]">
             <Calendar className="size-3.5" />
             <select
@@ -301,6 +279,23 @@ export function TableauReservations({
               ))}
             </select>
           </label>
+          <button
+            type="button"
+            onClick={() => {
+              const lignes = [
+                "Occupant;Bien;Arrivee;Depart;Statut;Montant",
+                ...aExporter.map((r) => {
+                  const bien = bienParId(r.bienId);
+                  return `${r.occupant};${bien?.nom ?? r.bienId};${r.arrivee};${r.depart};${r.statut};${r.montant}`;
+                }),
+              ];
+              telechargerDemo("reservations-hublify.csv", lignes.join("\n"));
+            }}
+            className="inline-flex h-11 items-center gap-1 rounded border border-line px-3 text-xs font-medium text-ink-body md:h-[30px]"
+          >
+            <Download className="size-3" />
+            {selection.length > 0 ? `Exporter (${selection.length})` : "Exporter"}
+          </button>
         </div>
 
         <div className="flex flex-wrap gap-2 px-4 py-3 md:hidden">
@@ -393,15 +388,17 @@ export function TableauReservations({
                     />
                   </label>
                 </th>
-                <th className="px-3 py-3 font-normal">Statut</th>
-                <th className="px-3 py-3 font-normal">Propriété</th>
+                <EnteteTri label="Statut" colonne="statut" tri={tri} onTri={basculerTri} />
+                <EnteteTri label="Propriété" colonne="propriete" tri={tri} onTri={basculerTri} />
                 <th className="px-3 py-3 font-normal">Occupant</th>
-                <th className="px-3 py-3 font-normal">Arrivée</th>
-                <th className="px-3 py-3 font-normal">Source</th>
+                <EnteteTri label="Arrivée" colonne="arrivee" tri={tri} onTri={basculerTri} />
+                <th className="px-3 py-3 font-normal tracking-[0.3px]">TYPE</th>
                 <th className="px-3 py-3 font-normal">Voyageurs</th>
                 <th className="px-3 py-3 font-normal">Montant</th>
-                <th className="px-3 py-3 font-normal">Paiement</th>
-                <th className="px-3 py-3 font-normal">Actions</th>
+                <EnteteTri label="Paiement" colonne="paiement" tri={tri} onTri={basculerTri} />
+                <th className="w-10 px-3 py-3 font-normal">
+                  <span className="sr-only">Ouvrir</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -429,17 +426,24 @@ export function TableauReservations({
                       </label>
                     </td>
                     <td className="px-3 py-3">
-                      <span
-                        className={cn(
-                          "inline-flex h-[22px] items-center rounded px-2 text-[11px]",
-                          r.statut === "Confirmé"
-                            ? "bg-ink text-white"
-                            : r.statut === "En attente"
-                              ? "bg-surface-soft text-ink-body"
-                              : "border border-line text-ink-muted",
+                      <span className="inline-flex items-center gap-2">
+                        {sejourAvecCle(r.type) ? (
+                          <KeyRound className="size-3.5 shrink-0 text-ink" aria-hidden />
+                        ) : (
+                          <Home className="size-3.5 shrink-0 text-ink" aria-hidden />
                         )}
-                      >
-                        {libelleStatutReservation(r.statut)}
+                        <span
+                          className={cn(
+                            "inline-flex h-[22px] items-center rounded px-2 text-[11px]",
+                            r.statut === "Confirmé"
+                              ? "bg-ink text-white"
+                              : r.statut === "En attente"
+                                ? "bg-surface-soft text-ink-body"
+                                : "border border-line text-ink-muted",
+                          )}
+                        >
+                          {r.statut}
+                        </span>
                       </span>
                     </td>
                     <td className="px-3 py-3">
@@ -449,10 +453,17 @@ export function TableauReservations({
                     <td className="px-3 py-3 text-xs text-ink">{r.occupant}</td>
                     <td className="px-3 py-3">
                       <p className="text-xs text-ink">{formatDateLongue(r.arrivee)}</p>
-                      <p className="text-[11px] text-ink-muted">{r.heureArrivee}</p>
+                      <p className="text-[11px] text-ink-muted">{r.heureArrivee || "00:00"}</p>
                     </td>
                     <td className="px-3 py-3">
-                      <span className="inline-flex h-[22px] items-center rounded bg-ink px-2 text-[11px] text-white">
+                      <span
+                        className={cn(
+                          "inline-flex h-[22px] items-center rounded px-2 text-[11px] font-medium",
+                          r.plateforme === "Airbnb"
+                            ? "bg-ink text-white"
+                            : "bg-surface-soft text-ink-body",
+                        )}
+                      >
                         {CODE_PLATEFORME[r.plateforme] ?? r.plateforme}
                       </span>
                     </td>
@@ -480,41 +491,8 @@ export function TableauReservations({
                         {pct}%
                       </span>
                     </td>
-                    <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex flex-wrap items-center gap-1">
-                        {peutMod && (
-                          <Link
-                            to="/reservations/nouveau"
-                            search={{ id: r.id }}
-                            className="inline-flex h-8 items-center rounded border border-line px-2 text-[11px] text-ink-body"
-                          >
-                            Modifier
-                          </Link>
-                        )}
-                        {peutMod && r.statut !== "Annulé" && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              void (async () => {
-                                const ok = await confirmer({
-                                  titre: "Supprimer cette réservation ?",
-                                  description: `${r.occupant} disparaît du planning et de la liste. Retrouvez-la dans Annulé.`,
-                                  libelleConfirmer: "Supprimer",
-                                  danger: true,
-                                });
-                                if (!ok) return;
-                                annulerReservation(r.id);
-                                onSelectReservation?.(null);
-                                toastOk("Réservation supprimée.");
-                              })();
-                            }}
-                            className="inline-flex h-8 items-center rounded border border-line px-2 text-[11px] text-ink-body"
-                          >
-                            Supprimer
-                          </button>
-                        )}
-                        <ChevronRight className="size-3.5 text-ink-muted" />
-                      </div>
+                    <td className="px-3 py-3">
+                      <ChevronRight className="size-3.5 text-ink-muted" aria-hidden />
                     </td>
                   </tr>
                 );
@@ -570,6 +548,45 @@ export function TableauReservations({
   );
 }
 
+function EnteteTri({
+  label,
+  colonne,
+  tri,
+  onTri,
+}: {
+  label: string;
+  colonne: ColonneTri;
+  tri: { colonne: ColonneTri; sens: SensTri } | null;
+  onTri: (colonne: ColonneTri) => void;
+}) {
+  const actif = tri?.colonne === colonne;
+  return (
+    <th
+      className="px-3 py-3 font-normal"
+      aria-sort={actif ? (tri.sens === "asc" ? "ascending" : "descending") : "none"}
+    >
+      <button
+        type="button"
+        onClick={() => onTri(colonne)}
+        className="inline-flex items-center gap-1 text-xs text-ink-subtle"
+      >
+        {label}
+        <span className="inline-flex flex-col leading-none" aria-hidden>
+          <ArrowUp
+            className={cn("size-2.5", actif && tri.sens === "asc" ? "text-ink" : "text-ink-muted")}
+          />
+          <ArrowDown
+            className={cn(
+              "-mt-1 size-2.5",
+              actif && tri.sens === "desc" ? "text-ink" : "text-ink-muted",
+            )}
+          />
+        </span>
+      </button>
+    </th>
+  );
+}
+
 function FiltreLigne({
   icone: Icone,
   label,
@@ -589,6 +606,7 @@ function FiltreLigne({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={actif}
       className={cn(
         "flex h-11 min-h-11 w-full items-center gap-2 rounded-[8px] px-3 text-sm md:h-[35px] md:min-h-[35px] md:text-xs",
         actif ? "bg-surface-soft text-ink" : "text-ink-body hover:bg-surface",

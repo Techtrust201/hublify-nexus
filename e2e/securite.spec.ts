@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { purgerEvenementsDeTest } from "./nettoyage";
 
 const MOT_DE_PASSE = process.env["DEMO_AUTH_PASSWORD"] ?? "";
 
@@ -8,6 +9,10 @@ test.skip(
   !process.env["DATABASE_URL"],
   "DATABASE_URL absent : docker compose up -d && npm run db:prepare",
 );
+
+// Les parcours ci-dessous écrivent des événements `Marqueur-*` et `Hors-ligne-*`.
+// On les retire à la fin de la suite, y compris si une assertion a échoué.
+test.afterAll(purgerEvenementsDeTest);
 
 const COMPTES = {
   admin: "contact@tech-trust.fr",
@@ -20,12 +25,10 @@ const COMPTES = {
 } as const;
 
 function accueilAttendu(email: string) {
-  return (
-    email === COMPTES.prestataire ||
+  return email === COMPTES.prestataire ||
     email === COMPTES.locataire ||
     email === COMPTES.voyageur ||
     email === COMPTES.proprietaire
-  )
     ? "/espace"
     : "/";
 }
@@ -69,8 +72,22 @@ async function deconnecter(page: Page) {
  */
 test.describe("cloisonnement par rôle", () => {
   const interdits: Record<string, string[]> = {
-    prestataire: ["/team", "/tarifs", "/reservations", "/analyse", "/parametrage", "/prestataires/nouveau"],
-    lecteur: ["/team", "/tarifs", "/reservations/nouveau", "/analyse", "/parametrage", "/prestataires/nouveau"],
+    prestataire: [
+      "/team",
+      "/tarifs",
+      "/reservations",
+      "/analyse",
+      "/parametrage",
+      "/prestataires/nouveau",
+    ],
+    lecteur: [
+      "/team",
+      "/tarifs",
+      "/reservations/nouveau",
+      "/analyse",
+      "/parametrage",
+      "/prestataires/nouveau",
+    ],
     gestionnaire: ["/team"],
     locataire: ["/tarifs", "/team", "/analyse", "/parametrage"],
     voyageur: ["/tarifs", "/team", "/analyse", "/parametrage"],
@@ -151,23 +168,27 @@ async function creerEvenement(page: Page, titre: string) {
  */
 test("un échec d'enregistrement est signalé à l'utilisateur", async ({ page }) => {
   test.setTimeout(90_000);
-  await connecter(page, COMPTES.admin);
+  try {
+    await connecter(page, COMPTES.admin);
 
-  await page.route("**/_serverFn/**", (route) => {
-    if (route.request().method() === "POST") return route.abort("failed");
-    return route.fallback();
-  });
+    await page.route("**/_serverFn/**", (route) => {
+      if (route.request().method() === "POST") return route.abort("failed");
+      return route.fallback();
+    });
 
-  await creerEvenement(page, `Hors-ligne-${Date.now().toString(36)}`);
+    await creerEvenement(page, `Hors-ligne-${Date.now().toString(36)}`);
 
-  const bandeau = page.getByRole("status").filter({ hasText: "ne sont pas enregistrées" });
-  await expect(bandeau).toBeVisible({ timeout: 20_000 });
-  await expect(bandeau.getByRole("button", { name: "Réessayer" })).toBeVisible();
+    const bandeau = page.getByRole("status").filter({ hasText: "ne sont pas enregistrées" });
+    await expect(bandeau).toBeVisible({ timeout: 20_000 });
+    await expect(bandeau.getByRole("button", { name: "Réessayer" })).toBeVisible();
 
-  // Une fois le réseau rétabli, la reprise fait disparaître l'alerte.
-  await page.unroute("**/_serverFn/**");
-  await bandeau.getByRole("button", { name: "Réessayer" }).click();
-  await expect(bandeau).toBeHidden({ timeout: 20_000 });
+    // Une fois le réseau rétabli, la reprise fait disparaître l'alerte.
+    await page.unroute("**/_serverFn/**");
+    await bandeau.getByRole("button", { name: "Réessayer" }).click();
+    await expect(bandeau).toBeHidden({ timeout: 20_000 });
+  } finally {
+    await purgerEvenementsDeTest();
+  }
 });
 
 /**
@@ -179,26 +200,30 @@ test("un événement est partagé dans l'org et isolé hors de l'org", async ({ 
   test.setTimeout(120_000);
   const marqueur = `Marqueur-${Date.now().toString(36)}`;
 
-  await connecter(page, COMPTES.admin);
-  await creerEvenement(page, marqueur);
-  await page.waitForTimeout(2000);
-  await deconnecter(page);
+  try {
+    await connecter(page, COMPTES.admin);
+    await creerEvenement(page, marqueur);
+    await page.waitForTimeout(2000);
+    await deconnecter(page);
 
-  await connecter(page, COMPTES.gestionnaire);
-  await expect(page.getByText(marqueur).first()).toBeVisible({ timeout: 15_000 });
-  await deconnecter(page);
+    await connecter(page, COMPTES.gestionnaire);
+    await expect(page.getByText(marqueur).first()).toBeVisible({ timeout: 15_000 });
+    await deconnecter(page);
 
-  await connecter(page, COMPTES.prestataire);
-  await page.waitForTimeout(2000);
-  await expect(page.getByText(marqueur)).toHaveCount(0);
+    await connecter(page, COMPTES.prestataire);
+    await page.waitForTimeout(2000);
+    await expect(page.getByText(marqueur)).toHaveCount(0);
 
-  const fuiteLocale = await page.evaluate((m) => {
-    for (let i = 0; i < localStorage.length; i += 1) {
-      const cle = localStorage.key(i);
-      if (!cle) continue;
-      if ((localStorage.getItem(cle) ?? "").includes(m)) return cle;
-    }
-    return null;
-  }, marqueur);
-  expect(fuiteLocale, "aucune clé locale ne doit contenir l'état d'une autre org").toBeNull();
+    const fuiteLocale = await page.evaluate((m) => {
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const cle = localStorage.key(i);
+        if (!cle) continue;
+        if ((localStorage.getItem(cle) ?? "").includes(m)) return cle;
+      }
+      return null;
+    }, marqueur);
+    expect(fuiteLocale, "aucune clé locale ne doit contenir l'état d'une autre org").toBeNull();
+  } finally {
+    await purgerEvenementsDeTest();
+  }
 });
