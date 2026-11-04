@@ -91,8 +91,25 @@ export type EnsembleRegles = {
   actif: boolean;
 };
 
-export const ANCRE_MO1 = new Date(2026, 2, 4);
-export const AUJOURD_HUI_MO1 = "2026-03-05";
+/** Ancre de la maquette (données de seed) — ne pilote plus l'UI. */
+export const ANCRE_SEED_MO1 = new Date(2026, 2, 4);
+export const AUJOURD_HUI_SEED_MO1 = "2026-03-05";
+
+function debutJourLocal(ref = new Date()) {
+  return new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
+}
+
+function isoDepuisDateLocale(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const j = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${j}`;
+}
+
+/** Point de départ du planning : jour courant (navigation conservée). */
+export const ANCRE_MO1 = debutJourLocal();
+/** « Aujourd'hui » pour pastilles et KPI runtime. */
+export const AUJOURD_HUI_MO1 = isoDepuisDateLocale(ANCRE_MO1);
 
 export const BIENS_MO1: BienMo1[] = [
   { id: "suzette", nom: "Suzette", baseNuit: 120 },

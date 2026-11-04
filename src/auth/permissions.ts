@@ -169,6 +169,20 @@ export function estDroitId(valeur: string): valeur is DroitId {
   return DROITS_CATALOGUE.some((d) => d.id === valeur);
 }
 
+/** Marqueur stocké dans org_membres.droits : la liste qui suit est explicite,
+ *  y compris quand elle est vide. Sans ce marqueur, un tableau vide signifie
+ *  « reprendre le profil du rôle » (défaut SQL `{}`). */
+export const ACCES_RESTREINT = "__restreint__";
+
+export function bornesDroits(roleId: RoleId, saisie: readonly string[]): string[] {
+  if (roleId === "super-admin") return [...DROITS_PAR_ROLE["super-admin"]];
+  const plafond = new Set<string>(DROITS_PAR_ROLE[roleId]);
+  const ids = saisie.filter((id): id is DroitId => estDroitId(id) && plafond.has(id));
+  if (saisie.includes(ACCES_RESTREINT)) return [ACCES_RESTREINT, ...ids];
+  if (ids.length === 0) return [...DROITS_PAR_ROLE[roleId]];
+  return ids;
+}
+
 export function aLeDroit(droits: readonly string[], id: DroitId) {
   return droits.includes(id);
 }
@@ -176,6 +190,9 @@ export function aLeDroit(droits: readonly string[], id: DroitId) {
 export function droitsEffectifs(roleId: RoleId, personnalises?: readonly string[] | null) {
   if (roleId === "super-admin") {
     return [...DROITS_PAR_ROLE["super-admin"]];
+  }
+  if (personnalises?.includes(ACCES_RESTREINT)) {
+    return personnalises.filter(estDroitId);
   }
   if (personnalises && personnalises.length > 0) {
     return personnalises.filter(estDroitId);
@@ -208,11 +225,15 @@ export function droitRequisPourChemin(pathname: string): DroitId | undefined {
     { prefixe: "/analyse", droit: "voir-finances" },
     { prefixe: "/messagerie", droit: "messagerie" },
     { prefixe: "/documents", droit: "voir-documents" },
+    { prefixe: "/outils/upsells", droit: "mod-biens" },
     { prefixe: "/outils/baux", droit: "voir-documents" },
     { prefixe: "/outils/modeles", droit: "voir-documents" },
     { prefixe: "/outils/etats-des-lieux", droit: "voir-documents" },
+    { prefixe: "/outils/livret", droit: "voir-documents" },
+    { prefixe: "/outils/timeline", droit: "voir-documents" },
     { prefixe: "/outils/vue-annuelle", droit: "voir-calendrier" },
     { prefixe: "/missions", droit: "voir-calendrier" },
+    { prefixe: "/precheckin", droit: "voir-reservations" },
     { prefixe: "/reservations", droit: "voir-reservations" },
     { prefixe: "/occupants", droit: "voir-reservations" },
     { prefixe: "/dossiers", droit: "voir-reservations" },

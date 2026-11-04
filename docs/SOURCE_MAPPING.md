@@ -71,3 +71,29 @@ Reprend les lignes 1A pour le gestionnaire, plus :
 7. Écran de connexion (absent des deux sources connues).
 8. Maintien de TanStack Router ou bascule React Router.
 9. Fourniture de l'export `.fig` de l'ancienne maquette Redris V2 (condition du lot 1B).
+
+## Hublify V1.0 — dashboard gestionnaire (2026-11)
+
+Source : fichier Figma `Hublify V1.0` (`kBd9QQDfrAlr59dtwyUQZq`), exports section + annotations Yannick Ratti. Le socle MO1 est conservé.
+
+| Écran | Frame | Écart assumé |
+|---|---|---|
+| Vue générale | Accueil / Dashboard 3 jours + mois | Les pastilles de mission restent sur la grille existante. « Prestations seules » masque les séjours (commentaire calendrier) sans en faire la vue par défaut, le frame montrant séjours et missions ensemble. |
+| Case calendrier | Ajout presta / résa / modif | Clic = « Que souhaitez-vous faire ? » (prestation, réservation, note/événement, blocage). |
+| Pré-checkin | Pré chekin | La première carte Figma est vide : message et délai y sont placés. Upsells intégrés. Caution unique baux + voyageurs. Réglages sans colonne SQL (recto/verso, modes, caution, upsells proposés) restent dans le navigateur. |
+| Team mate | Vision TeamMate / droits | Personnalisé démarre restreint, cases par catégorie, plafond = profil du rôle. |
+| Tarifs | Calendar tarifs | Pas d'API channel manager ni Stripe en V1. Bulle « uniquement pour cette période ». |
+| Lieux | Vision patrimoines | Types jardin, villa, garage, bateau et occupations meublé / vide / événement / travaux. Import-export CSV, pas d'OTA. |
+| Loyers | Notes dashboard | Reste à devoir, relance copiée (mail/SMS/lien), remboursement local. Stripe non connecté. |
+
+## Analyse — Hublify V1.0
+
+| Écran construit | Source principale | Nom du frame | Fidèle | Adapté | Inventé |
+|---|---|---|---|---|---|
+| Tableau de bord Occupation, Revenus, Gestionnaires (`src/components/analyse/`) | Hublify V1.0 | `Dashboard` 227:1247, 227:3294, `Gestionnaires` 228:14117 | Onglets, cartes, graphiques, répartition par canal | Portefeuille réel à la place des 120 logements figés | — |
+| Encaissements | Hublify V1.0 | annotation 325:25448 + relevé Juliette | Colonnes et total | Lignes issues du dossier, formule des totaux | — |
+| Cautions | Hublify V1.0 | annotation 325:25521 | Titre et mouvement encaissement / remboursement | Règle d'arrivée et de départ | — |
+| Facture propriétaire | Hublify V1.0 | section 325:25500 | Prestations HT/TVA/TTC, deux montants | Application par canal | — |
+| Analyse 2 / Analyse 3 | Hublify V1.0 | `69:1700`, `69:2651` | Onglets, cartes, historique, fiche | Chiffres du dossier | — |
+
+Détail des écarts : `docs/ANALYSE-ECARTS.md`.

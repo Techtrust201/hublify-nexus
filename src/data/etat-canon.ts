@@ -21,11 +21,7 @@ import {
 } from "@/data/messagerie-mo1";
 import { PRESTATAIRES } from "@/data/mock";
 import { PARAMETRAGE_DEFAUT } from "@/data/parametrage-mo1";
-import {
-  PIECES_DOSSIER_DEFAUT,
-  type ContactCopro,
-  type DossierLocation,
-} from "@/data/v1-metier";
+import { PIECES_DOSSIER_DEFAUT, type ContactCopro, type DossierLocation } from "@/data/v1-metier";
 import {
   BIENS_MO1 as BIENS_PLANNING,
   ENSEMBLES_MO1,
@@ -55,8 +51,8 @@ const NOTIFS_INIT = [
   {
     id: "n-msg",
     titre: "Message non lu",
-    detail: "Albert Flores — Villa Lavandrix",
-    href: "/messagerie",
+    detail: "Albert Flores — Appartement Colette",
+    href: "/messagerie?conv=c-albert",
     lu: false,
   },
   {

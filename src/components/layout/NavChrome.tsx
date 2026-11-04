@@ -7,7 +7,11 @@ import {
   CalendarDays,
   ClipboardCheck,
   ClipboardList,
+  BookOpen,
+  History,
+  KeyRound,
   FileText,
+  Sparkles,
   Home,
   Info,
   MessageSquare,
@@ -48,6 +52,7 @@ const OUTILS: Array<{ titre: string; url: string; icone: typeof Info; droit?: Dr
     icone: FileText,
     droit: "voir-documents",
   },
+  { titre: "Baux", url: "/outils/baux", icone: FileText, droit: "voir-documents" },
   {
     titre: "Vue annuelle",
     url: "/outils/vue-annuelle",
@@ -62,6 +67,15 @@ const OUTILS: Array<{ titre: string; url: string; icone: typeof Info; droit?: Dr
     droit: "voir-documents",
   },
   { titre: "Paramétrage", url: "/parametrage", icone: Settings, droit: "mod-biens" },
+  { titre: "Upsells", url: "/outils/upsells", icone: Sparkles, droit: "mod-biens" },
+  { titre: "Timeline", url: "/outils/timeline", icone: History, droit: "voir-documents" },
+  {
+    titre: "Fiche d'accès et livret",
+    url: "/outils/livret",
+    icone: BookOpen,
+    droit: "voir-documents",
+  },
+  { titre: "Pré-checkin", url: "/precheckin", icone: KeyRound, droit: "voir-reservations" },
 ];
 
 export function estActif(pathname: string, url: string) {
@@ -195,13 +209,23 @@ export function NavChrome({
         </p>
         {(mobile
           ? outilsVisibles
-          : [{ titre: "En savoir plus", url: "/outils", icone: Info, droit: undefined }]
+          : [
+              { titre: "En savoir plus", url: "/outils", icone: Info, droit: undefined },
+              ...outilsVisibles.filter((o) =>
+                ["/outils/upsells", "/outils/timeline", "/outils/livret"].includes(o.url),
+              ),
+            ]
         ).map((o) => (
           <Link
             key={o.url + o.titre}
             to={o.url}
             onClick={onNavigate}
-            className={cn(lien, "gap-2", estActif(pathname, o.url) && "bg-surface-soft text-ink")}
+            className={cn(
+              lien,
+              "gap-2",
+              (o.url === "/outils" ? pathname === "/outils" : estActif(pathname, o.url)) &&
+                "bg-surface-soft text-ink",
+            )}
           >
             <o.icone className="size-3.5" />
             {o.titre}

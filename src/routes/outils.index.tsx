@@ -1,11 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   CalendarDays,
+  BookOpen,
   ClipboardCheck,
   ClipboardList,
   FileText,
+  History,
   Info,
   Settings,
+  Sparkles,
   Wrench,
 } from "lucide-react";
 import { useDroit } from "@/auth/auth-context";
@@ -26,6 +29,12 @@ const OUTILS = [
     vers: "/outils/modeles" as const,
   },
   {
+    titre: "Baux",
+    texte: "Espace de rédaction page par page, avec la prise de caution.",
+    icone: FileText,
+    vers: "/outils/baux" as const,
+  },
+  {
     titre: "Vue Annuelle",
     texte: "Disponibilités, blocages et réservations sur l'année.",
     icone: CalendarDays,
@@ -33,13 +42,13 @@ const OUTILS = [
   },
   {
     titre: "Inventaire",
-    texte: "Tous les inventaires de la maison sont réunis ici.",
+    texte: "Conciergerie : draps, linge de maison et consommables.",
     icone: ClipboardList,
     vers: "/inventaire" as const,
   },
   {
     titre: "États des lieux",
-    texte: "Entrée, sortie, photos par pièce, comparaison.",
+    texte: "Espace de rédaction : entrée, sortie, inventaire du logement et du mobilier.",
     icone: ClipboardCheck,
     vers: "/outils/etats-des-lieux" as const,
   },
@@ -50,8 +59,26 @@ const OUTILS = [
     vers: "/parametrage" as const,
   },
   {
+    titre: "Upsells",
+    texte: "Ventes additionnelles : code, tarif, prestataire, ville et pièce jointe.",
+    icone: Sparkles,
+    vers: "/outils/upsells" as const,
+  },
+  {
+    titre: "Timeline",
+    texte: "Échanges de documents et réservations, du plus récent au plus ancien.",
+    icone: History,
+    vers: "/outils/timeline" as const,
+  },
+  {
+    titre: "Fiche d'accès et livret",
+    texte: "Modèles d'accueil à personnaliser, dupliquer et remettre au voyageur.",
+    icone: BookOpen,
+    vers: "/outils/livret" as const,
+  },
+  {
     titre: "Je débute",
-    texte: "Parcours guidé : créer un bien, une réservation, puis une première mission.",
+    texte: "Fiche, documents reçus, paiement ou caution, puis les étapes du compte.",
     icone: Info,
     vers: "/outils/debuter" as const,
   },
@@ -70,9 +97,15 @@ function PageOutils() {
   const voirCal = useDroit("voir-calendrier");
   const voirBiens = useDroit("voir-biens");
   const outils = OUTILS.filter((o) => {
-    if (o.vers === "/parametrage") return peutParametrer;
+    if (o.vers === "/parametrage" || o.vers === "/outils/upsells") return peutParametrer;
     if (o.vers === "/outils/debuter") return peutReserver;
-    if (o.vers === "/outils/modeles" || o.vers === "/outils/etats-des-lieux")
+    if (
+      o.vers === "/outils/modeles" ||
+      o.vers === "/outils/etats-des-lieux" ||
+      o.vers === "/outils/baux" ||
+      o.vers === "/outils/timeline" ||
+      o.vers === "/outils/livret"
+    )
       return voirDocs;
     if (o.vers === "/outils/vue-annuelle") return voirCal;
     if (o.vers === "/inventaire") return voirBiens;

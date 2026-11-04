@@ -13,6 +13,7 @@ import {
   useSessionChargee,
 } from "@/data/session";
 import { toastErreur, toastOk } from "@/lib/feedback";
+import { descriptionVisible } from "@/lib/gestionnaire-planning";
 import type { RapportIntervention } from "@/data/v1-metier";
 import type { StatutPastille } from "@/data/planning-mo1";
 
@@ -129,7 +130,7 @@ function DetailMission() {
 
           <div className="mt-4 rounded-card bg-surface p-3">
             <p className="text-xs font-medium text-ink-muted">Consignes</p>
-            <p className="mt-1 text-sm text-ink">{mission.description}</p>
+            <p className="mt-1 text-sm text-ink">{descriptionVisible(mission.description)}</p>
           </div>
           {reservation && (
             <Link

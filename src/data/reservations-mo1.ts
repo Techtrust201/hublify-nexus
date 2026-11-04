@@ -8,8 +8,11 @@ import type {
   RemboursementReservation,
 } from "@/data/v1-metier";
 
-export const AUJOURD_HUI_MO1 = "2026-03-05";
-export const ANCRE_PLANNING_MO1 = "2026-03-04";
+import { AUJOURD_HUI_MO1 as AUJOURD_HUI_PLANNING } from "@/data/planning-mo1";
+
+export const AUJOURD_HUI_MO1 = AUJOURD_HUI_PLANNING;
+/** Ancre calendrier réservations = jour courant (ISO). */
+export const ANCRE_PLANNING_MO1 = AUJOURD_HUI_PLANNING;
 
 export type PlateformeMo1 = "Airbnb" | "Booking.com" | "Direct" | "Autre";
 export type StatutReservationMo1 = "Confirmé" | "En attente" | "Annulé";

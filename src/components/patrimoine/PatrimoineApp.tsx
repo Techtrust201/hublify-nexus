@@ -13,32 +13,41 @@ import {
   Trash2,
 } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
+import { AlerteLieu } from "@/components/patrimoine/AlerteLieu";
+import { ContratGestionDialog } from "@/components/patrimoine/ContratGestionDialog";
+import { FicheLieuDialog } from "@/components/patrimoine/FicheLieuDialog";
 import { BtnNavy, BtnOutline } from "@/components/documents/ui";
 import { ScrollHint } from "@/components/layout/ScrollHint";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { type LogementPatrimoine } from "@/data/documents-mo1";
 import type { ImmeubleSession } from "@/data/etat-session";
+import {
+  GROUPES_TYPES,
+  USAGES,
+  accesVide,
+  alertesLieu,
+  ficheEffective,
+  ficheVierge,
+  libelleCourt,
+  libelleUsage,
+  patchBienDepuisFiche,
+  useFichesLieu,
+  type AccesSaisie,
+  type UsageLieu,
+} from "@/data/patrimoine-fiche";
 import { chargerAccesLieux, sauverAccesLieu } from "@/data/session-remote";
 import { ajouterBien, idNouveau, poserCollection, retirerBien, useSession } from "@/data/session";
 import { copierTexte, confirmer, telechargerDemo, toastErreur, toastOk } from "@/lib/feedback";
+import {
+  OCCUPATIONS_LIEU,
+  exporterAnnonces,
+  ficheDepuisOccupation,
+  importerAnnonces,
+  type OccupationLieu,
+} from "@/lib/gestionnaire-planning";
 import { cn } from "@/lib/utils";
 
-type ConfigLieu = {
-  codeCles: string;
-  wifi: string;
-  wifiMdp: string;
-  alarme: string;
-  consignes: string;
-};
 type FiltreStatut = "tous" | "loué" | "libre" | "en travaux";
-
-/**
- * Un lieu sans configuration a des champs vides, jamais des codes inventés :
- * un faux code communiqué à un voyageur laisse tout le monde devant la porte.
- */
-function configVide(): ConfigLieu {
-  return { codeCles: "", wifi: "", wifiMdp: "", alarme: "", consignes: "" };
-}
 
 function initialesDe(nom: string) {
   return nom
@@ -83,26 +92,38 @@ function BadgeStatut({ statut }: { statut: string }) {
   );
 }
 
-export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
+export function PatrimoineApp({
+  logementCible,
+  edition,
+}: {
+  logementCible?: string;
+  /** Force l'édition (aperçu). À défaut, le droit « mod-biens » décide. */
+  edition?: boolean;
+}) {
   const navigate = useNavigate();
   const session = useSession();
-  const peutMod = useDroit("mod-biens");
+  const peutModDroit = useDroit("mod-biens");
+  const peutMod = edition ?? peutModDroit;
+  const { fiches, typesPerso, sauver, retirer, ajouterType } = useFichesLieu();
   const [selLog, setSelLog] = useState<string[]>([]);
   const [selImm, setSelImm] = useState<string[]>([]);
   const [onglet, setOnglet] = useState<"lieux" | "immeubles">("lieux");
-  const [configId, setConfigId] = useState<string | null>(null);
+  const [ficheId, setFicheId] = useState<string | null>(null);
+  const [sectionFiche, setSectionFiche] = useState<"welcome" | "cles" | null>(null);
+  const [contratOuvert, setContratOuvert] = useState(false);
   const immeubles = session.immeubles;
   const [filtreStatut, setFiltreStatut] = useState<FiltreStatut>("tous");
+  const [filtreUsage, setFiltreUsage] = useState<"tous" | UsageLieu>("tous");
   const [filtresOuverts, setFiltresOuverts] = useState(false);
   const [ajouterOuvert, setAjouterOuvert] = useState(false);
   const [ajouterImm, setAjouterImm] = useState(false);
   const [nomNouveau, setNomNouveau] = useState("");
   const [adresseNouvelle, setAdresseNouvelle] = useState("");
-  const [typologie, setTypologie] = useState("Appartement");
+  const [typologie, setTypologie] = useState("Appartement (T1, T2, T3, T4, T5 et plus)");
+  const [occupation, setOccupation] = useState<OccupationLieu>("Meublé");
   const [nomImm, setNomImm] = useState("");
   const [adresseImm, setAdresseImm] = useState("");
-  const [configs, setConfigs] = useState<Record<string, ConfigLieu>>({});
-  const [formConfig, setFormConfig] = useState<ConfigLieu>(configVide());
+  const [configs, setConfigs] = useState<Record<string, AccesSaisie>>({});
 
   // Le bien porte toute sa fiche : plus de fusion par nom avec un jeu de maquette.
   const logements = useMemo<LogementPatrimoine[]>(() => {
@@ -122,8 +143,18 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
     }));
   }, [session.biens, session.immeubles]);
 
-  const visibles = logements.filter((l) => filtreStatut === "tous" || l.statut === filtreStatut);
-  const logementConfig = logements.find((l) => l.id === configId) ?? null;
+  const fichesEffectives = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof ficheEffective>>();
+    for (const b of session.biens) map.set(b.id, ficheEffective(b, fiches));
+    return map;
+  }, [session.biens, fiches]);
+
+  const visibles = logements.filter((l) => {
+    if (filtreStatut !== "tous" && l.statut !== filtreStatut) return false;
+    if (filtreUsage === "tous") return true;
+    return fichesEffectives.get(l.id)?.usage === filtreUsage;
+  });
+  const bienFiche = session.biens.find((b) => b.id === ficheId) ?? null;
 
   // Les codes d'accès sont chiffrés en base : ils arrivent par le serveur, pas
   // par le rendu initial.
@@ -131,7 +162,7 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
     let vivant = true;
     void chargerAccesLieux().then((res) => {
       if (!vivant || !res.ok) return;
-      const parBien: Record<string, ConfigLieu> = {};
+      const parBien: Record<string, AccesSaisie> = {};
       for (const a of res.acces) {
         parBien[a.bienId] = {
           codeCles: a.codeCles,
@@ -169,9 +200,33 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
     });
   }, [logementCible, logements, session.biens]);
 
-  const ouvrirConfig = (id: string) => {
-    setFormConfig(configs[id] ?? configVide());
-    setConfigId(id);
+  const ouvrirFiche = (id: string, section: "welcome" | "cles" | null = null) => {
+    setSectionFiche(section);
+    setFicheId(id);
+  };
+
+  const gestionnaires = useMemo(() => {
+    const noms = new Set<string>();
+    for (const m of session.membres) {
+      const nom = `${m.prenom} ${m.nom}`.trim();
+      if (nom) noms.add(nom);
+    }
+    for (const l of logements) {
+      if (l.proprietaire && l.proprietaire !== "—") noms.add(l.proprietaire);
+    }
+    return [...noms];
+  }, [session.membres, logements]);
+
+  const alertesDe = (id: string, nom: string) => {
+    const fiche = fichesEffectives.get(id);
+    if (!fiche) return [];
+    return alertesLieu({
+      nom,
+      fiche,
+      codeCles: configs[id]?.codeCles ?? "",
+      edl: session.edl,
+      documents: session.documents,
+    });
   };
 
   const majImmeubles = (maj: (liste: ImmeubleSession[]) => ImmeubleSession[]) =>
@@ -189,18 +244,21 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
     }
     const id = idNouveau("bien");
     const adresse = adresseNouvelle.trim();
+    const fiche = ficheDepuisOccupation(typologie, occupation);
     ajouterBien({
       id,
       nom,
       baseNuit: 100,
-      typologie,
-      statut: "libre",
+      typologie: fiche.typologie,
+      statut: fiche.statut,
+      meuble: fiche.meuble,
       initiales: initialesDe(nom) || "??",
       ...(adresse ? { adresse } : {}),
     });
     setNomNouveau("");
     setAdresseNouvelle("");
     setAjouterOuvert(false);
+    ouvrirFiche(id);
     toastOk(`${nom} ajouté au parc.`);
   };
 
@@ -220,6 +278,7 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
     });
     if (!ok) return;
     ids.forEach((id) => retirerBien(id));
+    retirer(ids);
     setSelLog([]);
     toastOk(ids.length > 1 ? `${ids.length} lieux retirés.` : "Lieu retiré.");
   };
@@ -238,6 +297,57 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
     toastOk(ids.length > 1 ? `${ids.length} immeubles retirés.` : "Immeuble retiré.");
   };
 
+  const occupationDe = (meuble: boolean, statut: string, type: string): OccupationLieu => {
+    if (statut === "en travaux") return "Travaux";
+    if (type.toLowerCase().includes("événement")) return "Événement";
+    return meuble ? "Meublé" : "Vide";
+  };
+
+  const exporterAnnonce = () => {
+    telechargerDemo(
+      "annonces-hublify.csv",
+      exporterAnnonces(
+        visibles.map((l) => ({
+          nom: l.nom,
+          type: l.typologie,
+          occupation: occupationDe(l.meuble, l.statut, l.typologie),
+          adresse: l.adresse,
+          note: l.note,
+        })),
+      ),
+    );
+  };
+
+  const exporterNotation = () => {
+    const lignes = ["Nom;Note", ...visibles.map((l) => `${l.nom};${l.note.toFixed(1)}`)];
+    telechargerDemo("notations-hublify.csv", lignes.join("\n"));
+    toastOk("Notation extraite du parc Hublify. Les notes OTA ne sont pas lues sans API.");
+  };
+
+  const importerAnnonce = async (fichier: File) => {
+    const { lignes, ignorees } = importerAnnonces(await fichier.text());
+    let ajoutees = 0;
+    for (const ligne of lignes) {
+      if (session.biens.some((b) => b.nom.toLowerCase() === ligne.nom.toLowerCase())) continue;
+      const fiche = ficheDepuisOccupation(ligne.type, ligne.occupation);
+      ajouterBien({
+        id: idNouveau("bien"),
+        nom: ligne.nom,
+        baseNuit: 100,
+        typologie: fiche.typologie,
+        statut: fiche.statut,
+        meuble: fiche.meuble,
+        note: ligne.note,
+        initiales: initialesDe(ligne.nom) || "??",
+        ...(ligne.adresse ? { adresse: ligne.adresse } : {}),
+      });
+      ajoutees += 1;
+    }
+    toastOk(
+      `${ajoutees} annonce${ajoutees > 1 ? "s" : ""} importée${ajoutees > 1 ? "s" : ""}${ignorees ? `, ${ignorees} ligne${ignorees > 1 ? "s" : ""} ignorée${ignorees > 1 ? "s" : ""}` : ""}.`,
+    );
+  };
+
   const exporterLogements = () => {
     const lignes = [
       "Nom;Typologie;Adresse;Statut;Proprietaire",
@@ -249,17 +359,19 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
   return (
     <div>
       <div className="mb-8 text-center">
-        <h2 className="hidden text-2xl text-ink md:block">Lieux</h2>
-        <p className="mx-auto mt-2 hidden max-w-lg text-sm text-ink-subtle md:block">
+        <h2 className="text-2xl text-ink">Patrimoine</h2>
+        <p className="mx-auto mt-2 max-w-lg text-sm text-ink-subtle">
           Logements, immeubles, lieux d'événements
         </p>
         {peutMod && (
-          <BtnNavy
-            className="h-11 w-full max-w-sm px-5 text-sm md:mt-4 md:h-10 md:w-auto"
-            onClick={() => setAjouterOuvert(true)}
-          >
-            <Plus className="size-3.5" /> Ajouter un lieu ou logement
-          </BtnNavy>
+          <div className="mt-4 flex flex-col items-stretch justify-center gap-2 sm:flex-row">
+            <BtnNavy className="h-11 px-5 text-sm md:h-10" onClick={() => setAjouterOuvert(true)}>
+              <Plus className="size-3.5" /> Ajouter un lieu ou logement
+            </BtnNavy>
+            <BtnNavy className="h-11 px-5 text-sm md:h-10" onClick={() => setContratOuvert(true)}>
+              <Plus className="size-3.5" /> Ajouter un contrat de gestion
+            </BtnNavy>
+          </div>
         )}
       </div>
 
@@ -311,6 +423,27 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
               <BtnOutline onClick={exporterLogements}>
                 <Download className="size-3" /> Exporter
               </BtnOutline>
+              <BtnOutline onClick={exporterAnnonce}>
+                <Download className="size-3" /> Annonce
+              </BtnOutline>
+              <BtnOutline onClick={exporterNotation}>
+                <Star className="size-3" /> Notation
+              </BtnOutline>
+              {peutMod && (
+                <label className="inline-flex h-11 cursor-pointer items-center rounded-card border border-line px-3 text-sm text-ink-body md:h-9">
+                  Importer
+                  <input
+                    type="file"
+                    accept=".csv,text/csv"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const fichier = e.target.files?.[0];
+                      e.target.value = "";
+                      if (fichier) void importerAnnonce(fichier);
+                    }}
+                  />
+                </label>
+              )}
               {peutMod && (
                 <BtnNavy onClick={() => setAjouterOuvert(true)}>
                   <Plus className="size-3" /> Ajouter
@@ -325,12 +458,27 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
                 <select
                   value={filtreStatut}
                   onChange={(e) => setFiltreStatut(e.target.value as FiltreStatut)}
-                  className="ml-2 h-9 rounded-card border border-line bg-white px-2 text-sm text-ink"
+                  className="ml-2 h-11 rounded-card border border-line bg-white px-2 text-sm text-ink md:h-9"
                 >
                   <option value="tous">Tous</option>
                   <option value="loué">Loué</option>
                   <option value="libre">Libre</option>
                   <option value="en travaux">En travaux</option>
+                </select>
+              </label>
+              <label className="text-xs text-ink-muted">
+                Mode
+                <select
+                  value={filtreUsage}
+                  onChange={(e) => setFiltreUsage(e.target.value as "tous" | UsageLieu)}
+                  className="ml-2 h-11 rounded-card border border-line bg-white px-2 text-sm text-ink md:h-9"
+                >
+                  <option value="tous">Tous</option>
+                  {USAGES.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.label}
+                    </option>
+                  ))}
                 </select>
               </label>
             </div>
@@ -346,11 +494,18 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
                   <div>
                     <p className="text-sm font-medium text-ink">{l.nom}</p>
                     <p className="text-xs text-ink-muted">
-                      {l.typologie} · {l.surface}
+                      {libelleCourt(l.typologie)} · {l.surface}
                     </p>
                     <p className="mt-1 text-xs text-ink-subtle">{l.adresse}</p>
                   </div>
-                  <BadgeStatut statut={l.statut} />
+                  <span className="flex items-center gap-1">
+                    <AlerteLieu
+                      nom={l.nom}
+                      alertes={alertesDe(l.id, l.nom)}
+                      onCompleter={(section) => ouvrirFiche(l.id, section)}
+                    />
+                    <BadgeStatut statut={l.statut} />
+                  </span>
                 </div>
                 <label className="mt-2 flex min-h-11 items-center gap-2 text-xs text-ink-muted">
                   <input
@@ -368,7 +523,7 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
                 <div className="mt-3 flex flex-col gap-2">
                   <button
                     type="button"
-                    onClick={() => ouvrirConfig(l.id)}
+                    onClick={() => ouvrirFiche(l.id)}
                     className="inline-flex h-11 items-center justify-center rounded-card border border-line text-xs font-medium text-ink-body"
                   >
                     Configurer
@@ -437,10 +592,12 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
                         <div>
                           <p className="text-sm text-ink">{l.nom}</p>
                           <p className="text-[11px] text-ink-muted">
-                            {l.typologie} · {l.surface}
+                            {libelleCourt(l.typologie)} · {l.surface}
                           </p>
                           <span className="mt-0.5 inline-block rounded border border-line px-1.5 text-[10px] text-ink-subtle">
-                            {l.meuble ? "Meublé" : "Non meublé"}
+                            {libelleUsage(
+                              fichesEffectives.get(l.id)?.usage ?? (l.meuble ? "meublé" : "vide"),
+                            )}
                           </span>
                         </div>
                       </div>
@@ -456,7 +613,14 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
                     <td className="px-2 py-4 text-ink-body">{l.immeuble}</td>
                     <td className="px-2 py-4 text-ink-body">{l.adresse}</td>
                     <td className="px-2 py-4">
-                      <Etoiles note={l.note} />
+                      <span className="inline-flex items-center gap-1">
+                        <AlerteLieu
+                          nom={l.nom}
+                          alertes={alertesDe(l.id, l.nom)}
+                          onCompleter={(section) => ouvrirFiche(l.id, section)}
+                        />
+                        <Etoiles note={l.note} />
+                      </span>
                     </td>
                     <td className="px-2 py-4">
                       <BadgeStatut statut={l.statut} />
@@ -479,7 +643,7 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
                         <button
                           type="button"
                           aria-label={`Configurer ${l.nom}`}
-                          onClick={() => ouvrirConfig(l.id)}
+                          onClick={() => ouvrirFiche(l.id)}
                           className="flex size-6 items-center justify-center rounded hover:bg-surface-soft"
                         >
                           <Pencil className="size-3.5" />
@@ -697,85 +861,87 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
         </section>
       )}
 
-      <Dialog open={Boolean(logementConfig)} onOpenChange={(o) => !o && setConfigId(null)}>
-        <DialogContent className="max-h-[90dvh] max-w-lg overflow-y-auto">
-          <DialogTitle>Configuration — {logementConfig?.nom}</DialogTitle>
-          <DialogDescription>Codes d'accès, Wi-Fi et consignes du lieu.</DialogDescription>
-          {logementConfig && (
-            <div className="space-y-3 pt-2">
-              <p className="text-xs text-ink-muted">
-                Adresse
-                <span className="mt-1 block text-sm text-ink">{logementConfig.adresse}</span>
-              </p>
-              <p className="text-xs text-ink-muted">
-                Propriétaire
-                <span className="mt-1 block text-sm text-ink">{logementConfig.proprietaire}</span>
-              </p>
-              <label className="block text-xs text-ink-muted">
-                Code boîte à clés
-                <input
-                  value={formConfig.codeCles}
-                  onChange={(e) => setFormConfig((c) => ({ ...c, codeCles: e.target.value }))}
-                  className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
-                />
-              </label>
-              <label className="block text-xs text-ink-muted">
-                Wi-Fi
-                <input
-                  value={formConfig.wifi}
-                  onChange={(e) => setFormConfig((c) => ({ ...c, wifi: e.target.value }))}
-                  className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
-                />
-              </label>
-              <label className="block text-xs text-ink-muted">
-                Mot de passe Wi-Fi
-                <input
-                  value={formConfig.wifiMdp}
-                  onChange={(e) => setFormConfig((c) => ({ ...c, wifiMdp: e.target.value }))}
-                  className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
-                />
-              </label>
-              <label className="block text-xs text-ink-muted">
-                Code alarme
-                <input
-                  value={formConfig.alarme}
-                  onChange={(e) => setFormConfig((c) => ({ ...c, alarme: e.target.value }))}
-                  className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
-                />
-              </label>
-              <label className="block text-xs text-ink-muted">
-                Consignes d'accès
-                <textarea
-                  value={formConfig.consignes}
-                  onChange={(e) => setFormConfig((c) => ({ ...c, consignes: e.target.value }))}
-                  className="mt-1 h-24 w-full rounded-card border border-line px-3 py-2 text-sm text-ink outline-none"
-                />
-              </label>
-              <BtnNavy
-                className="w-full justify-center"
-                onClick={() => {
-                  const id = logementConfig.id;
-                  void sauverAccesLieu({ data: { bienId: id, ...formConfig } }).then((res) => {
-                    if (!res.ok) {
-                      toastErreur(
-                        res.raison === "non_configure"
-                          ? "Codes non enregistrés : le chiffrement n'est pas configuré sur ce serveur."
-                          : "Codes non enregistrés : la base est injoignable.",
-                      );
-                      return;
-                    }
-                    setConfigs((c) => ({ ...c, [id]: formConfig }));
-                    toastOk("Configuration enregistrée.");
-                    setConfigId(null);
-                  });
-                }}
-              >
-                Enregistrer
-              </BtnNavy>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <FicheLieuDialog
+        ouvert={Boolean(bienFiche)}
+        bien={bienFiche}
+        fiche={
+          bienFiche
+            ? (fichesEffectives.get(bienFiche.id) ?? ficheEffective(bienFiche, fiches))
+            : ficheVierge()
+        }
+        acces={ficheId ? (configs[ficheId] ?? accesVide()) : accesVide()}
+        immeubles={session.immeubles}
+        gestionnaires={gestionnaires}
+        typesPerso={typesPerso}
+        peutMod={peutMod}
+        section={sectionFiche}
+        onFermer={() => setFicheId(null)}
+        onAjouterType={ajouterType}
+        onEnregistrer={(saisie) => {
+          if (!ficheId || !bienFiche) return;
+          const patch = patchBienDepuisFiche(bienFiche, {
+            nom: saisie.nom,
+            typologie: saisie.typologie,
+            adresse: saisie.adresse,
+            proprietaire: saisie.proprietaire,
+            fiche: saisie.fiche,
+          });
+          sauver(ficheId, saisie.fiche);
+          poserCollection("biens", (liste) =>
+            liste.map((b) => (b.id === ficheId ? { ...b, ...patch, id: b.id } : b)),
+          );
+          void sauverAccesLieu({ data: { bienId: ficheId, ...saisie.acces } }).then((res) => {
+            if (!res.ok) {
+              toastErreur(
+                res.raison === "non_configure"
+                  ? "Fiche enregistrée. Les codes ne le sont pas : le chiffrement n'est pas configuré."
+                  : "Fiche enregistrée. Les codes ne le sont pas : la base est injoignable.",
+              );
+            } else {
+              toastOk("Lieu enregistré.");
+            }
+            setConfigs((c) => ({ ...c, [ficheId]: saisie.acces }));
+          });
+          setFicheId(null);
+        }}
+      />
+
+      <ContratGestionDialog
+        ouvert={contratOuvert}
+        logements={logements}
+        gestionnaires={gestionnaires}
+        onFermer={() => setContratOuvert(false)}
+        onEnregistrer={(bienId, mandat) => {
+          const bien = session.biens.find((b) => b.id === bienId);
+          if (!bien) return;
+          const actuelle = ficheEffective(bien, fiches);
+          sauver(bienId, {
+            ...actuelle,
+            gestionnaire: mandat.gestionnaire,
+            mandat,
+            accesProprietaire: mandat.signe
+              ? { financier: false, calendrier: false, messagerie: false, documents: false }
+              : actuelle.accesProprietaire,
+          });
+          poserCollection("biens", (liste) =>
+            liste.map((b) =>
+              b.id === bienId
+                ? {
+                    ...b,
+                    proprietaire: mandat.proprietaire,
+                    initiales: initialesDe(mandat.proprietaire),
+                  }
+                : b,
+            ),
+          );
+          setContratOuvert(false);
+          toastOk(
+            mandat.signe
+              ? "Mandat signé. L'accès se limite au gestionnaire en charge."
+              : "Contrat de gestion enregistré.",
+          );
+        }}
+      />
 
       <Dialog open={ajouterOuvert} onOpenChange={(o) => !o && setAjouterOuvert(false)}>
         <DialogContent className="max-w-md">
@@ -802,14 +968,34 @@ export function PatrimoineApp({ logementCible }: { logementCible?: string }) {
             <select
               value={typologie}
               onChange={(e) => setTypologie(e.target.value)}
-              className="mt-1 h-9 w-full rounded-card border border-line bg-white px-3 text-sm text-ink"
+              className="mt-1 h-11 w-full rounded-card border border-line bg-white px-3 text-sm text-ink md:h-9"
             >
-              <option>Appartement</option>
-              <option>Villa</option>
-              <option>Studio</option>
-              <option>Maison</option>
+              {GROUPES_TYPES.map((g) => (
+                <optgroup key={g.id} label={g.label}>
+                  {g.items.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
           </label>
+          <label className="mt-3 block text-xs text-ink-muted">
+            Occupation
+            <select
+              value={occupation}
+              onChange={(e) => setOccupation(e.target.value as OccupationLieu)}
+              className="mt-1 h-9 w-full rounded-card border border-line bg-white px-3 text-sm text-ink"
+            >
+              {OCCUPATIONS_LIEU.map((o) => (
+                <option key={o}>{o}</option>
+              ))}
+            </select>
+          </label>
+          <p className="mt-2 text-[11px] text-ink-muted">
+            Import et export d'annonce en CSV. Aucune API OTA n'est branchée en V1.
+          </p>
           <BtnNavy className="mt-4 w-full justify-center" onClick={ajouterLieu}>
             Enregistrer
           </BtnNavy>

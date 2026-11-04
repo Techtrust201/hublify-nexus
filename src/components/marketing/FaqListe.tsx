@@ -39,7 +39,7 @@ export function FaqListe({ idPrefix = "faq" }: { idPrefix?: string }) {
             {estOuvert ? (
               <p id={panelId} className="mt-3 text-[13px] leading-relaxed text-[#111]">
                 {item.reponse ??
-                  "Cette réponse n'est pas encore rédigée dans la maquette. Écrivez-nous : la question est bien celle du frame FAQ."}
+                  "Cette réponse n'est pas encore publiée. Écrivez-nous : nous compléterons la FAQ."}
               </p>
             ) : null}
           </div>

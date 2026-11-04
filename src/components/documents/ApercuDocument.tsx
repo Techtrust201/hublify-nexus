@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import type { DocMo1 } from "@/data/documents-mo1";
@@ -51,6 +52,14 @@ export function ApercuDocumentDialog({
         <DialogDescription className="sr-only">
           Visualisation du document avant téléchargement.
         </DialogDescription>
+        {doc?.type === "Bail" || doc?.filtre === "Bail" ? (
+          <Link
+            to="/outils/baux"
+            className="mt-2 inline-flex text-xs font-medium text-ink underline"
+          >
+            Ouvrir l'espace de rédaction
+          </Link>
+        ) : null}
         {url ? (
           <iframe
             title={doc?.titre ?? "Aperçu"}

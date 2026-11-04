@@ -1,7 +1,8 @@
 import { AUJOURD_HUI_MO1 } from "@/data/planning-mo1";
 import type { EtatSession } from "@/data/etat-session";
 import type { PaiementAnalyse } from "@/data/analyse-mo1";
-import { nuitsEntre } from "@/data/reservations-mo1";
+import { construireAnalyse, NUITS_MAX_COURTE_DUREE } from "@/lib/analyse-vue";
+import type { CanalAnalyse } from "@/lib/analyse-finance";
 
 export function calculerKpi(s: EtatSession, aujourdhui = AUJOURD_HUI_MO1) {
   const loyersRetard = s.loyers.filter((l) => !l.valide);
@@ -14,6 +15,8 @@ export function calculerKpi(s: EtatSession, aujourdhui = AUJOURD_HUI_MO1) {
   ).length;
   const missionsJour = s.missions.filter((m) => m.date === aujourdhui && m.statut !== "terminee");
   const menage = missionsJour.filter((m) => m.type === "Menage").length;
+  const checkInMissions = missionsJour.filter((m) => m.type === "Check-in").length;
+  const checkOutMissions = missionsJour.filter((m) => m.type === "Check-out").length;
   const plomberie = missionsJour.filter(
     (m) => m.titre.toLowerCase().includes("plomb") || m.assigne.toLowerCase().includes("plomb"),
   ).length;
@@ -28,6 +31,8 @@ export function calculerKpi(s: EtatSession, aujourdhui = AUJOURD_HUI_MO1) {
     missionsJour: missionsJour.length,
     interventionsEnCours: enCours,
     menage,
+    checkInMissions,
+    checkOutMissions,
     plomberie,
     reservationsActives,
   };
@@ -39,25 +44,10 @@ function isoFr(iso: string) {
   return `${d}/${m}/${y}`;
 }
 
-function canalAnalyse(plateforme: string): PaiementAnalyse["canal"] {
-  if (plateforme === "Airbnb" || plateforme === "Booking.com") return plateforme;
+function canalPaiement(canal: CanalAnalyse): PaiementAnalyse["canal"] {
+  if (canal === "Airbnb" || canal === "Booking.com") return canal;
   return "Direct";
 }
-
-const MOIS_COURTS = [
-  "Jan",
-  "Fév",
-  "Mar",
-  "Avr",
-  "Mai",
-  "Juin",
-  "Juil",
-  "Août",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Déc",
-];
 
 /**
  * Au-delà de ce seuil, un séjour relève du bail et non de la location courte
@@ -66,81 +56,49 @@ const MOIS_COURTS = [
  * bail annuel à des séjours de trois nuits écrase la moyenne et produit un
  * chiffre que personne ne peut interpréter.
  */
-const NUITS_MAX_COURTE_DUREE = 90;
-
 export function analyserReservations(s: EtatSession, annee = 2026) {
-  const actives = s.reservationsDossier.filter((r) => r.statut !== "Annulé");
-  const paiements: PaiementAnalyse[] = actives.map((r) => {
-    const bien = s.biens.find((b) => b.id === r.bienId);
-    const nuits = Math.max(1, nuitsEntre(r.arrivee, r.depart));
-    const canal = canalAnalyse(r.plateforme);
-    const commission = canal === "Direct" ? 0 : Math.round(r.montant * 0.12);
-    const ville = bien?.adresse?.split(",").pop()?.trim() ?? "—";
-    return {
-      id: r.id,
-      nom: r.occupant,
-      initiales: r.initiales,
-      logement: bien?.nom ?? r.bienId,
-      localisation: ville,
-      reservation: r.id,
-      reservationId: r.id,
-      arrivee: isoFr(r.arrivee),
-      depart: isoFr(r.depart),
-      booking: r.id.replace(/^r-/, "BK").toUpperCase(),
-      nuits,
-      montant: r.montant,
-      commission,
-      canal,
-      statut: r.montant > 0 && r.paye >= r.montant ? "Validé" : "En attente",
-    };
+  const vue = construireAnalyse(s, {
+    debut: `${annee}-01-01`,
+    fin: `${annee}-12-31`,
+    aujourdhui: AUJOURD_HUI_MO1,
   });
+  const euros = (centimes: number) => Math.round(centimes) / 100;
+  const paiements: PaiementAnalyse[] = vue.historique
+    .filter((h) => h.statutSejour !== "Annulé")
+    .map((h) => ({
+      id: h.id,
+      nom: h.nom,
+      initiales: h.initiales,
+      logement: h.logement,
+      localisation: h.localisation,
+      reservation: h.reservationId,
+      reservationId: h.reservationId,
+      arrivee: isoFr(h.arrivee),
+      depart: isoFr(h.depart),
+      booking: h.reference,
+      nuits: h.nuits,
+      montant: euros(h.montant),
+      commission: euros(h.commission),
+      canal: canalPaiement(h.canal),
+      statut: h.statutPaiement === "Validé" ? "Validé" : "En attente",
+    }));
 
   const brut = paiements.reduce((n, p) => n + p.montant, 0);
   const commissionsOta = paiements.reduce((n, p) => n + p.commission, 0);
-  const net = brut - commissionsOta;
+  const net = euros(vue.kpi.net);
   const nuits = paiements.reduce((n, p) => n + p.nuits, 0);
   const courtsSejours = paiements.filter((p) => p.nuits <= NUITS_MAX_COURTE_DUREE);
   const nuitsCourteDuree = courtsSejours.reduce((n, p) => n + p.nuits, 0);
   const brutCourteDuree = courtsSejours.reduce((n, p) => n + p.montant, 0);
   const longsSejours = paiements.length - courtsSejours.length;
-  const revenusValides = paiements
-    .filter((p) => p.statut === "Validé")
-    .reduce((n, p) => n + p.montant - p.commission, 0);
-  const autres = actives.reduce((n, r) => {
-    const ids = r.upsellIds ?? [];
-    return (
-      n + s.parametrage.upsells.filter((u) => ids.includes(u.id)).reduce((m, u) => m + u.prix, 0)
-    );
-  }, 0);
-  const missionsPayantes = s.missions.filter((m) => m.statut === "terminee").length;
-  const fraisPresta = missionsPayantes * 30;
+  const revenusValides = euros(vue.kpi.revenusValides);
+  const autres = euros(vue.kpi.upsells);
+  const fraisPresta = euros(vue.kpi.fraisGestionHt);
 
-  const occupation = MOIS_COURTS.map((mois, i) => {
-    const debut = new Date(annee, i, 1);
-    const fin = new Date(annee, i + 1, 0);
-    const jours = fin.getDate();
-    const capacite = Math.max(1, s.biens.length) * jours;
-    let occ = 0;
-    for (const r of actives) {
-      const a = new Date(`${r.arrivee}T12:00:00`);
-      const d = new Date(`${r.depart}T12:00:00`);
-      const start = Math.max(a.getTime(), debut.getTime());
-      const end = Math.min(d.getTime(), fin.getTime());
-      if (end > start) occ += Math.round((end - start) / 86_400_000);
-    }
-    return { mois, taux: Math.min(100, Math.round((occ / capacite) * 100)) };
-  });
-
-  const evolution = MOIS_COURTS.map((mois, i) => {
-    const mm = String(i + 1).padStart(2, "0");
-    const duMois = actives.filter((r) => r.arrivee.startsWith(`${annee}-${mm}`));
-    const b = duMois.reduce((n, r) => n + r.montant, 0);
-    const c = duMois.reduce((n, r) => {
-      const canal = canalAnalyse(r.plateforme);
-      return n + (canal === "Direct" ? 0 : Math.round(r.montant * 0.12));
-    }, 0);
-    return { mois: `${mois.toUpperCase()} ${annee}`, brut: b, net: b - c };
-  }).filter((l) => l.brut > 0);
+  const occupation = vue.mois.map((m) => ({ mois: m.labelCourt, taux: m.taux }));
+  const evolution = vue.mois
+    .filter((m) => m.brut > 0)
+    .map((m) => ({ mois: m.label.toUpperCase(), brut: euros(m.brut), net: euros(m.net) }));
 
   return {
     paiements,
@@ -148,7 +106,7 @@ export function analyserReservations(s: EtatSession, annee = 2026) {
     evolution: evolution.length ? evolution : [{ mois: `JAN ${annee}`, brut: 0, net: 0 }],
     kpi: {
       net,
-      variationNet: 0,
+      variationNet: vue.kpi.variationEncaisse ?? 0,
       deltaNet: 0,
       revenuNuit: nuitsCourteDuree ? Math.round(brutCourteDuree / nuitsCourteDuree) : 0,
       nuits,
@@ -156,14 +114,14 @@ export function analyserReservations(s: EtatSession, annee = 2026) {
       longsSejours,
       variationNuit: 0,
       fraisPresta,
-      nbPresta: missionsPayantes,
+      nbPresta: vue.fraisGestion.reduce((n, f) => n + f.quantite, 0),
       partPresta: brut ? `${Math.round((fraisPresta / brut) * 100)} %` : "0 %",
       commissionsOta,
       partOta: brut ? `${((commissionsOta / brut) * 100).toFixed(1).replace(".", ",")} %` : "0 %",
       variationOta: 0,
       autres,
       partAutres: brut ? `${((autres / brut) * 100).toFixed(1).replace(".", ",")} %` : "0 %",
-      commissionGestionnaire: Math.round(net * 0.05),
+      commissionGestionnaire: euros(vue.kpi.commissionAgenceTtc),
       revenusValides,
       partValides: net
         ? `${((revenusValides / Math.max(net, 1)) * 100).toFixed(1).replace(".", ",")} %`

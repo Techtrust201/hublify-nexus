@@ -43,6 +43,11 @@ describe("permissions", () => {
     expect(droits).toEqual(["messagerie"]);
   });
 
+  it("traite un accès personnalisé vide comme restreint, pas comme le profil", () => {
+    expect(droitsEffectifs("gestionnaire", ["__restreint__"])).toEqual([]);
+    expect(droitsEffectifs("gestionnaire", [])).toEqual(DROITS_PAR_ROLE.gestionnaire);
+  });
+
   it("mappe les libellés vers les ids de rôle", () => {
     expect(roleParLabel("Prestataire")).toBe("prestataire");
     expect(roleParLabel("Super-administrateur")).toBe("super-admin");
@@ -71,11 +76,15 @@ describe("permissions", () => {
     expect(droitRequisPourChemin("/team")).toBe("gerer-equipe");
     expect(droitRequisPourChemin("/reservations/nouveau")).toBe("mod-reservations");
     expect(droitRequisPourChemin("/reservations")).toBe("voir-reservations");
+    expect(droitRequisPourChemin("/precheckin")).toBe("voir-reservations");
     expect(droitRequisPourChemin("/analyse")).toBe("voir-finances");
     expect(droitRequisPourChemin("/parametrage")).toBe("mod-biens");
     expect(droitRequisPourChemin("/prestataires/nouveau")).toBe("mod-biens");
     expect(droitRequisPourChemin("/outils/etats-des-lieux")).toBe("voir-documents");
     expect(droitRequisPourChemin("/outils/baux")).toBe("voir-documents");
+    expect(droitRequisPourChemin("/outils/upsells")).toBe("mod-biens");
+    expect(droitRequisPourChemin("/outils/timeline")).toBe("voir-documents");
+    expect(droitRequisPourChemin("/outils/livret")).toBe("voir-documents");
     expect(droitRequisPourChemin("/espace")).toBe("messagerie");
     expect(droitRequisPourChemin("/dossiers/o3")).toBe("voir-reservations");
     expect(droitRequisPourChemin("/")).toBeUndefined();

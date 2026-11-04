@@ -40,9 +40,20 @@ export function LandingPage() {
   );
 }
 
-function Sourcil({ children }: { children: string }) {
+function Sourcil({
+  children,
+  variante = "marque",
+}: {
+  children: string;
+  variante?: "marque" | "clair";
+}) {
   return (
-    <p className="inline-flex rounded-full border border-v1-brand px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.8px] text-v1-brand">
+    <p
+      className={cn(
+        "inline-flex rounded-full border px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.8px]",
+        variante === "clair" ? "border-white/45 text-white" : "border-v1-brand text-v1-brand",
+      )}
+    >
       {children}
     </p>
   );
@@ -217,21 +228,6 @@ function ApercuProduit() {
 }
 
 function Cycle() {
-  const cartes = [
-    [
-      "Location saisonnière",
-      "L'appartement accueille vos voyageurs aux périodes que vous choisissez.",
-    ],
-    [
-      "Relancer la location",
-      "À la fin du bail étudiant, reprenez la location saisonnière de manière fluide.",
-    ],
-    [
-      "Préparer la transition",
-      "À la fin de la période, recherchez un étudiant ou un bail mobilité.",
-    ],
-    ["Location étudiante", "L'appartement accueille un étudiant pour sa période de location."],
-  ] as const;
   return (
     <section className="bg-white px-5 py-16 lg:px-[72px]">
       <div className="mx-auto max-w-[1440px] text-center">
@@ -243,20 +239,13 @@ function Cycle() {
           De la location sous bail à la location étudiante, une plateforme pour tout gérer
           simplement.
         </p>
-        <div className="mx-auto mt-10 grid max-w-4xl gap-4 text-left sm:grid-cols-2">
-          {cartes.map(([titre, texte]) => (
-            <article key={titre} className="rounded-[20px] border border-v1-line bg-v1-canvas p-5">
-              <h3 className="font-semibold text-v1-ink">{titre}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-v1-ink-body">{texte}</p>
-            </article>
-          ))}
-        </div>
-        <p className="mx-auto mt-4 max-w-xs rounded-[20px] border border-v1-brand bg-white px-4 py-3 text-sm font-semibold text-v1-brand">
-          Le même appartement
-          <span className="mt-1 block font-normal text-v1-ink-body">
-            Des locataires qui se succèdent.
-          </span>
-        </p>
+        <img
+          src="/landing/cycle-location.webp"
+          width={1135}
+          height={432}
+          alt="Cycle de location : saisonnière, relance du bail, location étudiante et préparation de la transition, autour du même appartement."
+          className="mx-auto mt-10 w-full max-w-4xl"
+        />
         <div className="mx-auto mt-8 flex max-w-4xl items-start gap-4 rounded-2xl bg-v1-brand-soft p-5 text-left">
           <div>
             <p className="font-semibold text-v1-ink">Propriétaire, LMNP et professionnels</p>
@@ -273,28 +262,6 @@ function Cycle() {
 }
 
 function Gestion() {
-  const blocs = [
-    [
-      "Suivi des loyers",
-      "Léna Martin, Émile Roux, Sofia Benali : payé, payé, à relancer. Booking.com dans le même calendrier.",
-    ],
-    [
-      "CRM et channel manager",
-      "Calendriers OTA, messageries, tarifs. Tous synchronisés au même endroit.",
-    ],
-    [
-      "Classer et gérer vos documents",
-      "Baux, états des lieux et diagnostics accessibles en quelques clics.",
-    ],
-    [
-      "Suivi des encaissements",
-      "Visualisez les paiements locataires et voyageurs, versés et régularisations.",
-    ],
-    [
-      "Documents signés en ligne",
-      "Recevez les documents des candidats. Analysez chaque dossier grâce à votre système d'étude. Suivez le parcours en ligne pour signer un bail.",
-    ],
-  ] as const;
   return (
     <section className="bg-v1-canvas px-5 py-16 lg:px-[72px]">
       <div className="mx-auto max-w-[1440px]">
@@ -308,14 +275,13 @@ function Gestion() {
           intuitivement et permet la transition entre la location saisonnière et classique en
           quelques clics.
         </p>
-        <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {blocs.map(([titre, texte]) => (
-            <article key={titre} className="rounded-[20px] border border-v1-line bg-white p-5">
-              <h3 className="font-semibold text-v1-ink">{titre}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-v1-ink-body">{texte}</p>
-            </article>
-          ))}
-        </div>
+        <img
+          src="/landing/captures-produit.webp"
+          width={1380}
+          height={780}
+          alt="Captures du produit : suivi des loyers avec Booking.com, channel manager, classement des documents, encaissements et signature en ligne."
+          className="mt-8 w-full rounded-[20px]"
+        />
       </div>
     </section>
   );
@@ -336,14 +302,19 @@ function Dossier() {
           Votre dossier de location, chargé une seule fois, partagé en toute sécurité.
         </h2>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-v1-ink-body">
-          Hublify propose un espace sécurisé pour centraliser et recevoir vos documents, pour une
-          meilleure gestion fidèle au quotidien. Créez votre espace, chargez vos documents et
-          partagez un lien unique sur la plateforme mais aussi sur toutes les autres plateformes de
-          location. Une fois le lien envoyé vous recevrez une demande d'accès validée 72 jours, ou
-          les jours entre chaque à tout moment.
+          Centralisez vos pièces dans un espace sécurisé, puis partagez un lien unique avec les
+          agences et plateformes de votre choix. Chaque destinataire demande l'accès ; vous validez
+          ou retirez la consultation à tout moment, sans renvoyer les mêmes documents.
         </p>
         <div className="mt-8 grid gap-4 lg:grid-cols-3">
           <article className="rounded-[20px] border border-v1-line p-5">
+            <img
+              src="/landing/illustration-dossier.webp"
+              width={175}
+              height={132}
+              alt="Illustration de pièces d'identité et de documents rassemblés dans un dossier."
+              className="mb-4 h-28 w-auto"
+            />
             <h3 className="font-semibold text-v1-ink">Pièces envoyées une fois</h3>
             <p className="mt-2 text-sm text-v1-ink-body">
               Fini les pièces d'identité et documents personnels envoyés par e-mail sur des
@@ -352,17 +323,31 @@ function Dossier() {
             </p>
           </article>
           <article className="rounded-[20px] border border-v1-line p-5">
+            <img
+              src="/landing/illustration-coffre.webp"
+              width={168}
+              height={136}
+              alt="Illustration d'un bouclier protégeant des documents confidentiels."
+              className="mb-4 h-28 w-auto"
+            />
             <h3 className="font-semibold text-v1-ink">Documents confidentiels</h3>
             <p className="mt-2 text-sm text-v1-ink-body">
-              Une fois chargé, vos documents confidentiels sont légitimes et ne peuvent être copiés.
-              Vous pouvez révéler l'accès de consultation à tout moment.
+              Vos documents sensibles restent protégés : seuls les destinataires que vous autorisez
+              peuvent les consulter, et vous pouvez retirer cet accès à tout moment.
             </p>
           </article>
-          <article className="rounded-[20px] border border-v1-line bg-v1-brand-soft p-5">
+          <article className="overflow-hidden rounded-[20px] border border-v1-line bg-v1-brand-soft p-5">
+            <img
+              src="/landing/illustration-carte.webp"
+              width={375}
+              height={290}
+              alt="Carte des annonces autour de Cannes, avec les loyers affichés sur le littoral."
+              className="mb-4 w-full rounded-xl object-cover"
+            />
             <h3 className="font-semibold text-v1-ink">Annonces au même endroit</h3>
             <p className="mt-2 text-sm text-v1-ink-body">
-              Les annonces vues dans la maquette affichent 890 € et 620 €. Le fond de carte n'est
-              pas un fichier livré : le texte du bloc est conservé, pas une capture.
+              Suivez vos candidatures et les annonces qui vous intéressent au même endroit, sans
+              disperser vos pièces entre plusieurs plateformes.
             </p>
           </article>
         </div>
@@ -406,31 +391,40 @@ function Profils() {
           CRM et channel manager. Calendriers OTA, messageries, tarifs : tous synchronisés au même
           endroit.
         </p>
-        <div className="mt-8 grid gap-4 lg:grid-cols-3">
-          <CarteRoles
-            titre="Occupants"
-            roles={[
-              ["Voyageurs", "bg-[#f2a65a]"],
-              ["Locataires", "bg-[#7ccba4]"],
-            ]}
+        <div className="mt-8 grid items-center gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
+          <img
+            src="/landing/schema-equipe.webp"
+            width={558}
+            height={515}
+            alt="Schéma d'équipe : le propriétaire au centre, puis le gestionnaire, les prestataires et les occupants."
+            className="mx-auto w-full max-w-xl"
           />
-          <CarteRoles
-            titre="Gestionnaire"
-            roles={[
-              ["Conciergerie", "bg-v1-green-deep text-white"],
-              ["Agence immobilière", "bg-v1-green text-white"],
-              ["Aide ponctuelle", "bg-v1-canvas text-v1-ink"],
-            ]}
-          />
-          <CarteRoles
-            titre="Prestataires"
-            roles={[
-              ["Équipe de ménage", "bg-v1-canvas"],
-              ["Check-in / check-out", "bg-v1-canvas"],
-              ["Plombier", "bg-v1-canvas"],
-              ["Montage de meubles", "bg-v1-canvas"],
-            ]}
-          />
+          <div className="grid gap-4">
+            <CarteRoles
+              titre="Occupants"
+              roles={[
+                ["Voyageurs", "bg-[#f2a65a]"],
+                ["Locataires", "bg-[#7ccba4]"],
+              ]}
+            />
+            <CarteRoles
+              titre="Gestionnaire"
+              roles={[
+                ["Conciergerie", "bg-v1-green-deep text-white"],
+                ["Agence immobilière", "bg-v1-green text-white"],
+                ["Aide ponctuelle", "bg-v1-canvas text-v1-ink"],
+              ]}
+            />
+            <CarteRoles
+              titre="Prestataires"
+              roles={[
+                ["Équipe de ménage", "bg-v1-canvas"],
+                ["Check-in / check-out", "bg-v1-canvas"],
+                ["Plombier", "bg-v1-canvas"],
+                ["Montage de meubles", "bg-v1-canvas"],
+              ]}
+            />
+          </div>
         </div>
       </div>
     </section>
@@ -461,13 +455,16 @@ function CarteRoles({
 function Equipe() {
   return (
     <section className="bg-v1-green-deep px-5 py-16 text-white lg:px-[72px]">
-      <div className="mx-auto grid max-w-[1440px] gap-8 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
-        <p className="text-sm text-white/80">
-          Satisfaction utilisateurs. Le commentaire est un champ de la maquette, sans citation
-          rédigée.
-        </p>
+      <div className="mx-auto grid max-w-[1440px] items-center gap-8 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+        <img
+          src="/landing/immeuble.webp"
+          width={534}
+          height={313}
+          alt="Immeuble en pierre éclairé le soir, avec balcons et volets, représentatif d'un parc locatif géré dans Hublify."
+          className="w-full rounded-[20px] object-cover"
+        />
         <div>
-          <Sourcil>Gestion pour tous les profils</Sourcil>
+          <Sourcil variante="clair">Gestion pour tous les profils</Sourcil>
           <h2 className="mt-4 font-display text-3xl tracking-tight">
             Hublify est créé par des particuliers devenus professionnels.
           </h2>
@@ -510,11 +507,21 @@ function Comparaison() {
           Et si vous adaptiez la location au rythme de votre bien ? Dans cet exemple, la location
           hybride alterne moyenne durée et saisonnière pour conjuguer occupation et revenus.
         </p>
+        <div className="mt-8 grid items-end gap-6 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
+          <img
+            src="/landing/immeuble-hybride.webp"
+            width={290}
+            height={346}
+            alt="Immeuble hybride illustré : café et boutique au rez-de-chaussée, logements en étages, pour comparer les modes de location."
+            className="mx-auto w-full max-w-xs"
+          />
+          <BarresRendement />
+        </div>
         <div className="mt-8 overflow-x-auto rounded-2xl border border-v1-line bg-white">
           <table className="w-full min-w-[640px] text-left text-sm">
             <caption className="px-4 py-3 text-left text-xs text-v1-ink-muted">
-              Données 2026 issues d'un parc locatif basé à Cannes (06). L'annotation « à tester un
-              code couleur » n'est pas un aplat : la colonne hybride est la seule mise en avant.
+              Exemple illustratif 2026, parc locatif à Cannes (06). La colonne hybride est mise en
+              avant pour comparer occupation et revenus.
             </caption>
             <thead>
               <tr className="border-b border-v1-line">
@@ -548,62 +555,129 @@ function Comparaison() {
   );
 }
 
+/** Citations du frame Testimonials. Le prénom « Cléa » de la carte centrale est remplacé par Hublify. */
 const TEMOIGNAGES = [
   {
-    quote:
-      "Je suis enfin au clair sans avoir trois tableurs. Les quittances partent seules et je ne découvre plus les retards dix jours après.",
-    nom: "Sophie Lemoine",
-    role: "Propriétaire de 7 lots, Nantes",
+    nom: "Sophie Lemaire",
+    role: "Propriétaire de 7 lots · Nantes",
+    photo: "/landing/portrait-sophie-lemaire.webp",
+    citation:
+      "Je sais enfin où j'en suis sans ouvrir trois tableurs. Les quittances partent seules et je ne découvre plus les retards dix jours après.",
     sombre: false,
   },
   {
-    quote:
-      "Cela nous a permis de conserver une relation très humaine avec nos locataires tout en absorbant deux fois plus de mandats.",
-    nom: "Thomas Rodière",
-    role: "Fondateur, Agence Rive Gauche, Lyon",
+    nom: "Thomas Rivière",
+    role: "Fondateur, Agence Rive Gauche · Lyon",
+    photo: "/landing/portrait-thomas-riviere.webp",
+    citation:
+      "Hublify nous a permis de conserver une relation très humaine avec nos locataires tout en absorbant deux fois plus de mandats.",
     sombre: true,
   },
   {
-    quote:
-      "Mon comptable reçoit un export propre, mes documents sont au bon endroit, et je prépare facilement une demi-journée chaque mois.",
     nom: "Nadia Ben Amar",
-    role: "Propriétaire de 4 lots, Montpellier",
+    role: "Propriétaire de 4 lots · Montpellier",
+    photo: "/landing/portrait-nadia-ben-amar.webp",
+    citation:
+      "Mon comptable reçoit un export propre, mes documents sont au bon endroit, et je gagne facilement une demi-journée chaque mois.",
     sombre: false,
   },
 ] as const;
 
 function Temoignages() {
   return (
-    <section className="bg-white px-5 py-16 lg:px-[72px]">
+    <section className="bg-v1-canvas px-5 py-16 lg:px-[72px]">
       <div className="mx-auto max-w-[1440px]">
         <Sourcil>Ils respirent mieux</Sourcil>
-        <h2 className="mt-4 font-display text-3xl tracking-tight text-v1-ink">
+        <h2 className="mt-4 font-display text-3xl tracking-tight text-v1-ink sm:text-4xl">
           La sérénité, racontée par ceux qui gèrent
         </h2>
-        <p className="mt-3 text-sm text-v1-ink-body">
-          Des portefeuilles différents, le même soulagement : savoir que tout est suivi au bon nom.
+        <p className="mt-3 max-w-2xl text-sm text-v1-ink-body">
+          Des portefeuilles différents, le même soulagement : savoir que tout est suivi au bon
+          moment.
         </p>
         <ul className="mt-8 grid gap-4 lg:grid-cols-3">
-          {TEMOIGNAGES.map((t) => (
+          {TEMOIGNAGES.map((temoin) => (
             <li
-              key={t.nom}
+              key={temoin.nom}
               className={cn(
-                "rounded-[20px] border p-5",
-                t.sombre
-                  ? "border-v1-green-deep bg-v1-green-deep text-white"
-                  : "border-v1-line bg-white",
+                "flex flex-col rounded-[20px] p-5",
+                temoin.sombre ? "bg-v1-green-deep text-white" : "border border-v1-line bg-white",
               )}
             >
-              <p className="text-sm leading-relaxed">« {t.quote} »</p>
-              <p className="mt-4 text-sm font-semibold">{t.nom}</p>
-              <p className={cn("text-xs", t.sombre ? "text-white/70" : "text-v1-ink-muted")}>
-                {t.role}
+              <p className="text-amber-400" aria-label="5 étoiles sur 5">
+                ★★★★★
               </p>
+              <blockquote
+                className={cn(
+                  "mt-4 flex-1 text-sm leading-relaxed",
+                  temoin.sombre ? "text-white/90" : "text-v1-ink",
+                )}
+              >
+                « {temoin.citation} »
+              </blockquote>
+              <footer className="mt-6 flex items-center gap-3">
+                <img
+                  src={temoin.photo}
+                  width={48}
+                  height={48}
+                  alt={`Portrait de ${temoin.nom}`}
+                  className="size-12 rounded-full object-cover"
+                />
+                <p>
+                  <span
+                    className={cn(
+                      "block text-sm font-medium",
+                      temoin.sombre ? "text-white" : "text-v1-ink",
+                    )}
+                  >
+                    {temoin.nom}
+                  </span>
+                  <span
+                    className={cn(
+                      "block text-xs",
+                      temoin.sombre ? "text-white/70" : "text-v1-ink-muted",
+                    )}
+                  >
+                    {temoin.role}
+                  </span>
+                </p>
+              </footer>
             </li>
           ))}
         </ul>
       </div>
     </section>
+  );
+}
+
+const RENDEMENTS = [
+  { label: "Hybride", detail: "Moyenne durée + saisonnière", valeur: 8.06, classe: "bg-v1-green" },
+  { label: "Saisonnière", detail: "Courts séjours", valeur: 5.73, classe: "bg-[#4b5563]" },
+  { label: "Classique", detail: "Longue durée", valeur: 3.98, classe: "bg-[#6b7280]" },
+] as const;
+
+function BarresRendement() {
+  return (
+    <figure className="rounded-2xl border border-v1-line bg-white p-5">
+      <figcaption className="text-sm font-medium text-v1-ink">Rendement brut annuel</figcaption>
+      <ul className="mt-4 flex items-end gap-4">
+        {RENDEMENTS.map((barre) => (
+          <li key={barre.label} className="flex flex-1 flex-col items-center gap-2">
+            <span className="text-xs font-medium text-v1-ink">
+              {barre.valeur.toFixed(2).replace(".", ",")} %
+            </span>
+            <span
+              className={cn("block w-full rounded-t-md", barre.classe)}
+              style={{ height: `${Math.round((barre.valeur / 8.06) * 140)}px` }}
+            />
+            <span className="text-center text-[11px] text-v1-ink-body">
+              {barre.label}
+              <span className="mt-0.5 block text-v1-ink-muted">{barre.detail}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </figure>
   );
 }
 

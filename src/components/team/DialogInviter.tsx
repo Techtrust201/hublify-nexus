@@ -1,13 +1,17 @@
-import { Eye, Pencil, Shield } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import {
   DROITS_CATALOGUE,
   DROITS_PAR_ROLE,
   ROLES_EQUIPE,
   roleParLabel,
-  type DroitId,
+  type RoleId,
   type RoleLabel,
 } from "@/auth/permissions";
+import {
+  CATEGORIES_DROITS,
+  droitAutoriseParProfil,
+  droitsPersonnalises,
+} from "@/lib/gestionnaire-planning";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -17,12 +21,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-
-const GROUPES = [
-  { nom: "Lecture" as const, icone: Eye },
-  { nom: "Modification" as const, icone: Pencil },
-  { nom: "Administration" as const, icone: Shield },
-];
 
 export function DialogInviter({
   ouvert,
@@ -46,6 +44,7 @@ export function DialogInviter({
   const [role, setRole] = useState<RoleLabel>("Gestionnaire");
   const [affectation, setAffectation] = useState("");
   const [droits, setDroits] = useState<string[]>([...DROITS_PAR_ROLE.gestionnaire]);
+  const [modeDroits, setModeDroits] = useState<"profil" | "personnalise">("profil");
 
   const reset = () => {
     setPrenom("");
@@ -54,6 +53,7 @@ export function DialogInviter({
     setRole("Gestionnaire");
     setAffectation("");
     setDroits([...DROITS_PAR_ROLE.gestionnaire]);
+    setModeDroits("profil");
   };
 
   const toggle = (id: string) =>
@@ -112,6 +112,7 @@ export function DialogInviter({
                 onChange={(e) => {
                   const prochain = e.target.value as RoleLabel;
                   setRole(prochain);
+                  setModeDroits("profil");
                   setDroits([...DROITS_PAR_ROLE[roleParLabel(prochain)]]);
                 }}
                 className={cn(champClasse, "h-9")}
@@ -132,8 +133,28 @@ export function DialogInviter({
           </div>
 
           <div>
-            <p className="mb-3 text-xs text-ink">Droits d'accès</p>
-            <ListeDroits selection={droits} onToggle={toggle} />
+            <p className="mb-1 text-xs text-ink">Droits d'accès</p>
+            <p className="mb-3 text-[11px] text-ink-muted">
+              Le profil valide le plafond. En personnalisé, tout est restreint tant qu'une case
+              n'est pas cochée.
+            </p>
+            <ModeDroits
+              mode={modeDroits}
+              onProfil={() => {
+                setModeDroits("profil");
+                setDroits([...DROITS_PAR_ROLE[roleParLabel(role)]]);
+              }}
+              onPersonnalise={() => {
+                setModeDroits("personnalise");
+                setDroits([]);
+              }}
+            />
+            <ListeDroits
+              selection={droits}
+              onToggle={toggle}
+              mode={modeDroits}
+              roleId={roleParLabel(role)}
+            />
           </div>
         </div>
 
@@ -158,7 +179,10 @@ export function DialogInviter({
                 email: email.trim(),
                 role,
                 affectation: affectation.trim() || "Assignment",
-                droits,
+                droits:
+                  modeDroits === "personnalise"
+                    ? droitsPersonnalises(roleParLabel(role), droits)
+                    : [...DROITS_PAR_ROLE[roleParLabel(role)]],
               });
               reset();
               onFermer();
@@ -173,128 +197,92 @@ export function DialogInviter({
   );
 }
 
-const BLOCS_TEAMMATE: Array<{
-  titre: string;
-  detail?: string;
-  lignes: Array<{ label: string; id: DroitId }>;
-}> = [
-  {
-    titre: "Messagerie résident",
-    lignes: [{ label: "Accès", id: "messagerie" }],
-  },
-  {
-    titre: "Calendrier réservation",
-    lignes: [
-      { label: "Vision", id: "voir-reservations" },
-      { label: "Édition", id: "mod-reservations" },
-    ],
-  },
-  {
-    titre: "Calendrier prestation",
-    lignes: [
-      { label: "Vision", id: "voir-calendrier" },
-      { label: "Édition", id: "mod-missions" },
-    ],
-  },
-  {
-    titre: "Résumé financier",
-    detail: "Autorise à extraire les tableaux de paiements",
-    lignes: [
-      { label: "Vision", id: "voir-finances" },
-      { label: "Édition", id: "mod-finances" },
-    ],
-  },
-  {
-    titre: "Paramétrage",
-    detail: "Photos, biens et événements",
-    lignes: [{ label: "Modification", id: "mod-biens" }],
-  },
-];
-
-const IDS_TEAMMATE = new Set(BLOCS_TEAMMATE.flatMap((b) => b.lignes.map((l) => l.id)));
+export function ModeDroits({
+  mode,
+  onProfil,
+  onPersonnalise,
+}: {
+  mode: "profil" | "personnalise";
+  onProfil: () => void;
+  onPersonnalise: () => void;
+}) {
+  return (
+    <div className="mb-3 inline-flex rounded-card border border-line p-0.5">
+      {(
+        [
+          ["profil", "Profil", onProfil],
+          ["personnalise", "Personnalisé", onPersonnalise],
+        ] as const
+      ).map(([id, label, onClick]) => (
+        <button
+          key={id}
+          type="button"
+          aria-pressed={mode === id}
+          onClick={onClick}
+          className={cn(
+            "h-8 rounded-[10px] px-3 text-xs font-medium",
+            mode === id ? "bg-ink text-white" : "text-ink-muted",
+          )}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function ListeDroits({
   selection,
   onToggle,
+  mode = "personnalise",
+  roleId = "gestionnaire",
 }: {
   selection: string[];
   onToggle: (id: string) => void;
+  mode?: "profil" | "personnalise";
+  roleId?: RoleId;
 }) {
   return (
-    <div className="space-y-5">
-      {BLOCS_TEAMMATE.map((bloc) => (
-        <div key={bloc.titre} className="rounded-card border border-line p-3">
-          <p className="text-xs font-medium text-ink">{bloc.titre}</p>
-          {bloc.detail && <p className="mt-0.5 text-[10px] text-ink-muted">{bloc.detail}</p>}
+    <div className="space-y-3">
+      {mode === "profil" && (
+        <p className="text-[11px] text-ink-muted">
+          Ces droits sont ceux du profil. Ils sont validés par le rôle, sans case supplémentaire.
+        </p>
+      )}
+      {CATEGORIES_DROITS.map((categorie) => (
+        <fieldset key={categorie.id} className="rounded-card border border-line p-3">
+          <legend className="px-1 text-xs font-medium text-ink">{categorie.titre}</legend>
           <ul className="mt-2 space-y-2">
-            {bloc.lignes.map((ligne) => {
-              const oui = selection.includes(ligne.id);
+            {categorie.droits.map((id) => {
+              const fiche = DROITS_CATALOGUE.find((d) => d.id === id);
+              const autorise = droitAutoriseParProfil(roleId, id);
+              const coche = selection.includes(id);
               return (
-                <li key={ligne.id} className="flex items-center justify-between gap-3">
-                  <span className="text-xs text-ink-body">{ligne.label}</span>
-                  <span className="inline-flex rounded-card border border-line p-0.5">
-                    <button
-                      type="button"
-                      aria-pressed={oui}
-                      onClick={() => {
-                        if (!oui) onToggle(ligne.id);
+                <li key={id}>
+                  <label className={cn("flex items-start gap-3", !autorise && "opacity-50")}>
+                    <Checkbox
+                      checked={mode === "profil" ? autorise : coche}
+                      disabled={mode === "profil" || !autorise}
+                      onCheckedChange={() => {
+                        if (mode === "personnalise" && autorise) onToggle(id);
                       }}
-                      className={cn(
-                        "h-7 min-w-8 rounded-[10px] px-2 text-[11px] font-medium",
-                        oui ? "bg-ink text-white" : "text-ink-muted",
-                      )}
-                    >
-                      Y
-                    </button>
-                    <button
-                      type="button"
-                      aria-pressed={!oui}
-                      onClick={() => {
-                        if (oui) onToggle(ligne.id);
-                      }}
-                      className={cn(
-                        "h-7 min-w-8 rounded-[10px] px-2 text-[11px] font-medium",
-                        !oui ? "bg-ink text-white" : "text-ink-muted",
-                      )}
-                    >
-                      N
-                    </button>
-                  </span>
+                      className="mt-0.5 border-line-strong data-[state=checked]:border-ink data-[state=checked]:bg-ink"
+                    />
+                    <span>
+                      <span className="block text-xs text-ink">{fiche?.titre ?? id}</span>
+                      <span className="block text-[10px] text-ink-muted">
+                        {autorise
+                          ? fiche?.description
+                          : "Hors profil : le rôle ne valide pas ce droit."}
+                      </span>
+                    </span>
+                  </label>
                 </li>
               );
             })}
           </ul>
-        </div>
+        </fieldset>
       ))}
-      {GROUPES.map(({ nom, icone: Icone }) => {
-        const reste = DROITS_CATALOGUE.filter((d) => d.groupe === nom && !IDS_TEAMMATE.has(d.id));
-        if (reste.length === 0) return null;
-        return (
-          <div key={nom}>
-            <p className="mb-2 flex items-center gap-1.5 text-[10px] text-ink-muted">
-              <Icone className="size-2.5" />
-              Autres accès · {nom}
-            </p>
-            <ul className="space-y-2">
-              {reste.map((d) => (
-                <li key={d.id}>
-                  <label className="flex cursor-pointer items-start gap-3">
-                    <Checkbox
-                      checked={selection.includes(d.id)}
-                      onCheckedChange={() => onToggle(d.id)}
-                      className="mt-0.5 border-line-strong data-[state=checked]:border-ink data-[state=checked]:bg-ink"
-                    />
-                    <span>
-                      <span className="block text-xs text-ink">{d.titre}</span>
-                      <span className="block text-[10px] text-ink-muted">{d.description}</span>
-                    </span>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          </div>
-        );
-      })}
     </div>
   );
 }
