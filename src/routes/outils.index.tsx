@@ -1,11 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   CalendarDays,
+  BookOpen,
   ClipboardCheck,
   ClipboardList,
   FileText,
+  History,
   Info,
   Settings,
+  Sparkles,
   Wrench,
 } from "lucide-react";
 import { useDroit } from "@/auth/auth-context";
@@ -56,6 +59,24 @@ const OUTILS = [
     vers: "/parametrage" as const,
   },
   {
+    titre: "Upsells",
+    texte: "Ventes additionnelles : code, tarif, prestataire, ville et pièce jointe.",
+    icone: Sparkles,
+    vers: "/outils/upsells" as const,
+  },
+  {
+    titre: "Timeline",
+    texte: "Échanges de documents et réservations, du plus récent au plus ancien.",
+    icone: History,
+    vers: "/outils/timeline" as const,
+  },
+  {
+    titre: "Fiche d'accès et livret",
+    texte: "Modèles d'accueil à personnaliser, dupliquer et remettre au voyageur.",
+    icone: BookOpen,
+    vers: "/outils/livret" as const,
+  },
+  {
     titre: "Je débute",
     texte: "Fiche, documents reçus, paiement ou caution, puis les étapes du compte.",
     icone: Info,
@@ -76,12 +97,14 @@ function PageOutils() {
   const voirCal = useDroit("voir-calendrier");
   const voirBiens = useDroit("voir-biens");
   const outils = OUTILS.filter((o) => {
-    if (o.vers === "/parametrage") return peutParametrer;
+    if (o.vers === "/parametrage" || o.vers === "/outils/upsells") return peutParametrer;
     if (o.vers === "/outils/debuter") return peutReserver;
     if (
       o.vers === "/outils/modeles" ||
       o.vers === "/outils/etats-des-lieux" ||
-      o.vers === "/outils/baux"
+      o.vers === "/outils/baux" ||
+      o.vers === "/outils/timeline" ||
+      o.vers === "/outils/livret"
     )
       return voirDocs;
     if (o.vers === "/outils/vue-annuelle") return voirCal;
