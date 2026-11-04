@@ -1,6 +1,6 @@
 import { useDroit } from "@/auth/auth-context";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 import { useState } from "react";
 import { CreateEventDialog, QuittanceDialog } from "@/components/dashboard/DashboardDialogs";
 import { AppShell } from "@/components/layout/AppShell";
@@ -42,7 +42,8 @@ export const Route = createFileRoute("/reservations/")({
       { title: "Réservations — Hublify" },
       {
         name: "description",
-        content: "Planning et liste des réservations Hublify : 3 jours, 5 jours, mois et tableau.",
+        content:
+          "Tableau des réservations Hublify : statut, propriété, occupant, dates, montant, filtres et pagination.",
       },
     ],
   }),
@@ -52,7 +53,7 @@ export const Route = createFileRoute("/reservations/")({
 function PageReservations() {
   const { vue: vueUrl, resa } = Route.useSearch();
   const navigate = useNavigate({ from: "/reservations/" });
-  const vue: VuePage = vueUrl ?? (resa ? "liste" : "planning");
+  const vue: VuePage = vueUrl ?? "liste";
   const setVue = (v: VuePage) => {
     void navigate({ search: { vue: v } });
   };
@@ -65,10 +66,22 @@ function PageReservations() {
   if (vue === "liste") {
     return (
       <AppShell attendDonnees>
-        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <nav
+          aria-label="Fil d'Ariane"
+          className="mb-3 flex items-center gap-1 text-xs text-ink-muted"
+        >
+          <Link to="/" className="hover:text-ink">
+            Tableau de bord
+          </Link>
+          <ChevronRight className="size-3" aria-hidden />
+          <span className="text-ink-body">Réservations</span>
+        </nav>
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-lg font-medium text-ink">Réservations</h1>
-            <p className="text-sm text-ink-subtle">Séjours, baux et paiements</p>
+            <h1 className="text-[22px] font-medium leading-7 text-ink">Réservations</h1>
+            <p className="mt-1 text-sm text-ink-muted">
+              Gérer toutes vos réservations en un endroit
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button

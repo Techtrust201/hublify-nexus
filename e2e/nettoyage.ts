@@ -1,4 +1,5 @@
 import { Pool } from "pg";
+import { MOTIF_EVENEMENT_TEST } from "../src/lib/evenements-test";
 
 /**
  * Les parcours d'inscription et d'invitation créent de vrais comptes en base.
@@ -26,6 +27,24 @@ export async function purgerComptesDeTest() {
         where o.nom ~ '^Org [a-z0-9]+$'
           and not exists (select 1 from org_membres m where m.org_id = o.id)`,
     );
+  } finally {
+    await pool.end();
+  }
+}
+
+/**
+ * `e2e/securite.spec.ts` crée des événements `Marqueur-*` et `Hors-ligne-*`
+ * pour prouver l'isolation. Sans reprise, ils restent dans la vue générale.
+ * Le motif ne peut pas atteindre un événement réel : voir `estEvenementDeTest`.
+ */
+export async function purgerEvenementsDeTest() {
+  const connectionString = process.env["DATABASE_URL"];
+  if (!connectionString) return;
+
+  const pool = new Pool({ connectionString });
+  try {
+    await pool.query(`delete from public.evenements where titre ~ $1`, [MOTIF_EVENEMENT_TEST]);
+    await pool.query(`delete from public.notifications where detail ~ $1`, [MOTIF_EVENEMENT_TEST]);
   } finally {
     await pool.end();
   }

@@ -44,6 +44,16 @@ export function AppShell({
   const [mobileOuvert, setMobileOuvert] = useState(false);
   const hamburgerRef = useRef<HTMLButtonElement>(null);
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const vueReservations = useRouterState({
+    select: (r) => {
+      const recherche = r.location.search as { vue?: string };
+      return recherche?.vue;
+    },
+  });
+  const retourPlanning =
+    estPagePlanningHorsAccueil(pathname) &&
+    (!(pathname === "/reservations" || pathname === "/reservations/") ||
+      vueReservations === "planning");
   const session = useSession();
   const chargee = useSessionChargee();
   const auth = useAuth();
@@ -107,7 +117,7 @@ export function AppShell({
               ) : (
                 <div className="hidden h-8 w-16 lg:block" />
               )}
-              {estPagePlanningHorsAccueil(pathname) && <RetourVueGenerale className="shrink-0" />}
+              {retourPlanning && <RetourVueGenerale className="shrink-0" />}
             </div>
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               {actions ? <div className="flex shrink-0 items-center">{actions}</div> : null}
