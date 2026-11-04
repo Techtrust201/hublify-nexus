@@ -3,38 +3,69 @@
 // Les upsells y sont intégrés (annotation « intégrer les upsells dans le pré-checkin »).
 // La caution utilise le même mécanisme pour les baux et les voyageurs.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDroit } from "@/auth/auth-context";
 import { poserParametrage, useSession } from "@/data/session";
 import type { ParametrageSession } from "@/data/parametrage-mo1";
-import { toastOk } from "@/lib/feedback";
+import { sauverExtraPrecheckinDistant } from "@/data/outils-remote";
+import { toastErreur, toastOk } from "@/lib/feedback";
 import {
   cautionDemandee,
-  ecrireExtraPrecheckin,
-  lireExtraPrecheckin,
+  fusionMigrationExtra,
+  lireExtraLegacy,
+  purgerExtraLocal,
   type ExtraPrecheckin,
 } from "@/lib/gestionnaire-planning";
 import { cn } from "@/lib/utils";
 
-export function PrecheckinGestionnaire() {
+export function PrecheckinGestionnaire({
+  extraInitial,
+  enregistre,
+}: {
+  extraInitial: ExtraPrecheckin;
+  enregistre: boolean;
+}) {
   const session = useSession();
   const peutReserver = useDroit("mod-reservations");
   const peutBiens = useDroit("mod-biens");
   const peutMod = peutReserver || peutBiens;
   const [base, setBase] = useState<ParametrageSession>(session.parametrage);
-  const [extra, setExtra] = useState<ExtraPrecheckin>(() => lireExtraPrecheckin());
+  const [extra, setExtra] = useState<ExtraPrecheckin>(extraInitial);
+  const [enCours, setEnCours] = useState(false);
+  const migre = useRef(false);
 
   useEffect(() => {
-    setExtra(lireExtraPrecheckin());
-  }, []);
+    if (migre.current) return;
+    migre.current = true;
+    const decision = fusionMigrationExtra({ extra: extraInitial, enregistre }, lireExtraLegacy());
+    if (decision.pousser && peutMod) {
+      setExtra(decision.extra);
+      void sauverExtraPrecheckinDistant({ data: decision.extra }).then((res) => {
+        if (res.ok) purgerExtraLocal();
+      });
+      return;
+    }
+    if (enregistre) purgerExtraLocal();
+  }, [enregistre, extraInitial, peutMod]);
 
   const patch = (p: Partial<ParametrageSession>) => setBase((b) => ({ ...b, ...p }));
   const patchExtra = (p: Partial<ExtraPrecheckin>) => setExtra((e) => ({ ...e, ...p }));
 
   const enregistrer = () => {
+    if (!peutMod || enCours) return;
+    setEnCours(true);
     poserParametrage(base);
-    ecrireExtraPrecheckin(extra);
-    toastOk("Pré-checkin enregistré.");
+    void sauverExtraPrecheckinDistant({ data: extra })
+      .then((res) => {
+        if (!res.ok) {
+          toastErreur("Le pré-check-in n'a pas été enregistré.");
+          return;
+        }
+        purgerExtraLocal();
+        toastOk("Pré-checkin enregistré.");
+      })
+      .catch(() => toastErreur("Le pré-check-in n'a pas été enregistré."))
+      .finally(() => setEnCours(false));
   };
 
   const cautionBail = cautionDemandee(extra, "bail");
@@ -231,7 +262,7 @@ export function PrecheckinGestionnaire() {
       <div className="flex justify-end">
         <button
           type="button"
-          disabled={!peutMod}
+          disabled={!peutMod || enCours}
           onClick={enregistrer}
           className="h-11 rounded-card bg-ink px-4 text-sm font-medium text-white disabled:opacity-40"
         >
@@ -262,6 +293,7 @@ function Interrupteur({
       <button
         type="button"
         role="switch"
+        aria-label={label}
         aria-checked={actif}
         onClick={() => onChange(!actif)}
         className={cn(

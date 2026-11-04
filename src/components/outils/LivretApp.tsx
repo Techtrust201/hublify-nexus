@@ -1,35 +1,85 @@
 import { Copy, Plus, Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useAuth } from "@/auth/auth-context";
 import { EspaceRedaction } from "@/components/documents/EspaceRedaction";
 import {
   dupliquerLivret,
-  ecrireLivretsLocaux,
-  lireLivretsLocaux,
+  lireLivretsLegacy,
   LIVRETS_INITIAUX,
   livretRenomme,
   pageRenseignee,
+  purgerLivretsLocaux,
   type LivretAccueil,
   type PageLivret,
 } from "@/data/livrets";
+import { peutEcrireLivrets } from "@/data/outils-distant";
+import { sauverLivretsDistants } from "@/data/outils-remote";
 import { formatDateLongue } from "@/data/reservations-mo1";
-import { choisirFichierComplet, confirmer, toastOk } from "@/lib/feedback";
+import { choisirFichierComplet, confirmer, toastErreur, toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
-export function LivretApp() {
-  const [livrets, setLivrets] = useState<LivretAccueil[]>(LIVRETS_INITIAUX);
-  const [pret, setPret] = useState(false);
+type ChargeLivrets = { ok: true; livrets: LivretAccueil[] } | { ok: false; raison: string };
+
+export function LivretApp({ charge }: { charge: ChargeLivrets }) {
+  const auth = useAuth();
+  const peutEcrire = Boolean(auth && peutEcrireLivrets(auth));
+  const initiaux = charge.ok ? charge.livrets : LIVRETS_INITIAUX.map(clonerLivret);
+  const [livrets, setLivrets] = useState<LivretAccueil[]>(initiaux);
+  const [synchro, setSynchro] = useState<"ok" | "cours" | "erreur">(charge.ok ? "ok" : "erreur");
+  const [revision, setRevision] = useState(0);
   const [recherche, setRecherche] = useState("");
   const [ouvert, setOuvert] = useState<string | null>(null);
   const [pageId, setPageId] = useState<string | null>(null);
+  const [hydrate, setHydrate] = useState(false);
+  const dernier = useRef(JSON.stringify(initiaux));
+  const migre = useRef(false);
 
   useEffect(() => {
-    setLivrets(lireLivretsLocaux());
-    setPret(true);
+    setHydrate(true);
   }, []);
 
   useEffect(() => {
-    if (pret) ecrireLivretsLocaux(livrets);
-  }, [livrets, pret]);
+    if (migre.current || !charge.ok || !peutEcrire) return;
+    migre.current = true;
+    if (charge.livrets.length > 0) {
+      purgerLivretsLocaux();
+      return;
+    }
+    const legacy = lireLivretsLegacy();
+    if (legacy) setLivrets(legacy);
+  }, [charge, peutEcrire]);
+
+  useEffect(() => {
+    if (!peutEcrire || !charge.ok) return;
+    const json = JSON.stringify(livrets);
+    if (json === dernier.current) return;
+    setSynchro("cours");
+    let annule = false;
+    const timer = window.setTimeout(() => {
+      void sauverLivretsDistants({ data: { livrets } })
+        .then((res) => {
+          if (annule) return;
+          if (res.ok) {
+            dernier.current = json;
+            purgerLivretsLocaux();
+            setSynchro("ok");
+            setRevision((n) => n + 1);
+            return;
+          }
+          setSynchro("erreur");
+          toastErreur("Le livret n'a pas été enregistré.");
+        })
+        .catch(() => {
+          if (annule) return;
+          setSynchro("erreur");
+          toastErreur("Le livret n'a pas été enregistré.");
+        });
+    }, 350);
+    return () => {
+      annule = true;
+      window.clearTimeout(timer);
+    };
+  }, [livrets, peutEcrire, charge.ok]);
 
   const liste = useMemo(() => {
     const q = recherche.trim().toLowerCase();
@@ -53,18 +103,25 @@ export function LivretApp() {
 
   if (courant && pageActive) {
     return (
-      <Editeur
-        livret={courant}
-        pageActive={pageActive}
-        onRetour={() => setOuvert(null)}
-        onPage={setPageId}
-        onChange={(recette) => maj(courant.id, recette)}
-      />
+      <div className="space-y-3">
+        <StatutSynchro synchro={synchro} revision={revision} />
+        <Editeur
+          livret={courant}
+          pageActive={pageActive}
+          verrouille={!peutEcrire}
+          onRetour={() => setOuvert(null)}
+          onPage={setPageId}
+          onChange={(recette) => maj(courant.id, recette)}
+        />
+      </div>
     );
   }
 
   return (
-    <section className="rounded-card border border-line bg-white p-4 sm:p-5">
+    <section
+      data-hydrated={hydrate ? "oui" : "non"}
+      className="rounded-card border border-line bg-white p-4 sm:p-5"
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-sm font-medium text-ink">Modèles</h2>
@@ -72,10 +129,12 @@ export function LivretApp() {
             Une fois le livret créé, vous pouvez le modifier, le dupliquer et l'adapter à un
             logement. La fiche d'accès reprend codes, Wi-Fi et contact.
           </p>
+          <StatutSynchro synchro={synchro} revision={revision} />
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
+            disabled={!peutEcrire}
             onClick={() => importer((livret) => setLivrets((l) => [livret, ...l]))}
             className="inline-flex h-11 items-center rounded-card border border-line px-3 text-sm text-ink-body md:h-9"
           >
@@ -83,6 +142,7 @@ export function LivretApp() {
           </button>
           <button
             type="button"
+            disabled={!peutEcrire}
             onClick={() => setLivrets((l) => [creer("livret"), ...l])}
             className="inline-flex h-11 items-center gap-1 rounded-card bg-accent-teal px-3 text-sm font-medium text-white md:h-9"
           >
@@ -90,6 +150,7 @@ export function LivretApp() {
           </button>
           <button
             type="button"
+            disabled={!peutEcrire}
             onClick={() => setLivrets((l) => [creer("fiche"), ...l])}
             className="inline-flex h-11 items-center gap-1 rounded-card border border-line px-3 text-sm text-ink md:h-9"
           >
@@ -142,6 +203,7 @@ export function LivretApp() {
                     </button>
                     <button
                       type="button"
+                      disabled={!peutEcrire}
                       onClick={() => {
                         const copie = dupliquerLivret(livret);
                         setLivrets((l) => [copie, ...l]);
@@ -153,6 +215,7 @@ export function LivretApp() {
                     </button>
                     <button
                       type="button"
+                      disabled={!peutEcrire}
                       onClick={() => {
                         void (async () => {
                           const ok = await confirmer({
@@ -191,12 +254,14 @@ export function LivretApp() {
 function Editeur({
   livret,
   pageActive,
+  verrouille,
   onRetour,
   onPage,
   onChange,
 }: {
   livret: LivretAccueil;
   pageActive: PageLivret;
+  verrouille: boolean;
   onRetour: () => void;
   onPage: (id: string) => void;
   onChange: (recette: (l: LivretAccueil) => LivretAccueil) => void;
@@ -218,6 +283,7 @@ function Editeur({
         Renommez ce livret
         <input
           value={livret.nom}
+          disabled={verrouille}
           onChange={(e) => onChange((l) => livretRenomme(l, e.target.value))}
           className="mt-1 h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none md:h-9"
         />
@@ -235,14 +301,21 @@ function Editeur({
         pageActive={pageActive.id}
         onPage={onPage}
         unite="pages renseignées"
-        onAjouter={() => {
-          const id = `page-${Date.now().toString(36)}`;
-          onChange((l) => ({
-            ...l,
-            pages: [...l.pages, { id, nom: "Nouvelle page", titre: "", sousTitre: "", texte: "" }],
-          }));
-          onPage(id);
-        }}
+        {...(verrouille
+          ? {}
+          : {
+              onAjouter: () => {
+                const id = `page-${Date.now().toString(36)}`;
+                onChange((l) => ({
+                  ...l,
+                  pages: [
+                    ...l.pages,
+                    { id, nom: "Nouvelle page", titre: "", sousTitre: "", texte: "" },
+                  ],
+                }));
+                onPage(id);
+              },
+            })}
         libelleAjouter="Ajouter une page"
         pied={
           <p className="mt-4 rounded-card bg-surface px-3 py-2 text-[11px] leading-relaxed text-ink-muted">
@@ -268,6 +341,7 @@ function Editeur({
           Nom de la page
           <input
             value={pageActive.nom}
+            disabled={verrouille}
             onChange={(e) => majPage({ nom: e.target.value })}
             className="mt-1 h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none md:h-9"
           />
@@ -276,6 +350,7 @@ function Editeur({
           Logo
           <input
             value={livret.logo}
+            disabled={verrouille}
             onChange={(e) => onChange((l) => ({ ...l, logo: e.target.value }))}
             className="mt-1 h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none md:h-9"
           />
@@ -284,6 +359,7 @@ function Editeur({
           Titre principal
           <input
             value={pageActive.titre}
+            disabled={verrouille}
             onChange={(e) => majPage({ titre: e.target.value })}
             className="mt-1 h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none md:h-9"
           />
@@ -292,6 +368,7 @@ function Editeur({
           Sous-titre
           <input
             value={pageActive.sousTitre}
+            disabled={verrouille}
             onChange={(e) => majPage({ sousTitre: e.target.value })}
             className="mt-1 h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none md:h-9"
           />
@@ -300,6 +377,7 @@ function Editeur({
           Texte d'introduction
           <textarea
             value={pageActive.texte}
+            disabled={verrouille}
             onChange={(e) => majPage({ texte: e.target.value })}
             className="mt-1 h-28 w-full rounded-card border border-line px-3 py-2 text-sm text-ink outline-none"
           />
@@ -309,6 +387,7 @@ function Editeur({
           <input
             type="color"
             value={couleurValide(livret.couleurFond)}
+            disabled={verrouille}
             onChange={(e) => onChange((l) => ({ ...l, couleurFond: e.target.value }))}
             className={cn(
               "h-11 w-16 cursor-pointer rounded-card border border-line bg-white md:h-9",
@@ -318,6 +397,31 @@ function Editeur({
       </div>
     </div>
   );
+}
+
+function StatutSynchro({
+  synchro,
+  revision,
+}: {
+  synchro: "ok" | "cours" | "erreur";
+  revision: number;
+}) {
+  const texte =
+    synchro === "cours" ? "Enregistrement…" : synchro === "ok" ? "Enregistré" : "Non enregistré";
+  return (
+    <p
+      role="status"
+      aria-label="Synchronisation des livrets"
+      data-revision={revision}
+      className="text-xs text-ink-muted"
+    >
+      {texte}
+    </p>
+  );
+}
+
+function clonerLivret(livret: LivretAccueil): LivretAccueil {
+  return { ...livret, pages: livret.pages.map((page) => ({ ...page })) };
 }
 
 function couleurValide(valeur: string) {

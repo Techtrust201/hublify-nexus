@@ -162,34 +162,61 @@ export function livretRenomme(
   };
 }
 
-const CLE = "hublify.livrets.v1";
+export const CLE_LIVRETS = "hublify.livrets.v1";
+
+/**
+ * Ancien stockage navigateur. La source de vérité est `org_livrets`.
+ * Sert uniquement à la bascule unique quand l'organisation n'a encore aucune ligne.
+ */
+export function lireLivretsLegacy(): LivretAccueil[] | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const brut = localStorage.getItem(CLE_LIVRETS);
+    if (!brut) return null;
+    const parsed = JSON.parse(brut) as unknown;
+    if (!Array.isArray(parsed)) return null;
+    const livres = parsed.map(normaliserLivret).filter((l): l is LivretAccueil => l != null);
+    return livres.length > 0 ? livres : null;
+  } catch {
+    return null;
+  }
+}
 
 export function lireLivretsLocaux(
   seed: readonly LivretAccueil[] = LIVRETS_INITIAUX,
 ): LivretAccueil[] {
-  if (typeof localStorage === "undefined") return seed.map(cloner);
-  try {
-    const brut = localStorage.getItem(CLE);
-    if (!brut) return seed.map(cloner);
-    const parsed = JSON.parse(brut) as unknown;
-    if (!Array.isArray(parsed)) return seed.map(cloner);
-    const livres = parsed.map(normaliser).filter((l): l is LivretAccueil => l != null);
-    return livres.length > 0 ? livres : seed.map(cloner);
-  } catch {
-    return seed.map(cloner);
-  }
+  return lireLivretsLegacy() ?? seed.map(cloner);
 }
 
+/** @deprecated Ne plus écrire le livret dans le navigateur. */
 export function ecrireLivretsLocaux(livrets: readonly LivretAccueil[]) {
   if (typeof localStorage === "undefined") return;
-  localStorage.setItem(CLE, JSON.stringify(livrets));
+  localStorage.setItem(CLE_LIVRETS, JSON.stringify(livrets));
+}
+
+export function purgerLivretsLocaux() {
+  if (typeof localStorage === "undefined") return;
+  localStorage.removeItem(CLE_LIVRETS);
+}
+
+/**
+ * La base gagne dès qu'elle a des lignes. Le navigateur n'est repris que si
+ * l'organisation n'a encore rien, puis il est purgé après écriture serveur.
+ */
+export function fusionMigrationLivrets(
+  distants: readonly LivretAccueil[],
+  legacy: readonly LivretAccueil[] | null,
+): { livrets: LivretAccueil[]; pousser: boolean } {
+  if (distants.length > 0) return { livrets: distants.map(cloner), pousser: false };
+  if (legacy && legacy.length > 0) return { livrets: legacy.map(cloner), pousser: true };
+  return { livrets: [], pousser: false };
 }
 
 function cloner(livret: LivretAccueil): LivretAccueil {
   return { ...livret, pages: livret.pages.map((p) => ({ ...p })) };
 }
 
-function normaliser(brut: unknown): LivretAccueil | null {
+export function normaliserLivret(brut: unknown): LivretAccueil | null {
   if (!brut || typeof brut !== "object") return null;
   const o = brut as Partial<LivretAccueil>;
   if (typeof o.id !== "string" || typeof o.nom !== "string" || !Array.isArray(o.pages)) return null;
