@@ -1,25 +1,16 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Clock, FileText, Shield } from "lucide-react";
+import { Clock, FileText, KeyRound, Shield, SprayCan, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/auth/auth-context";
 import { AutourDeMoi, OffreDetail, RechercheBail } from "@/components/portail/RecherchePortail";
+import { Bouton, Carte, Ecran, Entete, Marque, usePortailUi } from "@/components/portail/chrome";
 import {
-  Bouton,
-  Carte,
-  Ecran,
-  Entete,
-  Marque,
-  champClasse,
-  usePortailUi,
-} from "@/components/portail/chrome";
-import {
-  ajouterDecision,
   ecrirePin,
   ecrireWebAuthnId,
-  lireDemandes,
   lirePin,
   lireWebAuthnId,
 } from "@/components/portail/etat-local";
+import { usePortailDonnees } from "@/components/portail/etat-portail";
 import { useAncre } from "@/components/portail/use-ancre";
 import { useSession } from "@/data/session";
 import {
@@ -126,26 +117,49 @@ export function AccueilPortail() {
   );
 }
 
+function SelecteurMode() {
+  const ui = usePortailUi();
+  const choix = [
+    { id: "resident" as const, label: "Résident" },
+    { id: "prestataire" as const, label: "Prestataire" },
+  ];
+  return (
+    <div
+      role="group"
+      aria-label="Mode du portail"
+      className="grid w-full grid-cols-2 gap-1 rounded-full bg-white p-1 shadow-sm"
+    >
+      {choix.map((c) => {
+        const on = ui.mode === c.id;
+        return (
+          <button
+            key={c.id}
+            type="button"
+            aria-pressed={on}
+            onClick={() => ui.definirMode(c.id)}
+            className={`h-9 rounded-full text-xs font-semibold ${on ? "bg-[#5090A8] text-white" : "text-[#667085]"}`}
+          >
+            {c.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function pastille(categorie: TachePortail["categorie"]) {
+  if (categorie === "Finance") return { fond: "bg-[#f8d7e3] text-[#b4234d]", icone: Wallet };
+  if (categorie === "Mission") return { fond: "bg-[#d7f0e6] text-[#067647]", icone: SprayCan };
+  return { fond: "bg-[#e4dcff] text-[#6941c6]", icone: KeyRound };
+}
+
 function Demarrage() {
   const ui = usePortailUi();
   const auth = useAuth();
   const proprietaire = auth?.roleId === "proprietaire";
   return (
     <Ecran className="items-center pt-8 text-center">
-      <label className="text-xs text-[#667085]">
-        Mode
-        <select
-          className={`${champClasse} mt-1 w-48`}
-          value={ui.mode}
-          aria-label="Mode du portail"
-          onChange={(e) =>
-            ui.definirMode(e.target.value === "prestataire" ? "prestataire" : "resident")
-          }
-        >
-          <option value="resident">Mode Résident</option>
-          <option value="prestataire">Mode Prestataire</option>
-        </select>
-      </label>
+      <SelecteurMode />
       {proprietaire && (
         <p className="max-w-[16rem] text-xs text-[#98a2b3]">
           Mode propriétaire : plus tard, même architecture.
@@ -228,13 +242,11 @@ function Journee({
           </span>
         </button>
       </div>
-      <p className="text-center text-[11px] uppercase tracking-[0.16em] text-[#98a2b3]">
-        {prestataire ? "Mode Prestataire" : "Mode Résident"}
-      </p>
+      <SelecteurMode />
       <h1 className="text-center text-lg font-semibold text-[#1d2939]">
         {prestataire ? "Ma journée" : "Tâches du jour"}
       </h1>
-      <div className="grid grid-cols-5 gap-1.5">
+      <div className="grid grid-cols-5 gap-1">
         {bandeau.map((date) => {
           const e = etiquetteJour(date);
           const on = e.iso === selection;
@@ -243,10 +255,14 @@ function Journee({
               key={e.iso}
               type="button"
               onClick={() => setSelection(e.iso)}
-              className={`flex min-w-0 flex-col items-center rounded-2xl px-1 py-2 text-xs ${on ? "bg-[#5090A8] text-white" : "bg-white text-[#344054]"}`}
+              className="flex min-w-0 flex-col items-center gap-0.5 py-1 text-[10px] text-[#667085]"
             >
               <span className="capitalize">{e.mois}</span>
-              <span className="text-lg font-semibold">{e.numero}</span>
+              <span
+                className={`grid size-8 place-items-center rounded-full text-base font-semibold ${on ? "bg-[#5090A8] text-white" : "text-[#1d2939]"}`}
+              >
+                {e.numero}
+              </span>
               <span>{e.semaine}</span>
             </button>
           );
@@ -260,34 +276,46 @@ function Journee({
           </p>
         </Carte>
       )}
-      <ul className="space-y-3">
-        {(visibles.length > 0 ? visibles : taches).map((t) => (
-          <li key={t.id}>
-            <button
-              type="button"
-              onClick={() =>
-                void navigate({
-                  to: t.route,
-                  ...(t.hash ? { hash: t.hash } : {}),
-                })
-              }
-              className="flex w-full items-center gap-3 rounded-[22px] bg-white px-4 py-3 text-left shadow-[0_8px_24px_rgba(70,80,60,0.05)]"
-            >
-              <span className="min-w-0 flex-1">
-                <span className="block text-[11px] text-[#98a2b3]">{t.categorie}</span>
-                <span className="block truncate text-[15px] font-medium text-[#1d2939]">
-                  {t.titre}
+      <ul className={prestataire ? "relative space-y-3 pl-14" : "space-y-3"}>
+        {prestataire && (
+          <span className="absolute bottom-3 left-[3.25rem] top-3 w-px bg-[#d0d5dd]" aria-hidden />
+        )}
+        {(visibles.length > 0 ? visibles : taches).map((t) => {
+          const p = pastille(t.categorie);
+          return (
+            <li key={t.id} className="relative">
+              {prestataire && (
+                <span className="absolute -left-14 top-3 w-12 text-right text-[10px] text-[#667085]">
+                  {t.heureLabel}
                 </span>
-                <span className="mt-1 flex items-center gap-1 text-[11px] text-[#e11d48]">
-                  <Clock className="size-3" /> {t.heureLabel}
+              )}
+              <button
+                type="button"
+                onClick={() =>
+                  void navigate({
+                    to: t.route,
+                    ...(t.hash ? { hash: t.hash } : {}),
+                  })
+                }
+                className="flex w-full items-center gap-3 rounded-[22px] bg-white px-3 py-3 text-left shadow-[0_8px_24px_rgba(70,80,60,0.05)]"
+              >
+                <span className={`grid size-10 shrink-0 place-items-center rounded-full ${p.fond}`}>
+                  <p.icone className="size-4" />
                 </span>
-              </span>
-              <span className="grid size-10 place-items-center rounded-xl bg-[#f3f6f6] text-[#5090A8]">
-                <FileText className="size-4" />
-              </span>
-            </button>
-          </li>
-        ))}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[15px] font-medium text-[#1d2939]">
+                    {t.titre}
+                  </span>
+                  {!prestataire && (
+                    <span className="mt-1 flex items-center gap-1 text-[11px] text-[#e11d48]">
+                      <Clock className="size-3" /> {t.heureLabel}
+                    </span>
+                  )}
+                </span>
+              </button>
+            </li>
+          );
+        })}
       </ul>
       <Bouton onClick={() => void navigate({ to: "/espace", hash: "taches" })}>
         Tâches en cours
@@ -310,7 +338,7 @@ function ToutesLesTaches({ vide }: { vide: boolean }) {
     loyers: session.loyers,
     reservations: session.reservationsDossier,
   });
-  const decisions = lireDemandes();
+  const decisions = usePortailDonnees().demandes;
   const visibles = taches.filter((t) => (t.id === "t-acces" ? decisions.length === 0 : true));
   return (
     <Ecran>
@@ -342,6 +370,7 @@ function ToutesLesTaches({ vide }: { vide: boolean }) {
 
 function DemandeAcces() {
   const navigate = useNavigate();
+  const { ajouterDecision } = usePortailDonnees();
   const [faite, setFaite] = useState<string | null>(null);
   const decider = (decision: "autoriser" | "resilier" | "signaler") => {
     const suite = appliquerDecisionDemande(decision);

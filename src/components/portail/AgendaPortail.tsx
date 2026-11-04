@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   Bouton,
@@ -8,7 +8,8 @@ import {
   champClasse,
   usePortailUi,
 } from "@/components/portail/chrome";
-import { ajouterNote, lireNotes } from "@/components/portail/etat-local";
+import { usePortailDonnees } from "@/components/portail/etat-portail";
+import { useAncre } from "@/components/portail/use-ancre";
 import { idNouveau, useSession } from "@/data/session";
 import { libelleMois } from "@/lib/portail-mobile";
 import { toastErreur, toastOk } from "@/lib/feedback";
@@ -17,9 +18,19 @@ export function CalendrierPortail() {
   const ui = usePortailUi();
   const session = useSession();
   const navigate = useNavigate();
+  const ancre = useAncre();
+  const { notes, ajouterNote, modifierNote, supprimerNote } = usePortailDonnees();
+  const saisie = useRef<HTMLInputElement>(null);
   const [cursor, setCursor] = useState(() => new Date());
+  const [jourChoisi, setJourChoisi] = useState(() => new Date().toISOString().slice(0, 10));
   const [note, setNote] = useState("");
-  const [notes, setNotes] = useState(() => lireNotes());
+  const [edition, setEdition] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (ancre !== "note") return;
+    saisie.current?.focus();
+    saisie.current?.scrollIntoView({ block: "center" });
+  }, [ancre]);
   const annee = cursor.getFullYear();
   const mois = cursor.getMonth();
   const premier = new Date(annee, mois, 1);
@@ -95,13 +106,23 @@ export function CalendrierPortail() {
           const date = jour ? iso(jour) : "";
           const marque =
             occupations.some((o) => o.date === date) || notes.some((n) => n.jour === date);
+          const choisi = date && date === jourChoisi;
           return (
-            <span
+            <button
               key={`${i}-${jour}`}
-              className={`grid h-9 place-items-center rounded-xl text-sm ${marque ? "bg-[#5090A8] text-white" : "text-[#344054]"}`}
+              type="button"
+              disabled={!jour}
+              onClick={() => jour && setJourChoisi(date)}
+              className={`grid h-9 place-items-center rounded-xl text-sm ${
+                choisi
+                  ? "bg-[#1d2939] text-white"
+                  : marque
+                    ? "bg-[#5090A8] text-white"
+                    : "text-[#344054]"
+              }`}
             >
               {jour}
-            </span>
+            </button>
           );
         })}
       </div>
@@ -119,8 +140,12 @@ export function CalendrierPortail() {
         </ul>
       </Carte>
       <Carte className="space-y-2">
-        <p className="text-sm font-medium">Ajouter une note</p>
+        <p id="note-calendrier" className="text-sm font-medium">
+          {edition ? "Modifier la note" : "Ajouter une note dans le calendrier"}
+        </p>
+        <p className="text-[11px] text-[#98a2b3]">Jour retenu : {jourChoisi}</p>
         <input
+          ref={saisie}
           className={champClasse}
           value={note}
           onChange={(e) => setNote(e.target.value)}
@@ -133,23 +158,56 @@ export function CalendrierPortail() {
               toastErreur("Écrivez la note.");
               return;
             }
-            const ligne = {
-              id: idNouveau("note"),
-              jour: new Date().toISOString().slice(0, 10),
-              texte: note.trim(),
-            };
-            ajouterNote(ligne);
-            setNotes(lireNotes());
+            if (edition) {
+              modifierNote({ id: edition, jour: jourChoisi, texte: note.trim() });
+              setEdition(null);
+              toastOk("Note mise à jour.");
+            } else {
+              ajouterNote({
+                id: idNouveau("note"),
+                jour: jourChoisi,
+                texte: note.trim(),
+              });
+              toastOk("Note ajoutée au calendrier.");
+            }
             setNote("");
-            toastOk("Note ajoutée au calendrier.");
           }}
         >
-          Enregistrer la note
+          {edition ? "Enregistrer la modification" : "Enregistrer la note"}
         </Bouton>
-        <ul className="space-y-1 text-xs text-[#667085]">
+        <ul className="space-y-2 text-xs text-[#667085]">
           {notes.map((n) => (
-            <li key={n.id}>
-              {n.jour} — {n.texte}
+            <li key={n.id} className="flex items-start justify-between gap-2">
+              <span>
+                {n.jour} — {n.texte}
+              </span>
+              <span className="flex shrink-0 gap-2">
+                <button
+                  type="button"
+                  className="text-[#5090A8]"
+                  onClick={() => {
+                    setEdition(n.id);
+                    setJourChoisi(n.jour);
+                    setNote(n.texte);
+                  }}
+                >
+                  Modifier
+                </button>
+                <button
+                  type="button"
+                  className="text-[#b42318]"
+                  onClick={() => {
+                    supprimerNote(n.id);
+                    if (edition === n.id) {
+                      setEdition(null);
+                      setNote("");
+                    }
+                    toastOk("Note retirée.");
+                  }}
+                >
+                  Supprimer
+                </button>
+              </span>
             </li>
           ))}
         </ul>

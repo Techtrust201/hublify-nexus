@@ -170,3 +170,43 @@ export function lireWebAuthnId() {
 export function ecrireWebAuthnId(id: string) {
   ecrire(WEBAUTHN, id);
 }
+
+const CLES_METIER = [
+  MODE,
+  DEMARRE,
+  NOTES,
+  PAIEMENTS,
+  EDL,
+  RDV,
+  DEMANDES,
+  FAVORIS,
+  DOC,
+  CANDIDATURE,
+];
+
+/** Instantané navigateur, repris une fois vers la base puis oublié. */
+export function lireInstantaneLocal() {
+  return {
+    mode: lireMode(),
+    demarre: lireDemarre(),
+    notes: lireNotes(),
+    paiements: lirePaiements(),
+    edl: lireEdl(),
+    rdv: lireRdv(),
+    demandes: lireDemandes(),
+    favoris: lireFavoris(),
+    docCourant: lireDocCourant(),
+    candidature: lireBrouillonCandidature(),
+  };
+}
+
+export function oublierEtatMetierLocal() {
+  if (typeof localStorage === "undefined") return;
+  for (const cle of CLES_METIER) {
+    try {
+      localStorage.removeItem(cle);
+    } catch {
+      /* navigation privée */
+    }
+  }
+}

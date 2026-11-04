@@ -2,12 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { FileText, Home, Receipt, ScrollText } from "lucide-react";
 import { useMemo, useState } from "react";
 import { BandeauSimulation, Bouton, Carte, Ecran, Entete } from "@/components/portail/chrome";
-import {
-  ajouterPaiement,
-  ecrireDocCourant,
-  lireDocCourant,
-  lirePaiements,
-} from "@/components/portail/etat-local";
+import { usePortailDonnees } from "@/components/portail/etat-portail";
 import { useAncre } from "@/components/portail/use-ancre";
 import { dossierArchiveSeuleLigne } from "@/data/v1-metier";
 import { useSession } from "@/data/session";
@@ -275,6 +270,7 @@ const TITRES: Record<string, string> = {
 
 function Liste({ classe, docs }: { classe: string; docs: DocVue[] }) {
   const navigate = useNavigate();
+  const { ecrireDocCourant } = usePortailDonnees();
   const lignes =
     classe === "reglement"
       ? docs.filter((d) => d.classe === "reglement" || d.classe === "fiche")
@@ -329,7 +325,8 @@ function Liste({ classe, docs }: { classe: string; docs: DocVue[] }) {
 
 function Visualisation({ docs }: { docs: DocVue[] }) {
   const navigate = useNavigate();
-  const id = lireDocCourant();
+  const { docCourant, ecrireDocCourant } = usePortailDonnees();
+  const id = docCourant;
   const doc = docs.find((d) => d.id === id) ?? docs[0];
   if (!doc) return null;
   const payable = /appel|facture/i.test(doc.titre) || /appel|facture/i.test(doc.type);
@@ -390,7 +387,8 @@ function Visualisation({ docs }: { docs: DocVue[] }) {
 
 function Paiement({ docs }: { docs: DocVue[] }) {
   const navigate = useNavigate();
-  const id = lireDocCourant();
+  const { docCourant, ajouterPaiement } = usePortailDonnees();
+  const id = docCourant;
   const doc = docs.find((d) => d.id === id) ?? docs.find((d) => d.montant) ?? docs[0];
   const [fait, setFait] = useState<string | null>(null);
   if (!doc) return null;
@@ -433,7 +431,7 @@ function Paiement({ docs }: { docs: DocVue[] }) {
 function Historique() {
   const navigate = useNavigate();
   const session = useSession();
-  const simules = lirePaiements();
+  const simules = usePortailDonnees().paiements;
   const lignes = [
     ...session.loyers
       .filter((l) => l.valide)

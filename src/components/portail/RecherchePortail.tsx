@@ -10,11 +10,7 @@ import {
   PastillesVerif,
   champClasse,
 } from "@/components/portail/chrome";
-import {
-  basculerFavori,
-  ecrireBrouillonCandidature,
-  lireFavoris,
-} from "@/components/portail/etat-local";
+import { usePortailDonnees } from "@/components/portail/etat-portail";
 import {
   ACTIVITES_DEMO,
   AIDE_TYPE_BAIL,
@@ -251,23 +247,23 @@ export function RechercheBail() {
   return (
     <Ecran>
       <Entete
-        titre={saison ? "Recherche saisonnière" : "Rechercher un bail"}
+        titre="Recherchez votre location"
         surRetour={() => void navigate({ to: "/espace" })}
       />
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => setSaison(false)}
-          className={`h-10 rounded-full text-sm ${saison ? "bg-white text-[#667085]" : "bg-[#5090A8] text-white"}`}
-        >
-          Bail
-        </button>
+      <div className="grid grid-cols-2 gap-2 rounded-full bg-white p-1">
         <button
           type="button"
           onClick={() => setSaison(true)}
-          className={`h-10 rounded-full text-sm ${saison ? "bg-[#5090A8] text-white" : "bg-white text-[#667085]"}`}
+          className={`h-10 rounded-full text-sm ${saison ? "bg-[#5090A8] text-white" : "text-[#667085]"}`}
         >
-          Saisonnière
+          Saisonnier
+        </button>
+        <button
+          type="button"
+          onClick={() => setSaison(false)}
+          className={`h-10 rounded-full text-sm ${saison ? "text-[#667085]" : "bg-[#5090A8] text-white"}`}
+        >
+          Bail
         </button>
       </div>
       <Carte className="space-y-3">
@@ -379,7 +375,8 @@ export function RechercheBail() {
 
 function AnnonceCarte({ annonce }: { annonce: Annonce }) {
   const navigate = useNavigate();
-  const [favori, setFavori] = useState(() => lireFavoris().includes(annonce.id));
+  const { favoris, basculerFavori, ecrireCandidature } = usePortailDonnees();
+  const favori = favoris.includes(annonce.id);
   return (
     <Carte className="space-y-2">
       <div className="h-28 rounded-2xl bg-[linear-gradient(135deg,#d7efe8,#f6e2d2)]" aria-hidden />
@@ -407,7 +404,7 @@ function AnnonceCarte({ annonce }: { annonce: Annonce }) {
           type="button"
           className="font-medium text-[#5090A8]"
           onClick={() => {
-            ecrireBrouillonCandidature({
+            ecrireCandidature({
               bienId: annonce.id,
               arrivee: annonce.disponibleDu,
               depart: annonce.disponibleAu,
@@ -427,12 +424,7 @@ function AnnonceCarte({ annonce }: { annonce: Annonce }) {
           className="text-[#667085]"
           onClick={() => {
             const suivant = basculerFavori(annonce.id);
-            setFavori(suivant.includes(annonce.id));
-            toastOk(
-              suivant.includes(annonce.id)
-                ? "Offre enregistrée sur cet appareil."
-                : "Offre retirée.",
-            );
+            toastOk(suivant.includes(annonce.id) ? "Offre enregistrée." : "Offre retirée.");
           }}
         >
           {favori ? "Enregistrée" : "Enregistrer"}
@@ -454,6 +446,7 @@ function AnnonceCarte({ annonce }: { annonce: Annonce }) {
 
 export function OffreDetail({ id }: { id: string }) {
   const navigate = useNavigate();
+  const { ecrireCandidature } = usePortailDonnees();
   const [bulle, setBulle] = useState(false);
   const annonce = ANNONCES_DEMO.find((a) => a.id === id) ?? ANNONCES_DEMO[0];
   if (!annonce) return null;
@@ -509,7 +502,7 @@ export function OffreDetail({ id }: { id: string }) {
       </a>
       <Bouton
         onClick={() => {
-          ecrireBrouillonCandidature({
+          ecrireCandidature({
             bienId: annonce.id,
             arrivee: annonce.disponibleDu,
             depart: annonce.disponibleAu,

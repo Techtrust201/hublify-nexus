@@ -1,8 +1,8 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/auth/auth-context";
 import { Bouton, Carte, Champ, Ecran, Entete, champClasse } from "@/components/portail/chrome";
-import { ecrireEdl, ecrireRdv, lireEdl, lireRdv } from "@/components/portail/etat-local";
+import { usePortailDonnees } from "@/components/portail/etat-portail";
 import { useAncre } from "@/components/portail/use-ancre";
 import { chargerAccesLieux } from "@/data/session-remote";
 import { ajouterNotif, idNouveau, upsertDossierLocation, useSession } from "@/data/session";
@@ -166,8 +166,17 @@ function Depart() {
 function ValidationEdl() {
   const navigate = useNavigate();
   const session = useSession();
-  const stock = lireEdl();
-  const [valideLe, setValideLe] = useState(stock.valideLe);
+  const { edl, ecrireEdl, pret } = usePortailDonnees();
+  const stock = edl.emisLe
+    ? edl
+    : { emisLe: new Date(Date.now() - 60 * 60 * 1000).toISOString(), valideLe: edl.valideLe };
+  const [valideLe, setValideLe] = useState<string | null>(null);
+  const pose = useRef(false);
+  useEffect(() => {
+    if (!pret || pose.current) return;
+    pose.current = true;
+    setValideLe(edl.valideLe);
+  }, [edl.valideLe, pret]);
   const fenetre = fenetreEdl(stock.emisLe);
   const pieces = session.edl[0]?.pieces ?? [
     { id: "sejour", nom: "Séjour", etat: "ok" as const },
@@ -222,9 +231,19 @@ function ValidationEdl() {
 
 function RendezVous() {
   const navigate = useNavigate();
-  const existant = lireRdv();
-  const [jour, setJour] = useState(existant?.jour ?? "");
-  const [heure, setHeure] = useState(existant?.heure ?? "10:00");
+  const { rdv, ecrireRdv, pret } = usePortailDonnees();
+  const existant = rdv;
+  const [jour, setJour] = useState("");
+  const [heure, setHeure] = useState("10:00");
+  const pose = useRef(false);
+  useEffect(() => {
+    if (!pret || pose.current) return;
+    pose.current = true;
+    if (rdv) {
+      setJour(rdv.jour);
+      setHeure(rdv.heure);
+    }
+  }, [pret, rdv]);
   return (
     <Ecran>
       <Entete

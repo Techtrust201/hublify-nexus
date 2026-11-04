@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useAuth } from "@/auth/auth-context";
 import { Bouton, Carte, Ecran, Entete, champClasse } from "@/components/portail/chrome";
 import { useAncre } from "@/components/portail/use-ancre";
-import { idNouveau, poserCollection, useSession } from "@/data/session";
+import { idNouveau, ouvrirConversationProspect, poserCollection, useSession } from "@/data/session";
 import { GESTIONNAIRE_PORTAIL } from "@/lib/portail-mobile";
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { useNavigate } from "@tanstack/react-router";
@@ -224,16 +224,39 @@ function NouveauContact() {
               session.membres.some((m) => m.email?.toLowerCase() === cible) ||
               session.prestataires.some((p) => p.email.toLowerCase() === cible) ||
               cible === GESTIONNAIRE_PORTAIL.email;
+            const nom = cible || tel.trim();
+            const lien = `https://hublify.app/invitation?de=${encodeURIComponent(auth?.email ?? "portail")}`;
+            const extrait = connu
+              ? "Profil partagé dans la messagerie."
+              : "Lien directionnel préparé, sans envoi réel.";
+            const conversationId = ouvrirConversationProspect({
+              nom,
+              extrait,
+              type: "voyageur",
+              assigne: auth?.email,
+            });
+            poserCollection("messagesFil", (liste) => [
+              ...liste,
+              {
+                id: idNouveau("msg"),
+                conversationId,
+                kind: "envoye" as const,
+                texte: connu
+                  ? `Profil partagé avec ${nom}.`
+                  : `Lien directionnel pour ${nom} : ${lien}`,
+                heure: new Date().toLocaleTimeString("fr-FR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+              },
+            ]);
             if (connu) {
-              setResultat(
-                "Contact déjà sur Hublify : ouvrez la messagerie, le profil y est visible.",
-              );
+              setResultat("Contact déjà sur Hublify : le profil est dans la messagerie.");
               toastOk("Contact trouvé sur la plateforme.");
               return;
             }
-            const lien = `https://hublify.app/invitation?de=${encodeURIComponent(auth?.email ?? "portail")}`;
             setResultat(`Lien directionnel (non envoyé) : ${lien}`);
-            void navigator.clipboard?.writeText(lien);
+            void navigator.clipboard?.writeText(lien).catch(() => {});
             toastOk("Lien préparé et copié. Aucun SMS ni e-mail n'est parti.");
           }}
         >

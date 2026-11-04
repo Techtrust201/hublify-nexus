@@ -170,6 +170,15 @@ function persister() {
   }, 400);
 }
 
+function persisterMaintenant() {
+  persisterLocal();
+  if (ignorePush || typeof window === "undefined" || !userIdCourant) return;
+  if (syncTimer) clearTimeout(syncTimer);
+  void pousser().then((ok) => {
+    if (!ok) programmerReprise();
+  });
+}
+
 function notifier(prochain: EtatSession) {
   etat = prochain;
   persister();
@@ -385,6 +394,7 @@ export function ouvrirConversationProspect(params: {
   extrait: string;
   bienNom?: string | undefined;
   type?: Conversation["type"] | undefined;
+  assigne?: string | undefined;
 }) {
   const id = idNouveau("c");
   const initiales = params.nom
@@ -404,6 +414,7 @@ export function ouvrirConversationProspect(params: {
     nonLu: true,
     archivee: false,
     ...(params.bienNom ? { bienNom: params.bienNom } : {}),
+    ...(params.assigne ? { assigne: params.assigne } : {}),
   };
   appliquerLocal((e) => ({ ...e, conversations: [ligne, ...e.conversations] }));
   void pousserLigne("conversations", ligne).then((ok) => !ok && programmerReprise());
@@ -680,7 +691,7 @@ export function annulerReservation(id: string) {
   void pousserPatch("reservationsDossier", id, { statut: "Annulé" }).then(
     (ok) => !ok && programmerReprise(),
   );
-  persister();
+  persisterMaintenant();
 }
 
 export function ajouterBien(bien: BienSession) {
@@ -718,7 +729,7 @@ export function modifierPrestataire(
 export function retirerPrestataire(id: string) {
   appliquerLocal((e) => ({ ...e, prestataires: e.prestataires.filter((p) => p.id !== id) }));
   sales.add("prestataires");
-  persister();
+  persisterMaintenant();
 }
 
 /** Rapproche par identifiant, à défaut par nom : un occupant saisi deux fois reste une seule fiche. */

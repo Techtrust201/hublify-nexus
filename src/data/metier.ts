@@ -708,7 +708,9 @@ function filtrerEtatPortail(etat: EtatSession, org: OrgSession): EtatSession {
       (d) => d.email.toLowerCase() === email || noms.has(d.occupantNom.toLowerCase()),
     );
     const dossierIds = new Set(dossiers.map((d) => d.id));
-    const conversations = etat.conversations.filter((c) => noms.has(c.nom.toLowerCase()));
+    const conversations = etat.conversations.filter(
+      (c) => noms.has(c.nom.toLowerCase()) || (c.assigne ?? "").toLowerCase() === email,
+    );
     const convIds = new Set(conversations.map((c) => c.id));
     return {
       ...etat,
@@ -738,7 +740,9 @@ function filtrerEtatPortail(etat: EtatSession, org: OrgSession): EtatSession {
     const bienIds = new Set(resas.map((r) => r.bienId));
     const biens = etat.biens.filter((b) => bienIds.has(b.id));
     const noms = new Set(resas.map((r) => r.occupant.toLowerCase()));
-    const conversations = etat.conversations.filter((c) => noms.has(c.nom.toLowerCase()));
+    const conversations = etat.conversations.filter(
+      (c) => noms.has(c.nom.toLowerCase()) || (c.assigne ?? "").toLowerCase() === email,
+    );
     const convIds = new Set(conversations.map((c) => c.id));
     return {
       ...etat,
@@ -1068,7 +1072,13 @@ export async function majLigneVisible(
     if (cle === "id" || valeur === undefined) continue;
     const col = colonneDe(collection, cle);
     if (!col) continue;
-    params.push(valeur !== null && typeof valeur === "object" ? JSON.stringify(valeur) : valeur);
+    params.push(
+      valeur !== null && typeof valeur === "object" && !Array.isArray(valeur)
+        ? JSON.stringify(valeur)
+        : Array.isArray(valeur) && valeur.some((x) => x && typeof x === "object")
+          ? JSON.stringify(valeur)
+          : valeur,
+    );
     affectations.push(`"${col}" = $${params.length}`);
   }
 

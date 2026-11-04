@@ -1,11 +1,8 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth, useDroit } from "@/auth/auth-context";
 import { Bouton, Carte, Champ, Ecran, Entete, champClasse } from "@/components/portail/chrome";
-import {
-  ecrireBrouillonCandidature,
-  lireBrouillonCandidature,
-} from "@/components/portail/etat-local";
+import { usePortailDonnees } from "@/components/portail/etat-portail";
 import { useAncre } from "@/components/portail/use-ancre";
 import {
   ajouterCandidature,
@@ -504,19 +501,32 @@ export function CandidaturePortail() {
   const session = useSession();
   const auth = useAuth();
   const peutValider = useDroit("mod-reservations");
-  const brouillon = lireBrouillonCandidature();
+  const { candidature: brouillon, pret, ecrireCandidature } = usePortailDonnees();
   const dossier =
     session.dossiersLocation.find(
       (d) => d.email.toLowerCase() === (auth?.email ?? "").toLowerCase(),
     ) ?? session.dossiersLocation[0];
-  const [bienId, setBienId] = useState(brouillon.bienId || session.biens[0]?.id || "ann-suzette");
-  const [arrivee, setArrivee] = useState(brouillon.arrivee ?? "");
-  const [depart, setDepart] = useState(brouillon.depart ?? "");
-  const [marie, setMarie] = useState(Boolean(brouillon.marie));
-  const [pacse, setPacse] = useState(Boolean(brouillon.pacse));
-  const [concubinage, setConcubinage] = useState(Boolean(brouillon.concubinage));
-  const [colocation, setColocation] = useState(Boolean(brouillon.colocation));
-  const [autoriser, setAutoriser] = useState(brouillon.autoriserDossier !== false);
+  const [bienId, setBienId] = useState(session.biens[0]?.id || "ann-suzette");
+  const [arrivee, setArrivee] = useState("");
+  const [depart, setDepart] = useState("");
+  const [marie, setMarie] = useState(false);
+  const [pacse, setPacse] = useState(false);
+  const [concubinage, setConcubinage] = useState(false);
+  const [colocation, setColocation] = useState(false);
+  const [autoriser, setAutoriser] = useState(true);
+  const brouillonPose = useRef(false);
+  useEffect(() => {
+    if (!pret || brouillonPose.current) return;
+    brouillonPose.current = true;
+    if (brouillon.bienId) setBienId(brouillon.bienId);
+    if (brouillon.arrivee) setArrivee(brouillon.arrivee);
+    if (brouillon.depart) setDepart(brouillon.depart);
+    setMarie(Boolean(brouillon.marie));
+    setPacse(Boolean(brouillon.pacse));
+    setConcubinage(Boolean(brouillon.concubinage));
+    setColocation(Boolean(brouillon.colocation));
+    if (brouillon.autoriserDossier === false) setAutoriser(false);
+  }, [brouillon, pret]);
   const bien = session.biens.find((b) => b.id === bienId);
   const estimation = useMemo(() => {
     if (!arrivee || !depart || depart <= arrivee) return { prorata: 0, commissions: 0, total: 0 };
@@ -529,7 +539,7 @@ export function CandidaturePortail() {
   }, [arrivee, bien, depart]);
 
   const memoriser = () =>
-    ecrireBrouillonCandidature({
+    ecrireCandidature({
       bienId,
       arrivee,
       depart,
