@@ -17,56 +17,62 @@ import {
 } from "@/lib/analyse-finance";
 
 describe("net propriétaire", () => {
-  it("reproduit le total du tableau Juliette au centime", () => {
+  it("prend le payout saisi (paye) sans déduire ménage ni agence", () => {
+    expect(
+      netProprietaire({
+        payeCentimes: 100_000,
+        montantCentimes: 120_000,
+        fraisPlateformeCentimes: 18_000,
+      }),
+    ).toBe(100_000);
+  });
+
+  it("estime montant − frais_plateforme quand paye est absent ou à 0", () => {
+    expect(
+      netProprietaire({
+        montantCentimes: 126_000,
+        fraisPlateformeCentimes: 18_900,
+      }),
+    ).toBe(107_100);
+    expect(
+      netProprietaire({
+        payeCentimes: 0,
+        montantCentimes: 39_000,
+        fraisPlateformeCentimes: 5_850,
+      }),
+    ).toBe(33_150);
+  });
+
+  it("laisse ménage et honoraires hors de la formule", () => {
+    const base = {
+      payeCentimes: 85_000,
+      montantCentimes: 100_000,
+      fraisPlateformeCentimes: 15_000,
+    };
+    expect(netProprietaire(base)).toBe(85_000);
+    // Les colonnes informatives (ménage, agence) ne passent pas par netProprietaire.
+    const vent = ventilationSejour({
+      montantEuros: 1000,
+      fraisMenageEuros: 80,
+      plateforme: "Airbnb",
+      fraisPlateformeEuros: 150,
+      commissionMontantEuros: 150,
+    });
+    expect(vent.menageLocataire).toBe(8_000);
+    expect(vent.commissionAgenceTtc).toBe(15_000);
+    expect(
+      netProprietaire({
+        payeCentimes: 85_000,
+        montantCentimes: vent.prixReference,
+        fraisPlateformeCentimes: vent.commissionOta,
+      }),
+    ).toBe(85_000);
+  });
+
+  it("conserve les colonnes Juliette comme totaux informatifs", () => {
     const t = TOTAUX_JULIETTE_CENTIMES;
-    expect(
-      netProprietaire({
-        prixReference: t.prix,
-        ajustements: t.ajustements,
-        menageLocataire: t.menage,
-        autresServices: t.autres,
-        taxeSejour: t.taxe,
-        commissionOta: t.ota,
-        commissionAgenceTtc: t.agence,
-      }),
-    ).toBe(t.net);
-    expect(t.net).toBe(746_501);
-  });
-
-  it("déduit un ajustement voyageur du net", () => {
-    const sans = netProprietaire({
-      prixReference: 100_000,
-      ajustements: 0,
-      menageLocataire: 0,
-      autresServices: 0,
-      taxeSejour: 0,
-      commissionOta: 15_000,
-      commissionAgenceTtc: 15_000,
-    });
-    const avec = netProprietaire({
-      prixReference: 100_000,
-      ajustements: 5_000,
-      menageLocataire: 0,
-      autresServices: 0,
-      taxeSejour: 0,
-      commissionOta: 15_000,
-      commissionAgenceTtc: 15_000,
-    });
-    expect(avec).toBe(sans - 5_000);
-  });
-
-  it("accepte un net négatif quand les charges dépassent le loyer", () => {
-    expect(
-      netProprietaire({
-        prixReference: 10_000,
-        ajustements: 0,
-        menageLocataire: 8_000,
-        autresServices: 0,
-        taxeSejour: 0,
-        commissionOta: 3_000,
-        commissionAgenceTtc: 2_000,
-      }),
-    ).toBe(-3_000);
+    expect(t.prix).toBe(1_548_907);
+    expect(t.menage + t.autres + t.taxe + t.ota + t.agence).toBeGreaterThan(0);
   });
 });
 

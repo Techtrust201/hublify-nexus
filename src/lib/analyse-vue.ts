@@ -312,9 +312,14 @@ export function construireAnalyse(session: EtatSession, filtre: FiltreAnalyse): 
         r.commissionPourcent && r.commissionPourcent > 0 ? r.commissionPourcent : undefined,
     });
     const { honorairesHt, honorairesTva, tauxHonorairesTtc, ...ventilation } = vent;
-    const net = netProprietaire(ventilation);
+    const payeCentimes = centimes(r.paye);
+    const net = netProprietaire({
+      payeCentimes: payeCentimes > 0 ? payeCentimes : undefined,
+      montantCentimes: ventilation.prixReference,
+      fraisPlateformeCentimes: ventilation.commissionOta,
+    });
     const loyerNet = Math.max(0, ventilation.prixReference - ventilation.ajustements);
-    const encaisse = Math.min(Math.max(0, centimes(r.paye)), loyerNet);
+    const encaisse = Math.min(Math.max(0, payeCentimes), loyerNet);
     lignes.push({
       id: r.id,
       logement: bien?.nom ?? r.bienId,

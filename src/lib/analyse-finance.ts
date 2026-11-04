@@ -5,11 +5,11 @@
  * une seule fois, par `Math.round`, et la TVA est le reliquat du TTC pour que
  * HT + TVA = TTC au centime près.
  *
- * Net propriétaire (relevé sur le tableau Juliette de la maquette, totaux) :
- *   prix − ajustements − commission OTA − commission agence TTC
- *   − ménage locataire − autres services − taxe de séjour
- * Les ajustements sont nuls dans le relevé : les inclure ne change pas ce total
- * et diminue le net dès qu'un remboursement voyageur existe.
+ * Net propriétaire = ce que la plateforme a réellement reversé :
+ *   `paye` si renseigné (> 0), sinon `montant − frais_plateforme`
+ *   (commission OTA résolue : montant saisi, sinon taux du canal).
+ * Ménage locataire, honoraires d'agence, autres services et taxe de séjour
+ * restent des lignes d'information : ils ne sont pas déduits du net.
  */
 
 export const TAUX_TVA_HONORAIRES = 0.2;
@@ -36,8 +36,8 @@ export const TAUX_HONORAIRES_TTC = {
 } as const;
 
 /** Barème des frais de gestion avancés, faute de tarif prestataire en base.
- *  Ces lignes n'entrent pas dans le net propriétaire : le ménage locataire,
- *  lui, vient de `fraisMenage` et y est déjà déduit. */
+ *  Ces lignes, comme le ménage locataire et les honoraires d'agence, restent
+ *  hors net propriétaire (affichage et facturation séparés). */
 export const BAREME_FRAIS_GESTION_CENTIMES = {
   Menage: 4_500,
   Linge: 1_200,
@@ -47,6 +47,8 @@ export const BAREME_FRAIS_GESTION_CENTIMES = {
   "Etat des lieux": 8_000,
 } as const;
 
+/** Totaux figés du tableau Juliette (maquette). Conservés pour les colonnes
+ *  informatives ; le net maquette (746 501) n'est plus la règle produit. */
 export const TOTAUX_JULIETTE_CENTIMES = {
   prix: 1_548_907,
   ajustements: 0,
@@ -55,7 +57,6 @@ export const TOTAUX_JULIETTE_CENTIMES = {
   taxe: 8_389,
   ota: 234_854,
   agence: 248_833,
-  net: 746_501,
 } as const;
 
 export type CanalAnalyse =
@@ -149,16 +150,17 @@ export function mandatairePercçoit(plateforme: string, type?: string) {
   return canal !== "Direct" && canal !== "Bail";
 }
 
-export function netProprietaire(v: VentilationCentimes) {
-  return (
-    v.prixReference -
-    v.ajustements -
-    v.commissionOta -
-    v.commissionAgenceTtc -
-    v.menageLocataire -
-    v.autresServices -
-    v.taxeSejour
-  );
+/** Net reversé au propriétaire : payout réel (`paye`) ou estimation
+ *  `montant − frais_plateforme`. La colonne SQL `paye` est NOT NULL DEFAULT 0 :
+ *  un zéro signifie « non versé / non saisi », pas un payout nul volontaire. */
+export function netProprietaire(params: {
+  payeCentimes?: number | undefined;
+  montantCentimes: number;
+  fraisPlateformeCentimes: number;
+}) {
+  const paye = params.payeCentimes;
+  if (paye !== undefined && paye > 0) return Math.round(paye);
+  return Math.round(params.montantCentimes) - Math.round(params.fraisPlateformeCentimes);
 }
 
 export function commissionOtaCentimes(params: {

@@ -17,21 +17,25 @@ describe("construireAnalyse", () => {
     expect(vue.kpi.loyerAttendu).toBe(vue.kpi.loyerEncaisse + vue.kpi.loyerRestant);
   });
 
-  it("reconstruit le net propriétaire depuis les colonnes", () => {
+  it("aligne le net propriétaire sur le payout (paye ou montant − OTA)", () => {
     const s = sommaireEncaissements(vue);
-    expect(s.net).toBe(
-      netProprietaire({
-        prixReference: s.prix,
-        ajustements: s.ajustements,
-        menageLocataire: s.menage,
-        autresServices: s.autres,
-        taxeSejour: s.taxe,
-        commissionOta: s.ota,
-        commissionAgenceTtc: s.agence,
-      }),
-    );
     expect(vue.kpi.net).toBe(s.net);
-    expect(vue.lignes.every((l) => l.net === netProprietaire(l.ventilation))).toBe(true);
+    expect(
+      vue.lignes.every(
+        (l) =>
+          l.net ===
+          netProprietaire({
+            payeCentimes: l.paye > 0 ? l.paye : undefined,
+            montantCentimes: l.ventilation.prixReference,
+            fraisPlateformeCentimes: l.ventilation.commissionOta,
+          }),
+      ),
+    ).toBe(true);
+    // Ménage et agence restent visibles mais hors formule du net.
+    expect(s.menage + s.agence).toBeGreaterThan(0);
+    expect(s.net).not.toBe(
+      s.prix - s.ajustements - s.ota - s.agence - s.menage - s.autres - s.taxe,
+    );
   });
 
   it("répartit les nuits par canal sans dépasser 100 %", () => {
@@ -73,12 +77,22 @@ describe("construireAnalyse", () => {
     expect(direct?.ventilation.commissionAgenceTtc).toBe(6_300);
   });
 
-  it("respecte la commission saisie et la taxe de Sophie Martin", () => {
+  it("respecte la commission saisie et le payout de Sophie Martin", () => {
     const sophie = vue.lignes.find((l) => l.id === "r-sophie");
     expect(sophie?.ventilation.commissionAgenceTtc).toBe(18_900);
     expect(sophie?.ventilation.commissionOta).toBe(18_900);
     expect(sophie?.ventilation.taxeSejour).toBe(2_100);
-    expect(sophie?.net).toBe(126_000 - 18_900 - 18_900 - 2_100);
+    // paye = 1 260 € → net = payout, sans déduire ménage / agence / taxe.
+    expect(sophie?.paye).toBe(126_000);
+    expect(sophie?.net).toBe(126_000);
+  });
+
+  it("estime le net via montant − OTA quand paye vaut 0", () => {
+    const anna = vue.lignes.find((l) => l.id === "r-anna");
+    expect(anna?.paye).toBe(0);
+    expect(anna?.ventilation.prixReference).toBe(39_000);
+    expect(anna?.ventilation.commissionOta).toBe(5_850);
+    expect(anna?.net).toBe(39_000 - 5_850);
   });
 
   it("aligne le TTC des honoraires de la facture sur les commissions", () => {

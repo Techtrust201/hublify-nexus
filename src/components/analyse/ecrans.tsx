@@ -222,17 +222,19 @@ export function EcranRevenus({
           titre="Commissions OTA et taxes"
           valeur={euro(k.commissionsOta + k.taxes)}
           detail={`OTA ${euro(k.commissionsOta)} · taxes ${euro(k.taxes)}`}
+          extra="Déduite du net seulement si paye absent"
         />
         <Kpi
           titre="Commissions de gestion"
           valeur={euro(k.commissionAgenceTtc)}
           detail="Honoraires TTC, par plateforme dans le tableau"
+          extra="Hors net propriétaire"
         />
         <Kpi
           teinte="menthe"
           titre="Montant encaissé net"
           valeur={euro(k.net)}
-          detail="Net propriétaire de la période"
+          detail="Payout : paye saisi, sinon montant − OTA"
           action="Tableau des encaissements →"
           onAction={() => onOuvrir("encaissements")}
         />
@@ -579,8 +581,9 @@ export function EcranEncaissements({ vue }: { vue: AnalyseVue }) {
         </ScrollHint>
       )}
       <p className="px-4 py-3 text-xs text-ink-muted">
-        Net propriétaire = prix − ajustements − commission OTA − commission agence TTC − ménage
-        locataire − autres services − taxe de séjour. La colonne Ajustements reprend les
+        Net propriétaire = montant payé (paye) s'il est renseigné, sinon prix de référence −
+        commission OTA. Ménage locataire, commission agence, autres services et taxe de séjour sont
+        affichés à titre informatif et ne sont pas déduits. La colonne Ajustements reprend les
         remboursements voyageur.
       </p>
     </section>
