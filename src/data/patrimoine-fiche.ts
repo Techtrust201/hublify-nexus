@@ -35,11 +35,23 @@ export type EspaceFiche = {
   lits: LitFiche[];
 };
 
+/** Métadonnée seule : les octets vivent dans `fichiers_deposes`, jamais en dataURL. */
 export type PhotoFiche = {
   id: string;
   nom: string;
-  dataUrl: string;
 };
+
+export function photosPersistables(valeur: unknown): PhotoFiche[] {
+  if (!Array.isArray(valeur)) return [];
+  return valeur.flatMap((entree) => {
+    const photo = asRecord(entree);
+    if (!photo) return [];
+    const id = String(photo["id"] ?? "").trim();
+    const nom = String(photo["nom"] ?? "").trim();
+    if (!id || !nom) return [];
+    return [{ id, nom }];
+  });
+}
 
 export type MandatGestion = {
   reference: string;
@@ -409,7 +421,7 @@ export function normaliserFiche(partiel: unknown): FicheLieu {
       ? brut["services"].filter((x) => typeof x === "string")
       : [],
     espaces: Array.isArray(brut["espaces"]) ? (brut["espaces"] as EspaceFiche[]) : [],
-    photos: Array.isArray(brut["photos"]) ? (brut["photos"] as PhotoFiche[]) : [],
+    photos: photosPersistables(brut["photos"]),
     accesProprietaire: {
       financier: Boolean(acces?.["financier"]),
       calendrier: Boolean(acces?.["calendrier"]),

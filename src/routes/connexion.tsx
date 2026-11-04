@@ -45,6 +45,11 @@ const COMPTES_DEMO = [
   { email: "claire.lecture@hublify.app", role: "Lecture" },
 ];
 
+/** La connexion Google n'est pas branchée : le bouton reste hors de l'écran. */
+export function boutonGoogleVisible(): boolean {
+  return false;
+}
+
 /** Exposé pour les tests unitaires — ne lit jamais le mot de passe hors DEV. */
 export function raccourcisDemoActifs() {
   return MODE_DEMO;
@@ -93,28 +98,12 @@ function PageConnexion() {
     await navigate({ to: accueilPourRole(session?.roleId ?? "lecteur") });
   }
 
-  async function google() {
-    const { error } = await authClient.signIn.social({
-      provider: "google",
-      callbackURL: "/",
-    });
-    if (error) toastErreur("La connexion Google n'est pas encore activée.");
-  }
-
   return (
     <CadreAuth
       kicker="Commencer"
       titre="Se connecter"
       description="Accédez à votre espace Hublify et reprenez là où vous vous étiez arrêtés."
     >
-      <button
-        type="button"
-        onClick={() => void google()}
-        className="mb-4 flex h-12 w-full items-center justify-center rounded-xl border border-v1-line-auth text-sm font-medium text-v1-ink"
-      >
-        Continuer avec Google
-      </button>
-      <p className="mb-4 text-center text-xs text-v1-ink-subtle">ou</p>
       <form className="space-y-3" onSubmit={(ev) => void connecter(ev)}>
         <label className="block">
           <span className="mb-1.5 block text-xs text-ink-body">Adresse e-mail</span>

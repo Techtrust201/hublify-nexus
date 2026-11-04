@@ -89,4 +89,39 @@ describe("timeline", () => {
     });
     expect(baux.map((e) => e.id)).toEqual(["doc-d1"]);
   });
+
+  it("rapproche la fenêtre de mars 2026 de la période demandée sans déplacer le reste", () => {
+    const maintenant = new Date(2026, 10, 4);
+    const evenements = construireTimeline({
+      documents: [
+        {
+          id: "mars",
+          titre: "Quittance",
+          type: "Quittance",
+          logement: "Colette",
+          date: "04 Mar 2026",
+          modifiePar: "Équipe",
+        },
+        {
+          id: "janvier",
+          titre: "Bail",
+          type: "Bail",
+          logement: "Colette",
+          date: "15 Jan 2026",
+          modifiePar: "Équipe",
+        },
+      ],
+      reservations: [],
+      biens: [],
+      projeterDemo: true,
+      maintenant,
+    });
+    const mars = evenements.find((e) => e.id === "doc-mars");
+    const janvier = evenements.find((e) => e.id === "doc-janvier");
+    expect(mars?.date.getFullYear()).toBe(2026);
+    expect(mars?.date.getMonth()).toBe(10);
+    expect(mars?.date.getDate()).toBe(4);
+    expect(janvier?.date.getMonth()).toBe(0);
+    expect(janvier?.date.getDate()).toBe(15);
+  });
 });

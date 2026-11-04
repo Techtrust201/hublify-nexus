@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { deposerFichier, lireFichier, retirerFichier } from "@/lib/documents.functions";
+import { preparerFichier, urlDepuisBase64 } from "@/lib/fichiers-client";
 import { MapPin, Minus, Plus, Trash2 } from "lucide-react";
 import { BtnNavy, BtnOutline } from "@/components/documents/ui";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -89,6 +91,7 @@ export function FicheLieuDialog({
   const [colleOta, setColleOta] = useState("");
   const [plateforme, setPlateforme] = useState<string>(PLATEFORMES_OTA[0]);
   const [compteOta, setCompteOta] = useState("");
+  const [apercus, setApercus] = useState<Record<string, string>>({});
 
   if (ouvert && bien && cle !== `${bien.id}:${section ?? ""}`) {
     setCle(`${bien.id}:${section ?? ""}`);
@@ -103,6 +106,26 @@ export function FicheLieuDialog({
     const id = section === "welcome" ? "section-welcome" : "section-cles";
     document.getElementById(id)?.scrollIntoView({ block: "center" });
   }, [ouvert, section, cle]);
+
+  const photosIds = brouillon?.fiche.photos.map((p) => p.id).join("|") ?? "";
+  useEffect(() => {
+    if (!ouvert || !photosIds) return;
+    let vivant = true;
+    for (const id of photosIds.split("|")) {
+      void lireFichier({ data: { id } }).then((res) => {
+        if (!vivant || !res.ok) return;
+        const url = urlDepuisBase64(res.fichier.mime, res.fichier.base64);
+        setApercus((actuel) => {
+          const precedent = actuel[id];
+          if (precedent?.startsWith("blob:")) URL.revokeObjectURL(precedent);
+          return { ...actuel, [id]: url };
+        });
+      });
+    }
+    return () => {
+      vivant = false;
+    };
+  }, [ouvert, photosIds]);
 
   const maj = (patch: Partial<Brouillon>) => setBrouillon((b) => (b ? { ...b, ...patch } : b));
   const majFiche = (patch: Partial<FicheLieu>) =>
@@ -711,19 +734,36 @@ export function FicheLieuDialog({
                       onChange={(e) => {
                         const fichiers = Array.from(e.target.files ?? []);
                         e.target.value = "";
-                        const reste = 4 - brouillon.fiche.photos.length;
-                        if (reste <= 0) {
-                          toastErreur("Quatre photos maximum.");
-                          return;
-                        }
-                        fichiers.slice(0, reste).forEach((fichier) => {
-                          if (fichier.size > 500_000) {
-                            toastErreur(`${fichier.name} dépasse 500 Ko.`);
-                            return;
-                          }
-                          const lecteur = new FileReader();
-                          lecteur.onload = () => {
-                            const dataUrl = String(lecteur.result ?? "");
+                        const bienId = bien?.id;
+                        if (!bienId) return;
+                        void (async () => {
+                          let nombre = brouillon.fiche.photos.length;
+                          for (const fichier of fichiers) {
+                            if (nombre >= 4) {
+                              toastErreur("Quatre photos maximum.");
+                              return;
+                            }
+                            const prepare = await preparerFichier(fichier, "patrimoine");
+                            if (!prepare.ok) {
+                              toastErreur(prepare.erreur);
+                              continue;
+                            }
+                            const res = await deposerFichier({
+                              data: {
+                                contexte: "patrimoine",
+                                refId: bienId,
+                                cote: "",
+                                nom: prepare.fichier.nom,
+                                mime: prepare.fichier.mime,
+                                base64: prepare.fichier.base64,
+                              },
+                            });
+                            if (!res.ok) {
+                              toastErreur(res.erreur);
+                              continue;
+                            }
+                            const apercu = URL.createObjectURL(fichier);
+                            setApercus((actuel) => ({ ...actuel, [res.fichier.id]: apercu }));
                             setBrouillon((b) =>
                               b
                                 ? {
@@ -732,39 +772,50 @@ export function FicheLieuDialog({
                                       ...b.fiche,
                                       photos: [
                                         ...b.fiche.photos,
-                                        {
-                                          id: `ph-${Date.now()}-${fichier.name}`,
-                                          nom: fichier.name,
-                                          dataUrl,
-                                        },
+                                        { id: res.fichier.id, nom: res.fichier.nom },
                                       ].slice(0, 4),
                                     },
                                   }
                                 : b,
                             );
-                          };
-                          lecteur.readAsDataURL(fichier);
-                        });
+                            nombre += 1;
+                            toastOk("Photo enregistrée.");
+                          }
+                        })();
                       }}
                     />
                   </label>
                   <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {brouillon.fiche.photos.map((p) => (
                       <li key={p.id} className="relative">
-                        <img
-                          src={p.dataUrl}
-                          alt={p.nom}
-                          className="h-28 w-full rounded-card object-cover"
-                        />
+                        {apercus[p.id] ? (
+                          <img
+                            src={apercus[p.id]}
+                            alt={p.nom}
+                            className="h-28 w-full rounded-card object-cover"
+                          />
+                        ) : (
+                          <span className="flex h-28 items-center justify-center rounded-card bg-surface-soft px-2 text-center text-xs text-ink-muted">
+                            {p.nom}
+                          </span>
+                        )}
                         <button
                           type="button"
                           aria-label={`Retirer ${p.nom}`}
                           className="absolute right-1 top-1 flex size-8 items-center justify-center rounded-full bg-white/90"
-                          onClick={() =>
+                          onClick={() => {
+                            void retirerFichier({ data: { id: p.id } });
+                            setApercus((actuel) => {
+                              const url = actuel[p.id];
+                              if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+                              const suivant = { ...actuel };
+                              delete suivant[p.id];
+                              return suivant;
+                            });
                             majFiche({
                               photos: brouillon.fiche.photos.filter((x) => x.id !== p.id),
-                            })
-                          }
+                            });
+                          }}
                         >
                           <Trash2 className="size-3.5" />
                         </button>

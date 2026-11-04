@@ -8,7 +8,18 @@
  * que chaque test mesure le comportement de l'application et non le temps de
  * compilation du serveur de développement.
  */
-const ROUTES = ["/", "/connexion", "/inscription", "/team", "/analyse", "/reservations"];
+const ROUTES = [
+  "/",
+  "/connexion",
+  "/inscription",
+  "/team",
+  "/analyse",
+  "/reservations",
+  "/faq",
+  "/profil",
+  "/outils/timeline",
+  "/outils/baux",
+];
 
 export default async function prechauffer() {
   const base = "http://127.0.0.1:8080";

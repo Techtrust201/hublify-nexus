@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  QUESTIONS_FAQ,
   demandeCarte,
   estIdOffre,
   formaterEuros,
@@ -29,6 +30,14 @@ describe("offres V1", () => {
     expect(demandeCarte("solo")).toBe(false);
     expect(estIdOffre("standard")).toBe(true);
     expect(estIdOffre("agence")).toBe(false);
+  });
+
+  it("publie une réponse pour chaque question de la FAQ", () => {
+    expect(QUESTIONS_FAQ.length).toBeGreaterThan(0);
+    for (const item of QUESTIONS_FAQ) {
+      expect(item.reponse.trim().length).toBeGreaterThan(40);
+      expect(item.reponse.toLowerCase()).not.toContain("pas encore publiée");
+    }
   });
 
   it("construit un lien de parrainage vers l'inscription", () => {

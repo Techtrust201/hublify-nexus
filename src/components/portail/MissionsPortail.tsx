@@ -1,18 +1,42 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth, useDroit } from "@/auth/auth-context";
 import { Bouton, Carte, Ecran, Entete } from "@/components/portail/chrome";
 import { champClasse } from "@/components/portail/chrome";
 import { ajouterRapport, changerStatutMission, idNouveau, useSession } from "@/data/session";
+import { deposerFichier, lireFichier } from "@/lib/documents.functions";
+import { preparerFichier, urlDepuisBase64 } from "@/lib/fichiers-client";
 import { descriptionVisible } from "@/lib/gestionnaire-planning";
 import { TACHES_DEMO_PRESTATAIRE } from "@/lib/portail-mobile";
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { useRef } from "react";
 
+type PhotoRapport = { id: string; nom: string };
+
+function ApercuFichier({ id }: { id: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [nom, setNom] = useState("Photo");
+  useEffect(() => {
+    let vivant = true;
+    void lireFichier({ data: { id } }).then((res) => {
+      if (!vivant || !res.ok) return;
+      setNom(res.fichier.nom);
+      setSrc(urlDepuisBase64(res.fichier.mime, res.fichier.base64));
+    });
+    return () => {
+      vivant = false;
+    };
+  }, [id]);
+  if (!src) return <span className="text-[11px] text-[#667085]">{nom}</span>;
+  return <img src={src} alt={nom} className="mt-1 h-16 w-16 rounded-lg object-cover" />;
+}
+
 export function MissionsPortail() {
   const session = useSession();
   const peutMod = useDroit("mod-missions");
   const auth = useAuth();
-  const [brouillon, setBrouillon] = useState<Record<string, { texte: string; photos: string }>>({});
+  const [brouillon, setBrouillon] = useState<
+    Record<string, { texte: string; photos: PhotoRapport[] }>
+  >({});
   const photo = useRef<HTMLInputElement>(null);
   const [missionPhoto, setMissionPhoto] = useState<string | null>(null);
   const miennes =
@@ -44,7 +68,7 @@ export function MissionsPortail() {
       <ul className="space-y-3">
         {liste.map((m) => {
           const rapports = session.rapportsIntervention.filter((r) => r.missionId === m.id);
-          const saisie = brouillon[m.id] ?? { texte: "", photos: "" };
+          const saisie = brouillon[m.id] ?? { texte: "", photos: [] };
           return (
             <li key={m.id}>
               <Carte className="space-y-2">
@@ -71,6 +95,11 @@ export function MissionsPortail() {
                     {r.photos.length > 0 ? ` · ${r.photos.length} photo(s)` : ""}
                   </p>
                 ))}
+                {rapports.flatMap((r) =>
+                  r.photos
+                    .filter((id) => id.startsWith("fic-"))
+                    .map((id) => <ApercuFichier key={`${r.id}-${id}`} id={id} />),
+                )}
                 {peutMod && (
                   <>
                     <textarea
@@ -93,19 +122,53 @@ export function MissionsPortail() {
                       className="sr-only"
                       onChange={(e) => {
                         const fichier = e.target.files?.[0];
-                        if (!fichier || !missionPhoto) return;
-                        setBrouillon((s) => ({
-                          ...s,
-                          [missionPhoto]: {
-                            texte: s[missionPhoto]?.texte ?? "",
-                            photos: [s[missionPhoto]?.photos, fichier.name]
-                              .filter(Boolean)
-                              .join("\n"),
-                          },
-                        }));
-                        toastOk("Photo ajoutée au rapport.");
+                        e.target.value = "";
+                        const missionId = missionPhoto;
+                        if (!fichier || !missionId) return;
+                        void (async () => {
+                          const prepare = await preparerFichier(fichier, "mission");
+                          if (!prepare.ok) {
+                            toastErreur(prepare.erreur);
+                            return;
+                          }
+                          const res = await deposerFichier({
+                            data: {
+                              contexte: "mission",
+                              refId: missionId,
+                              cote: "",
+                              nom: prepare.fichier.nom,
+                              mime: prepare.fichier.mime,
+                              base64: prepare.fichier.base64,
+                            },
+                          });
+                          if (!res.ok) {
+                            toastErreur(res.erreur);
+                            return;
+                          }
+                          setBrouillon((s) => {
+                            const courant = s[missionId] ?? { texte: "", photos: [] };
+                            return {
+                              ...s,
+                              [missionId]: {
+                                texte: courant.texte,
+                                photos: [
+                                  ...courant.photos,
+                                  { id: res.fichier.id, nom: res.fichier.nom },
+                                ],
+                              },
+                            };
+                          });
+                          toastOk("Photo enregistrée.");
+                        })();
                       }}
                     />
+                    {saisie.photos.length > 0 && (
+                      <ul className="text-[11px] text-[#667085]">
+                        {saisie.photos.map((p) => (
+                          <li key={p.id}>{p.nom}</li>
+                        ))}
+                      </ul>
+                    )}
                     <button
                       type="button"
                       className="text-xs text-[#5090A8]"
@@ -127,14 +190,11 @@ export function MissionsPortail() {
                           id: idNouveau("rp"),
                           missionId: m.id,
                           texte: saisie.texte.trim(),
-                          photos: saisie.photos
-                            .split("\n")
-                            .map((p) => p.trim())
-                            .filter(Boolean),
+                          photos: saisie.photos.map((p) => p.id),
                           auteur: auth ? `${auth.prenom} ${auth.nom}` : "Prestataire",
                           date: new Date().toISOString().slice(0, 10),
                         });
-                        setBrouillon((s) => ({ ...s, [m.id]: { texte: "", photos: "" } }));
+                        setBrouillon((s) => ({ ...s, [m.id]: { texte: "", photos: [] } }));
                         toastOk("Rapport enregistré.");
                       }}
                     >

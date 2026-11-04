@@ -38,10 +38,17 @@ test("l'invitation n'expose pas le mot de passe et envoie un mail capturé", asy
   const suffixe = Date.now().toString(36);
   const email = `invitee.${suffixe}@exemple.test`;
 
-  const connexion = await page.request.post("/api/auth/sign-in/email", {
-    data: { email: "contact@tech-trust.fr", password: MOT_DE_PASSE },
-  });
-  expect(connexion.ok()).toBeTruthy();
+  let statut = 0;
+  for (let essai = 0; essai < 4; essai += 1) {
+    const connexion = await page.request.post("/api/auth/sign-in/email", {
+      data: { email: "contact@tech-trust.fr", password: MOT_DE_PASSE },
+    });
+    statut = connexion.status();
+    if (connexion.ok()) break;
+    if (statut !== 429) break;
+    await page.waitForTimeout(20_000);
+  }
+  expect(statut, "connexion refusée").toBeLessThan(400);
   await page.goto("/team");
   await expect(page.getByRole("heading", { name: "Team Mate" }).first()).toBeVisible({
     timeout: 15_000,

@@ -26,11 +26,12 @@ import {
 import { DOCS_PROFIL, PAIEMENTS_PROFIL, PROFIL_GESTIONNAIRE } from "@/data/documents-mo1";
 import {
   chargerProfilDistant,
-  sauverDocumentsProfilDistants,
   sauverIdentiteDistante,
   type DocumentProfil,
 } from "@/data/profil-remote";
 import { formatJourFr, versIsoJour } from "@/data/reservations-mo1";
+import { deposerFichier, lireFichier, listerFichiers } from "@/lib/documents.functions";
+import { preparerFichier } from "@/lib/fichiers-client";
 import { confirmer, telechargerBase64, telechargerPdf, toastErreur, toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
@@ -57,16 +58,31 @@ export function CompteGestionnaire() {
 
   useEffect(() => {
     let vivant = true;
-    void chargerProfilDistant().then((res) => {
-      if (!vivant || !res.ok) return;
-      const { identite, documents } = res.profil;
-      setPrenom(identite.prenom || prenom);
-      setNom(identite.nom || nom);
-      setTel1(identite.telephone1);
-      setTel2(identite.telephone2);
-      setNaissance(identite.naissance ? formatJourFr(identite.naissance) : "");
-      setDocs(documents);
-    });
+    void (async () => {
+      const res = await chargerProfilDistant();
+      if (!vivant) return;
+      if (res.ok) {
+        const { identite, documents } = res.profil;
+        setPrenom(identite.prenom || prenom);
+        setNom(identite.nom || nom);
+        setTel1(identite.telephone1);
+        setTel2(identite.telephone2);
+        setNaissance(identite.naissance ? formatJourFr(identite.naissance) : "");
+        setDocs(documents);
+      }
+      const fichiers = await listerFichiers({ data: { contexte: "profil" } });
+      if (!vivant || !fichiers.ok || fichiers.fichiers.length === 0) return;
+      const pieces: DocumentProfil[] = fichiers.fichiers.map((f) => ({
+        id: f.id,
+        titre: f.cote === "verso" ? "Carte d'identité — verso" : "Carte d'identité — recto",
+        statut: "En attente",
+        fichier: { nom: f.nom, mime: f.mime, base64: "" },
+      }));
+      setDocs((actuels) => {
+        const horsPieces = actuels.filter((d) => !/recto|verso/i.test(d.titre));
+        return [...horsPieces, ...pieces];
+      });
+    })();
     return () => {
       vivant = false;
     };
@@ -84,34 +100,37 @@ export function CompteGestionnaire() {
     verso: aVerso,
   });
 
-  const majDocs = (liste: DocumentProfil[]) => {
-    setDocs(liste);
-    void sauverDocumentsProfilDistants({ data: { documents: liste } }).then((res) => {
-      if (!res.ok) toastErreur("Document non enregistré : la base est injoignable.");
-    });
-  };
-
   const deposerPiece = (cote: "recto" | "verso", fichier: File) => {
-    if (fichier.size > 4 * 1024 * 1024) {
-      toastErreur("Fichier trop volumineux (4 Mo max).");
-      return;
-    }
-    const lecteur = new FileReader();
-    lecteur.onload = () => {
-      const brut = String(lecteur.result ?? "");
-      const base64 = brut.includes(",") ? brut.slice(brut.indexOf(",") + 1) : brut;
-      const titre = cote === "recto" ? "Carte d'identité — recto" : "Carte d'identité — verso";
+    const titre = cote === "recto" ? "Carte d'identité — recto" : "Carte d'identité — verso";
+    void (async () => {
+      const prepare = await preparerFichier(fichier, "profil");
+      if (!prepare.ok) {
+        toastErreur(prepare.erreur);
+        return;
+      }
+      const res = await deposerFichier({
+        data: {
+          contexte: "profil",
+          refId: "identite",
+          cote,
+          nom: prepare.fichier.nom,
+          mime: prepare.fichier.mime,
+          base64: prepare.fichier.base64,
+        },
+      });
+      if (!res.ok) {
+        toastErreur(res.erreur);
+        return;
+      }
       const doc: DocumentProfil = {
-        id: `cni-${cote}`,
+        id: res.fichier.id,
         titre,
         statut: "En attente",
-        fichier: { nom: fichier.name, mime: fichier.type || "image/jpeg", base64 },
+        fichier: { nom: res.fichier.nom, mime: res.fichier.mime, base64: "" },
       };
-      const sans = docs.filter((d) => d.titre !== titre);
-      majDocs([...sans, doc]);
-      toastOk(`${titre} ajoutée.`);
-    };
-    lecteur.readAsDataURL(fichier);
+      setDocs((liste) => [...liste.filter((d) => d.titre !== titre), doc]);
+      toastOk(`${titre} enregistrée.`);
+    })();
   };
 
   const euros = (valeur: string) => Number(valeur.replace(/[^\d]/g, "")) || 0;
@@ -148,8 +167,16 @@ export function CompteGestionnaire() {
               La carte d'identité est requise avant d'activer les paiements. Déposez le recto et le
               verso, en photo ou depuis vos fichiers.
             </p>
-            <Piece cote="recto" present={aRecto} onFichier={(f) => deposerPiece("recto", f)} />
-            <Piece cote="verso" present={aVerso} onFichier={(f) => deposerPiece("verso", f)} />
+            <Piece
+              cote="recto"
+              nom={docs.find((d) => /recto/i.test(d.titre))?.fichier?.nom}
+              onFichier={(f) => deposerPiece("recto", f)}
+            />
+            <Piece
+              cote="verso"
+              nom={docs.find((d) => /verso/i.test(d.titre))?.fichier?.nom}
+              onFichier={(f) => deposerPiece("verso", f)}
+            />
           </div>
         </div>
       </section>
@@ -428,11 +455,21 @@ export function CompteGestionnaire() {
                   aria-label={`Voir ${d.titre}`}
                   className="flex size-11 items-center justify-center md:size-8"
                   onClick={() => {
-                    if (d.fichier) {
+                    if (d.fichier?.base64) {
                       telechargerBase64(d.fichier.nom, d.fichier.mime, d.fichier.base64);
                       return;
                     }
-                    void telechargerPdf(d.titre, [`Statut : ${d.statut}`]);
+                    void lireFichier({ data: { id: d.id } }).then((res) => {
+                      if (res.ok) {
+                        telechargerBase64(res.fichier.nom, res.fichier.mime, res.fichier.base64);
+                        return;
+                      }
+                      if (!d.fichier) {
+                        void telechargerPdf(d.titre, [`Statut : ${d.statut}`]);
+                        return;
+                      }
+                      toastErreur("Fichier introuvable sur le serveur.");
+                    });
                   }}
                 >
                   <Eye className="size-4" />
@@ -502,18 +539,18 @@ function Bloc({
 
 function Piece({
   cote,
-  present,
+  nom,
   onFichier,
 }: {
   cote: "recto" | "verso";
-  present: boolean;
+  nom?: string | undefined;
   onFichier: (fichier: File) => void;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="text-xs text-ink">
         {cote === "recto" ? "Recto" : "Verso"}
-        {present ? " · déposé" : ""}
+        {nom ? ` · ${nom}` : ""}
       </span>
       <label className="inline-flex h-11 cursor-pointer items-center gap-1 rounded-card border border-line px-3 text-xs text-ink md:h-9">
         <Camera className="size-3.5" /> Photo
@@ -542,7 +579,7 @@ function Piece({
           }}
         />
       </label>
-      {!present && cote === "recto" && <Plus className="size-3 text-ink-muted" aria-hidden />}
+      {!nom && cote === "recto" && <Plus className="size-3 text-ink-muted" aria-hidden />}
     </div>
   );
 }
