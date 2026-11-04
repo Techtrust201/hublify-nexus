@@ -10,7 +10,7 @@ test("sans session, l'accueil est la landing", async ({ page }) => {
 
 test("une route inconnue sans session mène à la connexion", async ({ page }) => {
   await page.goto("/page-inconnue-xyz");
-  await expect(page.getByRole("heading", { name: "Connexion" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Se connecter" })).toBeVisible();
 });
 
 test("un administrateur accède à la vue générale", async ({ page }) => {
@@ -19,7 +19,7 @@ test("un administrateur accède à la vue générale", async ({ page }) => {
     "DATABASE_URL absent : docker compose up -d && npm run db:prepare",
   );
   await page.goto("/connexion");
-  await page.getByLabel("Email").fill("contact@tech-trust.fr");
+  await page.getByLabel("Adresse e-mail").fill("contact@tech-trust.fr");
   // Le champ voisine un bouton « Afficher le mot de passe » : on vise l'input.
   await page.locator('input[name="password"]').fill(MOT_DE_PASSE);
   await page.getByRole("button", { name: "Se connecter" }).click();
