@@ -427,43 +427,110 @@ export function QuittanceDialog({
   if (!loyer) return null;
   return (
     <Dialog open={ouvert} onOpenChange={(o) => !o && onFermer()}>
-      <DialogContent className="max-w-[320px] gap-0 rounded-card border border-line bg-white p-0 shadow-lg">
-        <DialogTitle className="px-6 pt-6 text-sm font-medium text-ink">
-          {viaPlateforme ? "Quittance automatique" : "Générer une quittance"}
-        </DialogTitle>
-        <div className="space-y-1 px-6 py-3 text-xs text-ink-body">
-          <p>Locataire : {loyer.locataire}</p>
-          <p>Bien : {loyer.bienNom}</p>
-          {viaPlateforme ? (
-            <p>Paiement plateforme : quittance générée sur le montant encaissé.</p>
-          ) : saisirMontant ? (
-            <label className="mt-2 block text-xs text-ink-muted">
-              Montant encaissé hors plateforme
-              <input
-                value={montant}
-                onChange={(e) => setMontant(e.target.value)}
-                inputMode="decimal"
-                className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
-              />
-            </label>
-          ) : (
-            <p>Montant : {loyer.montant.toLocaleString("fr-FR")} €</p>
-          )}
+      <DialogContent className="max-w-xl gap-0 rounded-card border border-line bg-white p-0 shadow-lg">
+        <div className="flex items-start justify-between gap-3 px-6 pt-6">
+          <DialogTitle className="text-base font-medium text-ink">
+            Générer un reçu ou une quittance
+          </DialogTitle>
+          <button type="button" onClick={onFermer} className="text-sm text-ink-muted">
+            Annuler
+          </button>
         </div>
-        <div className="flex justify-end gap-2 px-6 pb-6">
+        <p className="px-6 pt-2 text-xs text-ink-muted">
+          Vérifiez les informations puis enregistrez votre document, le destinataire sera informé
+          d'un nouveau document disponible dans son espace.
+          {viaPlateforme ? " Paiement reçu via la plateforme." : ""}
+        </p>
+        <div className="grid gap-3 px-6 py-4 sm:grid-cols-2">
+          <label className="text-xs text-ink-muted">
+            Bailleur — Nom complet
+            <input
+              readOnly
+              value="Hublify"
+              className="mt-1 h-10 w-full rounded-xl border border-line px-3 text-sm text-ink"
+            />
+          </label>
+          <label className="text-xs text-ink-muted">
+            Bailleur — Adresse
+            <input
+              readOnly
+              value={loyer.bienNom}
+              className="mt-1 h-10 w-full rounded-xl border border-line px-3 text-sm text-ink"
+            />
+          </label>
+          <label className="text-xs text-ink-muted">
+            Locataire — Nom complet
+            <input
+              readOnly
+              value={loyer.locataire}
+              className="mt-1 h-10 w-full rounded-xl border border-line px-3 text-sm text-ink"
+            />
+          </label>
+          <label className="text-xs text-ink-muted">
+            Locataire — Adresse du bien
+            <input
+              readOnly
+              value={loyer.bienNom}
+              className="mt-1 h-10 w-full rounded-xl border border-line px-3 text-sm text-ink"
+            />
+          </label>
+          <label className="text-xs text-ink-muted">
+            Loyer nu (€)
+            <input
+              value={montant}
+              onChange={(e) => setMontant(e.target.value)}
+              inputMode="decimal"
+              readOnly={!saisirMontant}
+              className="mt-1 h-10 w-full rounded-xl border border-line px-3 text-sm text-ink outline-none"
+            />
+          </label>
+          <label className="text-xs text-ink-muted">
+            Charges / Provisions (€)
+            <input
+              readOnly
+              value="0"
+              className="mt-1 h-10 w-full rounded-xl border border-line px-3 text-sm text-ink"
+            />
+          </label>
+          <label className="text-xs text-ink-muted">
+            Mois concerné
+            <input
+              readOnly
+              value={loyer.echeance}
+              className="mt-1 h-10 w-full rounded-xl border border-line px-3 text-sm text-ink"
+            />
+          </label>
+          <label className="text-xs text-ink-muted">
+            Fait à
+            <input
+              readOnly
+              value="PARIS"
+              className="mt-1 h-10 w-full rounded-xl border border-line px-3 text-sm text-ink"
+            />
+          </label>
+        </div>
+        <div className="mx-6 rounded-2xl border border-line bg-surface-soft p-4 text-xs text-ink-body">
+          <p className="text-[10px] uppercase tracking-wide text-ink-muted">Aperçu</p>
+          <p className="mt-3 text-center">Quittance de loyer — {loyer.echeance}</p>
+          <p className="mt-2">Loyer nu : {Number(montant.replace(",", ".")) || loyer.montant} €</p>
+          <p className="text-right font-medium text-ink">
+            Total : {Number(montant.replace(",", ".")) || loyer.montant} €
+          </p>
+        </div>
+        <div className="flex flex-wrap justify-between gap-2 px-6 py-4">
           <button
             type="button"
-            onClick={onFermer}
-            className="h-[30px] rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body"
+            onClick={() => onConfirmer(Number(montant.replace(",", ".")) || loyer.montant)}
+            className="inline-flex h-11 items-center gap-2 rounded-full border border-line px-4 text-sm"
           >
-            Annuler
+            Aperçu PDF
           </button>
           <button
             type="button"
             onClick={() => onConfirmer(Number(montant.replace(",", ".")) || loyer.montant)}
-            className="h-[30px] rounded bg-ink px-3 text-xs font-medium text-white"
+            className="inline-flex h-11 items-center rounded-full bg-ink px-5 text-sm font-medium text-white"
           >
-            Confirmer & Générer
+            Enregistrer
           </button>
         </div>
       </DialogContent>

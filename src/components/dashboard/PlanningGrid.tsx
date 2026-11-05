@@ -42,6 +42,7 @@ import {
   type MissionMo1,
   type OngletPlanning,
   type RegleTarif,
+  type EvenementMo1,
   type ReservationMo1,
   type VueAffichagePlanning,
   type VuePlanning,
@@ -57,6 +58,7 @@ import {
 } from "@/data/session";
 import type { ActionDate } from "@/lib/gestionnaire-planning";
 import { confirmer, toastOk } from "@/lib/feedback";
+import { evenementCouvreJour } from "@/lib/periode-demo";
 import { idDossierPourCalendrier } from "@/data/v1-metier";
 import { cn } from "@/lib/utils";
 
@@ -637,6 +639,7 @@ export function PlanningGrid({
               ensembles={ensembles}
               regles={regles}
               sejours={sejoursCal}
+              evenements={session.evenements}
               onCreerRegle={(bienId, date) => {
                 setCibleRegle({ bienId, date });
                 setCreerRegle(true);
@@ -667,6 +670,7 @@ export function PlanningGrid({
         ) : (
           <JoursMissions
             jours={jours}
+            evenements={session.evenements}
             biens={biensFiltres}
             missions={missionsFiltrees}
             sejours={sejoursAffiches}
@@ -894,6 +898,31 @@ export function PlanningGrid({
   );
 }
 
+function evenementsDuBien(evenements: EvenementMo1[], bienNom: string, jour: string) {
+  const cible = bienNom.toLowerCase();
+  const court = cible.split(" ").pop() ?? cible;
+  return evenements.filter(
+    (e) =>
+      evenementCouvreJour(e.id, jour) &&
+      (e.lieu.toLowerCase().includes(court) || e.lieu.toLowerCase().includes(cible)),
+  );
+}
+
+function BarreEvenement({ evenement }: { evenement: EvenementMo1 }) {
+  const vert = evenement.impact === "Fort impact";
+  return (
+    <span
+      className={cn(
+        "mt-1 flex h-[21px] min-w-0 items-center gap-1 truncate rounded-gest-barre border border-gest-barre-bord px-1 text-[10px] text-gest-item",
+        vert ? "bg-gest-barre-verte" : "bg-gest-barre-jaune",
+      )}
+    >
+      <span aria-hidden>🔑</span>
+      <span className="truncate">{evenement.titre}</span>
+    </span>
+  );
+}
+
 function JoursMissions({
   jours,
   biens,
@@ -906,12 +935,14 @@ function JoursMissions({
   selectedResaId,
   selectedMissionId,
   selectionActive,
+  evenements = [],
 }: {
   jours: Date[];
   biens: (BienMo1 & BienCalendrierChrome)[];
   missions: MissionMo1[];
   sejours: ReservationMo1[];
   datesBloquees: DateBloqueeMo1[];
+  evenements?: EvenementMo1[];
   onMission: (m: MissionMo1) => void;
   onReservation?: (r: ReservationMo1) => void;
   onAjouterPrestation?: (bienId: string, date: string) => void;
@@ -931,6 +962,7 @@ function JoursMissions({
             missions={missions.filter((m) => m.bienId === bien.id)}
             sejours={sejours.filter((r) => r.bienId === bien.id)}
             datesBloquees={datesBloquees.filter((d) => d.bienId === bien.id)}
+            evenements={evenements}
             onMission={onMission}
             selectedResaId={selectedResaId}
             selectedMissionId={selectedMissionId}
@@ -956,12 +988,14 @@ function LigneBien({
   selectedResaId,
   selectedMissionId,
   selectionActive = false,
+  evenements = [],
 }: {
   bien: BienMo1 & BienCalendrierChrome;
   jours: Date[];
   missions: MissionMo1[];
   sejours: ReservationMo1[];
   datesBloquees: DateBloqueeMo1[];
+  evenements?: EvenementMo1[];
   onMission: (m: MissionMo1) => void;
   onReservation?: (r: ReservationMo1) => void;
   onAjouterPrestation?: (bienId: string, date: string) => void;
@@ -1011,6 +1045,9 @@ function LigneBien({
                     {ouverture ? "Ouverture" : "Bloqué"}
                   </p>
                 ) : null}
+                {evenementsDuBien(evenements, bien.nom, key).map((e) => (
+                  <BarreEvenement key={e.id} evenement={e} />
+                ))}
                 <BandMissionsJour
                   bienNom={bien.nom}
                   date={key}
@@ -1201,12 +1238,14 @@ function TarifsJours({
   regles,
   sejours,
   onCreerRegle,
+  evenements = [],
 }: {
   jours: Date[];
   biens: BienMo1[];
   ensembles: EnsembleRegles[];
   regles: RegleTarif[];
   sejours: ReservationMo1[];
+  evenements?: EvenementMo1[];
   onCreerRegle: (bienId: string, date: string) => void;
 }) {
   return (
@@ -1260,6 +1299,9 @@ function TarifsJours({
                   {variation !== 0 && (
                     <span className="block text-[9px] text-ink-muted line-through">{base}€</span>
                   )}
+                  {evenementsDuBien(evenements, bien.nom, key).map((e) => (
+                    <BarreEvenement key={e.id} evenement={e} />
+                  ))}
                   {regle && (
                     <span className="mt-1 flex items-center justify-between rounded bg-surface px-1 text-[10px] text-ink-body">
                       <span>
