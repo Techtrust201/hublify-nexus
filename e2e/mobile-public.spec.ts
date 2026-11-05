@@ -50,7 +50,9 @@ test.describe("pages publiques", () => {
       await expect(page.getByText(/maquette|frame |Stripe/i)).toHaveCount(0);
       await expect(page.getByText("sans engagement", { exact: false })).toBeVisible();
       await page.goto("/");
-      await expect(page.getByRole("link", { name: "Blog" })).toHaveCount(0);
+      await page.getByRole("link", { name: "Blog" }).click();
+      await expect(page).toHaveURL(/\/faq/);
+      await page.goto("/");
       await expect(page.getByRole("link", { name: "Tarifs" }).first()).toBeVisible();
       await page.getByRole("link", { name: "Tarifs" }).first().click();
       await expect(page.locator("#tarifs")).toBeInViewport();
