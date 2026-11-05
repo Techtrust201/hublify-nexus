@@ -80,7 +80,7 @@ test("voir les documents d'un lieu filtre sans ouvrir le dialogue", async ({ pag
     }
   });
   await page.goto("/patrimoines");
-  await expect(page.getByRole("heading", { name: "Patrimoine" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lieux" }).first()).toBeVisible();
   const ligne = page.getByRole("row", { name: /Appartement Colette/ });
   await ligne.getByRole("button", { name: "Voir docs" }).click();
   await expect(page).toHaveURL(/\/documents\?.*logement=Appartement/);

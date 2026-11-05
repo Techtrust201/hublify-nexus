@@ -58,7 +58,13 @@
   --color-dot-depart: var(--dot-depart);
   --color-dot-edit: var(--dot-edit);
   --color-star: var(--star);
+  --color-gest-vert: var(--gest-vert);
+  --color-gest-rouge: var(--gest-rouge);
+  --color-gest-jaune: var(--gest-jaune);
+  --color-gest-pastille: var(--gest-pastille);
+  --color-gest-alerte: var(--gest-alerte);
   --radius-card: 0.625rem;
+  --radius-bouton: 0.875rem;
   --z-index-sticky: 10;
   --z-index-dropdown: 20;
   --z-index-overlay: 40;
@@ -165,31 +171,45 @@
    * Palette MO1 — hex exacts. Si un token oklch shadcn diverge, le hex gagne ici.
    * Ne pas réutiliser --primary / --border oklch dans les écrans maquette.
    */
-  --canvas: #eae7de;
+  --canvas: var(--gest-fond);
   --surface: #f9fafb;
   --surface-elevated: #ffffff;
   --surface-soft: #f3f4f6;
-  --accent-teal: #5591a9;
-  --danger-loyer: #c22c12;
+  --accent-teal: var(--gest-primaire);
+  --danger-loyer: var(--gest-alerte);
+  /* Tokens Figma gestionnaire : primaires, pastilles, cartes. */
+  --gest-texte: #4a5565;
+  --gest-texte-fort: #1e2939;
+  --gest-texte-secondaire: #99a1af;
+  --gest-alerte: #c22c12;
+  --gest-primaire: #5591a9;
+  --gest-fond: #eae7de;
+  --gest-carte: #ffffff;
+  --gest-carte-bord: #e5e7eb;
+  --gest-vert: #99e0b6;
+  --gest-rouge: rgb(248 113 89 / 70%);
+  --gest-jaune: #fff7de;
+  --gest-pastille: #99a1af;
+  --shadow-carte: 0 1px 2px rgb(30 41 57 / 6%), 0 8px 24px rgb(30 41 57 / 5%);
   --tab-active: #f4eded;
   --chip-urgent: #65cd91;
-  --ink: #1e2939;
+  --ink: var(--gest-texte-fort);
   --ink-deep: #101828;
-  --ink-body: #4a5565;
-  --ink-muted: #99a1af;
+  --ink-body: var(--gest-texte);
+  --ink-muted: var(--gest-texte-secondaire);
   --ink-subtle: #6a7282;
   --ink-header: #667085;
   --ink-filter: #24292f;
   --ink-status: #364153;
-  --line: #e5e7eb;
+  --line: var(--gest-carte-bord);
   --line-strong: #d1d5dc;
   --line-table: #eaecf0;
-  --chip-success: #dcfce7;
-  --chip-success-fg: #008236;
-  --chip-warning: #ffedd4;
-  --chip-warning-fg: #ca3500;
-  --chip-danger: #ffe2e2;
-  --chip-danger-fg: #c10007;
+  --chip-success: var(--gest-vert);
+  --chip-success-fg: var(--gest-texte-fort);
+  --chip-warning: var(--gest-jaune);
+  --chip-warning-fg: var(--gest-texte-fort);
+  --chip-danger: var(--gest-rouge);
+  --chip-danger-fg: var(--gest-texte-fort);
   --chip-info: #eff6ff;
   --chip-info-fg: #2563eb;
   --dot-arrivee: #22c55e;
@@ -327,6 +347,38 @@
     color: var(--ink);
     overflow-wrap: break-word;
     min-height: 100dvh;
+  }
+
+  /*
+   * Espace gestionnaire : Inter, texte #4A5565, titres #1E2939,
+   * cartes blanches rayon 10 bordure #E5E7EB + ombre,
+   * bouton primaire #5591A9 rayon 14.
+   * Le bleu marque #002FA7 des écrans auth n'est pas repris ici.
+   */
+  .espace-gestionnaire {
+    color: var(--gest-texte);
+    font-family: var(--font-sans);
+  }
+
+  .espace-gestionnaire :is(h1, h2, h3, h4) {
+    color: var(--gest-texte-fort);
+  }
+
+  .espace-gestionnaire :is(section, article).rounded-card,
+  .espace-gestionnaire .rounded-card.border.bg-white {
+    background-color: var(--gest-carte);
+    border-color: var(--gest-carte-bord);
+    border-radius: 10px;
+    box-shadow: var(--shadow-carte);
+  }
+
+  .espace-gestionnaire .bg-accent-teal {
+    background-color: var(--gest-primaire);
+    border-radius: 14px;
+  }
+
+  .espace-gestionnaire [role="alert"] {
+    color: var(--gest-alerte);
   }
 
   button:focus-visible,

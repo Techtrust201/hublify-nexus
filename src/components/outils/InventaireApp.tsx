@@ -1,4 +1,4 @@
-import { Download, Eye, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Download, Eye, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { BtnNavy, BtnOutline, Chip } from "@/components/documents/ui";
@@ -7,25 +7,56 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { ITEMS_INVENTAIRE, type ItemInventaire } from "@/data/documents-mo1";
 import { idNouveau, poserCollection, useSession } from "@/data/session";
 import { confirmer, telechargerDemo, telechargerPdf, toastErreur, toastOk } from "@/lib/feedback";
-import { cn } from "@/lib/utils";
+import {
+  besoinStock,
+  centimesDepuisSaisie,
+  champsDe,
+  euroCentimes,
+  lieuxDepuisSerie,
+  serieAEnregistrer,
+  serieDepuisLieux,
+  verdictStock,
+  type ChampsConsommable,
+} from "@/lib/inventaire-maquette";
+const ID_LIEUX = "meta-lieux-inventaire";
 
 const ONGLETS = [
+  { id: "1" as const, label: "Inventaire consommables 1" },
+  { id: "2" as const, label: "Inventaire consommables 2" },
+  { id: "conso" as const, label: "Consommables ménage" },
   { id: "linge" as const, label: "Linge de maison" },
-  { id: "conso" as const, label: "Consommables" },
-  { id: "1" as const, label: "Hors conciergerie" },
 ];
 
+const FORM_VIDE = {
+  designation: "",
+  emplacement: "",
+  qte: "1",
+  etat: "Bon",
+  marque: "",
+  typeArticle: "",
+  prix: "",
+  lieuStockage: "",
+  seuil: "",
+  qteParOccupant: "",
+};
+
+function estMeta(item: ItemInventaire) {
+  return item.id === ID_LIEUX;
+}
+
 export function InventaireApp() {
-  const [onglet, setOnglet] = useState<"1" | "2" | "conso" | "linge">("linge");
+  const session = useSession();
+  const [onglet, setOnglet] = useState<"1" | "2" | "conso" | "linge">("1");
   const [recherche, setRecherche] = useState("");
   const [selection, setSelection] = useState<string[]>([]);
-  const items = useSession().inventaire;
+  const items = session.inventaire;
   const setItems = (maj: (liste: ItemInventaire[]) => ItemInventaire[]) =>
     poserCollection("inventaire", maj);
   const [edition, setEdition] = useState<ItemInventaire | null>(null);
   const [fiche, setFiche] = useState<ItemInventaire | null>(null);
   const [creer, setCreer] = useState(false);
-  const [form, setForm] = useState({ designation: "", emplacement: "", qte: "1", etat: "Bon" });
+  const [ajouterLieu, setAjouterLieu] = useState(false);
+  const [form, setForm] = useState(FORM_VIDE);
 
   useEffect(() => {
     const ids = new Set(items.map((i) => i.id));
@@ -38,25 +69,36 @@ export function InventaireApp() {
     });
   }, [items]);
 
+  const lignes = useMemo(() => items.filter((i) => !estMeta(i)), [items]);
+  const lieuxAssignes = lieuxDepuisSerie(items.find(estMeta)?.serie);
+
   const filtrés = useMemo(() => {
     const q = recherche.trim().toLowerCase();
-    return items
-      .filter((i) => (onglet === "1" ? i.onglet === "1" || i.onglet === "2" : i.onglet === onglet))
-      .filter(
-        (i) =>
-          !q ||
-          i.code.toLowerCase().includes(q) ||
-          i.designation.toLowerCase().includes(q) ||
-          i.emplacement.toLowerCase().includes(q),
-      );
-  }, [onglet, recherche, items]);
+    return lignes
+      .filter((i) => i.onglet === onglet)
+      .filter((i) => {
+        const champs = champsDe(i.serie);
+        const texte = `${i.code} ${i.designation} ${i.emplacement} ${champs.marque} ${champs.typeArticle} ${champs.lieuStockage}`;
+        return !q || texte.toLowerCase().includes(q);
+      });
+  }, [onglet, recherche, lignes]);
 
-  const titre =
-    onglet === "linge"
-      ? "Linge de maison"
-      : onglet === "conso"
-        ? "Consommables"
-        : "Ancien jeu hors conciergerie";
+  const occupants = session.reservationsDossier
+    .filter((r) => r.statut !== "Annulé")
+    .reduce((n, r) => n + (r.voyageurs || 0), 0);
+  const reservationsActives = session.reservationsDossier.filter(
+    (r) => r.statut !== "Annulé",
+  ).length;
+  const suivi = filtrés
+    .map((i) => {
+      const champs = champsDe(i.serie);
+      const besoin = besoinStock(champs, occupants);
+      return { item: i, champs, besoin, verdict: verdictStock(i.qte, besoin) };
+    })
+    .filter((l) => l.verdict !== "non-suivi");
+
+  const titre = ONGLETS.find((o) => o.id === onglet)?.label ?? "Inventaire";
+  const biensDispos = session.biens.map((b) => b.nom).filter((n) => !lieuxAssignes.includes(n));
 
   const supprimer = async (ids: string[]) => {
     const ok = await confirmer({
@@ -83,6 +125,29 @@ export function InventaireApp() {
       return;
     }
     const qte = Math.round(qteSaisie);
+    const prix = centimesDepuisSaisie(form.prix);
+    if (prix === null) {
+      toastErreur("Indiquez un prix unitaire valide, ou laissez le champ vide.");
+      return;
+    }
+    const seuil = Number(form.seuil.replace(",", "."));
+    const parOccupant = Number(form.qteParOccupant.replace(",", "."));
+    if (form.seuil.trim() && (!Number.isFinite(seuil) || seuil < 0)) {
+      toastErreur("Le seuil de stock doit être un nombre.");
+      return;
+    }
+    if (form.qteParOccupant.trim() && (!Number.isFinite(parOccupant) || parOccupant < 0)) {
+      toastErreur("La quantité par occupant doit être un nombre.");
+      return;
+    }
+    const champs: ChampsConsommable = {
+      marque: form.marque.trim(),
+      typeArticle: form.typeArticle.trim(),
+      prixCentimes: prix,
+      lieuStockage: form.lieuStockage.trim(),
+      seuil: form.seuil.trim() ? Math.round(seuil) : 0,
+      qteParOccupant: form.qteParOccupant.trim() ? Math.round(parOccupant) : 0,
+    };
     if (edition) {
       setItems((liste) =>
         liste.map((i) =>
@@ -93,6 +158,7 @@ export function InventaireApp() {
                 emplacement: form.emplacement.trim() || i.emplacement,
                 qte,
                 etat: form.etat,
+                serie: serieAEnregistrer(champs, i.serie),
               }
             : i,
         ),
@@ -110,7 +176,7 @@ export function InventaireApp() {
           qte,
           emoji: "📦",
           emplacement: form.emplacement.trim() || "—",
-          serie: "—",
+          serie: serieAEnregistrer(champs, ""),
           onglet,
         },
         ...liste,
@@ -118,29 +184,66 @@ export function InventaireApp() {
       toastOk("Élément ajouté.");
       setCreer(false);
     }
-    setForm({ designation: "", emplacement: "", qte: "1", etat: "Bon" });
+    setForm(FORM_VIDE);
+  };
+
+  const ouvrirEdition = (cible: ItemInventaire) => {
+    const champs = champsDe(cible.serie);
+    setForm({
+      designation: cible.designation,
+      emplacement: cible.emplacement,
+      qte: String(cible.qte),
+      etat: cible.etat,
+      marque: champs.marque,
+      typeArticle: champs.typeArticle,
+      prix: champs.prixCentimes ? String(champs.prixCentimes / 100).replace(".", ",") : "",
+      lieuStockage: champs.lieuStockage,
+      seuil: champs.seuil ? String(champs.seuil) : "",
+      qteParOccupant: champs.qteParOccupant ? String(champs.qteParOccupant) : "",
+    });
+    setEdition(cible);
+  };
+
+  const poserLieux = (noms: string[]) => {
+    setItems((liste) => {
+      const sans = liste.filter((i) => !estMeta(i));
+      if (noms.length === 0) return sans;
+      const meta: ItemInventaire = {
+        id: ID_LIEUX,
+        code: "",
+        designation: "Lieux d'utilisation",
+        etat: "meta",
+        qte: 0,
+        emoji: "",
+        emplacement: "",
+        serie: serieDepuisLieux(noms),
+        onglet: "1",
+      };
+      return [meta, ...sans];
+    });
   };
 
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-2xl text-ink">Inventaire conciergerie</h2>
+          <h2 className="text-2xl text-ink">Inventaire</h2>
           <p className="max-w-xl text-sm text-ink-subtle">
-            Draps, linge de maison et consommables utiles au ménage. Ce n'est ni l'inventaire
-            mobilier ni l'état de l'appartement : ceux-ci se rédigent dans les états des lieux.
+            Tous les inventaires des consommables sont réunis ici. Le linge de maison reste dans son
+            onglet. L'inventaire mobilier se rédige dans les états des lieux.
           </p>
         </div>
         <BtnNavy
           className="h-[49px] px-5 text-sm"
           onClick={() => {
-            const lignes = [
-              "Code;Designation;Etat;Qte;Emplacement;Serie",
-              ...filtrés.map(
-                (i) => `${i.code};${i.designation};${i.etat};${i.qte};${i.emplacement};${i.serie}`,
-              ),
+            const csv = [
+              "Marque;Designation;Type;Qte;Emplacement;Prix;LieuStockage",
+              ...filtrés.map((i) => {
+                const champs = champsDe(i.serie);
+                return `${champs.marque};${i.designation};${champs.typeArticle || i.etat};${i.qte};${i.emplacement};${champs.prixCentimes};${champs.lieuStockage}`;
+              }),
             ];
-            telechargerDemo(`inventaire-${onglet}.csv`, lignes.join("\n"));
+            telechargerDemo(`inventaire-${onglet}.csv`, csv.join("\n"));
           }}
         >
           <Download className="size-4" /> Télécharger le tableau
@@ -161,6 +264,38 @@ export function InventaireApp() {
         ))}
       </div>
 
+      <section className="mb-4 rounded-card border border-line bg-white px-4 py-3">
+        <p className="text-sm text-ink">
+          Assigner un ou plusieurs lieux d'utilisation de cet inventaire
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {lieuxAssignes.map((nom) => (
+            <button
+              key={nom}
+              type="button"
+              onClick={() => poserLieux(lieuxAssignes.filter((n) => n !== nom))}
+              className="inline-flex h-8 items-center gap-1 rounded-full border border-line px-2 text-xs text-ink"
+            >
+              {nom}
+              <X className="size-3" />
+              <span className="sr-only">Retirer {nom}</span>
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setAjouterLieu(true)}
+            className="inline-flex size-8 items-center justify-center rounded-full border border-line text-sm text-ink"
+            aria-label="Assigner un lieu"
+          >
+            <Plus className="size-3.5" />
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-ink-muted">
+          Vous pouvez paramétrer une alerte de fin de stock en fonction des réservations et du
+          nombre de voyageurs.
+        </p>
+      </section>
+
       <section className="@container overflow-hidden rounded-card border border-line bg-white">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-soft px-6 py-4">
           <div className="flex items-center gap-3">
@@ -179,7 +314,7 @@ export function InventaireApp() {
             </label>
             <BtnOutline
               onClick={() => {
-                setForm({ designation: "", emplacement: "", qte: "1", etat: "Bon" });
+                setForm(FORM_VIDE);
                 setCreer(true);
               }}
             >
@@ -188,15 +323,9 @@ export function InventaireApp() {
             <BtnOutline
               disabled={selection.length !== 1}
               onClick={() => {
-                const cible = items.find((i) => i.id === selection[0]);
+                const cible = lignes.find((i) => i.id === selection[0]);
                 if (!cible) return;
-                setForm({
-                  designation: cible.designation,
-                  emplacement: cible.emplacement,
-                  qte: String(cible.qte),
-                  etat: cible.etat,
-                });
-                setEdition(cible);
+                ouvrirEdition(cible);
               }}
             >
               <Pencil className="size-3" /> Modifier
@@ -242,15 +371,7 @@ export function InventaireApp() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setForm({
-                      designation: i.designation,
-                      emplacement: i.emplacement,
-                      qte: String(i.qte),
-                      etat: i.etat,
-                    });
-                    setEdition(i);
-                  }}
+                  onClick={() => ouvrirEdition(i)}
                   className="inline-flex h-11 items-center justify-center rounded-card border border-line text-xs font-medium text-ink-body"
                 >
                   Modifier
@@ -278,93 +399,75 @@ export function InventaireApp() {
             <thead className="border-b border-surface-soft text-xs text-ink-subtle">
               <tr>
                 <th className="w-14 px-6 py-4" />
-                <th className="px-3 py-4 font-medium">Code</th>
+                <th className="px-3 py-4 font-medium">Marque</th>
                 <th className="px-3 py-4 font-medium">Désignation</th>
-                <th className="px-3 py-4 font-medium">État</th>
+                <th className="px-3 py-4 font-medium">Type</th>
                 <th className="px-3 py-4 font-medium">QTÉ</th>
-                <th className="px-3 py-4 font-medium">Image</th>
                 <th className="px-3 py-4 font-medium">Emplacement</th>
-                <th className="px-3 py-4 font-medium">N° de série</th>
+                <th className="px-3 py-4 font-medium">Prix unitaire</th>
+                <th className="px-3 py-4 font-medium">Lieu stockage</th>
                 <th className="px-3 py-4 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtrés.map((i) => (
-                <tr key={i.id} className="border-b border-surface-soft last:border-b-0">
-                  <td className="px-6 py-4">
-                    <label className="flex min-h-11 items-center md:min-h-0">
-                      <input
-                        type="checkbox"
-                        checked={selection.includes(i.id)}
-                        onChange={() =>
-                          setSelection((s) =>
-                            s.includes(i.id) ? s.filter((x) => x !== i.id) : [...s, i.id],
-                          )
-                        }
-                        aria-label={`Sélectionner ${i.designation}`}
-                      />
-                    </label>
-                  </td>
-                  <td className="px-3 py-4 text-ink">{i.code}</td>
-                  <td className="px-3 py-4 text-ink">{i.designation}</td>
-                  <td className="px-3 py-4">
-                    <span
-                      className={cn(
-                        "rounded px-2 py-0.5 text-xs",
-                        i.etat === "Très bon"
-                          ? "bg-chip-success text-chip-success-fg"
-                          : i.etat === "Bon"
-                            ? "bg-surface-soft text-ink-body"
-                            : i.etat === "Moyen"
-                              ? "bg-chip-warning text-chip-warning-fg"
-                              : "border border-line text-ink-subtle",
-                      )}
-                    >
-                      {i.etat}
-                    </span>
-                  </td>
-                  <td className="px-3 py-4 text-ink">{i.qte}</td>
-                  <td className="px-3 py-4 text-xl leading-none">{i.emoji}</td>
-                  <td className="px-3 py-4 text-ink-body">{i.emplacement}</td>
-                  <td className="px-3 py-4 text-ink-body">{i.serie}</td>
-                  <td className="px-3 py-4">
-                    <div className="flex gap-1">
-                      <button
-                        type="button"
-                        aria-label={`Voir ${i.designation}`}
-                        className="flex size-8 items-center justify-center rounded-card text-ink-body hover:bg-surface-soft"
-                        onClick={() => setFiche(i)}
-                      >
-                        <Eye className="size-4" />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Modifier ${i.designation}`}
-                        className="flex size-8 items-center justify-center rounded-card text-ink-body hover:bg-surface-soft"
-                        onClick={() => {
-                          setForm({
-                            designation: i.designation,
-                            emplacement: i.emplacement,
-                            qte: String(i.qte),
-                            etat: i.etat,
-                          });
-                          setEdition(i);
-                        }}
-                      >
-                        <Pencil className="size-4" />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Supprimer ${i.designation}`}
-                        className="flex size-8 items-center justify-center rounded-card text-ink-body hover:bg-surface-soft"
-                        onClick={() => supprimer([i.id])}
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {filtrés.map((i) => {
+                const champs = champsDe(i.serie);
+                return (
+                  <tr key={i.id} className="border-b border-surface-soft last:border-b-0">
+                    <td className="px-6 py-4">
+                      <label className="flex min-h-11 items-center md:min-h-0">
+                        <input
+                          type="checkbox"
+                          checked={selection.includes(i.id)}
+                          onChange={() =>
+                            setSelection((s) =>
+                              s.includes(i.id) ? s.filter((x) => x !== i.id) : [...s, i.id],
+                            )
+                          }
+                          aria-label={`Sélectionner ${i.designation}`}
+                        />
+                      </label>
+                    </td>
+                    <td className="px-3 py-4 text-ink">{champs.marque || "—"}</td>
+                    <td className="px-3 py-4 text-ink">{i.designation}</td>
+                    <td className="px-3 py-4 text-ink-body">{champs.typeArticle || i.etat}</td>
+                    <td className="px-3 py-4 text-ink">{i.qte}</td>
+                    <td className="px-3 py-4 text-ink-body">{i.emplacement}</td>
+                    <td className="px-3 py-4 text-ink-body">
+                      {champs.prixCentimes > 0 ? euroCentimes(champs.prixCentimes) : "—"}
+                    </td>
+                    <td className="px-3 py-4 text-ink-body">{champs.lieuStockage || "—"}</td>
+                    <td className="px-3 py-4">
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          aria-label={`Voir ${i.designation}`}
+                          className="flex size-8 items-center justify-center rounded-card text-ink-body hover:bg-surface-soft"
+                          onClick={() => setFiche(i)}
+                        >
+                          <Eye className="size-4" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Modifier ${i.designation}`}
+                          className="flex size-8 items-center justify-center rounded-card text-ink-body hover:bg-surface-soft"
+                          onClick={() => ouvrirEdition(i)}
+                        >
+                          <Pencil className="size-4" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Supprimer ${i.designation}`}
+                          className="flex size-8 items-center justify-center rounded-card text-ink-body hover:bg-surface-soft"
+                          onClick={() => supprimer([i.id])}
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
               {filtrés.length === 0 && (
                 <tr>
                   <td colSpan={9} className="px-6 py-10 text-center text-sm text-ink-muted">
@@ -377,6 +480,40 @@ export function InventaireApp() {
             </tbody>
           </table>
         </ScrollHint>
+      </section>
+
+      <section className="mt-4 rounded-card bg-[#d9d9d9] px-5 py-4 text-sm text-ink">
+        <h3 className="font-medium">État et prévision du stock</h3>
+        <p className="mt-1 text-xs text-ink-body">
+          {lieuxAssignes[0] ?? "Aucun lieu assigné"} · {reservationsActives} réservation
+          {reservationsActives > 1 ? "s" : ""} · {occupants} occupant{occupants > 1 ? "s" : ""}
+        </p>
+        {suivi.length === 0 ? (
+          <p className="mt-3 text-xs text-ink-body">
+            Aucun seuil. Ouvrez un élément et indiquez une quantité par occupant, ou un seuil, pour
+            suivre le stock.
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {suivi.map(({ item, champs, besoin, verdict }) => (
+              <li key={item.id} className="flex flex-wrap items-baseline justify-between gap-2">
+                <span>
+                  {item.designation}
+                  {champs.marque ? ` · ${champs.marque}` : ""}
+                  <span className="ml-2 text-xs text-ink-body">
+                    {champs.qteParOccupant > 0
+                      ? `${champs.qteParOccupant} par occupant`
+                      : `seuil ${champs.seuil}`}
+                    {" · "}besoin {besoin}
+                  </span>
+                </span>
+                <span className="text-xs font-medium">
+                  {verdict === "correct" ? "Stock correct" : "Stock insuffisant"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <Dialog
@@ -399,6 +536,24 @@ export function InventaireApp() {
               className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
             />
           </label>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <label className="block text-xs text-ink-muted">
+              Marque
+              <input
+                value={form.marque}
+                onChange={(e) => setForm((f) => ({ ...f, marque: e.target.value }))}
+                className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
+              />
+            </label>
+            <label className="block text-xs text-ink-muted">
+              Type
+              <input
+                value={form.typeArticle}
+                onChange={(e) => setForm((f) => ({ ...f, typeArticle: e.target.value }))}
+                className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
+              />
+            </label>
+          </div>
           <label className="mt-3 block text-xs text-ink-muted">
             Emplacement
             <input
@@ -407,6 +562,41 @@ export function InventaireApp() {
               className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
             />
           </label>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <label className="block text-xs text-ink-muted">
+              Prix unitaire (€)
+              <input
+                value={form.prix}
+                onChange={(e) => setForm((f) => ({ ...f, prix: e.target.value }))}
+                placeholder="8,20"
+                className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
+              />
+            </label>
+            <label className="block text-xs text-ink-muted">
+              Lieu de stockage
+              <input
+                value={form.lieuStockage}
+                onChange={(e) => setForm((f) => ({ ...f, lieuStockage: e.target.value }))}
+                className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
+              />
+            </label>
+            <label className="block text-xs text-ink-muted">
+              Seuil
+              <input
+                value={form.seuil}
+                onChange={(e) => setForm((f) => ({ ...f, seuil: e.target.value }))}
+                className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
+              />
+            </label>
+            <label className="block text-xs text-ink-muted">
+              Quantité par occupant
+              <input
+                value={form.qteParOccupant}
+                onChange={(e) => setForm((f) => ({ ...f, qteParOccupant: e.target.value }))}
+                className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
+              />
+            </label>
+          </div>
           <div className="mt-3 grid grid-cols-2 gap-3">
             <label className="block text-xs text-ink-muted">
               Quantité
@@ -446,7 +636,8 @@ export function InventaireApp() {
             <div className="mt-3 space-y-1 text-sm text-ink-body">
               <p>État : {fiche.etat}</p>
               <p>Quantité : {fiche.qte}</p>
-              <p>N° de série : {fiche.serie}</p>
+              <p>Marque : {champsDe(fiche.serie).marque || "—"}</p>
+              <p>Lieu de stockage : {champsDe(fiche.serie).lieuStockage || "—"}</p>
               <BtnNavy
                 className="mt-3 w-full justify-center"
                 onClick={() =>
@@ -468,6 +659,36 @@ export function InventaireApp() {
                 Télécharger la fiche
               </BtnNavy>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={ajouterLieu} onOpenChange={setAjouterLieu}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle>Assigner un lieu</DialogTitle>
+          <DialogDescription>
+            Le lieu reste associé à cet inventaire après rechargement.
+          </DialogDescription>
+          {biensDispos.length === 0 ? (
+            <p className="mt-3 text-sm text-ink-muted">Tous les logements sont déjà assignés.</p>
+          ) : (
+            <ul className="mt-3 max-h-64 space-y-1 overflow-y-auto">
+              {biensDispos.map((nom) => (
+                <li key={nom}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      poserLieux([...lieuxAssignes, nom]);
+                      setAjouterLieu(false);
+                      toastOk(`${nom} utilise cet inventaire.`);
+                    }}
+                    className="flex min-h-11 w-full items-center rounded-card px-2 text-left text-sm text-ink hover:bg-surface"
+                  >
+                    {nom}
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
         </DialogContent>
       </Dialog>

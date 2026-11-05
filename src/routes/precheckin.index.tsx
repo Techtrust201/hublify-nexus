@@ -36,7 +36,7 @@ function PagePrecheckin() {
   return (
     <AppShell
       attendDonnees
-      titre="Pré-checkin"
+      titre="Configuration Pré-checkin"
       sousTitre="Identité, caution, accès et services proposés avant l'arrivée"
     >
       <PrecheckinGestionnaire extraInitial={charge.extra} enregistre={charge.enregistre} />

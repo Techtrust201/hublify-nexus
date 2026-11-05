@@ -28,6 +28,7 @@ export function EspaceRedaction({
   onPage,
   unite = "pages renseignées",
   apercu,
+  mentionApercu,
   onAjouter,
   libelleAjouter,
   pied,
@@ -41,6 +42,8 @@ export function EspaceRedaction({
   onPage: (id: string) => void;
   unite?: string;
   apercu: ReactNode;
+  /** Précision sous le titre d'aperçu, par exemple « affichage par page ». */
+  mentionApercu?: string;
   onAjouter?: () => void;
   libelleAjouter?: string;
   pied?: ReactNode;
@@ -129,6 +132,11 @@ export function EspaceRedaction({
         <div className="min-h-[420px] bg-[#f6f1ee] p-4 sm:p-6">
           <p className="mb-3 text-center text-xs font-medium tracking-wide text-ink-muted uppercase">
             Aperçu document
+            {mentionApercu ? (
+              <span className="mt-1 block font-normal normal-case tracking-normal text-ink-body">
+                {mentionApercu}
+              </span>
+            ) : null}
           </p>
           <div className="mx-auto max-w-xl rounded-card border border-line/60 bg-white p-5 shadow-sm">
             {apercu}

@@ -107,7 +107,6 @@ export function PatrimoineApp({
   const { fiches, typesPerso, sauver, retirer, ajouterType } = useFichesLieu();
   const [selLog, setSelLog] = useState<string[]>([]);
   const [selImm, setSelImm] = useState<string[]>([]);
-  const [onglet, setOnglet] = useState<"lieux" | "immeubles">("lieux");
   const [ficheId, setFicheId] = useState<string | null>(null);
   const [sectionFiche, setSectionFiche] = useState<"welcome" | "cles" | null>(null);
   const [contratOuvert, setContratOuvert] = useState(false);
@@ -190,7 +189,6 @@ export function PatrimoineApp({
     );
     if (!match) return;
     setSelLog([match.id]);
-    setOnglet("lieux");
     requestAnimationFrame(() => {
       const desktop = window.matchMedia("(min-width: 768px)").matches;
       const el = document.getElementById(
@@ -359,9 +357,9 @@ export function PatrimoineApp({
   return (
     <div>
       <div className="mb-8 text-center">
-        <h2 className="text-2xl text-ink">Patrimoine</h2>
+        <h2 className="text-4xl font-normal text-ink">Lieux</h2>
         <p className="mx-auto mt-2 max-w-lg text-sm text-ink-subtle">
-          Logements, immeubles, lieux d'événements
+          Gérez votre patrimoine immobilier : logements, immeubles, lieux d'événements
         </p>
         {peutMod && (
           <div className="mt-4 flex flex-col items-stretch justify-center gap-2 sm:flex-row">
@@ -375,491 +373,461 @@ export function PatrimoineApp({
         )}
       </div>
 
-      <div className="mb-4 flex gap-2">
-        <button
-          type="button"
-          onClick={() => setOnglet("lieux")}
-          className={cn(
-            "h-11 rounded-card px-4 text-sm font-medium md:h-9",
-            onglet === "lieux" ? "bg-tab-active text-ink-deep" : "text-ink-subtle",
-          )}
-        >
-          Lieux
-        </button>
-        <button
-          type="button"
-          onClick={() => setOnglet("immeubles")}
-          className={cn(
-            "h-11 rounded-card px-4 text-sm font-medium md:h-9",
-            onglet === "immeubles" ? "bg-tab-active text-ink-deep" : "text-ink-subtle",
-          )}
-        >
-          Immeubles
-        </button>
-      </div>
-
-      {onglet === "lieux" && (
-        <section className="@container mb-4 overflow-hidden rounded-card border border-line bg-white">
-          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-soft px-5 py-4">
-            <p className="flex items-center gap-2 text-sm text-ink">
-              <Home className="size-4" />
-              Logements
-              <span className="rounded bg-surface-soft px-1.5 text-xs text-ink-subtle">
-                {visibles.length}
-              </span>
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <BtnOutline onClick={() => setFiltresOuverts((v) => !v)}>
-                <SlidersHorizontal className="size-3" /> Filtres
+      <section className="@container mb-4 overflow-hidden rounded-card border border-line bg-white">
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-soft px-5 py-4">
+          <p className="flex items-center gap-2 text-sm text-ink">
+            <Home className="size-4" />
+            Lieux et logements
+            <span className="rounded bg-surface-soft px-1.5 text-xs text-ink-subtle">
+              {visibles.length}
+            </span>
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <BtnOutline onClick={() => setFiltresOuverts((v) => !v)}>
+              <SlidersHorizontal className="size-3" /> Filtres
+            </BtnOutline>
+            {peutMod && (
+              <BtnOutline disabled={selLog.length === 0} onClick={() => supprimerLogements(selLog)}>
+                <Trash2 className="size-3" /> Supprimer
               </BtnOutline>
-              {peutMod && (
-                <BtnOutline
-                  disabled={selLog.length === 0}
-                  onClick={() => supprimerLogements(selLog)}
-                >
-                  <Trash2 className="size-3" /> Supprimer
-                </BtnOutline>
-              )}
-              <BtnOutline onClick={exporterLogements}>
-                <Download className="size-3" /> Exporter
-              </BtnOutline>
-              <BtnOutline onClick={exporterAnnonce}>
-                <Download className="size-3" /> Annonce
-              </BtnOutline>
-              <BtnOutline onClick={exporterNotation}>
-                <Star className="size-3" /> Notation
-              </BtnOutline>
-              {peutMod && (
-                <label className="inline-flex h-11 cursor-pointer items-center rounded-card border border-line px-3 text-sm text-ink-body md:h-9">
-                  Importer
-                  <input
-                    type="file"
-                    accept=".csv,text/csv"
-                    className="sr-only"
-                    onChange={(e) => {
-                      const fichier = e.target.files?.[0];
-                      e.target.value = "";
-                      if (fichier) void importerAnnonce(fichier);
-                    }}
-                  />
-                </label>
-              )}
-              {peutMod && (
-                <BtnNavy onClick={() => setAjouterOuvert(true)}>
-                  <Plus className="size-3" /> Ajouter
-                </BtnNavy>
-              )}
-            </div>
-          </header>
-          {filtresOuverts && (
-            <div className="border-b border-surface-soft px-5 py-3">
-              <label className="text-xs text-ink-muted">
-                Statut
-                <select
-                  value={filtreStatut}
-                  onChange={(e) => setFiltreStatut(e.target.value as FiltreStatut)}
-                  className="ml-2 h-11 rounded-card border border-line bg-white px-2 text-sm text-ink md:h-9"
-                >
-                  <option value="tous">Tous</option>
-                  <option value="loué">Loué</option>
-                  <option value="libre">Libre</option>
-                  <option value="en travaux">En travaux</option>
-                </select>
+            )}
+            <BtnOutline onClick={exporterLogements}>
+              <Download className="size-3" /> Exporter
+            </BtnOutline>
+            <BtnOutline onClick={exporterAnnonce}>
+              <Download className="size-3" /> Annonce
+            </BtnOutline>
+            <BtnOutline onClick={exporterNotation}>
+              <Star className="size-3" /> Notation
+            </BtnOutline>
+            {peutMod && (
+              <label className="inline-flex h-11 cursor-pointer items-center rounded-card border border-line px-3 text-sm text-ink-body md:h-9">
+                Importer
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const fichier = e.target.files?.[0];
+                    e.target.value = "";
+                    if (fichier) void importerAnnonce(fichier);
+                  }}
+                />
               </label>
-              <label className="text-xs text-ink-muted">
-                Mode
-                <select
-                  value={filtreUsage}
-                  onChange={(e) => setFiltreUsage(e.target.value as "tous" | UsageLieu)}
-                  className="ml-2 h-11 rounded-card border border-line bg-white px-2 text-sm text-ink md:h-9"
-                >
-                  <option value="tous">Tous</option>
-                  {USAGES.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          )}
-          <div className="divide-y divide-surface-soft @min-[920px]:hidden">
-            {visibles.map((l) => (
-              <article
-                key={l.id}
-                id={`lieu-mobile-${l.id}`}
-                className={cn("px-4 py-4", selLog.includes(l.id) && "bg-surface")}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-medium text-ink">{l.nom}</p>
-                    <p className="text-xs text-ink-muted">
-                      {libelleCourt(l.typologie)} · {l.surface}
-                    </p>
-                    <p className="mt-1 text-xs text-ink-subtle">{l.adresse}</p>
-                  </div>
-                  <span className="flex items-center gap-1">
-                    <AlerteLieu
-                      nom={l.nom}
-                      alertes={alertesDe(l.id, l.nom)}
-                      onCompleter={(section) => ouvrirFiche(l.id, section)}
-                    />
-                    <BadgeStatut statut={l.statut} />
-                  </span>
-                </div>
-                <label className="mt-2 flex min-h-11 items-center gap-2 text-xs text-ink-muted">
-                  <input
-                    type="checkbox"
-                    checked={selLog.includes(l.id)}
-                    onChange={() =>
-                      setSelLog((s) =>
-                        s.includes(l.id) ? s.filter((x) => x !== l.id) : [...s, l.id],
-                      )
-                    }
-                    aria-label={`Sélectionner ${l.nom}`}
-                  />
-                  Sélectionner
-                </label>
-                <div className="mt-3 flex flex-col gap-2">
-                  <button
-                    type="button"
-                    onClick={() => ouvrirFiche(l.id)}
-                    className="inline-flex h-11 items-center justify-center rounded-card border border-line text-xs font-medium text-ink-body"
-                  >
-                    Configurer
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      void navigate({
-                        to: "/documents",
-                        search: { vue: "logements", logement: l.nom },
-                      })
-                    }
-                    className="inline-flex h-11 items-center justify-center rounded-card border border-line text-xs font-medium text-ink-body"
-                  >
-                    Voir docs
-                  </button>
-                </div>
-              </article>
-            ))}
+            )}
+            {peutMod && (
+              <BtnNavy onClick={() => setAjouterOuvert(true)}>
+                <Plus className="size-3" /> Ajouter
+              </BtnNavy>
+            )}
           </div>
-          <ScrollHint className="hidden @min-[920px]:block">
-            <table className="w-full min-w-[900px] text-left text-xs">
-              <thead className="border-b border-surface-soft text-ink-subtle">
-                <tr>
-                  <th className="w-12 px-4 py-3" />
-                  <th className="px-2 py-3 font-medium">Logement</th>
-                  <th className="px-2 py-3 font-medium">Propriétaire</th>
-                  <th className="px-2 py-3 font-medium">Immeuble</th>
-                  <th className="px-2 py-3 font-medium">Adresse</th>
-                  <th className="px-2 py-3 font-medium">Notation</th>
-                  <th className="px-2 py-3 font-medium">Statut</th>
-                  <th className="px-2 py-3 font-medium">Documents</th>
-                  <th className="px-2 py-3 text-right font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibles.map((l) => (
-                  <tr
-                    key={l.id}
-                    id={`lieu-table-${l.id}`}
-                    data-lieu={l.id}
-                    className={cn(
-                      "border-b border-surface-soft last:border-b-0",
-                      selLog.includes(l.id) && "bg-surface",
-                    )}
-                  >
-                    <td className="px-4 py-4">
-                      <label className="flex min-h-11 items-center md:min-h-0">
-                        <input
-                          type="checkbox"
-                          checked={selLog.includes(l.id)}
-                          onChange={() =>
-                            setSelLog((s) =>
-                              s.includes(l.id) ? s.filter((x) => x !== l.id) : [...s, l.id],
-                            )
-                          }
-                          aria-label={`Sélectionner ${l.nom}`}
-                        />
-                      </label>
-                    </td>
-                    <td className="px-2 py-4">
-                      <div className="flex items-start gap-2">
-                        <span className="mt-1 flex size-7 items-center justify-center rounded-[8px] bg-surface-soft">
-                          <Home className="size-3 text-ink-body" />
-                        </span>
-                        <div>
-                          <p className="text-sm text-ink">{l.nom}</p>
-                          <p className="text-[11px] text-ink-muted">
-                            {libelleCourt(l.typologie)} · {l.surface}
-                          </p>
-                          <span className="mt-0.5 inline-block rounded border border-line px-1.5 text-[10px] text-ink-subtle">
-                            {libelleUsage(
-                              fichesEffectives.get(l.id)?.usage ?? (l.meuble ? "meublé" : "vide"),
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-2 py-4">
-                      <span className="inline-flex items-center gap-2">
-                        <span className="flex size-6 items-center justify-center rounded-full bg-line text-[10px] text-ink-body">
-                          {l.initiales}
-                        </span>
-                        {l.proprietaire}
-                      </span>
-                    </td>
-                    <td className="px-2 py-4 text-ink-body">{l.immeuble}</td>
-                    <td className="px-2 py-4 text-ink-body">{l.adresse}</td>
-                    <td className="px-2 py-4">
-                      <span className="inline-flex items-center gap-1">
-                        <AlerteLieu
-                          nom={l.nom}
-                          alertes={alertesDe(l.id, l.nom)}
-                          onCompleter={(section) => ouvrirFiche(l.id, section)}
-                        />
-                        <Etoiles note={l.note} />
-                      </span>
-                    </td>
-                    <td className="px-2 py-4">
-                      <BadgeStatut statut={l.statut} />
-                    </td>
-                    <td className="px-2 py-4">
-                      <BtnOutline
-                        className="h-[30px]"
-                        onClick={() =>
-                          void navigate({
-                            to: "/documents",
-                            search: { vue: "logements", logement: l.nom },
-                          })
-                        }
-                      >
-                        <Eye className="size-2.5" /> Voir docs
-                      </BtnOutline>
-                    </td>
-                    <td className="px-2 py-4">
-                      <div className="flex justify-end gap-1 text-ink-body">
-                        <button
-                          type="button"
-                          aria-label={`Configurer ${l.nom}`}
-                          onClick={() => ouvrirFiche(l.id)}
-                          className="flex size-6 items-center justify-center rounded hover:bg-surface-soft"
-                        >
-                          <Pencil className="size-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`Copier l'adresse de ${l.nom}`}
-                          onClick={() => copierTexte(l.adresse, "Adresse copiée.")}
-                          className="flex size-6 items-center justify-center rounded hover:bg-surface-soft"
-                        >
-                          <Copy className="size-3.5" />
-                        </button>
-                        {peutMod && (
-                          <button
-                            type="button"
-                            aria-label={`Supprimer ${l.nom}`}
-                            onClick={() => supprimerLogements([l.id])}
-                            className="flex size-6 items-center justify-center rounded hover:bg-surface-soft"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </ScrollHint>
-          {visibles.length === 0 && (
-            <p className="px-5 py-10 text-center text-sm text-ink-muted">
-              {filtreStatut === "tous"
-                ? "Aucun lieu dans le parc. Utilisez « Ajouter » pour en créer un."
-                : `Aucun lieu au statut « ${filtreStatut} ».`}
-            </p>
-          )}
-          <p className="px-5 py-3 text-xs text-ink-muted">{visibles.length} logements</p>
-        </section>
-      )}
-
-      {onglet === "immeubles" && (
-        <section className="@container overflow-hidden rounded-card border border-line bg-white">
-          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-soft px-5 py-4">
-            <p className="flex items-center gap-2 text-sm text-ink">
-              <Building2 className="size-4" />
-              Immeubles
-              <span className="rounded bg-surface-soft px-1.5 text-xs text-ink-subtle">
-                {immeubles.length}
-              </span>
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {peutMod && (
-                <BtnOutline
-                  disabled={selImm.length === 0}
-                  onClick={() => void supprimerImmeubles(selImm)}
-                >
-                  <Trash2 className="size-3" /> Supprimer
-                </BtnOutline>
-              )}
-              <BtnOutline
-                onClick={() => {
-                  const lignes = [
-                    "Nom;Adresse;Logements;Proprietaire;Statut",
-                    ...immeubles.map(
-                      (i) => `${i.nom};${i.adresse};${i.logements};${i.proprietaire};${i.statut}`,
-                    ),
-                  ];
-                  telechargerDemo("immeubles-hublify.csv", lignes.join("\n"));
-                }}
+        </header>
+        {filtresOuverts && (
+          <div className="border-b border-surface-soft px-5 py-3">
+            <label className="text-xs text-ink-muted">
+              Statut
+              <select
+                value={filtreStatut}
+                onChange={(e) => setFiltreStatut(e.target.value as FiltreStatut)}
+                className="ml-2 h-11 rounded-card border border-line bg-white px-2 text-sm text-ink md:h-9"
               >
-                <Download className="size-3" /> Exporter
-              </BtnOutline>
-              {peutMod && (
-                <BtnNavy onClick={() => setAjouterImm(true)}>
-                  <Plus className="size-3" /> Ajouter
-                </BtnNavy>
-              )}
-            </div>
-          </header>
-          <div className="divide-y divide-surface-soft @min-[740px]:hidden">
-            {immeubles.map((i) => (
-              <article key={i.id} className="px-4 py-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-medium text-ink">{i.nom}</p>
-                    <p className="text-xs text-ink-muted">
-                      {i.logements} logements · {i.proprietaire}
-                    </p>
-                    <p className="mt-1 text-xs text-ink-subtle">{i.adresse}</p>
-                  </div>
-                  <BadgeStatut statut={i.statut} />
+                <option value="tous">Tous</option>
+                <option value="loué">Loué</option>
+                <option value="libre">Libre</option>
+                <option value="en travaux">En travaux</option>
+              </select>
+            </label>
+            <label className="text-xs text-ink-muted">
+              Mode
+              <select
+                value={filtreUsage}
+                onChange={(e) => setFiltreUsage(e.target.value as "tous" | UsageLieu)}
+                className="ml-2 h-11 rounded-card border border-line bg-white px-2 text-sm text-ink md:h-9"
+              >
+                <option value="tous">Tous</option>
+                {USAGES.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        )}
+        <div className="divide-y divide-surface-soft @min-[920px]:hidden">
+          {visibles.map((l) => (
+            <article
+              key={l.id}
+              id={`lieu-mobile-${l.id}`}
+              className={cn("px-4 py-4", selLog.includes(l.id) && "bg-surface")}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-medium text-ink">{l.nom}</p>
+                  <p className="text-xs text-ink-muted">
+                    {libelleCourt(l.typologie)} · {l.surface}
+                  </p>
+                  <p className="mt-1 text-xs text-ink-subtle">{l.adresse}</p>
                 </div>
-                <label className="mt-2 flex min-h-11 items-center gap-2 text-xs text-ink-muted">
-                  <input
-                    type="checkbox"
-                    checked={selImm.includes(i.id)}
-                    onChange={() =>
-                      setSelImm((s) =>
-                        s.includes(i.id) ? s.filter((x) => x !== i.id) : [...s, i.id],
-                      )
-                    }
-                    aria-label={`Sélectionner ${i.nom}`}
+                <span className="flex items-center gap-1">
+                  <AlerteLieu
+                    nom={l.nom}
+                    alertes={alertesDe(l.id, l.nom)}
+                    onCompleter={(section) => ouvrirFiche(l.id, section)}
                   />
-                  Sélectionner
-                </label>
-                <div className={cn("mt-3 grid gap-2", peutMod ? "grid-cols-2" : "grid-cols-1")}>
-                  <button
-                    type="button"
-                    onClick={() => copierTexte(i.adresse, "Adresse copiée.")}
-                    className="inline-flex h-11 items-center justify-center rounded-card border border-line text-xs font-medium text-ink-body"
-                  >
-                    Copier l'adresse
-                  </button>
-                  {peutMod && (
-                    <button
-                      type="button"
-                      onClick={() => void supprimerImmeubles([i.id])}
-                      className="inline-flex h-11 items-center justify-center rounded-card border border-line text-xs font-medium text-ink-body"
-                    >
-                      Supprimer
-                    </button>
+                  <BadgeStatut statut={l.statut} />
+                </span>
+              </div>
+              <label className="mt-2 flex min-h-11 items-center gap-2 text-xs text-ink-muted">
+                <input
+                  type="checkbox"
+                  checked={selLog.includes(l.id)}
+                  onChange={() =>
+                    setSelLog((s) =>
+                      s.includes(l.id) ? s.filter((x) => x !== l.id) : [...s, l.id],
+                    )
+                  }
+                  aria-label={`Sélectionner ${l.nom}`}
+                />
+                Sélectionner
+              </label>
+              <div className="mt-3 flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => ouvrirFiche(l.id)}
+                  className="inline-flex h-11 items-center justify-center rounded-card border border-line text-xs font-medium text-ink-body"
+                >
+                  Configurer
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    void navigate({
+                      to: "/documents",
+                      search: { vue: "logements", logement: l.nom },
+                    })
+                  }
+                  className="inline-flex h-11 items-center justify-center rounded-card border border-line text-xs font-medium text-ink-body"
+                >
+                  Voir docs
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+        <ScrollHint className="hidden @min-[920px]:block">
+          <table className="w-full min-w-[900px] text-left text-xs">
+            <thead className="border-b border-surface-soft text-ink-subtle">
+              <tr>
+                <th className="w-12 px-4 py-3" />
+                <th className="px-2 py-3 font-medium">Logement</th>
+                <th className="px-2 py-3 font-medium">Propriétaire</th>
+                <th className="px-2 py-3 font-medium">Immeuble</th>
+                <th className="px-2 py-3 font-medium">Adresse</th>
+                <th className="px-2 py-3 font-medium">Notation</th>
+                <th className="px-2 py-3 font-medium">Statut</th>
+                <th className="px-2 py-3 font-medium">Documents</th>
+                <th className="px-2 py-3 text-right font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibles.map((l) => (
+                <tr
+                  key={l.id}
+                  id={`lieu-table-${l.id}`}
+                  data-lieu={l.id}
+                  className={cn(
+                    "border-b border-surface-soft last:border-b-0",
+                    selLog.includes(l.id) && "bg-surface",
                   )}
-                </div>
-              </article>
-            ))}
-          </div>
-          <ScrollHint className="hidden @min-[740px]:block">
-            <table className="w-full min-w-[700px] text-left text-xs">
-              <thead className="border-b border-surface-soft text-ink-subtle">
-                <tr>
-                  <th className="w-12 px-4 py-3" />
-                  <th className="px-2 py-3 font-medium">Immeuble</th>
-                  <th className="px-2 py-3 font-medium">Propriétaire</th>
-                  <th className="px-2 py-3 font-medium">Logements</th>
-                  <th className="px-2 py-3 font-medium">Adresse</th>
-                  <th className="px-2 py-3 font-medium">Statut</th>
-                  <th className="px-2 py-3 text-right font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {immeubles.map((i) => (
-                  <tr key={i.id} className="border-b border-surface-soft last:border-b-0">
-                    <td className="px-4 py-4">
-                      <label className="flex min-h-11 items-center md:min-h-0">
-                        <input
-                          type="checkbox"
-                          checked={selImm.includes(i.id)}
-                          onChange={() =>
-                            setSelImm((s) =>
-                              s.includes(i.id) ? s.filter((x) => x !== i.id) : [...s, i.id],
-                            )
-                          }
-                          aria-label={`Sélectionner ${i.nom}`}
-                        />
-                      </label>
-                    </td>
-                    <td className="px-2 py-4">
-                      <span className="inline-flex items-center gap-2 text-sm text-ink">
-                        <span className="flex size-7 items-center justify-center rounded-[8px] bg-surface-soft">
-                          <Building2 className="size-3 text-ink-body" />
+                >
+                  <td className="px-4 py-4">
+                    <label className="flex min-h-11 items-center md:min-h-0">
+                      <input
+                        type="checkbox"
+                        checked={selLog.includes(l.id)}
+                        onChange={() =>
+                          setSelLog((s) =>
+                            s.includes(l.id) ? s.filter((x) => x !== l.id) : [...s, l.id],
+                          )
+                        }
+                        aria-label={`Sélectionner ${l.nom}`}
+                      />
+                    </label>
+                  </td>
+                  <td className="px-2 py-4">
+                    <div className="flex items-start gap-2">
+                      <span className="mt-1 flex size-7 items-center justify-center rounded-[8px] bg-surface-soft">
+                        <Home className="size-3 text-ink-body" />
+                      </span>
+                      <div>
+                        <p className="text-sm text-ink">{l.nom}</p>
+                        <p className="text-[11px] text-ink-muted">
+                          {libelleCourt(l.typologie)} · {l.surface}
+                        </p>
+                        <span className="mt-0.5 inline-block rounded border border-line px-1.5 text-[10px] text-ink-subtle">
+                          {libelleUsage(
+                            fichesEffectives.get(l.id)?.usage ?? (l.meuble ? "meublé" : "vide"),
+                          )}
                         </span>
-                        {i.nom}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-2 py-4">
+                    <span className="inline-flex items-center gap-2">
+                      <span className="flex size-6 items-center justify-center rounded-full bg-line text-[10px] text-ink-body">
+                        {l.initiales}
                       </span>
-                    </td>
-                    <td className="px-2 py-4">
-                      <span className="inline-flex items-center gap-2">
-                        <span className="flex size-6 items-center justify-center rounded-full bg-line text-[10px]">
-                          {i.initiales}
-                        </span>
-                        {i.proprietaire}
-                      </span>
-                    </td>
-                    <td className="px-2 py-4">
-                      <span className="inline-flex items-center gap-1 text-ink-body">
-                        <Home className="size-3" /> {i.logements} logements
-                      </span>
-                    </td>
-                    <td className="px-2 py-4 text-ink-body">{i.adresse}</td>
-                    <td className="px-2 py-4">
-                      <BadgeStatut statut={i.statut} />
-                    </td>
-                    <td className="px-2 py-4">
-                      <div className="flex justify-end gap-1 text-ink-body">
+                      {l.proprietaire}
+                    </span>
+                  </td>
+                  <td className="px-2 py-4 text-ink-body">{l.immeuble}</td>
+                  <td className="px-2 py-4 text-ink-body">{l.adresse}</td>
+                  <td className="px-2 py-4">
+                    <span className="inline-flex items-center gap-1">
+                      <AlerteLieu
+                        nom={l.nom}
+                        alertes={alertesDe(l.id, l.nom)}
+                        onCompleter={(section) => ouvrirFiche(l.id, section)}
+                      />
+                      <Etoiles note={l.note} />
+                    </span>
+                  </td>
+                  <td className="px-2 py-4">
+                    <BadgeStatut statut={l.statut} />
+                  </td>
+                  <td className="px-2 py-4">
+                    <BtnOutline
+                      className="h-[30px]"
+                      onClick={() =>
+                        void navigate({
+                          to: "/documents",
+                          search: { vue: "logements", logement: l.nom },
+                        })
+                      }
+                    >
+                      <Eye className="size-2.5" /> Voir docs
+                    </BtnOutline>
+                  </td>
+                  <td className="px-2 py-4">
+                    <div className="flex justify-end gap-1 text-ink-body">
+                      <button
+                        type="button"
+                        aria-label={`Configurer ${l.nom}`}
+                        onClick={() => ouvrirFiche(l.id)}
+                        className="flex size-6 items-center justify-center rounded hover:bg-surface-soft"
+                      >
+                        <Pencil className="size-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Copier l'adresse de ${l.nom}`}
+                        onClick={() => copierTexte(l.adresse, "Adresse copiée.")}
+                        className="flex size-6 items-center justify-center rounded hover:bg-surface-soft"
+                      >
+                        <Copy className="size-3.5" />
+                      </button>
+                      {peutMod && (
                         <button
                           type="button"
-                          aria-label={`Copier l'adresse de ${i.nom}`}
-                          onClick={() => copierTexte(i.adresse, "Adresse copiée.")}
+                          aria-label={`Supprimer ${l.nom}`}
+                          onClick={() => supprimerLogements([l.id])}
                           className="flex size-6 items-center justify-center rounded hover:bg-surface-soft"
                         >
-                          <Copy className="size-3.5" />
+                          <Trash2 className="size-3.5" />
                         </button>
-                        {peutMod && (
-                          <button
-                            type="button"
-                            aria-label={`Supprimer ${i.nom}`}
-                            onClick={() => void supprimerImmeubles([i.id])}
-                            className="flex size-6 items-center justify-center rounded hover:bg-surface-soft"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </ScrollHint>
-          {immeubles.length === 0 && (
-            <p className="px-5 py-10 text-center text-sm text-ink-muted">
-              Aucun immeuble. Utilisez « Ajouter » pour en créer un.
-            </p>
-          )}
-          <p className="px-5 py-3 text-xs text-ink-muted">{immeubles.length} immeubles</p>
-        </section>
-      )}
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </ScrollHint>
+        {visibles.length === 0 && (
+          <p className="px-5 py-10 text-center text-sm text-ink-muted">
+            {filtreStatut === "tous"
+              ? "Aucun lieu dans le parc. Utilisez « Ajouter » pour en créer un."
+              : `Aucun lieu au statut « ${filtreStatut} ».`}
+          </p>
+        )}
+        <p className="px-5 py-3 text-xs text-ink-muted">{visibles.length} logements</p>
+      </section>
+
+      <section className="@container overflow-hidden rounded-card border border-line bg-white">
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-surface-soft px-5 py-4">
+          <p className="flex items-center gap-2 text-sm text-ink">
+            <Building2 className="size-4" />
+            Immeubles
+            <span className="rounded bg-surface-soft px-1.5 text-xs text-ink-subtle">
+              {immeubles.length}
+            </span>
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {peutMod && (
+              <BtnOutline
+                disabled={selImm.length === 0}
+                onClick={() => void supprimerImmeubles(selImm)}
+              >
+                <Trash2 className="size-3" /> Supprimer
+              </BtnOutline>
+            )}
+            <BtnOutline
+              onClick={() => {
+                const lignes = [
+                  "Nom;Adresse;Logements;Proprietaire;Statut",
+                  ...immeubles.map(
+                    (i) => `${i.nom};${i.adresse};${i.logements};${i.proprietaire};${i.statut}`,
+                  ),
+                ];
+                telechargerDemo("immeubles-hublify.csv", lignes.join("\n"));
+              }}
+            >
+              <Download className="size-3" /> Exporter
+            </BtnOutline>
+            {peutMod && (
+              <BtnNavy onClick={() => setAjouterImm(true)}>
+                <Plus className="size-3" /> Ajouter
+              </BtnNavy>
+            )}
+          </div>
+        </header>
+        <div className="divide-y divide-surface-soft @min-[740px]:hidden">
+          {immeubles.map((i) => (
+            <article key={i.id} className="px-4 py-4">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-medium text-ink">{i.nom}</p>
+                  <p className="text-xs text-ink-muted">
+                    {i.logements} logements · {i.proprietaire}
+                  </p>
+                  <p className="mt-1 text-xs text-ink-subtle">{i.adresse}</p>
+                </div>
+                <BadgeStatut statut={i.statut} />
+              </div>
+              <label className="mt-2 flex min-h-11 items-center gap-2 text-xs text-ink-muted">
+                <input
+                  type="checkbox"
+                  checked={selImm.includes(i.id)}
+                  onChange={() =>
+                    setSelImm((s) =>
+                      s.includes(i.id) ? s.filter((x) => x !== i.id) : [...s, i.id],
+                    )
+                  }
+                  aria-label={`Sélectionner ${i.nom}`}
+                />
+                Sélectionner
+              </label>
+              <div className={cn("mt-3 grid gap-2", peutMod ? "grid-cols-2" : "grid-cols-1")}>
+                <button
+                  type="button"
+                  onClick={() => copierTexte(i.adresse, "Adresse copiée.")}
+                  className="inline-flex h-11 items-center justify-center rounded-card border border-line text-xs font-medium text-ink-body"
+                >
+                  Copier l'adresse
+                </button>
+                {peutMod && (
+                  <button
+                    type="button"
+                    onClick={() => void supprimerImmeubles([i.id])}
+                    className="inline-flex h-11 items-center justify-center rounded-card border border-line text-xs font-medium text-ink-body"
+                  >
+                    Supprimer
+                  </button>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+        <ScrollHint className="hidden @min-[740px]:block">
+          <table className="w-full min-w-[700px] text-left text-xs">
+            <thead className="border-b border-surface-soft text-ink-subtle">
+              <tr>
+                <th className="w-12 px-4 py-3" />
+                <th className="px-2 py-3 font-medium">Immeuble</th>
+                <th className="px-2 py-3 font-medium">Propriétaire</th>
+                <th className="px-2 py-3 font-medium">Logements</th>
+                <th className="px-2 py-3 font-medium">Adresse</th>
+                <th className="px-2 py-3 font-medium">Statut</th>
+                <th className="px-2 py-3 text-right font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {immeubles.map((i) => (
+                <tr key={i.id} className="border-b border-surface-soft last:border-b-0">
+                  <td className="px-4 py-4">
+                    <label className="flex min-h-11 items-center md:min-h-0">
+                      <input
+                        type="checkbox"
+                        checked={selImm.includes(i.id)}
+                        onChange={() =>
+                          setSelImm((s) =>
+                            s.includes(i.id) ? s.filter((x) => x !== i.id) : [...s, i.id],
+                          )
+                        }
+                        aria-label={`Sélectionner ${i.nom}`}
+                      />
+                    </label>
+                  </td>
+                  <td className="px-2 py-4">
+                    <span className="inline-flex items-center gap-2 text-sm text-ink">
+                      <span className="flex size-7 items-center justify-center rounded-[8px] bg-surface-soft">
+                        <Building2 className="size-3 text-ink-body" />
+                      </span>
+                      {i.nom}
+                    </span>
+                  </td>
+                  <td className="px-2 py-4">
+                    <span className="inline-flex items-center gap-2">
+                      <span className="flex size-6 items-center justify-center rounded-full bg-line text-[10px]">
+                        {i.initiales}
+                      </span>
+                      {i.proprietaire}
+                    </span>
+                  </td>
+                  <td className="px-2 py-4">
+                    <span className="inline-flex items-center gap-1 text-ink-body">
+                      <Home className="size-3" /> {i.logements} logements
+                    </span>
+                  </td>
+                  <td className="px-2 py-4 text-ink-body">{i.adresse}</td>
+                  <td className="px-2 py-4">
+                    <BadgeStatut statut={i.statut} />
+                  </td>
+                  <td className="px-2 py-4">
+                    <div className="flex justify-end gap-1 text-ink-body">
+                      <button
+                        type="button"
+                        aria-label={`Copier l'adresse de ${i.nom}`}
+                        onClick={() => copierTexte(i.adresse, "Adresse copiée.")}
+                        className="flex size-6 items-center justify-center rounded hover:bg-surface-soft"
+                      >
+                        <Copy className="size-3.5" />
+                      </button>
+                      {peutMod && (
+                        <button
+                          type="button"
+                          aria-label={`Supprimer ${i.nom}`}
+                          onClick={() => void supprimerImmeubles([i.id])}
+                          className="flex size-6 items-center justify-center rounded hover:bg-surface-soft"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </ScrollHint>
+        {immeubles.length === 0 && (
+          <p className="px-5 py-10 text-center text-sm text-ink-muted">
+            Aucun immeuble. Utilisez « Ajouter » pour en créer un.
+          </p>
+        )}
+        <p className="px-5 py-3 text-xs text-ink-muted">{immeubles.length} immeubles</p>
+      </section>
 
       <FicheLieuDialog
         ouvert={Boolean(bienFiche)}

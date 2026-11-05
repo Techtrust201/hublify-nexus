@@ -288,6 +288,7 @@ function Editeur({
   onPage: (id: string) => void;
   onChange: (recette: (l: LivretAccueil) => LivretAccueil) => void;
 }) {
+  const [apercuMobile, setApercuMobile] = useState(false);
   const majPage = (partiel: Partial<PageLivret>) => {
     onChange((l) => ({
       ...l,
@@ -298,9 +299,50 @@ function Editeur({
 
   return (
     <div className="space-y-3">
-      <button type="button" onClick={onRetour} className="text-sm font-medium text-ink-body">
-        ← Tous les modèles
-      </button>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <button type="button" onClick={onRetour} className="text-sm font-medium text-ink-body">
+          ← Tous les modèles
+        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            aria-pressed={!apercuMobile}
+            onClick={() => setApercuMobile(false)}
+            className={cn(
+              "h-9 rounded-card border px-3 text-xs",
+              apercuMobile ? "border-line text-ink-body" : "border-ink bg-ink text-white",
+            )}
+          >
+            Aperçu
+          </button>
+          <button
+            type="button"
+            aria-pressed={apercuMobile}
+            onClick={() => setApercuMobile(true)}
+            className={cn(
+              "h-9 rounded-card border px-3 text-xs",
+              apercuMobile ? "border-ink bg-ink text-white" : "border-line text-ink-body",
+            )}
+          >
+            Mobile
+          </button>
+        </div>
+      </div>
+      <label className="block max-w-xl text-xs text-ink-muted">
+        Logement assigné
+        <input
+          value={livret.logement}
+          disabled={verrouille}
+          onChange={(e) =>
+            onChange((l) => ({
+              ...l,
+              logement: e.target.value,
+              modifieLe: new Date().toISOString().slice(0, 10),
+            }))
+          }
+          className="mt-1 h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none md:h-9"
+        />
+      </label>
       <label className="block max-w-xl text-xs text-ink-muted">
         Renommez ce livret
         <input
@@ -346,7 +388,10 @@ function Editeur({
           </p>
         }
         apercu={
-          <article style={{ background: livret.couleurFond }} className="rounded-card p-4">
+          <article
+            style={{ background: livret.couleurFond }}
+            className={cn("rounded-card p-4", apercuMobile && "mx-auto max-w-[280px]")}
+          >
             <p className="text-[11px] font-medium uppercase tracking-[0.4px] text-ink-muted">
               {livret.logo || "Logo"}
             </p>
