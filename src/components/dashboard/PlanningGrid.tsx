@@ -1143,7 +1143,7 @@ function MoisMissions({
                       "truncate rounded border px-1 py-0.5 text-[10px] text-ink-subtle",
                       r.id === selectedResaId
                         ? "border-ink bg-[#cce8f3]"
-                        : "border-line bg-[#cce8f3]",
+                        : "border-gest-barre-bord bg-[#cce8f3]",
                       selectionActive && r.id !== selectedResaId && "opacity-45",
                     )}
                   >

@@ -36,6 +36,7 @@ const ROUTES = [
   "/espace/logement",
   "/espace/messages",
   "/espace/missions",
+  "/missions",
   "/formations/se-former",
   "/formations/utiliser",
   "/assistance",

@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { PlanningGrid } from "@/components/dashboard/PlanningGrid";
+import { PlanningGrid, type FiltreMaquette } from "@/components/dashboard/PlanningGrid";
 import { PanneauEnDetails } from "@/components/dashboard/PanneauEnDetails";
 import { AppShell } from "@/components/layout/AppShell";
 import type { MissionMo1, OngletPlanning } from "@/data/planning-mo1";
@@ -22,6 +22,7 @@ function PageMissions() {
   const [onglet, setOnglet] = useState<OngletPlanning>("missions");
   const [mission, setMission] = useState<MissionMo1 | null>(null);
   const [resaId, setResaId] = useState<string | null>(null);
+  const [filtres, setFiltres] = useState<Set<FiltreMaquette>>(() => new Set());
   const navigate = useNavigate();
 
   return (
@@ -31,6 +32,9 @@ function PageMissions() {
       sousTitre="Interventions planifiées, par bien et par jour"
     >
       <PlanningGrid
+        maquetteAccueil
+        filtres={filtres}
+        onFiltres={setFiltres}
         onglet={onglet}
         onOnglet={(v) => {
           if (v === "reservations") navigate({ to: "/reservations" });
