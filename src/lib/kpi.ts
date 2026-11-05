@@ -4,9 +4,19 @@ import type { PaiementAnalyse } from "@/data/analyse-mo1";
 import { construireAnalyse, NUITS_MAX_COURTE_DUREE } from "@/lib/analyse-vue";
 import type { CanalAnalyse } from "@/lib/analyse-finance";
 
+export function syntheseLoyers(loyers: readonly { montant: number; valide: boolean }[]) {
+  const enAttente = loyers.filter((l) => !l.valide);
+  return {
+    nombre: loyers.length,
+    enAttente: enAttente.length,
+    impaye: enAttente.reduce((n, l) => n + l.montant, 0),
+    total: loyers.reduce((n, l) => n + l.montant, 0),
+  };
+}
+
 export function calculerKpi(s: EtatSession, aujourdhui = AUJOURD_HUI_MO1) {
-  const loyersRetard = s.loyers.filter((l) => !l.valide);
-  const impaye = loyersRetard.reduce((n, l) => n + l.montant, 0);
+  const loyers = syntheseLoyers(s.loyers);
+  const impaye = loyers.impaye;
   const checkIn = s.reservationsDossier.filter(
     (r) => r.arrivee === aujourdhui && r.statut !== "Annulé",
   ).length;
@@ -23,7 +33,7 @@ export function calculerKpi(s: EtatSession, aujourdhui = AUJOURD_HUI_MO1) {
   const enCours = s.missions.filter((m) => m.statut === "en_cours").length;
   const reservationsActives = s.reservationsDossier.filter((r) => r.statut !== "Annulé").length;
   return {
-    loyersRetard: loyersRetard.length,
+    loyersRetard: loyers.enAttente,
     impaye,
     checkIn,
     checkOut,

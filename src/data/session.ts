@@ -67,7 +67,7 @@ export type StatutSync =
   | { etat: "inactif" }
   | { etat: "en-cours" }
   | { etat: "enregistre"; a: number }
-  | { etat: "echec"; depuis: number; raison: string };
+  | { etat: "echec"; depuis: number; raison: string; origine: "lecture" | "ecriture" };
 
 const INACTIF: StatutSync = { etat: "inactif" };
 
@@ -110,6 +110,31 @@ function poserStatut(prochain: StatutSync) {
   abonnesStatut.forEach((fn) => fn());
 }
 
+let lectureEchouee = false;
+const abonnesLecture = new Set<() => void>();
+
+function poserLecture(echouee: boolean) {
+  if (lectureEchouee === echouee) return;
+  lectureEchouee = echouee;
+  abonnesLecture.forEach((fn) => fn());
+}
+
+function signalerEchec(raison: string, origine: "lecture" | "ecriture") {
+  if (origine === "lecture") poserLecture(true);
+  poserStatut({ etat: "echec", depuis: Date.now(), raison, origine });
+}
+
+export function useLectureEchouee() {
+  return useSyncExternalStore(
+    (fn) => {
+      abonnesLecture.add(fn);
+      return () => abonnesLecture.delete(fn);
+    },
+    () => lectureEchouee,
+    () => false,
+  );
+}
+
 function patchSale(): Partial<EtatSession> {
   const patch: Partial<EtatSession> = {};
   for (const cle of sales) {
@@ -132,7 +157,7 @@ async function pousser(): Promise<boolean> {
         poserStatut({ etat: "inactif" });
         return true;
       }
-      poserStatut({ etat: "echec", depuis: Date.now(), raison: res.raison });
+      signalerEchec(res.raison, "ecriture");
       return false;
     }
     sales.clear();
@@ -140,11 +165,7 @@ async function pousser(): Promise<boolean> {
     poserStatut({ etat: "enregistre", a: Date.now() });
     return true;
   } catch (e) {
-    poserStatut({
-      etat: "echec",
-      depuis: Date.now(),
-      raison: e instanceof Error ? e.message : "reseau",
-    });
+    signalerEchec(e instanceof Error ? e.message : "reseau", "ecriture");
     return false;
   }
 }
@@ -216,17 +237,30 @@ function marquerDistantCharge(gen: number) {
   abonnes.forEach((fn) => fn());
 }
 
+let hydratationEnCours: Promise<void> | null = null;
+let hydratationGeneration = -1;
+
 async function hydraterDistant() {
+  if (hydratationEnCours && hydratationGeneration === generation) return hydratationEnCours;
   const gen = generation;
+  hydratationGeneration = gen;
+  hydratationEnCours = executerHydratation(gen).finally(() => {
+    if (hydratationGeneration === gen) hydratationEnCours = null;
+  });
+  return hydratationEnCours;
+}
+
+async function executerHydratation(gen: number) {
   try {
     const distant = await chargerEtatDistant();
     if (gen !== generation) return;
     if (!distant.ok) {
       if (distant.raison !== "non_configure") {
-        poserStatut({ etat: "echec", depuis: Date.now(), raison: distant.raison });
+        signalerEchec(distant.raison, "lecture");
       }
       return;
     }
+    poserLecture(false);
     ignorePush = true;
     const dossiers = completerDossiersCanon(distant.payload.dossiersLocation);
     etat = corrigerCorpusDemo({
@@ -253,11 +287,7 @@ async function hydraterDistant() {
     await migrerDonneesLocales(etat);
   } catch (e) {
     if (gen !== generation) return;
-    poserStatut({
-      etat: "echec",
-      depuis: Date.now(),
-      raison: e instanceof Error ? e.message : "reseau",
-    });
+    signalerEchec(e instanceof Error ? e.message : "reseau", "lecture");
   } finally {
     // Succès comme échec : l'attente est terminée. Un écran de détail qui
     // patienterait indéfiniment serait pire qu'un écran qui conclut.
@@ -302,6 +332,10 @@ export function hydraterSession(userId?: string | null) {
 export function reessayerSync() {
   if (repriseTimer) clearTimeout(repriseTimer);
   tentatives = 0;
+  if (statutSync.etat === "echec" && statutSync.origine === "lecture") {
+    void hydraterDistant();
+    return;
+  }
   void pousser().then((ok) => {
     if (!ok) programmerReprise();
   });
@@ -381,7 +415,8 @@ export function poserParametrage(
 }
 
 export function idNouveau(prefixe: string) {
-  return `${prefixe}-${Date.now().toString(36)}`;
+  const alea = Math.random().toString(36).slice(2, 8);
+  return `${prefixe}-${Date.now().toString(36)}-${alea}`;
 }
 
 export function poserOuverturesBail(bienId: string, debut: string, fin: string) {
@@ -418,8 +453,25 @@ export function ouvrirConversationProspect(params: {
     ...(params.assigne ? { assigne: params.assigne } : {}),
   };
   appliquerLocal((e) => ({ ...e, conversations: [ligne, ...e.conversations] }));
-  void pousserLigne("conversations", ligne).then((ok) => !ok && programmerReprise());
+  const promesse = pousserLigne("conversations", ligne).then((ok) => {
+    if (!ok) programmerReprise();
+    return ok;
+  });
+  apresConversation.set(id, promesse);
   return id;
+}
+
+const apresConversation = new Map<string, Promise<boolean>>();
+
+export function ajouterMessageFil(message: EtatSession["messagesFil"][number]) {
+  appliquerLocal((e) => ({ ...e, messagesFil: [...e.messagesFil, message] }));
+  const attente = apresConversation.get(message.conversationId) ?? Promise.resolve(true);
+  void attente.then((ok) => {
+    if (!ok) return;
+    return pousserLigne("messagesFil", message).then((suite) => {
+      if (!suite) programmerReprise();
+    });
+  });
 }
 
 async function pousserLigne(collection: CollectionMetier, item: { id: string }): Promise<boolean> {
@@ -431,17 +483,13 @@ async function pousserLigne(collection: CollectionMetier, item: { id: string }):
         poserStatut({ etat: "inactif" });
         return true;
       }
-      poserStatut({ etat: "echec", depuis: Date.now(), raison: res.raison });
+      signalerEchec(res.raison, "ecriture");
       return false;
     }
     poserStatut({ etat: "enregistre", a: Date.now() });
     return true;
   } catch (e) {
-    poserStatut({
-      etat: "echec",
-      depuis: Date.now(),
-      raison: e instanceof Error ? e.message : "reseau",
-    });
+    signalerEchec(e instanceof Error ? e.message : "reseau", "ecriture");
     return false;
   }
 }
@@ -459,17 +507,13 @@ async function pousserPatch(
         poserStatut({ etat: "inactif" });
         return true;
       }
-      poserStatut({ etat: "echec", depuis: Date.now(), raison: res.raison });
+      signalerEchec(res.raison, "ecriture");
       return false;
     }
     poserStatut({ etat: "enregistre", a: Date.now() });
     return true;
   } catch (e) {
-    poserStatut({
-      etat: "echec",
-      depuis: Date.now(),
-      raison: e instanceof Error ? e.message : "reseau",
-    });
+    signalerEchec(e instanceof Error ? e.message : "reseau", "ecriture");
     return false;
   }
 }

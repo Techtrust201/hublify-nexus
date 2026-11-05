@@ -1,4 +1,5 @@
 import type { DroitId, RoleId } from "@/auth/permissions";
+import { filtrerConversationsPrestataire, filtrerEtatPourRole, nomActeur } from "@/data/portee-role";
 import {
   COLLECTIONS_METIER,
   TABLE_COLLECTION,
@@ -662,7 +663,7 @@ export async function assemblerEtat(sql: Sql, org: OrgSession): Promise<EtatSess
         "conversations",
         gestId,
       )) as EtatSession["conversations"];
-      etat.conversations = conv.filter((c) => c.type === "prestataire");
+      etat.conversations = filtrerConversationsPrestataire(conv, nomActeur(org));
       const convIds = new Set(etat.conversations.map((c) => c.id));
       const fils = (await listerCollection(
         sql,
@@ -684,108 +685,8 @@ export async function assemblerEtat(sql: Sql, org: OrgSession): Promise<EtatSess
   return filtrerEtatPortail(etat, org);
 }
 
-function nomComplet(org: OrgSession) {
-  return `${org.prenom ?? ""} ${org.nom ?? ""}`.trim().toLowerCase();
-}
-
 function filtrerEtatPortail(etat: EtatSession, org: OrgSession): EtatSession {
-  const email = (org.email ?? "").trim().toLowerCase();
-  const nom = nomComplet(org);
-  if (!email && !nom) return etat;
-
-  if (org.roleId === "locataire") {
-    const occupants = etat.occupants.filter(
-      (o) => o.email.toLowerCase() === email || o.nom.toLowerCase() === nom,
-    );
-    const noms = new Set(occupants.map((o) => o.nom.toLowerCase()));
-    const logements = new Set(occupants.map((o) => o.logement.toLowerCase()));
-    const biens = etat.biens.filter((b) => logements.has((b.nom ?? "").toLowerCase()));
-    const bienIds = new Set(biens.map((b) => b.id));
-    const resas = etat.reservationsDossier.filter(
-      (r) => noms.has(r.occupant.toLowerCase()) || r.email.toLowerCase() === email,
-    );
-    const dossiers = etat.dossiersLocation.filter(
-      (d) => d.email.toLowerCase() === email || noms.has(d.occupantNom.toLowerCase()),
-    );
-    const dossierIds = new Set(dossiers.map((d) => d.id));
-    const conversations = etat.conversations.filter(
-      (c) => noms.has(c.nom.toLowerCase()) || (c.assigne ?? "").toLowerCase() === email,
-    );
-    const convIds = new Set(conversations.map((c) => c.id));
-    return {
-      ...etat,
-      occupants,
-      biens,
-      reservationsDossier: resas,
-      reservationsCalendrier: etat.reservationsCalendrier.filter((r) => bienIds.has(r.bienId)),
-      documents: etat.documents.filter(
-        (d) =>
-          logements.has(d.logement.toLowerCase()) ||
-          biens.some((b) => d.logement.toLowerCase().includes(b.nom.toLowerCase())),
-      ),
-      loyers: etat.loyers.filter((l) => noms.has(l.locataire.toLowerCase())),
-      conversations,
-      messagesFil: etat.messagesFil.filter((m) => convIds.has(m.conversationId)),
-      dossiersLocation: dossiers,
-      partagesDossier: etat.partagesDossier.filter((p) => dossierIds.has(p.dossierId)),
-      candidatures: etat.candidatures.filter((c) => dossierIds.has(c.dossierId)),
-      missions: [],
-    };
-  }
-
-  if (org.roleId === "voyageur") {
-    const resas = etat.reservationsDossier.filter(
-      (r) => r.email.toLowerCase() === email || r.occupant.toLowerCase() === nom,
-    );
-    const bienIds = new Set(resas.map((r) => r.bienId));
-    const biens = etat.biens.filter((b) => bienIds.has(b.id));
-    const noms = new Set(resas.map((r) => r.occupant.toLowerCase()));
-    const conversations = etat.conversations.filter(
-      (c) => noms.has(c.nom.toLowerCase()) || (c.assigne ?? "").toLowerCase() === email,
-    );
-    const convIds = new Set(conversations.map((c) => c.id));
-    return {
-      ...etat,
-      reservationsDossier: resas,
-      reservationsCalendrier: etat.reservationsCalendrier.filter((r) => bienIds.has(r.bienId)),
-      biens,
-      occupants: etat.occupants.filter(
-        (o) => o.email.toLowerCase() === email || noms.has(o.nom.toLowerCase()),
-      ),
-      documents: etat.documents.filter((d) =>
-        biens.some((b) => d.logement.toLowerCase().includes(b.nom.toLowerCase())),
-      ),
-      conversations,
-      messagesFil: etat.messagesFil.filter((m) => convIds.has(m.conversationId)),
-      missions: [],
-    };
-  }
-
-  if (org.roleId === "proprietaire") {
-    const biens = etat.biens.filter((b) => (b.proprietaire ?? "").toLowerCase() === nom);
-    const immeubles = etat.immeubles.filter((i) => i.proprietaire.toLowerCase() === nom);
-    const bienIds = new Set(biens.map((b) => b.id));
-    const nomsBiens = new Set(biens.map((b) => b.nom.toLowerCase()));
-    const conversations = etat.conversations.filter(
-      (c) => c.type === "team" || c.nom.toLowerCase() === nom,
-    );
-    const convIds = new Set(conversations.map((c) => c.id));
-    return {
-      ...etat,
-      biens,
-      immeubles,
-      reservationsDossier: etat.reservationsDossier.filter((r) => bienIds.has(r.bienId)),
-      loyers: etat.loyers.filter((l) => nomsBiens.has(l.bienNom.toLowerCase())),
-      documents: etat.documents.filter(
-        (d) => d.vue === "proprio" || nomsBiens.has(d.logement.toLowerCase()),
-      ),
-      conversations,
-      messagesFil: etat.messagesFil.filter((m) => convIds.has(m.conversationId)),
-      missions: [],
-    };
-  }
-
-  return etat;
+  return filtrerEtatPourRole(etat, org);
 }
 
 // --------------------------------------------------------------- écritures

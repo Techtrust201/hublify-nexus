@@ -43,6 +43,13 @@ describe("permissions", () => {
     expect(droits).toEqual(["messagerie"]);
   });
 
+  it("plafonne les droits au rôle, même si la base en contient trop", () => {
+    expect(droitsEffectifs("gestionnaire", ["gerer-equipe", "messagerie"])).toEqual([
+      "messagerie",
+    ]);
+    expect(droitsEffectifs("lecteur", ["mod-finances", "voir-biens"])).toEqual(["voir-biens"]);
+  });
+
   it("traite un accès personnalisé vide comme restreint, pas comme le profil", () => {
     expect(droitsEffectifs("gestionnaire", ["__restreint__"])).toEqual([]);
     expect(droitsEffectifs("gestionnaire", [])).toEqual(DROITS_PAR_ROLE.gestionnaire);

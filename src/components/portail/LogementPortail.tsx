@@ -292,7 +292,7 @@ export function CodesSejour() {
     let vivant = true;
     void chargerAccesLieux().then((res) => {
       if (!vivant || !res.ok) return;
-      const ligne = res.acces.find((a) => a.bienId === bien?.id) ?? res.acces[0];
+      const ligne = bien ? res.acces.find((a) => a.bienId === bien.id) : undefined;
       if (ligne) setAcces({ wifi: `${ligne.wifi} · ${ligne.wifiMdp}`, code: ligne.codeCles });
     });
     return () => {

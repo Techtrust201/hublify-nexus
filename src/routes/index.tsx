@@ -21,6 +21,7 @@ import {
   marquerQuittance,
   rembourserLoyer,
   useSession,
+  useSessionChargee,
   validerLoyer,
 } from "@/data/session";
 import type { LoyerMo1, MissionMo1, OngletPlanning } from "@/data/planning-mo1";
@@ -59,6 +60,13 @@ function VueGenerale() {
   }, []);
   const navigate = useNavigate();
   const session = useSession();
+  const chargee = useSessionChargee();
+  const compteVide =
+    chargee &&
+    session.biens.length === 0 &&
+    session.reservationsDossier.length === 0 &&
+    session.loyers.length === 0 &&
+    session.missions.length === 0;
   const voirFinances = useDroit("voir-finances");
   const voirMessages = useDroit("messagerie");
   const voirCalendrier = useDroit("voir-calendrier");
@@ -76,6 +84,12 @@ function VueGenerale() {
 
   return (
     <AppShell attendDonnees>
+      {compteVide && (
+        <p className="mb-4 rounded-card border border-line bg-white px-4 py-3 text-sm text-ink-muted">
+          Cet espace ne contient encore aucun logement, séjour ou loyer. Les indicateurs resteront
+          à zéro tant que vous n'aurez rien enregistré.
+        </p>
+      )}
       <KpiCards versImpayes="/analyse" />
 
       {voirCalendrier && (

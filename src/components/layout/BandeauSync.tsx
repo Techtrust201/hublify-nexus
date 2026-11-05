@@ -12,7 +12,11 @@ export function BandeauSync() {
   const message =
     statut.raison === "non_authentifie"
       ? "Votre session a expiré : reconnectez-vous pour enregistrer vos modifications."
-      : "Vos dernières modifications ne sont pas enregistrées sur le serveur.";
+      : statut.raison === "invalide"
+        ? "Le serveur a refusé des informations (montant, date ou texte). Corrigez-les puis réessayez."
+        : statut.origine === "lecture"
+          ? "Impossible de charger vos données. Rien n'a été effacé : réessayez."
+          : "Vos dernières modifications ne sont pas enregistrées sur le serveur.";
 
   return (
     <div

@@ -24,6 +24,7 @@ import { DialogueConfirmation } from "@/components/ui/dialogue-confirmation";
 import { Toaster } from "@/components/ui/sonner";
 import { hydraterSession } from "@/data/session";
 import { getSession } from "@/lib/auth.functions";
+import { CLE_DECONNEXION } from "@/lib/fin-session";
 import { estCheminAuth, estCheminMarketing } from "@/lib/routes-publiques";
 import appCss from "../styles.css?url";
 
@@ -208,6 +209,25 @@ function RootComponent() {
     document.addEventListener("focusin", surFocus);
     return () => document.removeEventListener("focusin", surFocus);
   }, []);
+
+  useEffect(() => {
+    if (!auth) return;
+    const surStorage = (e: StorageEvent) => {
+      if (e.key === CLE_DECONNEXION) window.location.assign("/connexion");
+    };
+    const surVisibilite = () => {
+      if (document.visibilityState !== "visible") return;
+      void getSession().then((session) => {
+        if (!session) window.location.assign("/connexion");
+      });
+    };
+    window.addEventListener("storage", surStorage);
+    document.addEventListener("visibilitychange", surVisibilite);
+    return () => {
+      window.removeEventListener("storage", surStorage);
+      document.removeEventListener("visibilitychange", surVisibilite);
+    };
+  }, [auth]);
 
   return (
     <QueryClientProvider client={queryClient}>

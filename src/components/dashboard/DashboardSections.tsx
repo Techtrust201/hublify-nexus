@@ -16,6 +16,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import type { CanalMo1, EvenementMo1, LoyerMo1, MessageMo1 } from "@/data/planning-mo1";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useKpiMo1, useSession } from "@/data/session";
+import { syntheseLoyers } from "@/lib/kpi";
 import { METHODES_PAIEMENT } from "@/data/v1-metier";
 import { copierTexte, toastErreur } from "@/lib/feedback";
 import { messageRelancePaiement, resteADevoir } from "@/lib/gestionnaire-planning";
@@ -283,7 +284,7 @@ export function LoyersSection({
 }) {
   const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.loyers", true);
   const peutValider = useDroit("mod-finances");
-  const total = loyers.reduce((s, l) => s + l.montant, 0);
+  const synthese = syntheseLoyers(loyers);
   const [aValider, setAValider] = useState<LoyerMo1 | null>(null);
   const [aRembourser, setARembourser] = useState<LoyerMo1 | null>(null);
   const [montantRembourse, setMontantRembourse] = useState("");
@@ -304,7 +305,10 @@ export function LoyersSection({
           <FileCheck className="size-4 shrink-0" />
           Les Loyers et paiements en attente
           <span className="basis-full text-xs text-ink-muted sm:basis-auto">
-            {loyers.length} paiements totaux · {total.toLocaleString("fr-FR")} €
+            {synthese.enAttente} en attente · {synthese.impaye.toLocaleString("fr-FR")} €
+            {synthese.nombre !== synthese.enAttente
+              ? ` · ${synthese.nombre} au total`
+              : ""}
           </span>
         </span>
         {ouvert ? (
@@ -313,7 +317,12 @@ export function LoyersSection({
           <ChevronDown className="size-4 text-ink-muted" />
         )}
       </button>
-      {ouvert && (
+      {ouvert && synthese.nombre === 0 && (
+        <p className="px-4 py-6 text-sm text-ink-muted">
+          Aucun loyer pour le moment. Ils apparaîtront ici dès qu'une échéance sera enregistrée.
+        </p>
+      )}
+      {ouvert && synthese.nombre > 0 && (
         <ul>
           {loyers.map((l) => (
             <li

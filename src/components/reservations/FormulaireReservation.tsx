@@ -59,6 +59,7 @@ export function FormulaireReservation({
   const peutParametrer = useDroit("mod-biens");
   const edition = Boolean(reservationId);
   const prefillId = useRef<string | null>(null);
+  const enregistrement = useRef(false);
   const heuresInit = useRef(false);
   const [typeOuvert, setTypeOuvert] = useState(false);
   const [type, setType] = useState<TypeReservationMo1 | "">("");
@@ -255,7 +256,20 @@ export function FormulaireReservation({
       return;
     }
     const nuits = Math.max(1, Number(duree) || nuitsEntre(checkIn, checkOut));
-    const prix = Number(prixNuit) || 0;
+    const prixSaisi = Number(prixNuit.replace(",", "."));
+    if (!Number.isFinite(prixSaisi) || prixSaisi < 0) {
+      toastErreur("Le prix par nuit ne peut pas être négatif.");
+      return;
+    }
+    if (prixSaisi === 0) {
+      toastErreur("Indiquez un prix par nuit supérieur à zéro.");
+      return;
+    }
+    if (occupant.trim().length > 200 || email.trim().length > 200) {
+      toastErreur("Le nom ou l'e-mail est trop long.");
+      return;
+    }
+    const prix = prixSaisi;
     const total = prix * nuits;
     const taxe = Math.max(0, Number(taxeSejour.replace(",", ".")) || 0);
     const commPct = Math.max(0, Number(commissionPct.replace(",", ".")) || 0);
@@ -339,7 +353,7 @@ export function FormulaireReservation({
       });
       toastOk("Réservation mise à jour.");
       void navigate({ to: "/reservations", search: { vue: "liste", resa: reservationId } });
-      return;
+      return true;
     }
     const id = idNouveau("r");
     ajouterReservation({
@@ -410,6 +424,7 @@ export function FormulaireReservation({
     });
     toastOk("Réservation créée.");
     void navigate({ to: "/reservations", search: { vue: "liste", resa: id } });
+    return true;
   };
 
   const nombre = (v: string) => Number(v.replace(",", ".")) || 0;
@@ -928,7 +943,11 @@ export function FormulaireReservation({
             <div className="flex justify-center">
               <button
                 type="button"
-                onClick={creer}
+                onClick={() => {
+                  if (enregistrement.current) return;
+                  enregistrement.current = true;
+                  if (!creer()) enregistrement.current = false;
+                }}
                 className="inline-flex h-11 items-center gap-2 rounded-card bg-ink px-8 text-sm font-medium text-white"
               >
                 <Check className="size-3.5" />

@@ -64,9 +64,10 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 7,
     updateAge: 60 * 60 * 24,
+    // Pas de cache cookie : un changement de mot de passe, une révocation ou
+    // une déconnexion doit être vu à la requête suivante, pas cinq minutes plus tard.
     cookieCache: {
-      enabled: true,
-      maxAge: 5 * 60,
+      enabled: false,
     },
   },
   advanced: {

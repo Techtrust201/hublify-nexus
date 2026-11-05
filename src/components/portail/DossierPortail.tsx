@@ -27,6 +27,7 @@ import {
 import { GESTIONNAIRE_PORTAIL, JUSTIFICATIFS_REVENUS, resumeFamille } from "@/lib/portail-mobile";
 import { oublierEtatMetierLocal } from "@/components/portail/etat-local";
 import { authClient } from "@/lib/auth-client";
+import { signalerDeconnexion } from "@/lib/fin-session";
 import { toastErreur, toastOk } from "@/lib/feedback";
 
 const AVANT_DERNIER: PieceDossier = {
@@ -90,14 +91,15 @@ function Profil() {
       </Bouton>
       <Bouton
         variante="ligne"
-        onClick={() =>
+        onClick={() => {
+          signalerDeconnexion();
           void authClient.signOut().then(() => {
             oublierEtatsLocaux(null);
             oublierEtatMetierLocal();
             toastOk("Vous êtes déconnecté.");
             window.location.href = "/connexion";
-          })
-        }
+          });
+        }}
       >
         Se déconnecter
       </Bouton>
