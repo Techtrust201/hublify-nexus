@@ -14,6 +14,7 @@ import {
   type PieceEdl,
 } from "@/data/edl-mo1";
 import { formatDateLongue } from "@/data/reservations-mo1";
+import { projeterDateDemo } from "@/lib/periode-demo";
 import { poserCollection, useSession } from "@/data/session";
 import {
   choisirFichierComplet,
@@ -23,6 +24,15 @@ import {
   toastOk,
 } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
+
+function dateEdlAffichee(iso: string, maintenant = new Date()) {
+  const [annee, mois, jour] = iso.split("-").map(Number);
+  if (!annee || !mois || !jour) return formatDateLongue(iso);
+  const projetee = projeterDateDemo(new Date(annee, mois - 1, jour), maintenant);
+  const m = String(projetee.getMonth() + 1).padStart(2, "0");
+  const j = String(projetee.getDate()).padStart(2, "0");
+  return formatDateLongue(`${projetee.getFullYear()}-${m}-${j}`);
+}
 
 export const Route = createFileRoute("/outils/etats-des-lieux")({
   head: () => ({
@@ -93,7 +103,7 @@ function PageEdl() {
       type: "EDL",
       filtre: "États des lieux",
       logement: d.logement,
-      date: formatDateLongue(d.date),
+      date: dateEdlAffichee(d.date),
       taille: "PDF",
       modifiePar: "Vous",
       photos: d.pieces.reduce((n, p) => n + p.photos.length, 0),
@@ -202,7 +212,7 @@ function PageEdl() {
       ),
     );
     setPieceId(null);
-    toastOk(`Pièces reprises depuis l'état des lieux du ${formatDateLongue(source.date)}.`);
+    toastOk(`Pièces reprises depuis l'état des lieux du ${dateEdlAffichee(source.date)}.`);
   };
 
   return (
@@ -301,7 +311,7 @@ function PageEdl() {
                     <span>
                       <span className="block text-sm text-ink">{d.logement}</span>
                       <span className="text-xs text-ink-muted">
-                        {d.type} · {d.occupant} · {formatDateLongue(d.date)}
+                        {d.type} · {d.occupant} · {dateEdlAffichee(d.date)}
                       </span>
                     </span>
                     <span className="rounded border border-line px-2 py-0.5 text-xs text-ink-subtle">
@@ -337,7 +347,7 @@ function PageEdl() {
           </button>
           <EspaceRedaction
             titre={`${dossier.type} — ${dossier.logement}`}
-            sousTitre={`${dossier.occupant} · ${formatDateLongue(dossier.date)} · Rédigé dans la session`}
+            sousTitre={`${dossier.occupant} · ${dateEdlAffichee(dossier.date)} · Rédigé dans la session`}
             unite="pièces renseignées"
             pages={dossier.pieces.map((p) => ({
               id: p.id,
@@ -388,7 +398,7 @@ function PageEdl() {
                         .filter((d) => d.logement === dossier.logement && d.id !== dossier.id)
                         .map((d) => (
                           <option key={d.id} value={d.id}>
-                            {d.type} · {formatDateLongue(d.date)}
+                            {d.type} · {dateEdlAffichee(d.date)}
                           </option>
                         ))}
                     </select>
@@ -556,8 +566,7 @@ function Comparaison({
           </select>
         </label>
         <p className="text-xs text-ink-muted">
-          Entrée {formatDateLongue(paire.entree.date)} · Sortie{" "}
-          {formatDateLongue(paire.sortie.date)}
+          Entrée {dateEdlAffichee(paire.entree.date)} · Sortie {dateEdlAffichee(paire.sortie.date)}
         </p>
       </div>
       {paire.entree.pieces.map((entree) => {

@@ -34,6 +34,7 @@ import {
   useSession,
 } from "@/data/session";
 import { toastErreur, toastOk } from "@/lib/feedback";
+import { emailValide, telephoneValide } from "@/lib/saisie";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/outils/debuter")({
@@ -57,15 +58,52 @@ const DOCS_RECUS = [
   "Inventaire du logement",
 ];
 
-const FAQ = [
-  "Planifie-t-on des soirées ou un propriétaire des propriétés du bail",
-  "Je reçois une proposition de bail de la part des gestionnaires",
-  "Je deviens la proposition de bail d'une propriété n'est apporté",
-  "Le bail signé est-il envoyé au gestionnaire ? Paiement des arrhes",
-  "Je reçois la confirmation du bail au moment du premier paiement",
-  "Je reçois le bail contractuel de mon logement après signature",
-  "Quelques jours avant mon arrivée dans ce lieu, que faire ?",
+const FAQ: Array<{ question: string; reponse: string }> = [
+  {
+    question: "Comment ajouter mon premier logement ?",
+    reponse:
+      "Ouvrez Lieux, puis « Ajouter un lieu ou logement ». Le type, l'adresse et le livret d'accueil se renseignent dans la fiche.",
+  },
+  {
+    question: "Comment créer une réservation ?",
+    reponse:
+      "Depuis Réservations, choisissez le type de séjour, le logement, l'occupant et des dates qui ne se chevauchent pas. Le planning se met à jour aussitôt.",
+  },
+  {
+    question: "Comment assigner une mission de ménage ?",
+    reponse:
+      "Sur le planning, ouvrez le jour du logement et ajoutez une prestation. Vous pouvez aussi la créer à la fin de ce parcours.",
+  },
+  {
+    question: "Où suivre les paiements et les arrhes ?",
+    reponse:
+      "La vue générale liste les loyers en attente. Le détail des encaissements, commissions et quittances est dans Analyse.",
+  },
+  {
+    question: "Comment envoyer un bail au locataire ?",
+    reponse:
+      "Depuis la messagerie, ouvrez la conversation puis la proposition de bail. Le brouillon s'enregistre avant l'envoi pour signature.",
+  },
+  {
+    question: "Que se passe-t-il après la signature du bail ?",
+    reponse:
+      "Le bail signé rejoint les documents de l'occupant. La caution et le premier loyer se suivent dans Analyse et sur la fiche.",
+  },
+  {
+    question: "Que préparer quelques jours avant l'arrivée ?",
+    reponse:
+      "Vérifiez le pré-check-in, le livret d'accueil et la mission de ménage. Le code d'accès ne part qu'une fois le dossier complet.",
+  },
 ];
+
+function isoPlus(jours: number) {
+  const date = new Date();
+  date.setHours(12, 0, 0, 0);
+  date.setDate(date.getDate() + jours);
+  const mois = String(date.getMonth() + 1).padStart(2, "0");
+  const jour = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${mois}-${jour}`;
+}
 
 function PageDebuter() {
   const navigate = useNavigate();
@@ -76,8 +114,8 @@ function PageDebuter() {
   const [voyageur, setVoyageur] = useState("Léa Moreau");
   const [email, setEmail] = useState("lea.moreau@email.fr");
   const [telephone, setTelephone] = useState("+33 6 12 34 56 78");
-  const [arrivee, setArrivee] = useState("2026-03-12");
-  const [depart, setDepart] = useState("2026-03-16");
+  const [arrivee, setArrivee] = useState(() => isoPlus(14));
+  const [depart, setDepart] = useState(() => isoPlus(18));
   const [missionTitre, setMissionTitre] = useState("Ménage de bienvenue");
   const [missionHeure, setMissionHeure] = useState("10:00");
   const [nouveauBien, setNouveauBien] = useState("");
@@ -92,8 +130,16 @@ function PageDebuter() {
       toastErreur("Ajoutez un bien avant de créer une réservation.");
       return;
     }
-    if (!voyageur.trim() || !email.trim() || !telephone.trim() || !arrivee || !depart) {
-      toastErreur("Renseignez le voyageur, le contact et les dates.");
+    if (!voyageur.trim() || !arrivee || !depart) {
+      toastErreur("Renseignez le voyageur et les dates.");
+      return;
+    }
+    if (!emailValide(email)) {
+      toastErreur("Indiquez un e-mail valide pour le voyageur.");
+      return;
+    }
+    if (!telephoneValide(telephone)) {
+      toastErreur("Indiquez un téléphone valide pour le voyageur.");
       return;
     }
     if (depart <= arrivee) {
@@ -602,17 +648,16 @@ function PageDebuter() {
             Consultez nos réponses aux questions fréquentes pour trouver une solution rapide.
           </p>
           <Accordion type="single" collapsible className="mt-2">
-            {FAQ.map((question) => (
-              <AccordionItem key={question} value={question}>
+            {FAQ.map((item) => (
+              <AccordionItem key={item.question} value={item.question}>
                 <AccordionTrigger className="text-left text-sm font-normal text-ink hover:no-underline">
                   <span className="flex items-start gap-2">
                     <HelpCircle className="mt-0.5 size-4 shrink-0 text-ink-muted" />
-                    {question}
+                    {item.question}
                   </span>
                 </AccordionTrigger>
                 <AccordionContent className="text-sm text-ink-subtle">
-                  Le gestionnaire répond depuis la messagerie. Ouvrez le fil du logement pour suivre
-                  la proposition de bail, les arrhes et la caution.
+                  {item.reponse}
                 </AccordionContent>
               </AccordionItem>
             ))}

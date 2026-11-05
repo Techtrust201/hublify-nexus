@@ -27,6 +27,7 @@ import {
   useSession,
 } from "@/data/session";
 import { toastErreur, toastOk } from "@/lib/feedback";
+import { emailValide, telephoneValide } from "@/lib/saisie";
 import {
   estImportOta,
   lignesServicesImport,
@@ -221,8 +222,12 @@ export function FormulaireReservation({
       toastErreur("Renseignez le logement, l'occupant et les dates.");
       return;
     }
-    if (!email.trim() || !telephone.trim()) {
-      toastErreur("Renseignez l'e-mail et le téléphone de l'occupant.");
+    if (!emailValide(email)) {
+      toastErreur("Indiquez un e-mail valide pour l'occupant.");
+      return;
+    }
+    if (!telephoneValide(telephone)) {
+      toastErreur("Indiquez un téléphone valide pour l'occupant (8 chiffres au minimum).");
       return;
     }
     if (checkOut <= checkIn) {
@@ -576,16 +581,21 @@ export function FormulaireReservation({
             <section className="rounded-card border border-line bg-white p-5">
               <h2 className="text-sm font-medium text-ink">Dates</h2>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <ChampDate label="Check-In*" value={checkIn} onChange={setCheckIn} type="date" />
-                <ChampDate label="Check-Out*" value={checkOut} onChange={setCheckOut} type="date" />
+                <ChampDate label="Check-in *" value={checkIn} onChange={setCheckIn} type="date" />
                 <ChampDate
-                  label="Heure Check-In"
+                  label="Check-out *"
+                  value={checkOut}
+                  onChange={setCheckOut}
+                  type="date"
+                />
+                <ChampDate
+                  label="Heure de check-in"
                   value={heureIn}
                   onChange={setHeureIn}
                   type="time"
                 />
                 <ChampDate
-                  label="Heure Check-Out"
+                  label="Heure de check-out"
                   value={heureOut}
                   onChange={setHeureOut}
                   type="time"

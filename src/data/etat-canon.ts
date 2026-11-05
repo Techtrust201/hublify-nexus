@@ -51,7 +51,7 @@ const NOTIFS_INIT = [
   {
     id: "n-msg",
     titre: "Message non lu",
-    detail: "Albert Flores — Appartement Colette",
+    detail: "Alain Forest — Appartement Colette",
     href: "/messagerie?conv=c-albert",
     lu: false,
   },

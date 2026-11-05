@@ -398,7 +398,7 @@ export function FiltreLogementDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-1">
-          {["Tous", ...logements].map((l) => (
+          {["Tous", ...new Set(logements.filter((nom) => nom && nom !== "Tous"))].map((l) => (
             <button
               key={l}
               type="button"

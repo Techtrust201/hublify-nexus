@@ -2,18 +2,17 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Logo } from "@/components/marque/Logo";
 import { lienParrainage } from "@/design/offres";
+import { copierTexte } from "@/lib/feedback";
 
 export function ParrainagePage() {
   const [copie, setCopie] = useState(false);
 
   async function copierLien() {
-    const lien = lienParrainage(window.location.origin);
-    try {
-      await navigator.clipboard.writeText(lien);
-      setCopie(true);
-    } catch {
-      setCopie(false);
-    }
+    const ok = await copierTexte(
+      lienParrainage(window.location.origin),
+      "Lien de parrainage copié.",
+    );
+    setCopie(ok);
   }
 
   return (

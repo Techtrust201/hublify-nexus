@@ -12,7 +12,8 @@ import {
   useSessionChargee,
 } from "@/data/session";
 import type { CategoriePrestataire } from "@/data/types";
-import { confirmer, toastOk } from "@/lib/feedback";
+import { confirmer, toastErreur, toastOk } from "@/lib/feedback";
+import { emailValide, telephoneValide } from "@/lib/saisie";
 
 export const Route = createFileRoute("/prestataires/$prestataireId")({
   head: () => ({
@@ -126,7 +127,18 @@ function FichePrestataire() {
               className="mt-4 space-y-3 border-t border-border pt-4"
               onSubmit={(e) => {
                 e.preventDefault();
-                if (!form.nom.trim()) return;
+                if (!form.nom.trim() || !form.ville.trim()) {
+                  toastErreur("Indiquez le nom et la ville du prestataire.");
+                  return;
+                }
+                if (form.email.trim() && !emailValide(form.email)) {
+                  toastErreur("Indiquez un e-mail valide.");
+                  return;
+                }
+                if (form.telephone.trim() && !telephoneValide(form.telephone)) {
+                  toastErreur("Indiquez un téléphone valide (8 chiffres au minimum).");
+                  return;
+                }
                 modifierPrestataire(prestataireId, {
                   nom: form.nom.trim(),
                   categorie: form.categorie,

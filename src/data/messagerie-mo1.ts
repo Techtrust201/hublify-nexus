@@ -111,7 +111,7 @@ export const CONVERSATIONS_MO1: Conversation[] = [
   {
     id: "c-brian",
     section: "inbox",
-    nom: "Brian Griffin",
+    nom: "Bruno Girard",
     initiales: "BG",
     type: "voyageur",
     badge: "Voyageur",
@@ -124,7 +124,7 @@ export const CONVERSATIONS_MO1: Conversation[] = [
   {
     id: "c-cleveland",
     section: "inbox",
-    nom: "Cleveland Brown",
+    nom: "Camille Brun",
     initiales: "CB",
     type: "locataire",
     badge: "Locataire",
@@ -163,7 +163,7 @@ export const CONVERSATIONS_MO1: Conversation[] = [
   {
     id: "c-albert",
     section: "prospections",
-    nom: "Albert Flores",
+    nom: "Alain Forest",
     initiales: "AF",
     type: "voyageur",
     badge: "Prospect",
@@ -176,7 +176,7 @@ export const CONVERSATIONS_MO1: Conversation[] = [
   {
     id: "c-floyd",
     section: "prospections",
-    nom: "Floyd Miles",
+    nom: "François Millet",
     initiales: "FM",
     type: "voyageur",
     badge: "Voyageur",
@@ -189,7 +189,7 @@ export const CONVERSATIONS_MO1: Conversation[] = [
   {
     id: "c-lentil",
     section: "prestataires",
-    nom: "Lentil Entertainment",
+    nom: "Linge & Entretien",
     initiales: "LE",
     type: "prestataire",
     badge: "Prestataire",
@@ -202,7 +202,7 @@ export const CONVERSATIONS_MO1: Conversation[] = [
   {
     id: "c-silver",
     section: "prestataires",
-    nom: "Silverlight Studio",
+    nom: "Studio Sérénité",
     initiales: "SS",
     type: "prestataire",
     badge: "Prestataire",
@@ -281,14 +281,14 @@ export const MESSAGES_MO1: MessageFil[] = [
     conversationId: "c-brian",
     kind: "systeme",
     iconeSysteme: "login",
-    texte: "Brian Griffin s'est connecté à son compte personnel à 11h35 le 01/01/2026",
+    texte: "Bruno Girard s'est connecté à son compte personnel à 11h35 le 01/01/2026",
   },
   {
     id: "m-bg-2",
     conversationId: "c-brian",
     kind: "systeme",
     iconeSysteme: "usercheck",
-    texte: "Brian Griffin a rempli son pré-check-in à 11h40 le 01/01/2026",
+    texte: "Bruno Girard a rempli son pré-check-in à 11h40 le 01/01/2026",
   },
   {
     id: "m-bg-3",
@@ -330,7 +330,7 @@ export const MESSAGES_MO1: MessageFil[] = [
     conversationId: "c-albert",
     kind: "systeme",
     iconeSysteme: "usercheck",
-    texte: "Albert Flores a émis une demande de location à 11h40 le 01/01/2026",
+    texte: "Alain Forest a émis une demande de location à 11h40 le 01/01/2026",
   },
   {
     id: "m-af-1",
@@ -374,7 +374,7 @@ export const MESSAGES_MO1: MessageFil[] = [
     heure: "14h35",
     texte:
       "Bonjour,\nEn retour de votre demande vous trouverez ci-joint une proposition de bail. Merci de bien lire les conditions et de suivre le parcours de signature.\nBien à vous,\nClément Dubois – Gestionnaire",
-    pieces: [{ nom: "Proposition de bail - Albert Flores - App. Colette", taille: "186 Ko" }],
+    pieces: [{ nom: "Proposition de bail - Alain Forest - App. Colette", taille: "186 Ko" }],
   },
   {
     id: "m-fm-1",
@@ -475,16 +475,16 @@ export const ASSIGNEES_CONVERSATION: AssigneConversation[] = [
   { id: "a-tl", nom: "Team Louisette", initiales: "TL", groupe: "equipe" },
   { id: "a-ta", nom: "Team Arborio", initiales: "TA", groupe: "equipe" },
   { id: "a-cg", nom: "Clément G.", initiales: "CG", groupe: "equipe" },
-  { id: "a-em", nom: "Emily Smith", initiales: "EM", groupe: "equipe" },
-  { id: "a-le", nom: "Lentil Entertainment", initiales: "LE", groupe: "prestataire" },
-  { id: "a-ss", nom: "Silverlight Studio", initiales: "SS", groupe: "prestataire" },
+  { id: "a-em", nom: "Émilie Moreau", initiales: "EM", groupe: "equipe" },
+  { id: "a-le", nom: "Linge & Entretien", initiales: "LE", groupe: "prestataire" },
+  { id: "a-ss", nom: "Studio Sérénité", initiales: "SS", groupe: "prestataire" },
 ];
 
 export const SECTIONS_DEPLACEMENT: { id: SectionConversation; label: string }[] = [
   { id: "inbox", label: "Nouveaux messages" },
   { id: "prospections", label: "Mes prospections" },
   { id: "prestataires", label: "Mes prestataires" },
-  { id: "team", label: "Mes teams mate" },
+  { id: "team", label: "Mes coéquipiers" },
 ];
 
 const LECTURE = DROITS_CATALOGUE.filter((d) => d.groupe === "Lecture").map((d) => d.id);
@@ -492,52 +492,52 @@ const LECTURE = DROITS_CATALOGUE.filter((d) => d.groupe === "Lecture").map((d) =
 export const MEMBRES_MO1: MembreEquipe[] = [
   {
     id: "me-fo",
-    nom: "Dunnell",
-    prenom: "Erik",
-    initiales: "ER",
+    nom: "Durand",
+    prenom: "Éric",
+    initiales: "ED",
     statut: "actif",
     role: "Administrateur",
-    affectation: "Assignment Terra",
+    affectation: "Portefeuille Lyon",
     droits: [...LECTURE, "gerer-equipe"],
   },
   {
     id: "me-kv",
-    nom: "Smith",
-    prenom: "Emily",
+    nom: "Moreau",
+    prenom: "Émilie",
     initiales: "EM",
     statut: "actif",
     role: "Administrateur",
-    affectation: "Assignment Origine",
+    affectation: "Agence",
     droits: LECTURE.slice(0, 5),
   },
   {
     id: "me-mu",
-    nom: "Ajolk",
+    nom: "Rolland",
     prenom: "Arthur",
     initiales: "AR",
     statut: "actif",
     role: "Gestionnaire",
-    affectation: "Assignment Pradela",
+    affectation: "Littoral",
     droits: ["voir-reservations", "messagerie"],
   },
   {
     id: "me-tu",
-    nom: "Ulrica",
-    prenom: "Tegerdinal",
-    initiales: "TU",
+    nom: "Lambert",
+    prenom: "Inès",
+    initiales: "IL",
     statut: "actif",
     role: "Gestionnaire",
-    affectation: "Assignment Makey",
+    affectation: "Montagne",
     droits: LECTURE.slice(0, 5),
   },
   {
     id: "me-eu",
-    nom: "Ulrica",
-    prenom: "Erihu",
+    nom: "Ulrich",
+    prenom: "Elena",
     initiales: "EU",
     statut: "actif",
     role: "Gestionnaire",
-    affectation: "Assignment Partners",
+    affectation: "Partenaires",
     droits: LECTURE.slice(0, 4),
   },
   {
@@ -547,7 +547,7 @@ export const MEMBRES_MO1: MembreEquipe[] = [
     initiales: "CR",
     statut: "attente",
     role: "Gestionnaire",
-    affectation: "Assignment Nord",
+    affectation: "Nord",
     droits: [],
   },
   {
@@ -557,7 +557,7 @@ export const MEMBRES_MO1: MembreEquipe[] = [
     initiales: "LD",
     statut: "attente",
     role: "Administrateur",
-    affectation: "Assignment Est",
+    affectation: "Est",
     droits: [],
   },
 ];
@@ -574,7 +574,7 @@ export const ACTIONS_EN_COURS: ActionEnCours[] = [
     id: "ac-3",
     titre: "Droit messagerie",
     quand: "Aujourd'hui",
-    detail: "À valider pour Erik Dunnell",
+    detail: "À valider pour Éric Durand",
   },
 ];
 

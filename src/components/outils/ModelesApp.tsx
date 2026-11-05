@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { type ModeleDoc } from "@/data/documents-mo1";
 import { idNouveau, poserCollection, useSession } from "@/data/session";
-import { confirmer, telechargerDemo, telechargerPdf, toastOk } from "@/lib/feedback";
+import { confirmer, telechargerDemo, telechargerPdf, toastErreur, toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
 const CATEGORIES = ["Tous", "Général", "Locataires", "Voyageurs", "Prestataires", "Propriétaires"];
@@ -607,7 +607,10 @@ function CreateModeleDialog({
           <BtnOutline onClick={onClose}>Annuler</BtnOutline>
           <BtnNavy
             onClick={() => {
-              if (!nom.trim()) return;
+              if (!nom.trim()) {
+                toastErreur("Indiquez le nom du modèle.");
+                return;
+              }
               onEnregistrer({
                 id: edition?.id ?? idNouveau("m"),
                 designation: nom.trim(),

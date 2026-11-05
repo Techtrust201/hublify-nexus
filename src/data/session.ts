@@ -7,6 +7,7 @@ import {
   type NotifMo1,
   type CollectionMetier,
 } from "@/data/etat-session";
+import { corrigerCorpusDemo } from "@/data/noms-demo";
 import { fusionnerParametrage, type ParametrageSession } from "@/data/parametrage-mo1";
 import { calculerKpi } from "@/lib/kpi";
 import {
@@ -228,12 +229,12 @@ async function hydraterDistant() {
     }
     ignorePush = true;
     const dossiers = completerDossiersCanon(distant.payload.dossiersLocation);
-    etat = {
+    etat = corrigerCorpusDemo({
       ...etatVide(),
       ...distant.payload,
       dossiersLocation: dossiers.liste,
       parametrage: fusionnerParametrage(distant.payload.parametrage),
-    };
+    });
     sales.clear();
     persisterLocal();
     abonnes.forEach((fn) => fn());

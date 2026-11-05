@@ -42,7 +42,7 @@ const comptes: Array<{
     prenom: "Amélie",
     nom: "Dubois",
     roleId: "gestionnaire",
-    affectation: "Assignment Terra",
+    affectation: "Portefeuille Lyon",
     orgId: ORG_REDRIS_ID,
   },
   {
