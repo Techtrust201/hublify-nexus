@@ -27,7 +27,7 @@ function PageFaq() {
       <div className="mt-6">
         <FaqListe idPrefix="page-faq" />
       </div>
-      <p className="mt-8 text-center text-lg text-v1-ink">
+      <p id="contact" className="mt-8 scroll-mt-28 text-center text-lg text-v1-ink">
         Vous n'avez pas trouvé de réponse à votre question ?
       </p>
       <div className="mt-4 flex justify-center">

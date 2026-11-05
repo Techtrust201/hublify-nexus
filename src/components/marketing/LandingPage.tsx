@@ -517,7 +517,32 @@ function Comparaison() {
           />
           <BarresRendement />
         </div>
-        <div className="mt-8 overflow-x-auto rounded-2xl border border-v1-line bg-white">
+        <ul className="mt-8 space-y-3 md:hidden">
+          {COMPARAISON.map((ligne) => (
+            <li key={ligne[0]} className="rounded-2xl border border-v1-line bg-white p-4">
+              <p className="text-sm font-medium text-v1-ink">{ligne[0]}</p>
+              <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                {(
+                  [
+                    ["Classique", ligne[1], false],
+                    ["Saisonnière", ligne[2], false],
+                    ["Hybride", ligne[3], true],
+                  ] as const
+                ).map(([nom, valeur, accent]) => (
+                  <div key={nom}>
+                    <dt className={accent ? "font-medium text-v1-green-ink" : "text-v1-ink-muted"}>
+                      {nom}
+                    </dt>
+                    <dd className={accent ? "mt-1 font-medium text-v1-green-ink" : "mt-1 text-v1-ink"}>
+                      {valeur}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-8 hidden overflow-x-auto rounded-2xl border border-v1-line bg-white md:block">
           <table className="w-full min-w-[640px] text-left text-sm">
             <caption className="px-4 py-3 text-left text-xs text-v1-ink-muted">
               Exemple illustratif 2026, parc locatif à Cannes (06). La colonne hybride est mise en
@@ -670,7 +695,7 @@ function BarresRendement() {
               className={cn("block w-full rounded-t-md", barre.classe)}
               style={{ height: `${Math.round((barre.valeur / 8.06) * 140)}px` }}
             />
-            <span className="text-center text-[11px] text-v1-ink-body">
+            <span className="min-w-0 break-words text-center text-[11px] leading-snug text-v1-ink-body">
               {barre.label}
               <span className="mt-0.5 block text-v1-ink-muted">{barre.detail}</span>
             </span>

@@ -40,7 +40,7 @@ function Liste() {
       <Entete titre="Messagerie" />
       <button
         type="button"
-        className="self-end text-xs font-medium text-[#5090A8]"
+        className="inline-flex min-h-11 items-center self-end text-xs font-medium text-[#5090A8]"
         onClick={() => void navigate({ to: "/espace/messages", hash: "nouveau" })}
       >
         Nouveau contact

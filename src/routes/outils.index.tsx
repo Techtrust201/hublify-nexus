@@ -84,7 +84,7 @@ const OUTILS = [
   },
   {
     titre: "Je découvre",
-    texte: "Tous les modules de la maquette : planning, documents, messagerie, tarifs.",
+    texte: "Le parcours complet : planning, documents, messagerie, tarifs.",
     icone: Wrench,
     vers: "/" as const,
   },

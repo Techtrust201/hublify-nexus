@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Bouton, Carte, Champ, Ecran, Entete, champClasse } from "@/components/portail/chrome";
 import { modifierReservation, useSession } from "@/data/session";
+import { deposerFichier, listerFichiers } from "@/lib/documents.functions";
+import { preparerFichier } from "@/lib/fichiers-client";
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { cautionDemandee, type ExtraPrecheckin } from "@/lib/gestionnaire-planning";
 
@@ -15,7 +17,50 @@ export function PrecheckinPortail({ extra }: { extra: ExtraPrecheckin }) {
   const [note, setNote] = useState(resa?.precheckinNote || "");
   const [envoye, setEnvoye] = useState(resa?.precheckinStatut === "fait");
   const [piece, setPiece] = useState("");
+  const [recto, setRecto] = useState("");
+  const [verso, setVerso] = useState("");
   const [choisis, setChoisis] = useState<string[]>([]);
+  const refPiece = `precheckin:${resa?.id ?? "compte"}`;
+
+  useEffect(() => {
+    let ignore = false;
+    void listerFichiers({ data: { contexte: "dossier", refId: refPiece } }).then((res) => {
+      if (ignore || !res.ok) return;
+      const nom = (cote: string) => res.fichiers.find((f) => f.cote === cote)?.nom ?? "";
+      setRecto(nom("recto"));
+      setVerso(nom("verso"));
+      setPiece(nom(""));
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [refPiece]);
+
+  async function envoyerPiece(fichier: File, cote: "" | "recto" | "verso") {
+    const prepare = await preparerFichier(fichier, "dossier");
+    if (!prepare.ok) {
+      toastErreur(prepare.erreur);
+      return;
+    }
+    const res = await deposerFichier({
+      data: {
+        contexte: "dossier",
+        refId: refPiece,
+        cote,
+        nom: prepare.fichier.nom,
+        mime: prepare.fichier.mime,
+        base64: prepare.fichier.base64,
+      },
+    });
+    if (!res.ok) {
+      toastErreur(res.erreur);
+      return;
+    }
+    if (cote === "recto") setRecto(res.fichier.nom);
+    else if (cote === "verso") setVerso(res.fichier.nom);
+    else setPiece(res.fichier.nom);
+    toastOk("Pièce enregistrée. Elle reste disponible après rechargement.");
+  }
   const caution = cautionDemandee(extra, "voyageur");
   const proposes = session.parametrage.upsells.filter(
     (u) => u.actif && extra.upsellsProposes.includes(u.id),
@@ -74,16 +119,54 @@ export function PrecheckinPortail({ extra }: { extra: ExtraPrecheckin }) {
           <div className="space-y-2 text-sm text-[#344054]">
             <p className="text-xs font-medium text-[#101828]">Pièce d'identité</p>
             {extra.rectoVerso && <p className="text-xs text-[#667085]">Recto et verso requis.</p>}
-            {extra.photo && (
+            {extra.rectoVerso && (
+              <div className="grid gap-2">
+                <label className="block text-xs text-[#667085]">
+                  Recto
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    capture="environment"
+                    className="mt-1 block min-h-11 w-full text-sm"
+                    onChange={(e) => {
+                      const fichier = e.target.files?.[0];
+                      e.target.value = "";
+                      if (fichier) void envoyerPiece(fichier, "recto");
+                    }}
+                  />
+                  {recto && <span className="mt-1 block text-[#027a48]">Enregistré : {recto}</span>}
+                </label>
+                <label className="block text-xs text-[#667085]">
+                  Verso
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="mt-1 block min-h-11 w-full text-sm"
+                    onChange={(e) => {
+                      const fichier = e.target.files?.[0];
+                      e.target.value = "";
+                      if (fichier) void envoyerPiece(fichier, "verso");
+                    }}
+                  />
+                  {verso && <span className="mt-1 block text-[#027a48]">Enregistré : {verso}</span>}
+                </label>
+              </div>
+            )}
+            {extra.photo && !extra.rectoVerso && (
               <label className="block text-xs text-[#667085]">
                 Photo
                 <input
                   type="file"
                   accept="image/*"
                   capture="environment"
-                  className="mt-1 block w-full text-sm"
-                  onChange={(e) => setPiece(e.target.files?.[0]?.name ?? "")}
+                  className="mt-1 block min-h-11 w-full text-sm"
+                  onChange={(e) => {
+                    const fichier = e.target.files?.[0];
+                    e.target.value = "";
+                    if (fichier) void envoyerPiece(fichier, "");
+                  }}
                 />
+                {piece && <span className="mt-1 block text-[#027a48]">Enregistrée : {piece}</span>}
               </label>
             )}
             {extra.fichier && (
@@ -91,9 +174,19 @@ export function PrecheckinPortail({ extra }: { extra: ExtraPrecheckin }) {
                 Fichier
                 <input
                   type="file"
-                  className="mt-1 block w-full text-sm"
-                  onChange={(e) => setPiece(e.target.files?.[0]?.name ?? piece)}
+                  accept="image/*,.pdf"
+                  className="mt-1 block min-h-11 w-full text-sm"
+                  onChange={(e) => {
+                    const choisi = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!choisi) return;
+                    const cote = extra.photo && !extra.rectoVerso ? "verso" : "";
+                    void envoyerPiece(choisi, cote);
+                  }}
                 />
+                {piece && !(extra.photo && !extra.rectoVerso) && (
+                  <span className="mt-1 block text-[#027a48]">Enregistré : {piece}</span>
+                )}
               </label>
             )}
             {extra.telephone && (

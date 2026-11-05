@@ -57,7 +57,7 @@ export function PanneauNotifications({
           />
           <Ligne
             label="Aide et suivi"
-            detail="Infos bulles"
+            detail="Infobulles"
             actif={brouillon.notifAide}
             onChange={(v) => onPatch({ notifAide: v })}
           />
@@ -66,7 +66,7 @@ export function PanneauNotifications({
         <div className="space-y-3">
           <p className="text-sm font-medium text-ink">Canaux de communication</p>
           <Ligne
-            label="Email"
+            label="E-mail"
             detail="Recevoir les notifications par mail"
             actif={brouillon.notifsEmail}
             onChange={(v) => onPatch({ notifsEmail: v })}

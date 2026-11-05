@@ -82,7 +82,7 @@ export function InfosOccupants({
 
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-card border border-surface-soft p-2.5">
-              <p className="text-xs text-ink-muted">Email</p>
+              <p className="text-xs text-ink-muted">E-mail</p>
               <a
                 href={`mailto:${reservation.email}`}
                 className="mt-1 block text-xs text-accent-teal"

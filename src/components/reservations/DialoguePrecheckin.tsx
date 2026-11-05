@@ -24,7 +24,7 @@ export function DialoguePrecheckin({
         <DialogDescription>
           {fait
             ? "Le voyageur a renseigné son arrivée. Ces informations sont visibles ici."
-            : "Le voyageur n'a pas encore complété son pré-checkin."}
+            : "Le voyageur n'a pas encore complété son pré-check-in."}
         </DialogDescription>
         <dl className="mt-3 space-y-2 text-sm">
           <div className="flex justify-between gap-3">

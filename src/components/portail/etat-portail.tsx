@@ -77,6 +77,7 @@ export function PortailDonneesProvider({ children }: { children: ReactNode }) {
   const [etat, setEtat] = useState<EtatPortail>(ETAT_PORTAIL_VIDE);
   const [pret, setPret] = useState(false);
   const etatRef = useRef(etat);
+  const sale = useRef(false);
   etatRef.current = etat;
 
   useEffect(() => {
@@ -91,6 +92,24 @@ export function PortailDonneesProvider({ children }: { children: ReactNode }) {
       }
       const local = lireInstantaneLocal();
       const suivant = fusionner(res.data, local);
+      const garderSaisie = (actuel: EtatPortail): EtatPortail => ({
+        mode: actuel.mode ?? suivant.mode,
+        demarre: actuel.demarre || suivant.demarre,
+        notes: actuel.notes.length > 0 ? actuel.notes : suivant.notes,
+        paiements: actuel.paiements.length > 0 ? actuel.paiements : suivant.paiements,
+        edl: actuel.edl.valideLe ? actuel.edl : suivant.edl,
+        rdv: actuel.rdv ?? suivant.rdv,
+        demandes: actuel.demandes.length > 0 ? actuel.demandes : suivant.demandes,
+        favoris: actuel.favoris.length > 0 ? actuel.favoris : suivant.favoris,
+        docCourant: actuel.docCourant ?? suivant.docCourant,
+        candidature:
+          Object.keys(actuel.candidature).length > 0 ? actuel.candidature : suivant.candidature,
+      });
+      if (sale.current) {
+        setEtat(garderSaisie);
+        setPret(true);
+        return;
+      }
       const distantVide =
         !res.data.demarre &&
         !res.data.mode &&
@@ -101,12 +120,13 @@ export function PortailDonneesProvider({ children }: { children: ReactNode }) {
         res.data.favoris.length === 0;
       if (distantVide && aDuLocal(local)) {
         const sauve = await sauverPortailDistant({ data: suivant });
+        if (!vivant) return;
         if (sauve.ok) oublierEtatMetierLocal();
       } else if (!distantVide) {
         oublierEtatMetierLocal();
       }
       if (!vivant) return;
-      setEtat(suivant);
+      setEtat(sale.current ? garderSaisie : suivant);
       setPret(true);
     })();
     return () => {
@@ -115,6 +135,7 @@ export function PortailDonneesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const enregistrer = useCallback((recette: (actuel: EtatPortail) => EtatPortail) => {
+    sale.current = true;
     const suivant = recette(etatRef.current);
     etatRef.current = suivant;
     setEtat(suivant);

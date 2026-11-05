@@ -79,14 +79,14 @@ function PageInscription() {
           Offre : {offre.titreChoix}
           {recherche.periode === "annuel" ? " · facturation annuelle (−20 %)" : ""}
           {recherche.devis === "1"
-            ? ". Le devis n'est pas envoyé automatiquement : le paiement Stripe n'est pas branché."
+            ? ". Le devis est noté avec votre compte. Aucun prélèvement n'est lancé depuis ce formulaire."
             : ". Sans carte bancaire."}
         </p>
       ) : null}
       {recherche.parrainage === "1" ? (
         <p className="mb-4 rounded-xl bg-v1-canvas px-3 py-2 text-sm text-v1-ink-body">
-          Vous arrivez par un parrainage : 1 mois offert est prévu pour un abonnement annuel. Il
-          n'est pas encore déduit automatiquement.
+          Vous arrivez par un parrainage. Un mois offert est prévu pour un abonnement annuel. La
+          facturation ne le déduit pas toute seule : il reste associé à cette inscription.
         </p>
       ) : null}
       <form className="space-y-3" onSubmit={(ev) => void inscrire(ev)}>

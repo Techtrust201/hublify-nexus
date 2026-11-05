@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Menu, X } from "lucide-react";
 import { Logo } from "@/components/marque/Logo";
+import { inscrireListeBailleurs } from "@/lib/liste-bailleurs.functions";
 
 const LIENS = [
   { href: "/#produit", label: "Produit" },
@@ -12,11 +13,23 @@ const LIENS = [
 
 export function SitePublic({ children }: { children: ReactNode }) {
   const [ouvert, setOuvert] = useState(false);
-  const [liste, setListe] = useState(false);
+  const [liste, setListe] = useState<"attente" | "envoye" | "enregistre" | "erreur">("attente");
+  const [enCours, setEnCours] = useState(false);
+  const [pret, setPret] = useState(false);
+  useEffect(() => setPret(true), []);
 
-  function inscrireListe(e: FormEvent<HTMLFormElement>) {
+  async function inscrireListe(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setListe(true);
+    const email = String(new FormData(e.currentTarget).get("email") ?? "");
+    setEnCours(true);
+    try {
+      const res = await inscrireListeBailleurs({ data: { email } });
+      setListe(res.envoye ? "envoye" : "enregistre");
+    } catch {
+      setListe("erreur");
+    } finally {
+      setEnCours(false);
+    }
   }
 
   return (
@@ -102,10 +115,10 @@ export function SitePublic({ children }: { children: ReactNode }) {
                 <a href="/#tarifs">Tarifs</a>
               </li>
               <li>
-                <Link to="/confidentialite">Sécurité</Link>
+                <Link to="/faq">Questions fréquentes</Link>
               </li>
               <li>
-                <Link to="/faq">Nous contacter</Link>
+                <Link to="/parrainage">Parrainage</Link>
               </li>
             </ul>
           </div>
@@ -119,13 +132,13 @@ export function SitePublic({ children }: { children: ReactNode }) {
                   <Link to="/faq">Centre d'aide</Link>
                 </li>
                 <li>
-                  <Link to="/faq">Guides bailleurs</Link>
+                  <Link to="/cgv">Conditions de vente</Link>
                 </li>
                 <li>
-                  <Link to="/choix-du-profil">Modèles gratuits</Link>
+                  <Link to="/cgu">Conditions d'utilisation</Link>
                 </li>
                 <li>
-                  <Link to="/faq">Blog</Link>
+                  <Link to="/confidentialite">Confidentialité</Link>
                 </li>
               </ul>
             </div>
@@ -133,13 +146,15 @@ export function SitePublic({ children }: { children: ReactNode }) {
               <p className="text-xs font-semibold uppercase tracking-wide text-v1-ink">À propos</p>
               <ul className="mt-3 space-y-2 text-sm text-v1-ink-body">
                 <li>
-                  <Link to="/choix-du-profil">Nous rejoindre</Link>
+                  <Link to="/choix-du-profil">Créer un compte</Link>
                 </li>
                 <li>
-                  <Link to="/parrainage">Partenaires</Link>
+                  <Link to="/connexion">Connexion</Link>
                 </li>
                 <li>
-                  <Link to="/faq">Contact</Link>
+                  <Link to="/faq" hash="contact">
+                    Contact
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -157,22 +172,36 @@ export function SitePublic({ children }: { children: ReactNode }) {
               </label>
               <input
                 id="liste-bailleurs"
+                name="email"
                 type="email"
                 required
+                autoComplete="email"
                 placeholder="vous@exemple.fr"
                 className="h-11 min-w-0 flex-1 rounded-lg border border-v1-line bg-white px-3 text-sm"
               />
               <button
                 type="submit"
-                className="inline-flex size-11 items-center justify-center rounded-lg bg-v1-brand text-white"
+                disabled={!pret || enCours}
+                className="inline-flex size-11 items-center justify-center rounded-lg bg-v1-brand text-white disabled:opacity-60"
                 aria-label="S'inscrire à la liste"
               >
                 →
               </button>
             </div>
-            {liste ? (
-              <p className="mt-2 text-xs text-v1-ink-body">
-                Adresse notée sur cet écran. L'envoi n'est pas branché.
+            {liste === "envoye" ? (
+              <p className="mt-2 text-xs text-v1-ink-body" role="status">
+                Inscription enregistrée. Un e-mail de confirmation vient de partir.
+              </p>
+            ) : null}
+            {liste === "enregistre" ? (
+              <p className="mt-2 text-xs text-v1-ink-body" role="status">
+                Inscription enregistrée. La confirmation est conservée et partira dès que l'envoi
+                est ouvert.
+              </p>
+            ) : null}
+            {liste === "erreur" ? (
+              <p className="mt-2 text-xs text-v1-ink" role="alert">
+                Indiquez une adresse e-mail valide.
               </p>
             ) : null}
           </form>

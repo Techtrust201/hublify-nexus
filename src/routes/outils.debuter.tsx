@@ -508,7 +508,7 @@ function PageDebuter() {
               <>
                 <h2 className="text-base font-medium text-ink">Planifier la première mission</h2>
                 <p className="mt-1 text-xs text-ink-subtle">
-                  Un ménage le jour de l’arrivée, assigné à Amélie Dubois — comme dans la maquette.
+                  Un ménage le jour de l'arrivée, assigné à la personne que vous choisissez.
                 </p>
                 <label className="mt-4 block text-xs text-ink-subtle">
                   Intitulé

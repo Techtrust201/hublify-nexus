@@ -88,7 +88,7 @@ function Coque({ children }: { children: ReactNode }) {
   const actif = (url: string, exact?: boolean) =>
     exact ? pathname === "/espace" || pathname === "/espace/" : pathname.startsWith(url);
 
-  const actionsPlus: Array<{
+  type ActionPlus = {
     label: string;
     to:
       | "/espace"
@@ -98,25 +98,46 @@ function Coque({ children }: { children: ReactNode }) {
       | "/espace/logement"
       | "/espace/dossier"
       | "/espace/candidature"
-      | "/espace/calendrier";
+      | "/espace/calendrier"
+      | "/espace/precheckin";
     hash?: string;
-  }> = prestataire
-    ? [
-        { label: "Rapport d'intervention", to: "/espace/missions" },
-        { label: "Ajouter une note dans le calendrier", to: "/espace/calendrier", hash: "note" },
-        { label: "Message au gestionnaire", to: "/espace/messages" },
-        { label: "Documents", to: "/espace/documents" },
-      ]
-    : [
-        { label: "Rechercher une prestation", to: "/espace", hash: "autour" },
-        { label: "Rechercher une location", to: "/espace", hash: "recherche" },
-        { label: "Ajouter une note dans le calendrier", to: "/espace/calendrier", hash: "note" },
-        { label: "J'ai un problème dans mon logement", to: "/espace/logement", hash: "faq" },
-        { label: "Contacter le gestionnaire", to: "/espace/messages" },
-        { label: "Déclarer un départ", to: "/espace/logement", hash: "depart" },
-        { label: "Envoyer mon dossier", to: "/espace/dossier", hash: "pieces" },
-        { label: "Proposer une candidature", to: "/espace/candidature" },
-      ];
+  };
+  const actionsResident: ActionPlus[] = [
+    { label: "Rechercher une prestation", to: "/espace", hash: "autour" },
+    { label: "Rechercher une location", to: "/espace", hash: "recherche" },
+    { label: "Ajouter une note dans le calendrier", to: "/espace/calendrier", hash: "note" },
+    { label: "J'ai un problème dans mon logement", to: "/espace/logement", hash: "faq" },
+    { label: "Contacter le gestionnaire", to: "/espace/messages" },
+    { label: "Déclarer un départ", to: "/espace/logement", hash: "depart" },
+    { label: "Envoyer mon dossier", to: "/espace/dossier", hash: "pieces" },
+    { label: "Proposer une candidature", to: "/espace/candidature" },
+  ];
+  const actionsPlus: ActionPlus[] =
+    auth?.roleId === "proprietaire"
+      ? [
+          { label: "Ajouter une note dans le calendrier", to: "/espace/calendrier", hash: "note" },
+          { label: "Voir les loyers", to: "/espace/documents", hash: "quittances" },
+          { label: "Contacter le gestionnaire", to: "/espace/messages" },
+          { label: "Documents du bien", to: "/espace/documents" },
+          { label: "Calendrier des séjours", to: "/espace/calendrier" },
+        ]
+      : auth?.roleId === "voyageur"
+        ? [
+            { label: "Préparer mon arrivée", to: "/espace/precheckin" },
+            ...actionsResident,
+          ]
+        : prestataire
+          ? [
+              { label: "Rapport d'intervention", to: "/espace/missions" },
+              {
+                label: "Ajouter une note dans le calendrier",
+                to: "/espace/calendrier",
+                hash: "note",
+              },
+              { label: "Message au gestionnaire", to: "/espace/messages" },
+              { label: "Documents", to: "/espace/documents" },
+            ]
+          : actionsResident;
 
   const nonLues = session.notifications.filter((n) => !n.lu);
 
@@ -151,6 +172,7 @@ function Coque({ children }: { children: ReactNode }) {
                   type="button"
                   aria-label="Fermer les notifications"
                   onClick={() => setNotifs(false)}
+                  className="grid size-11 place-items-center"
                 >
                   <X className="size-4" />
                 </button>
@@ -206,16 +228,13 @@ function Coque({ children }: { children: ReactNode }) {
               <button
                 type="button"
                 onClick={() => setPlus(false)}
-                className="mt-1 h-10 w-full text-xs text-[#98a2b3]"
+                className="mt-1 min-h-11 w-full text-xs text-[#98a2b3]"
               >
                 Fermer
               </button>
             </div>
           )}
 
-          <button type="button" className="sr-only" onClick={() => setNotifs(false)}>
-            {auth?.role ?? "Espace"}
-          </button>
           {!navCachee && (
             <nav
               className="absolute inset-x-3 bottom-3 z-30 flex items-end justify-between rounded-full bg-[#e7f4f6]/95 px-3 pb-2 pt-2 shadow-[0_8px_24px_rgba(30,40,30,0.06)] backdrop-blur"

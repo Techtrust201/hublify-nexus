@@ -70,7 +70,7 @@ export const genererQuittancePdf = createServerFn({ method: "POST" })
       `Loyer nu : ${data.loyer} EUR`,
       `Charges : ${data.charges} EUR`,
       `Total : ${total.toFixed(2)} EUR`,
-      `Fait a ${data.faitA}`,
+      `Fait à ${data.faitA}`,
     ]);
     return enregistrerPdf({
       orgId: moi.orgId,

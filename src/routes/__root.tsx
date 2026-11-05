@@ -190,6 +190,24 @@ function RootComponent() {
   useEffect(() => {
     hydraterSession(auth?.userId);
   }, [auth?.userId]);
+  useEffect(() => {
+    const surFocus = (event: FocusEvent) => {
+      if (!window.matchMedia("(pointer: coarse)").matches) return;
+      const cible = event.target;
+      if (
+        !(cible instanceof HTMLInputElement) &&
+        !(cible instanceof HTMLTextAreaElement) &&
+        !(cible instanceof HTMLSelectElement)
+      ) {
+        return;
+      }
+      window.setTimeout(() => {
+        cible.scrollIntoView({ block: "center", inline: "nearest" });
+      }, 280);
+    };
+    document.addEventListener("focusin", surFocus);
+    return () => document.removeEventListener("focusin", surFocus);
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -197,7 +215,7 @@ function RootComponent() {
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
         <DialogueConfirmation />
-        <Toaster position="bottom-center" richColors closeButton />
+        <Toaster position="bottom-center" mobileOffset={{ bottom: "6rem" }} richColors closeButton />
       </AuthProvider>
     </QueryClientProvider>
   );

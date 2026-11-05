@@ -226,7 +226,7 @@ test("portail locataire : accueil, note, recherche, rendez-vous, paiement, messa
 }) => {
   await connecter(page, "jean.martin@hublify.app");
   await page.goto("/espace");
-  const demarrage = page.getByRole("button", { name: "Let's Start" });
+  const demarrage = page.getByRole("button", { name: "Commencer" });
   const journee = page.getByRole("heading", { name: "Tâches du jour" });
   await expect(demarrage.or(journee)).toBeVisible();
   if (await demarrage.isVisible()) {
@@ -307,7 +307,7 @@ test("portail locataire : accueil, note, recherche, rendez-vous, paiement, messa
 test("portail prestataire : mission et rapport", async ({ page }) => {
   await connecter(page, "lucas.menage@hublify.app");
   await page.goto("/espace");
-  const depart = page.getByRole("button", { name: "Let's Start" });
+  const depart = page.getByRole("button", { name: "Commencer" });
   if (await depart.isVisible().catch(() => false)) {
     await page.getByRole("button", { name: "Prestataire" }).click();
     await depart.click();

@@ -373,11 +373,11 @@ export function PlanningGrid({
                 onChange={(e) => setAffichage(e.target.value as VueAffichagePlanning)}
                 className="h-11 rounded border border-line bg-white px-2 text-xs text-ink-body outline-none md:h-[26px]"
               >
-                <option value="missions">missions</option>
-                <option value="taches">Taches</option>
-                <option value="checkout">check out</option>
-                <option value="checkin">Check in</option>
-                <option value="ouverture">periode ouverture BAIL</option>
+                <option value="missions">Missions</option>
+                <option value="taches">Tâches</option>
+                <option value="checkout">Check-out</option>
+                <option value="checkin">Check-in</option>
+                <option value="ouverture">Période d'ouverture du bail</option>
               </select>
             </label>
             {onglet === "missions" ? (
