@@ -231,6 +231,24 @@ export function TableauReservations({
               className="h-full w-full bg-transparent text-base text-ink outline-none placeholder:text-ink-muted md:text-xs"
             />
           </label>
+          <div role="group" aria-label="Tri" className="flex gap-1">
+            <button
+              type="button"
+              aria-pressed={tri?.colonne === "propriete"}
+              onClick={() => basculerTri("propriete")}
+              className="inline-flex h-11 items-center rounded-card border border-line px-3 text-xs text-ink md:h-[34px]"
+            >
+              Propriété
+            </button>
+            <button
+              type="button"
+              aria-pressed={tri?.colonne === "arrivee"}
+              onClick={() => basculerTri("arrivee")}
+              className="inline-flex h-11 items-center rounded-card border border-line px-3 text-xs text-ink md:h-[34px]"
+            >
+              Arrivée
+            </button>
+          </div>
           <div className="grid w-full grid-cols-2 gap-1 rounded-full border border-line p-1 md:flex md:w-auto md:gap-0">
             {(
               [
@@ -502,12 +520,19 @@ export function TableauReservations({
         </ScrollHint>
 
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+          <p role="status" className="text-xs text-ink-muted">
+            {tri
+              ? `Tri ${tri.colonne === "propriete" ? "Propriété" : tri.colonne === "arrivee" ? "Arrivée" : tri.colonne} ${tri.sens === "asc" ? "croissant" : "décroissant"}`
+              : "Sans tri"}
+            {" · "}
+            Page {pageCourante} sur {pages}
+          </p>
           <p className="text-xs text-ink-muted">
             {attendHydrate
               ? "Chargement des réservations…"
               : `Affichage de ${filtrees.length} réservation${filtrees.length > 1 ? "s" : ""}`}
           </p>
-          <div className="flex items-center gap-1">
+          <nav aria-label="Pagination" className="flex items-center gap-1">
             <button
               type="button"
               disabled={pageCourante <= 1}
@@ -520,6 +545,8 @@ export function TableauReservations({
               <button
                 key={n}
                 type="button"
+                aria-current={n === pageCourante ? "page" : undefined}
+                aria-label={`Page ${n}`}
                 onClick={() => setPage(n)}
                 className={cn(
                   "size-11 rounded text-xs md:size-7",
@@ -537,7 +564,7 @@ export function TableauReservations({
             >
               Suivant
             </button>
-          </div>
+          </nav>
         </div>
       </div>
 

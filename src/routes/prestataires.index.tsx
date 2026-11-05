@@ -70,6 +70,8 @@ function ListePrestataires() {
         {categories.map((c) => (
           <button
             key={c}
+            type="button"
+            aria-pressed={categorie === c}
             onClick={() => setCategorie(c)}
             className={cn(
               "inline-flex h-11 min-h-11 items-center rounded-full border px-3 text-sm font-medium md:h-auto md:min-h-0 md:py-1 md:text-xs",
@@ -83,6 +85,11 @@ function ListePrestataires() {
         ))}
       </div>
 
+      <p role="status" className="mb-3 text-xs text-ink-muted">
+        {liste.length} prestataire{liste.length > 1 ? "s" : ""} affiché
+        {liste.length > 1 ? "s" : ""}
+        {categorie === "toutes" ? " · toutes les catégories" : ` · ${categorie}`}
+      </p>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {liste.map((p) => {
           const nb = missions.filter((m) => m.assigne === p.nom).length;

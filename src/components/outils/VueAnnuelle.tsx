@@ -3,7 +3,7 @@ import { BarChart2, CalendarDays, ChevronDown, Info, Lock } from "lucide-react";
 import { useMemo, useState } from "react";
 import { BtnNavy } from "@/components/documents/ui";
 import { modifierSession, useSession } from "@/data/session";
-import { toastInfo, toastOk } from "@/lib/feedback";
+import { toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
 const MOIS = [
@@ -71,7 +71,7 @@ export function VueAnnuelle() {
     [session.datesBloqueesAnnuelles],
   );
   const [modeBlocage, setModeBlocage] = useState(false);
-  const [reservation, setReservation] = useState<string | null>(null);
+  const [jourDetail, setJourDetail] = useState<string | null>(null);
   const sejours = useMemo(() => sejoursAnnuels(logement, session), [logement, session]);
   const datesReservees = useMemo(() => datesReserveesDe(sejours), [sejours]);
 
@@ -104,14 +104,8 @@ export function VueAnnuelle() {
   }, [bloquees, logement, sejours, session.biens, session.reservationsDossier]);
 
   const toggleJour = (date: string) => {
-    if (datesReservees.has(date)) {
-      setReservation(date);
-      return;
-    }
-    if (!modeBlocage) {
-      toastInfo("Activez « Bloquer des dates » pour bloquer ou débloquer un jour libre.");
-      return;
-    }
+    setJourDetail(date);
+    if (datesReservees.has(date) || !modeBlocage) return;
     modifierSession((e) => {
       const next = new Set(e.datesBloqueesAnnuelles);
       if (next.has(date)) next.delete(date);
@@ -206,18 +200,18 @@ export function VueAnnuelle() {
         ))}
       </div>
 
-      {reservation && (
-        <PanneauJourOccupe
-          date={reservation}
+      {jourDetail && (
+        <PanneauJour
+          date={jourDetail}
           logement={logement}
-          onFermer={() => setReservation(null)}
+          onFermer={() => setJourDetail(null)}
         />
       )}
     </div>
   );
 }
 
-function PanneauJourOccupe({
+function PanneauJour({
   date,
   logement,
   onFermer,
@@ -235,14 +229,33 @@ function PanneauJourOccupe({
     return bien?.nom === logement;
   });
   const bienDossier = dossier ? session.biens.find((b) => b.id === dossier.bienId) : undefined;
+  const missions = session.missions.filter((m) => {
+    if (m.date.slice(0, 10) !== date) return false;
+    if (logement === "Tous les logements") return true;
+    return session.biens.find((b) => b.id === m.bienId)?.nom === logement;
+  });
+  const bloquee = session.datesBloqueesAnnuelles.includes(date);
   const detail = dossier
     ? `${dossier.occupant} · ${bienDossier?.nom ?? dossier.bienId} · ${dossier.arrivee} → ${dossier.depart}`
-    : "Cette date est occupée. Les blocages ne s'appliquent qu'aux jours libres.";
+    : bloquee
+      ? "Jour bloqué. Les réservations ne peuvent pas s'y poser."
+      : "Jour libre. Activez « Bloquer des dates » pour le fermer d'un clic.";
 
   return (
-    <div className="mt-4 rounded-card border border-line bg-white p-4 text-sm">
-      <p className="font-medium text-ink">Occupé le {date}</p>
+    <section aria-label="Détail du jour" className="mt-4 rounded-card border border-line bg-white p-4 text-sm">
+      <p className="font-medium text-ink">Détail du {date}</p>
       <p className="mt-1 text-xs text-ink-subtle">{detail}</p>
+      {missions.length > 0 ? (
+        <ul className="mt-2 space-y-1 text-xs text-ink-body">
+          {missions.map((m) => (
+            <li key={m.id}>
+              {m.titre} · {m.heure} · {m.assigne}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-2 text-xs text-ink-muted">Aucune mission ce jour.</p>
+      )}
       <div className="mt-2 flex flex-wrap gap-3">
         {dossier ? (
           <Link
@@ -261,7 +274,7 @@ function PanneauJourOccupe({
           Fermer
         </button>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -308,6 +321,7 @@ function MoisCalendrier({
             <button
               key={date}
               type="button"
+              aria-label={`${j} ${nom}`}
               onClick={() => onJour(date)}
               className={cn(
                 "mx-auto flex h-11 w-full items-center justify-center rounded text-xs md:size-7 md:text-[10px]",

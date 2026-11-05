@@ -420,6 +420,11 @@ export function PlanningGrid({
               <ChevronRight className="size-4" />
             </button>
             <span className="ml-1 text-xs text-ink-muted">Filtrer :</span>
+            {filtres.has("taches") && (
+              <span role="status" className="text-xs font-medium text-ink">
+                Interventions affichées
+              </span>
+            )}
             {(
               [
                 ["checkin", "CheckIn"],

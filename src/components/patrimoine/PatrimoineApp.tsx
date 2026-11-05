@@ -397,7 +397,7 @@ export function PatrimoineApp({
               </BtnOutline>
             )}
             <BtnOutline onClick={exporterLogements}>
-              <Download className="size-3" /> Exporter
+              <Download className="size-3" /> Exporter en CSV
             </BtnOutline>
             <BtnOutline onClick={exporterAnnonce}>
               <Download className="size-3" /> Annonce

@@ -7,6 +7,7 @@ import { EspaceRedaction, type PageRedaction } from "@/components/documents/Espa
 import { AppShell } from "@/components/layout/AppShell";
 import { ajouterDocument } from "@/data/documents-store";
 import {
+  AIDE_TYPES_RESERVATION,
   TYPES_RESERVATION,
   messageChevauchement,
   nuitsEntre,
@@ -51,6 +52,7 @@ export function CreerBail() {
   const session = useSession();
   const navigate = useNavigate();
   const [page, setPage] = useState<PageBail>("type");
+  const [filtreType, setFiltreType] = useState("tous");
   const [bienId, setBienId] = useState(session.biens[0]?.id ?? "");
   const [parties, setParties] = useState({ bailleur: "", locataire: "", email: "", telephone: "" });
   const [dates, setDates] = useState({ debut: "", fin: "" });
@@ -77,6 +79,12 @@ export function CreerBail() {
   }, []);
 
   const bien = session.biens.find((b) => b.id === bienId);
+  const aideType = AIDE_TYPES_RESERVATION.find((a) => a.type === type);
+  const bauxEnregistres = session.reservationsDossier.filter(
+    (r) => r.statut !== "Annulé" && (r.type ?? "").startsWith("Bail"),
+  );
+  const bauxFiltres =
+    filtreType === "tous" ? bauxEnregistres : bauxEnregistres.filter((r) => r.type === filtreType);
   const loyerN = Number(loyer.replace(",", ".")) || 0;
   const chargesN = Number(charges.replace(",", ".")) || 0;
   const cautionN = Number(caution.replace(",", ".")) || 0;
@@ -261,6 +269,11 @@ export function CreerBail() {
               ))}
             </select>
           </label>
+          {aideType && (
+            <p className="text-xs text-ink-body">
+              {aideType.duree} · dépôt {aideType.depot} · préavis {aideType.preavis}
+            </p>
+          )}
         </>
       )}
       {page === "designations" && (
@@ -487,6 +500,44 @@ export function CreerBail() {
         </Link>
         <span> · Baux</span>
       </p>
+      <section aria-label="Baux enregistrés" className="mb-4 rounded-card border border-line bg-white p-4">
+        <div role="group" aria-label="Type de bail" className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            aria-pressed={filtreType === "tous"}
+            onClick={() => setFiltreType("tous")}
+            className={`inline-flex h-11 items-center rounded-full border px-3 text-xs md:h-8 ${filtreType === "tous" ? "border-ink bg-ink text-white" : "border-line text-ink"}`}
+          >
+            Tous les types
+          </button>
+          {TYPES_BAIL.map((t) => (
+            <button
+              key={t}
+              type="button"
+              aria-pressed={filtreType === t}
+              onClick={() => setFiltreType(t)}
+              className={`inline-flex h-11 items-center rounded-full border px-3 text-xs md:h-8 ${filtreType === t ? "border-ink bg-ink text-white" : "border-line text-ink"}`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        <p role="status" className="mt-3 text-sm text-ink">
+          {bauxFiltres.length} bail{bauxFiltres.length > 1 ? "x" : ""}
+          {filtreType === "tous" ? "" : ` · ${filtreType}`}
+        </p>
+        <ul className="mt-2 space-y-1 text-sm text-ink-body">
+          {bauxFiltres.length === 0 ? (
+            <li>Aucun bail pour ce type.</li>
+          ) : (
+            bauxFiltres.map((r) => (
+              <li key={r.id}>
+                {r.occupant} · {r.type} · {r.arrivee}
+              </li>
+            ))
+          )}
+        </ul>
+      </section>
       <EspaceRedaction
         titre={`Bail ${nomLocataire}`}
         sousTitre={
