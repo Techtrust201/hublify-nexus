@@ -200,9 +200,12 @@ function Journee({
     return (
       <Ecran className="gap-5">
         <div className="grid grid-cols-[1fr_auto] items-start">
-          <h1 className="pt-2 text-center font-display text-[32px] font-normal leading-none text-[var(--portail-encre)]">
-            Ma Journée
-          </h1>
+          <div className="pt-2 text-center">
+            <h1 className="font-display text-[32px] font-normal leading-none text-[var(--portail-encre)]">
+              Ma Journée
+            </h1>
+            <p className="mt-1 text-[12px] font-semibold text-black">Mode Prestataire</p>
+          </div>
           <Cloche />
         </div>
         <div className="grid grid-cols-5 gap-1.5">
