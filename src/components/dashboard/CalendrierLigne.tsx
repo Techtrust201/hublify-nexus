@@ -92,9 +92,10 @@ export function PastilleCalendrier({
       }}
       title={libellePastille(mission)}
       className={cn(
-        "flex h-11 w-full min-w-0 items-center gap-1 overflow-hidden rounded border px-1.5 text-left text-[10px] font-medium text-ink-body lg:h-[21px]",
-        selectionnee ? "border-ink shadow-[0_0_0_2px_rgba(17,17,17,0.35)]" : "border-line-strong",
-        style.barre && !selectionnee && "opacity-70",
+        "flex h-11 w-full min-w-0 items-center gap-1 overflow-hidden rounded-gest-barre border px-1.5 text-left font-sans text-[10px] font-medium leading-5 text-gest-item lg:h-[21px]",
+        selectionnee
+          ? "border-ink shadow-[0_0_0_2px_rgba(17,17,17,0.35)]"
+          : "border-gest-barre-bord",
         attenuee && !selectionnee && "opacity-45",
       )}
       style={{ backgroundColor: style.fond }}

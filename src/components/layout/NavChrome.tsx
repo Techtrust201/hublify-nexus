@@ -62,8 +62,8 @@ export function NavChrome({
   const equipe = (coequipiers ?? []).filter((m) => m.statut === "actif");
 
   const lien = mobile
-    ? "flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm text-ink-body hover:bg-surface"
-    : "flex h-9 items-center gap-3 rounded-xl px-3 text-sm text-ink-body hover:bg-surface";
+    ? "flex min-h-11 items-center gap-3 rounded-gest-debut px-3 font-sans text-sm font-medium leading-5 text-gest-item hover:bg-surface"
+    : "flex h-9 items-center gap-3 rounded-gest-debut px-3 font-sans text-sm font-medium leading-5 text-gest-item hover:bg-surface";
 
   return (
     <>
@@ -85,7 +85,7 @@ export function NavChrome({
           onClick={onNavigate}
           aria-current={pathname === "/" ? "page" : undefined}
           className={cn(
-            "mt-3 flex h-10 w-full items-center justify-center rounded-xl border text-sm font-medium",
+            "mt-3 flex h-10 w-full items-center justify-center rounded-gest-debut border font-sans text-sm font-medium leading-5",
             pathname === "/"
               ? "border-line bg-surface-soft text-ink"
               : "border-line bg-white text-ink-body hover:bg-surface",
@@ -200,7 +200,7 @@ export function NavChrome({
             to="/outils/debuter"
             onClick={onNavigate}
             className={cn(
-              "flex w-full items-center justify-center rounded-full bg-accent-teal text-sm font-medium text-white",
+              "flex w-full items-center justify-center rounded-gest-debut bg-gest-primaire font-sans text-sm font-medium leading-5 text-white",
               mobile ? "min-h-11" : "h-10",
             )}
           >
@@ -213,7 +213,7 @@ export function NavChrome({
             activeOptions={{ exact: true }}
             onClick={onNavigate}
             className={cn(
-              "flex w-full items-center justify-center rounded-full border border-line bg-white text-sm font-medium text-ink-body",
+              "flex w-full items-center justify-center rounded-gest-debut border border-gest-bordure bg-gest-sidebar font-sans text-sm font-medium leading-5 text-gest-item",
               mobile ? "min-h-11" : "h-10",
               pathname === "/outils" && "bg-surface-soft text-ink",
             )}

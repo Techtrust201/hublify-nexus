@@ -695,18 +695,16 @@ export function badgePastille(statut: StatutPastille) {
 export function stylePastille(m: MissionMo1) {
   const badge = badgePastille(m.statut);
   if (m.statut === "terminee" && m.type === "Menage") {
-    return { fond: "#ee8a79", barre: true, badge };
+    return {
+      fond: "var(--gest-rouge)",
+      barre: true,
+      badge,
+    };
   }
-  if (m.statut === "terminee") {
-    return { fond: "#d8f3e3", barre: false, badge };
+  if (m.type === "Menage" || m.statut === "en_cours") {
+    return { fond: "var(--gest-jaune)", barre: false, badge };
   }
-  if (m.statut === "en_cours") {
-    return { fond: "#fff4d4", barre: false, badge };
-  }
-  if (m.type === "Menage") {
-    return { fond: "#fff7de", barre: false, badge };
-  }
-  return { fond: "#d8f3e3", barre: false, badge };
+  return { fond: "var(--gest-vert)", barre: false, badge };
 }
 
 export function emojiType(type: TypeRegle) {

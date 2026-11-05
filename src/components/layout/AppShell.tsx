@@ -79,7 +79,7 @@ export function AppShell({
   }, [pathname]);
 
   return (
-    <div className="flex min-h-dvh w-full bg-canvas">
+    <div className="flex min-h-dvh w-full bg-gest-zone font-sans text-gest-item">
       <a
         href="#contenu-principal"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-toast focus:rounded-card focus:bg-ink focus:px-3 focus:py-2 focus:text-sm focus:text-white"
@@ -88,7 +88,7 @@ export function AppShell({
       </a>
 
       <aside
-        className="sticky top-0 hidden h-dvh w-[255px] shrink-0 flex-col overflow-hidden border-r border-line bg-white lg:flex"
+        className="sticky top-0 hidden h-dvh w-[255px] shrink-0 flex-col overflow-hidden border-r border-gest-bordure bg-gest-sidebar font-sans lg:flex"
         aria-label="Navigation principale"
       >
         <NavChrome pathname={pathname} densite="desktop" />
@@ -98,7 +98,7 @@ export function AppShell({
         <header
           className={cn(
             "sticky top-0 z-sticky px-4 pt-[env(safe-area-inset-top)] lg:px-6",
-            accueil ? "bg-canvas" : "border-b border-line bg-white/90 backdrop-blur-sm",
+            accueil ? "bg-gest-zone" : "border-b border-gest-bordure bg-white/90 backdrop-blur-sm",
           )}
         >
           <div className="flex min-h-[72px] items-center justify-between gap-4 py-3">
@@ -115,8 +115,8 @@ export function AppShell({
                 <Menu className="size-4" />
               </button>
               {accueil && auth ? (
-                <h1 className="min-w-0 truncate text-[26px] font-medium leading-none text-ink">
-                  Bonjour <span className="font-normal text-ink-body">{auth.prenom}</span>
+                <h1 className="min-w-0 truncate font-sans text-[26px] font-medium leading-none text-gest-titre">
+                  Bonjour {auth.prenom}
                 </h1>
               ) : titre ? (
                 <div className="min-w-0">
@@ -135,7 +135,7 @@ export function AppShell({
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               {actions ? <div className="flex shrink-0 items-center">{actions}</div> : null}
               <DropdownMenu modal={false}>
-                <DropdownMenuTrigger className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full bg-ink-muted px-4 text-sm text-ink outline-none">
+                <DropdownMenuTrigger className="inline-flex h-9 shrink-0 items-center gap-1 rounded-gest-outils bg-gest-outils px-4 font-sans text-sm font-medium text-ink outline-none">
                   Outils
                   <ChevronDown className="size-3.5 shrink-0" />
                 </DropdownMenuTrigger>
@@ -283,7 +283,7 @@ export function AppShell({
             side="left"
             showClose={false}
             id="nav-mobile"
-            className="flex w-[min(255px,100%)] max-w-[255px] flex-col gap-0 border-line bg-white p-0 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:max-w-[255px]"
+            className="flex w-[min(255px,100%)] max-w-[255px] flex-col gap-0 border-gest-bordure bg-gest-sidebar p-0 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] font-sans sm:max-w-[255px]"
           >
             <div className="flex items-center justify-between border-b border-surface-soft px-3 py-2">
               <SheetTitle className="text-sm font-medium text-ink">Menu</SheetTitle>
