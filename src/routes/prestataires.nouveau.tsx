@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { ajouterPrestataire } from "@/data/session";
-import { toastOk } from "@/lib/feedback";
+import { toastErreur, toastOk } from "@/lib/feedback";
 import type { CategoriePrestataire } from "@/data/types";
 
 export const Route = createFileRoute("/prestataires/nouveau")({
@@ -52,7 +52,15 @@ function AjoutPrestataire() {
 
   const soumettre = (e?: { preventDefault: () => void }) => {
     e?.preventDefault();
-    const id = ajouterPrestataire({ ...form, note: 0 });
+    const nom = form.nom.trim();
+    const ville = form.ville.trim();
+    const telephone = form.telephone.trim();
+    const email = form.email.trim().toLowerCase();
+    if (!nom || !ville || !telephone || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toastErreur("Renseignez un nom, une ville, un téléphone et une adresse e-mail valide.");
+      return;
+    }
+    const id = ajouterPrestataire({ ...form, nom, ville, telephone, email, note: 0 });
     toastOk("Prestataire ajouté.");
     navigate({ to: "/prestataires/$prestataireId", params: { prestataireId: id } });
   };
@@ -156,9 +164,9 @@ function AjoutPrestataire() {
 
         <div className="flex gap-2 pt-2">
           <button
-            type="button"
+            type="submit"
+            disabled={!interactif}
             data-pret={interactif ? "1" : "0"}
-            onClick={() => soumettre()}
             className="inline-flex min-h-11 items-center rounded-md bg-brand px-4 py-2 text-sm font-medium text-brand-foreground hover:opacity-90 md:min-h-0"
           >
             Enregistrer le prestataire
