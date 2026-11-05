@@ -40,12 +40,13 @@ export function PanneauMessagesAuto({
           <ChevronLeft className="size-4" />
         </button>
         <div className="min-w-0 flex-1">
-          <h2 className="flex items-center gap-2 text-sm text-ink">
+          <h2 className="flex items-center gap-2 text-sm font-medium text-ink">
             <Bot className="size-4" aria-hidden />
-            Paramétrage des messages automatiques
+            Automatisation des messages
           </h2>
           <p className="text-xs text-ink-muted">
-            Chaque parcours envoie un message type quand son déclencheur se produit.
+            Créez et gérez vos parcours de messages automatiques, les messages apparaîtront
+            également dans votre messagerie.
           </p>
         </div>
         <button
@@ -54,7 +55,7 @@ export function PanneauMessagesAuto({
           className="inline-flex h-11 items-center gap-1.5 rounded-card border border-line px-3 text-xs font-medium text-ink-body"
         >
           <Plus className="size-3.5" />
-          Ajouter un parcours
+          Créer un nouveau parcours
         </button>
       </header>
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">

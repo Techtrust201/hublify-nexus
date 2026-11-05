@@ -155,13 +155,20 @@ export function UpsellsApp({
 
   return (
     <div className="space-y-4">
+      <header>
+        <h2 className="font-sans text-[28px] font-medium text-ink">Upsells</h2>
+        <p className="mt-1 text-sm text-ink-muted">
+          Tous les Upsells et les ventes additionnelles à proposer aux voyageurs sont réunis ici
+        </p>
+      </header>
       <section className="rounded-card border border-line bg-white p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-sm font-medium text-ink">Liste des upsells</h2>
+            <h2 className="text-sm font-medium text-ink">
+              Liste des Upsells et Ventes additionnels
+            </h2>
             <p className="mt-1 text-xs text-ink-muted">
-              {visibles.length} élément{visibles.length > 1 ? "s" : ""} · tarif unitaire proposé au
-              voyageur
+              {visibles.length} élément{visibles.length > 1 ? "s" : ""}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -180,6 +187,17 @@ export function UpsellsApp({
             >
               <Plus className="size-3.5" /> Ajouter
             </button>
+            <button
+              type="button"
+              disabled={!peutEcrire || visibles.length === 0}
+              onClick={() => {
+                const premier = visibles[0];
+                if (premier) ouvrirEdition(premier);
+              }}
+              className="inline-flex h-11 items-center gap-1 rounded-card border border-line px-3 text-sm text-ink-body md:h-9"
+            >
+              Modifier
+            </button>
           </div>
         </div>
         <label className="mt-4 flex h-11 items-center gap-2 rounded-card border border-line px-3 text-sm md:h-9">
@@ -188,7 +206,7 @@ export function UpsellsApp({
           <input
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
-            placeholder="Rechercher un code, un service, une ville"
+            placeholder="Rechercher"
             className="w-full bg-transparent text-ink outline-none"
           />
         </label>
@@ -197,14 +215,14 @@ export function UpsellsApp({
             <thead>
               <tr className="border-b border-line text-xs text-ink-muted">
                 {[
-                  "Code",
-                  "Désignation",
-                  "Type",
-                  "Prestataire",
-                  "Pièce jointe",
-                  "Ville",
-                  "Tarif",
-                  "Actions",
+                  "CODE",
+                  "DÉSIGNATION",
+                  "TYPE",
+                  "PRESTATAIRE",
+                  "PIÈCE JOINTE",
+                  "VILLE",
+                  "TARIF UNITAIRE",
+                  "ACTIONS",
                 ].map((col) => (
                   <th key={col} className="px-2 py-2 font-medium">
                     {col}

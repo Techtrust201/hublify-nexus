@@ -159,9 +159,12 @@ export function ModelesApp() {
   return (
     <div>
       <div className="mb-8 text-center">
-        <h2 className="text-2xl text-ink">Modèles de documents</h2>
-        <p className="mx-auto mt-2 max-w-lg text-sm text-ink-subtle">
-          Créez et gérez vos modèles de factures, devis, quittances et contrats réutilisables.
+        <h2 className="font-sans text-[28px] font-medium leading-tight text-ink">
+          Modèles de documents
+        </h2>
+        <p className="mx-auto mt-2 max-w-xl text-sm leading-5 text-ink-subtle">
+          Créez et gérez vos modèles de factures, devis, quittances, baux et tout document relatif à
+          la gestion locative. Archivés et triés par préférence.
         </p>
         <BtnNavy className="mt-4 h-12 px-6 text-sm" onClick={ouvrirCreation}>
           <Plus className="size-4" /> Créer un nouveau document

@@ -229,8 +229,7 @@ export function InventaireApp() {
         <div>
           <h2 className="text-2xl text-ink">Inventaire</h2>
           <p className="max-w-xl text-sm text-ink-subtle">
-            Tous les inventaires des consommables sont réunis ici. Le linge de maison reste dans son
-            onglet. L'inventaire mobilier se rédige dans les états des lieux.
+            Tous les inventaires des consommables sont réunis ici
           </p>
         </div>
         <BtnNavy

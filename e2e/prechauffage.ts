@@ -17,6 +17,7 @@ const ROUTES = [
   "/reservations",
   "/outils/livret",
   "/outils/upsells",
+  "/outils/modeles",
   "/precheckin",
   "/espace/precheckin",
   "/faq",

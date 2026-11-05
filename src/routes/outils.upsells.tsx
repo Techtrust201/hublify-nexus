@@ -14,11 +14,7 @@ export const Route = createFileRoute("/outils/upsells")({
 function PageUpsells() {
   const charge = Route.useLoaderData();
   return (
-    <AppShell
-      attendDonnees
-      titre="Upsells"
-      sousTitre="Ventes additionnelles proposées aux voyageurs"
-    >
+    <AppShell attendDonnees>
       <UpsellsApp fichesInitiales={charge.ok ? charge.fiches : {}} distantOk={charge.ok} />
     </AppShell>
   );

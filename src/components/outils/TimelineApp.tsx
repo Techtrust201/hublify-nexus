@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Check, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSession } from "@/data/session";
 import {
@@ -50,12 +50,12 @@ export function TimelineApp() {
   return (
     <div className="space-y-4">
       <section className="rounded-card border border-line bg-white p-4 sm:p-5">
-        <div className="flex flex-wrap items-end justify-between gap-3 text-center sm:text-left">
-          <div className="mx-auto sm:mx-0">
-            <h2 className="text-2xl font-medium text-ink">Timeline des événements</h2>
-            <p className="mt-1 max-w-xl text-xs text-ink-muted">
-              Documents envoyés ou reçus, nouvelles réservations et annulations. Le tri suit la date
-              du mouvement.
+        <div className="text-center">
+          <div>
+            <h2 className="font-sans text-[28px] font-medium text-ink">Time line des événements</h2>
+            <p className="mx-auto mt-1 max-w-xl text-sm leading-5 text-ink-muted">
+              Trouver par ordre chronologique la gestion des réservations et autres événements sur
+              la plateforme
             </p>
           </div>
           <p className="text-xs text-ink-muted">
@@ -87,7 +87,7 @@ export function TimelineApp() {
             <input
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
-              placeholder="Rechercher un logement, un type, un nom"
+              placeholder="Rechercher"
               className="w-full bg-transparent text-ink outline-none"
             />
           </label>
@@ -131,14 +131,16 @@ export function TimelineApp() {
             <ul className="space-y-2">
               {groupe.items.map((ev) => (
                 <li key={ev.id} className="rounded-card border border-line bg-white px-4 py-3">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="flex items-start justify-between gap-3">
                     <p className="text-sm font-medium text-ink">{ev.titre}</p>
-                    <p className="text-xs text-ink-muted">Le {formaterQuand(ev.date)}</p>
+                    <p className="flex shrink-0 items-center gap-2 text-xs text-ink-muted">
+                      Le {formaterQuand(ev.date)}
+                      <Check className="size-4 text-ink" aria-hidden />
+                    </p>
                   </div>
                   <p className="mt-2 text-xs text-ink-body">
                     Gestionnaire : {ev.acteur}
-                    <span className="mx-2 text-ink-muted">·</span>
-                    Type : {ev.type}
+                    <span className="mx-3 text-ink-muted">TYPE : {ev.type}</span>
                     {ev.logement ? (
                       <>
                         <span className="mx-2 text-ink-muted">·</span>
