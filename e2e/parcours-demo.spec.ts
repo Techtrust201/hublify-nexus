@@ -136,7 +136,7 @@ test("gestionnaire : prestataire, filtre, édition, suppression", async ({ page 
 test("gestionnaire : inventaire, filtre, édition, suppression", async ({ page }) => {
   await connecter(page, "amelie.dubois@hublify.app");
   await page.goto("/inventaire");
-  await page.getByRole("button", { name: "Ajouter un élément" }).click();
+  await page.getByRole("button", { name: "Ajouter item" }).click();
   await page.getByRole("dialog").getByLabel("Désignation").fill(INVENTAIRE);
   await page.getByRole("dialog").getByRole("button", { name: "Enregistrer" }).click();
   await expect(page.getByText("Élément ajouté.")).toBeVisible();

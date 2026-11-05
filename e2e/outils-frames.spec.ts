@@ -23,8 +23,11 @@ test("modèles, timeline, upsells et inventaire reprennent les libellés des fra
     timeout: 20_000,
   });
   await expect(page.getByText("Archivés et triés par préférence.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Extraire le tableau" })).toBeVisible();
   await page.getByRole("button", { name: "Créer un nouveau document" }).click();
   await expect(page.getByRole("heading", { name: "Créer un nouveau modèle" })).toBeVisible();
+  await expect(page.getByText("Importer document")).toBeVisible();
+  await expect(page.getByText("Ajouter aux favoris")).toBeVisible();
   await page.keyboard.press("Escape");
 
   await page.goto("/outils/timeline");
@@ -32,6 +35,7 @@ test("modèles, timeline, upsells et inventaire reprennent les libellés des fra
     timeout: 20_000,
   });
   await expect(page.getByPlaceholder("Rechercher")).toBeVisible();
+  await expect(page.getByText("Tri par TYPE")).toBeVisible();
 
   await page.goto("/outils/upsells");
   await expect(page.getByRole("heading", { name: "Upsells", exact: true })).toBeVisible({
@@ -39,6 +43,7 @@ test("modèles, timeline, upsells et inventaire reprennent les libellés des fra
   });
   await expect(page.getByText("Liste des Upsells et Ventes additionnels")).toBeVisible();
   await expect(page.getByRole("button", { name: "Ajouter" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Télécharger le tableau" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "TARIF UNITAIRE" })).toBeVisible();
 
   await page.goto("/inventaire");
@@ -51,4 +56,13 @@ test("modèles, timeline, upsells et inventaire reprennent les libellés des fra
     ),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Inventaire consommables 1" })).toBeVisible();
+  await expect(page.getByText("Proposition commerciale — À VOIR PLUS TARD")).toBeVisible();
+  await expect(page.getByText("Assigner un ou plusieurs lieu d'utilisation")).toBeVisible();
+
+  await page.goto("/messagerie");
+  await page.getByRole("button", { name: "Messages automatiques" }).click();
+  await expect(page.getByRole("heading", { name: "Automatisation des messages" })).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(page.getByRole("button", { name: "Créer un nouveau parcours" })).toBeVisible();
 });

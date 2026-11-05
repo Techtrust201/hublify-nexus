@@ -58,7 +58,7 @@ test("inventaire : onglets, lieu assigné et prix persistent", async ({ page }) 
   await page.getByRole("button", { name: `Retirer ${nomLieu}` }).click();
   await expect(page.getByRole("button", { name: `Retirer ${nomLieu}` })).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Ajouter un élément" }).click();
+  await page.getByRole("button", { name: "Ajouter item" }).click();
   const dialogue = page.getByRole("dialog");
   await dialogue.getByLabel("Désignation").fill(DESIGNATION);
   await dialogue.getByLabel("Marque").fill(MARQUE);
@@ -144,7 +144,7 @@ test("pré-check-in, timeline, modèles et upsells répondent au clic", async ({
   ).toBeVisible();
 
   await page.goto("/outils/timeline");
-  await expect(page.getByRole("heading", { name: "Timeline des événements" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Time ?line des événements/ })).toBeVisible();
   await page.getByRole("button", { name: "Aujourd'hui" }).click();
   await expect(page.getByRole("button", { name: "Aujourd'hui", pressed: true })).toBeVisible();
 

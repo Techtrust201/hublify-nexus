@@ -8,12 +8,12 @@ import {
   Pencil,
   Plus,
   Search,
-  SlidersHorizontal,
   Star,
   Trash2,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { BadgeType, BtnNavy, BtnOutline, Champ, Chip } from "@/components/documents/ui";
+import { Switch } from "@/components/ui/switch";
 import { ScrollHint } from "@/components/layout/ScrollHint";
 import {
   Dialog,
@@ -57,17 +57,21 @@ export function ModelesApp() {
   const [recherche, setRecherche] = useState("");
   const [categorie, setCategorie] = useState("Tous");
   const [cartes, setCartes] = useState(false);
-  const [filtres, setFiltres] = useState(false);
   const [formOuvert, setFormOuvert] = useState(false);
   const [edition, setEdition] = useState<ModeleDoc | null>(null);
   const [apercu, setApercu] = useState<ModeleDoc | null>(null);
   const [selection, setSelection] = useState<string[]>([]);
+  const [page, setPage] = useState(1);
   const modeles = useSession().modeles;
   const setModeles = (maj: (liste: ModeleDoc[]) => ModeleDoc[]) => poserCollection("modeles", maj);
 
   useEffect(() => {
     if (window.matchMedia("(max-width: 767px)").matches) setCartes(true);
   }, []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [categorie, recherche]);
 
   const list = useMemo(() => {
     let rows = modeles;
@@ -85,6 +89,21 @@ export function ModelesApp() {
   }, [modeles, categorie, recherche]);
 
   const favoris = modeles.filter((m) => m.favori);
+  const parPage = 10;
+  const pages = Math.max(1, Math.ceil(list.length / parPage));
+  const pageSure = Math.min(page, pages);
+  const pageListe = list.slice((pageSure - 1) * parPage, pageSure * parPage);
+
+  const extraireTableau = () => {
+    const source = selection.length ? modeles.filter((m) => selection.includes(m.id)) : list;
+    const lignes = [
+      "Designation;Type;Categorie;Reference;Utilisations",
+      ...source.map(
+        (m) => `${m.designation};${m.type};${m.categorie};${m.reference};${m.utilisations}`,
+      ),
+    ];
+    telechargerDemo("modeles-hublify.csv", lignes.join("\n"));
+  };
 
   const ouvrirCreation = () => {
     setEdition(null);
@@ -239,36 +258,23 @@ export function ModelesApp() {
               ))}
             </div>
             <div className="flex flex-wrap gap-2">
-              <BtnOutline onClick={() => setFiltres(true)}>
-                <SlidersHorizontal className="size-3" /> Filtres
-              </BtnOutline>
               <BtnOutline onClick={ouvrirCreation}>
                 <Plus className="size-3" /> Ajouter
               </BtnOutline>
-              <BtnOutline
-                disabled={!uniqueSelection}
-                onClick={() => uniqueSelection && ouvrirEdition(uniqueSelection)}
-              >
-                <Pencil className="size-3" /> Modifier
-              </BtnOutline>
-              <BtnOutline disabled={selection.length === 0} onClick={() => supprimerIds(selection)}>
-                <Trash2 className="size-3" /> Supprimer
-              </BtnOutline>
-              <BtnOutline
-                onClick={() => {
-                  const source = selection.length
-                    ? modeles.filter((m) => selection.includes(m.id))
-                    : list;
-                  const lignes = [
-                    "Designation;Type;Categorie;Reference;Utilisations",
-                    ...source.map(
-                      (m) =>
-                        `${m.designation};${m.type};${m.categorie};${m.reference};${m.utilisations}`,
-                    ),
-                  ];
-                  telechargerDemo("modeles-hublify.csv", lignes.join("\n"));
-                }}
-              >
+              {selection.length > 0 && (
+                <BtnOutline
+                  disabled={!uniqueSelection}
+                  onClick={() => uniqueSelection && ouvrirEdition(uniqueSelection)}
+                >
+                  <Pencil className="size-3" /> Modifier
+                </BtnOutline>
+              )}
+              {selection.length > 0 && (
+                <BtnOutline onClick={() => supprimerIds(selection)}>
+                  <Trash2 className="size-3" /> Supprimer
+                </BtnOutline>
+              )}
+              <BtnOutline onClick={extraireTableau}>
                 <Download className="size-3" /> Télécharger modèle
               </BtnOutline>
               <button
@@ -285,7 +291,7 @@ export function ModelesApp() {
           <div
             className={cn("grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3", !cartes && "md:hidden")}
           >
-            {list.map((m) => (
+            {pageListe.map((m) => (
               <article
                 key={m.id}
                 className={cn(
@@ -323,7 +329,7 @@ export function ModelesApp() {
                 />
               </article>
             ))}
-            {list.length === 0 && (
+            {pageListe.length === 0 && (
               <p className="py-10 text-center text-sm text-ink-muted sm:col-span-2 lg:col-span-3">
                 Aucun modèle pour cette recherche.
               </p>
@@ -335,19 +341,25 @@ export function ModelesApp() {
                 <thead className="border-b border-surface-soft text-ink-subtle">
                   <tr>
                     <th className="w-12 px-4 py-4" />
-                    <th className="px-2 py-4 font-medium">Désignation</th>
-                    <th className="px-2 py-4 font-medium">Type</th>
-                    <th className="px-2 py-4 font-medium">Catégorie</th>
-                    <th className="px-2 py-4 font-medium">Dernière utilisation</th>
-                    <th className="hidden px-2 py-4 text-center font-medium xl:table-cell">
+                    <th className="px-2 py-4 text-[11px] font-medium tracking-wide">DÉSIGNATION</th>
+                    <th className="px-2 py-4 text-[11px] font-medium tracking-wide">TYPE</th>
+                    <th className="px-2 py-4 text-[11px] font-medium tracking-wide">CATÉGORIE</th>
+                    <th className="max-w-[5.5rem] px-2 py-4 text-[11px] font-medium leading-4">
+                      Dernière utilisation
+                    </th>
+                    <th className="hidden px-2 py-4 text-center text-[11px] font-medium tracking-wide xl:table-cell">
                       Utilisations
                     </th>
-                    <th className="hidden px-2 py-4 font-medium xl:table-cell">Référence</th>
-                    <th className="px-2 py-4 text-right font-medium">Actions</th>
+                    <th className="hidden px-2 py-4 text-[11px] font-medium tracking-wide xl:table-cell">
+                      RÉFÉRENCE
+                    </th>
+                    <th className="px-2 py-4 text-right text-[11px] font-medium tracking-wide">
+                      ACTIONS
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {list.map((m) => (
+                  {pageListe.map((m) => (
                     <tr key={m.id} className="border-b border-surface-soft last:border-b-0">
                       <td className="px-4 py-3">
                         <label className="flex min-h-11 items-center md:min-h-0">
@@ -365,6 +377,9 @@ export function ModelesApp() {
                           onClick={() => setApercu(m)}
                           className="inline-flex min-h-11 items-center gap-2 text-sm text-ink md:min-h-0"
                         >
+                          {m.favori ? (
+                            <Star className="size-3 shrink-0 fill-ink text-ink" aria-hidden />
+                          ) : null}
                           <span className="flex size-7 items-center justify-center rounded-[8px] bg-surface-soft">
                             <FileText className="size-3.5 text-ink-body" />
                           </span>
@@ -395,7 +410,7 @@ export function ModelesApp() {
                       </td>
                     </tr>
                   ))}
-                  {list.length === 0 && (
+                  {pageListe.length === 0 && (
                     <tr>
                       <td colSpan={8} className="px-4 py-10 text-center text-sm text-ink-muted">
                         Aucun modèle pour cette recherche.
@@ -406,6 +421,53 @@ export function ModelesApp() {
               </table>
             </ScrollHint>
           )}
+          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-surface-soft px-4 py-3 text-xs text-ink-muted">
+            <span>
+              {list.length} modèle{list.length > 1 ? "s" : ""}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={extraireTableau}
+                className="inline-flex h-8 items-center gap-1.5 rounded-card px-2 text-ink-body hover:bg-surface-soft"
+              >
+                <Download className="size-3" /> Extraire le tableau
+              </button>
+              <button
+                type="button"
+                aria-label="Page précédente"
+                disabled={pageSure <= 1}
+                onClick={() => setPage(pageSure - 1)}
+                className="flex size-8 items-center justify-center rounded-full border border-line disabled:opacity-40"
+              >
+                ‹
+              </button>
+              {Array.from({ length: pages }, (_, i) => i + 1).map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  aria-label={`Page ${n}`}
+                  aria-current={n === pageSure ? "page" : undefined}
+                  onClick={() => setPage(n)}
+                  className={cn(
+                    "flex size-8 items-center justify-center rounded-full text-xs",
+                    n === pageSure ? "bg-ink text-white" : "text-ink-body",
+                  )}
+                >
+                  {n}
+                </button>
+              ))}
+              <button
+                type="button"
+                aria-label="Page suivante"
+                disabled={pageSure >= pages}
+                onClick={() => setPage(pageSure + 1)}
+                className="flex size-8 items-center justify-center rounded-full border border-line disabled:opacity-40"
+              >
+                ›
+              </button>
+            </div>
+          </footer>
         </section>
       </div>
 
@@ -424,28 +486,6 @@ export function ModelesApp() {
         onTelecharger={() => apercu && telecharger(apercu)}
         onDupliquer={() => apercu && dupliquer(apercu)}
       />
-      <Dialog open={filtres} onOpenChange={(o) => !o && setFiltres(false)}>
-        <DialogContent className="max-w-sm rounded-card">
-          <DialogHeader>
-            <DialogTitle className="text-base">Filtres</DialogTitle>
-            <DialogDescription>Affiner la liste des modèles</DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-wrap gap-1.5">
-            {CATEGORIES.map((c) => (
-              <Chip
-                key={c}
-                actif={categorie === c}
-                onClick={() => {
-                  setCategorie(c);
-                  setFiltres(false);
-                }}
-              >
-                {c}
-              </Chip>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
@@ -551,8 +591,10 @@ function CreateModeleDialog({
   onEnregistrer: (m: ModeleDoc) => void;
 }) {
   const [nom, setNom] = useState("");
-  const [type, setType] = useState("Quittance");
+  const [type, setType] = useState("Facture");
   const [categorie, setCategorie] = useState("Général");
+  const [favori, setFavori] = useState(false);
+  const [fichier, setFichier] = useState("");
 
   useEffect(() => {
     if (!ouvert) return;
@@ -560,11 +602,14 @@ function CreateModeleDialog({
       setNom(edition.designation);
       setType(edition.type);
       setCategorie(edition.categorie);
+      setFavori(Boolean(edition.favori));
     } else {
       setNom("");
-      setType("Quittance");
+      setType("Facture");
       setCategorie("Général");
+      setFavori(false);
     }
+    setFichier("");
   }, [ouvert, edition]);
 
   return (
@@ -579,6 +624,26 @@ function CreateModeleDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 px-6 py-4">
+          <div>
+            <p className="text-sm text-ink">Importer document</p>
+            <p className="text-[11px] text-ink-muted">
+              (possible d'importer : word, pdf… et des fichiers rendus éditables)
+            </p>
+            <label className="mt-2 flex h-10 cursor-pointer items-center justify-between rounded-card border border-dashed border-line px-3 text-xs text-ink-body">
+              <span className="truncate">{fichier || "Choisir un fichier"}</span>
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,.txt,.odt"
+                className="sr-only"
+                onChange={(e) => {
+                  const choisi = e.target.files?.[0];
+                  if (!choisi) return;
+                  setFichier(choisi.name);
+                  setNom((actuel) => actuel.trim() || choisi.name.replace(/\.[^.]+$/, ""));
+                }}
+              />
+            </label>
+          </div>
           <Champ
             label="Nom du modèle *"
             value={nom}
@@ -605,6 +670,10 @@ function CreateModeleDialog({
               ))}
             </div>
           </div>
+          <label className="flex items-center justify-between gap-3 text-sm text-ink">
+            <span>Ajouter aux favoris</span>
+            <Switch checked={favori} onCheckedChange={setFavori} aria-label="Ajouter aux favoris" />
+          </label>
         </div>
         <div className="flex justify-end gap-2 border-t border-surface-soft px-6 py-4">
           <BtnOutline onClick={onClose}>Annuler</BtnOutline>
@@ -622,7 +691,7 @@ function CreateModeleDialog({
                 derniere: edition?.derniere ?? "—",
                 utilisations: edition?.utilisations ?? 0,
                 reference: edition?.reference ?? `INV-${Math.floor(1030 + Math.random() * 50)}`,
-                ...(edition?.favori ? { favori: true } : {}),
+                ...(favori ? { favori: true } : {}),
               });
               onClose();
             }}
