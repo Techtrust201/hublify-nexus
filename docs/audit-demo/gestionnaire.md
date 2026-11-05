@@ -47,4 +47,4 @@ Parcours : accueil, réservations (liste et planning), missions, patrimoines, oc
 
 ## Commit de fusion
 
-Renseigné après la fusion de cette branche dans `main`.
+`ed8f9c664055b5b88b8dbcc1d451be775d921ca5` — merge de la pull request #22 (`audit/gestionnaire`) dans `main`.
