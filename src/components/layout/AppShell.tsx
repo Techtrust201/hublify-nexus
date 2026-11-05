@@ -309,7 +309,7 @@ export function AppShell({
 
         <main
           id="contenu-principal"
-          className="flex-1 p-4 pb-[calc(4.75rem+env(safe-area-inset-bottom))] lg:p-6 lg:pb-6"
+          className="espace-gestionnaire flex-1 p-4 pb-[calc(4.75rem+env(safe-area-inset-bottom))] lg:p-6 lg:pb-6"
         >
           {attendDonnees && !chargee ? (
             <CorpsEnAttente />

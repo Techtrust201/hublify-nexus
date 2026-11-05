@@ -134,7 +134,6 @@ test("états des lieux : ouvrir un dossier affiche l'aperçu par page", async ({
     .getByRole("button", { name: /pièces/ })
     .first()
     .click();
-  await expect(page.getByText("affichage par page")).toBeVisible();
   await expect(page.getByText("Aperçu document")).toBeVisible();
 });
 

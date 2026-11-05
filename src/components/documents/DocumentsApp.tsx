@@ -766,7 +766,7 @@ function Hub({
                 >
                   {c.titre}
                 </button>
-                <div className="overflow-hidden rounded-xl rounded-tl-none border border-[#d5deea] bg-white">
+                <div className="overflow-hidden rounded-card rounded-tl-none border border-line bg-white">
                   <button
                     type="button"
                     onClick={() => onOuvrirCarte(c)}
@@ -775,11 +775,11 @@ function Hub({
                     <span className="block bg-[#eef3f8] px-3 py-1.5 text-[11px] text-ink-muted">
                       {c.desc}
                     </span>
-                    <span className="flex h-28 items-center justify-center text-ink">
-                      <Icone className="size-14 stroke-[1.75]" />
+                    <span className="flex h-32 items-center justify-center bg-gradient-to-b from-white to-surface-soft text-ink-body">
+                      <Icone className="size-12 stroke-[1.25]" />
                     </span>
                     {c.badge ? (
-                      <span className="block pb-3 text-center text-[11px] text-ink-muted">
+                      <span className="block pb-3 text-center text-[11px] text-gest-alerte">
                         {c.badge}
                       </span>
                     ) : null}
