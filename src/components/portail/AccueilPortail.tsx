@@ -293,9 +293,9 @@ function Journee({
           <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[var(--portail-sarcelle)] text-sm font-semibold text-white">
             {initiales}
           </span>
-          <h1 className="min-w-0 font-display leading-tight text-[var(--portail-encre)]">
-            <span className="block text-[15px] font-medium">Bonjour !</span>
-            <span className="block truncate text-[22px] font-semibold">{prenom}</span>
+          <h1 className="min-w-0 font-display leading-tight text-black">
+            <span className="block text-[14px] font-normal">Bonjour !</span>
+            <span className="block truncate text-[20px] font-semibold">{prenom}</span>
           </h1>
         </button>
         <Cloche />
@@ -308,7 +308,7 @@ function Journee({
           </p>
         </Carte>
       )}
-      <ul className="mt-6 space-y-3">
+      <ul className="mt-[200px] space-y-2.5">
         {taches.map((t) => {
           const Icone = t.categorie === "Finance" ? Briefcase : UserRound;
           return (
@@ -316,7 +316,7 @@ function Journee({
               <button
                 type="button"
                 onClick={() => ouvrir(t)}
-                className="flex w-full items-center gap-3 rounded-[22px] bg-white px-4 py-3 text-left shadow-[var(--portail-ombre)]"
+                className="flex min-h-[75px] w-full items-center gap-3 rounded-[16px] bg-white px-4 py-3 text-left shadow-[var(--portail-ombre)]"
               >
                 <span className="min-w-0 flex-1">
                   <span className="block text-xs text-[var(--portail-encre-douce)]">
@@ -370,20 +370,24 @@ function ToutesLesTaches({ vide }: { vide: boolean }) {
         titre="Toutes les tâches en cours"
         surRetour={() => void navigate({ to: "/espace" })}
       />
-      <p className="text-center text-xs text-[#98a2b3]">Ordre chronologique</p>
+      <p className="text-center text-[12px] font-semibold text-black">
+        Toutes les tâches par ordre chronologique.
+      </p>
       <ul className="space-y-3">
         {trierTaches(visibles).map((t) => (
           <li key={t.id}>
             <button
               type="button"
-              className="flex w-full items-center justify-between rounded-[22px] bg-white px-4 py-3 text-left"
+              className="flex min-h-[66px] w-full items-center gap-3 rounded-[16px] bg-white px-3 py-2 text-left shadow-[var(--portail-ombre)]"
               onClick={() => void navigate({ to: t.route, ...(t.hash ? { hash: t.hash } : {}) })}
             >
-              <span>
-                <span className="block text-sm font-medium text-[#1d2939]">{t.titre}</span>
-                <span className="text-xs text-[#e11d48]">{t.heureLabel}</span>
+              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#f3e8ff] text-black">
+                <FileText className="size-4" fill="currentColor" />
               </span>
-              <FileText className="size-4 text-[#5090A8]" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[14px] font-normal text-black">{t.titre}</span>
+                <span className="text-[12px] font-semibold text-[#7c6bb5]">{t.heureLabel}</span>
+              </span>
             </button>
           </li>
         ))}

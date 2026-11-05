@@ -33,7 +33,7 @@ export function usePortailUi() {
 }
 
 export function Ecran({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("flex flex-col gap-4 px-4 pb-6 pt-3", className)}>{children}</div>;
+  return <div className={cn("flex flex-col gap-4 px-6 pb-6 pt-3", className)}>{children}</div>;
 }
 
 export function Cloche({ className }: { className?: string }) {
@@ -132,7 +132,7 @@ export function Bouton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex h-12 w-full items-center justify-center rounded-full px-4 text-sm font-semibold transition disabled:opacity-50",
+        "flex h-[52px] w-full items-center justify-center rounded-[26px] px-4 text-[16px] font-semibold transition disabled:opacity-50",
         variante === "plein" && "bg-[var(--portail-sarcelle)] text-white",
         variante === "ghost" && "text-[#5090A8]",
         variante === "ligne" && "border border-[#d0d5dd] bg-white text-[#1d2939]",

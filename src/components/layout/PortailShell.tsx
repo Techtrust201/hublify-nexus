@@ -148,7 +148,7 @@ function Coque({ children }: { children: ReactNode }) {
         className="portail min-h-dvh bg-[var(--portail-fond-bas)]"
         data-portail-pret={pretUi ? "1" : "0"}
       >
-        <div className="relative mx-auto flex h-dvh w-full max-w-[430px] flex-col overflow-hidden bg-[var(--portail-fond)]">
+        <div className="relative mx-auto flex h-dvh w-full max-w-[375px] flex-col overflow-hidden bg-[var(--portail-fond)]">
           <div className="relative z-10">
             <BandeauSync />
           </div>
@@ -245,7 +245,7 @@ function Coque({ children }: { children: ReactNode }) {
                       key={t.id}
                       type="button"
                       onClick={() => setPlus((v) => !v)}
-                      className="-mt-8 flex size-14 items-center justify-center rounded-full bg-[var(--portail-plus)] text-[var(--portail-encre)] shadow-[var(--portail-ombre)]"
+                      className="-mt-6 flex size-11 items-center justify-center rounded-full bg-[var(--portail-plus)] text-[var(--portail-encre)] shadow-[var(--portail-ombre)]"
                       aria-label="Ajouter"
                       aria-expanded={plus}
                     >

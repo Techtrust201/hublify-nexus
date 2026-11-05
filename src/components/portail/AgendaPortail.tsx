@@ -87,7 +87,7 @@ export function CalendrierPortail() {
       >
         Aujourd&apos;hui
       </button>
-      <div className="rounded-[24px] bg-white px-3 py-4 shadow-[var(--portail-ombre)]">
+      <div className="rounded-[16px] bg-white px-3 py-4 shadow-[var(--portail-ombre)]">
         <div className="mb-3 flex items-center justify-between px-1">
           <button
             type="button"

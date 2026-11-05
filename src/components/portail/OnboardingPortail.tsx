@@ -26,7 +26,7 @@ export function OnboardingPortail() {
       className="portail min-h-dvh bg-[var(--portail-fond-bas)]"
       data-portail-pret={pret ? "1" : "0"}
     >
-      <div className="relative mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-[var(--portail-fond)] px-5 pb-8 pt-6">
+      <div className="relative mx-auto flex min-h-dvh w-full max-w-[375px] flex-col bg-[var(--portail-fond)] px-6 pb-8 pt-5">
         <div className="flex items-center justify-between">
           <button
             type="button"
@@ -69,7 +69,7 @@ export function OnboardingPortail() {
             height={212}
             className="mt-6 h-auto w-[min(100%,306px)]"
           />
-          <h1 className="mt-4 font-display text-[28px] font-semibold leading-tight text-[var(--portail-encre)]">
+          <h1 className="mt-4 font-display text-[24px] font-semibold leading-tight text-black">
             Management &amp; gestion
           </h1>
           <p className="mt-4 max-w-[18rem] text-sm leading-relaxed text-[var(--portail-encre-douce)]">

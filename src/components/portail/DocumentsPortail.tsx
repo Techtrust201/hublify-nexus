@@ -243,17 +243,19 @@ function Hub({ docs }: { docs: DocVue[] }) {
   return (
     <Ecran>
       <Entete titre="Vos Documents" sousTitre="Vos tâches en attente" />
-      <div className="grid grid-cols-2 gap-x-4 px-1">
-        {tuiles.map((t) => (
+      <div className="mx-auto grid w-full max-w-[291px] grid-cols-2 gap-x-[47px] gap-y-5">
+        {tuiles.map((t, index) => (
           <button
             key={t.hash}
             type="button"
             onClick={() => void navigate({ to: "/espace/documents", hash: t.hash })}
-            className={`flex h-[148px] flex-col items-center justify-center gap-1 rounded-[22px] bg-white px-3 text-center text-[var(--portail-encre)] shadow-[var(--portail-ombre)] ${t.decalage}`}
+            className={`flex flex-col items-center justify-center gap-1 rounded-[16px] bg-white px-2 text-center text-black shadow-[var(--portail-ombre)] ${
+              index < 2 ? "h-[116px]" : "h-[105px]"
+            } ${t.decalage}`}
           >
-            <t.icone className="mb-1 size-7" fill="currentColor" strokeWidth={1.5} />
-            <span className="text-[15px] font-semibold leading-tight">{t.titre}</span>
-            <span className="whitespace-pre-line text-[11px] leading-snug text-[var(--portail-encre-douce)]">
+            <t.icone className="size-7" fill="currentColor" strokeWidth={1.5} />
+            <span className="text-[14px] font-semibold leading-tight">{t.titre}</span>
+            <span className="whitespace-pre-line text-[11px] font-normal leading-snug text-black">
               {t.detail}
             </span>
           </button>
@@ -262,7 +264,7 @@ function Hub({ docs }: { docs: DocVue[] }) {
       <button
         type="button"
         onClick={() => void navigate({ to: "/espace/contacts" })}
-        className="mt-4 flex min-h-16 w-full items-center justify-center rounded-[22px] bg-white px-4 text-center text-sm font-semibold text-[var(--portail-encre)] shadow-[var(--portail-ombre)]"
+        className="mx-auto flex h-[66px] w-full max-w-[331px] items-center justify-center rounded-[16px] bg-white px-4 text-center text-[14px] font-semibold text-black shadow-[var(--portail-ombre)]"
       >
         Information à propos du propriétaire
       </button>
