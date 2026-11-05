@@ -302,6 +302,9 @@ test("portail prestataire : mission et rapport", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Ma Journée" })).toBeVisible();
   await page.goto("/espace/missions");
   const rapport = page.getByPlaceholder("Rapport d'intervention");
+  const jours = page.getByRole("group", { name: "Jours" }).getByRole("button");
+  const nombre = await jours.count();
+  for (let i = 0; i < nombre && (await rapport.count()) === 0; i++) await jours.nth(i).click();
   if ((await rapport.count()) > 0) {
     await rapport.first().fill("Rapport parcours démo");
     await page.getByRole("button", { name: "Enregistrer le rapport" }).first().click();

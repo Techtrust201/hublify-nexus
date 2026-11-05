@@ -50,6 +50,7 @@ test("assistance : formulaire vide affiche les erreurs", async ({ page }) => {
   test.setTimeout(90_000);
   await connecter(page, "amelie.dubois@hublify.app");
   await page.goto("/assistance");
+  await expect(page.getByRole("button", { name: "Envoyer à l'assistance" })).toBeVisible();
   await page.getByRole("button", { name: "Envoyer à l'assistance" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Indiquez un sujet" })).toBeVisible();
   await expect(page.getByRole("alert").filter({ hasText: "Indiquez un message" })).toBeVisible();
