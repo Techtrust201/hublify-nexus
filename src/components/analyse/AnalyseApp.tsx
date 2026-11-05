@@ -4,7 +4,7 @@
 
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Download } from "lucide-react";
+import { Calendar, ChevronDown, ChevronRight, Download } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import {
   EcranAnalyse2,
@@ -19,6 +19,16 @@ import {
 import { dateCourte, euroFixe } from "@/components/analyse/presentation";
 import { BarreOnglets } from "@/components/analyse/widgets";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  debutDeMois,
+  finDeMois,
+  libelleMois,
+  moisFrancais,
+  partiesIso,
+  plageAligneeSurLesMois,
+} from "@/components/analyse/periode-mois";
+import { cn } from "@/lib/utils";
 import { AUJOURD_HUI_MO1 } from "@/data/planning-mo1";
 import { useSession } from "@/data/session";
 import { formatTaux, totauxFacture } from "@/lib/analyse-finance";
@@ -324,33 +334,36 @@ function Filtres({
   onLogement: (v: string) => void;
   onExporter: () => void;
 }) {
+  const [personnalisee, setPersonnalisee] = useState(() => !plageAligneeSurLesMois(debut, fin));
+
+  const choisirMois = (cible: "debut" | "fin", annee: number, mois: number) => {
+    if (cible === "debut") onDebut(debutDeMois(annee, mois));
+    else onFin(finDeMois(annee, mois));
+    setPersonnalisee(false);
+  };
+
   return (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-      <div className="grid flex-1 gap-2 sm:grid-cols-3">
-        <label className="text-xs text-ink-muted">
-          Début
-          <input
-            type="date"
-            value={debut}
-            onChange={(e) => onDebut(e.target.value)}
-            className="mt-1 h-11 w-full rounded-card border border-line bg-white px-3 text-sm text-ink"
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          <PiluleMois
+            key={`debut-${debut}`}
+            libelle="Mois de début"
+            iso={debut}
+            onChoisir={(annee, mois) => choisirMois("debut", annee, mois)}
           />
-        </label>
-        <label className="text-xs text-ink-muted">
-          Fin
-          <input
-            type="date"
-            value={fin}
-            onChange={(e) => onFin(e.target.value)}
-            className="mt-1 h-11 w-full rounded-card border border-line bg-white px-3 text-sm text-ink"
+          <ChevronRight className="size-4 text-ink-muted" aria-hidden />
+          <PiluleMois
+            key={`fin-${fin}`}
+            libelle="Mois de fin"
+            iso={fin}
+            onChoisir={(annee, mois) => choisirMois("fin", annee, mois)}
           />
-        </label>
-        <label className="text-xs text-ink-muted">
-          Logements
           <select
+            aria-label="Logements"
             value={logement}
             onChange={(e) => onLogement(e.target.value)}
-            className="mt-1 h-11 w-full rounded-card border border-line bg-white px-3 text-sm text-ink"
+            className="h-10 rounded-full border border-line bg-white px-3 text-sm text-ink shadow-[var(--shadow-carte)]"
           >
             <option value="tous">Tous les logements · {nb}</option>
             {logements.map((b) => (
@@ -359,16 +372,132 @@ function Filtres({
               </option>
             ))}
           </select>
-        </label>
+          <button
+            type="button"
+            onClick={() => setPersonnalisee((v) => !v)}
+            className="h-10 rounded-full px-3 text-sm text-ink-body underline-offset-2 hover:underline"
+            aria-expanded={personnalisee}
+          >
+            {personnalisee ? "Mois entiers" : "Plage personnalisée"}
+          </button>
+        </div>
+        <button
+          type="button"
+          onClick={onExporter}
+          className="inline-flex h-10 items-center justify-center gap-1 rounded-full border border-line bg-white px-3 text-xs text-ink-body shadow-[var(--shadow-carte)]"
+        >
+          <Download className="size-3.5" /> Exporter
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={onExporter}
-        className="inline-flex min-h-11 items-center justify-center gap-1 rounded-card border border-line bg-white px-3 text-xs text-ink-body"
-      >
-        <Download className="size-3.5" /> Exporter
-      </button>
+      {personnalisee && (
+        <div className="grid gap-2 sm:grid-cols-2 sm:max-w-md">
+          <label className="text-xs text-ink-muted">
+            Début
+            <input
+              type="date"
+              value={debut}
+              onChange={(e) => onDebut(e.target.value)}
+              className="mt-1 h-10 w-full rounded-card border border-line bg-white px-3 text-sm text-ink"
+            />
+          </label>
+          <label className="text-xs text-ink-muted">
+            Fin
+            <input
+              type="date"
+              value={fin}
+              onChange={(e) => onFin(e.target.value)}
+              className="mt-1 h-10 w-full rounded-card border border-line bg-white px-3 text-sm text-ink"
+            />
+          </label>
+        </div>
+      )}
     </div>
+  );
+}
+
+function PiluleMois({
+  libelle,
+  iso,
+  onChoisir,
+}: {
+  libelle: string;
+  iso: string;
+  onChoisir: (annee: number, mois: number) => void;
+}) {
+  const { annee } = partiesIso(iso);
+  const [anneeVue, setAnneeVue] = useState(annee);
+  const [ouvert, setOuvert] = useState(false);
+  const texte = libelleMois(iso);
+
+  return (
+    <Popover
+      open={ouvert}
+      onOpenChange={(o) => {
+        setOuvert(o);
+        if (o) setAnneeVue(annee);
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={`${libelle}, ${texte}`}
+          className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-white px-3 text-sm text-ink shadow-[var(--shadow-carte)]"
+        >
+          <Calendar className="size-3.5 text-ink-muted" aria-hidden />
+          {texte}
+          <ChevronDown className="size-3.5 text-ink-muted" aria-hidden />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        role="dialog"
+        aria-label="Choisir le mois"
+        className="w-64 border-line bg-white p-3 text-ink"
+      >
+        <div className="mb-2 flex items-center justify-between">
+          <button
+            type="button"
+            aria-label="Année précédente"
+            className="flex size-8 items-center justify-center rounded-full hover:bg-surface"
+            onClick={() => setAnneeVue((a) => a - 1)}
+          >
+            <ChevronRight className="size-4 rotate-180" />
+          </button>
+          <span className="text-sm font-medium">{anneeVue}</span>
+          <button
+            type="button"
+            aria-label="Année suivante"
+            className="flex size-8 items-center justify-center rounded-full hover:bg-surface"
+            onClick={() => setAnneeVue((a) => a + 1)}
+          >
+            <ChevronRight className="size-4" />
+          </button>
+        </div>
+        <div className="grid grid-cols-3 gap-1">
+          {Array.from({ length: 12 }, (_, i) => {
+            const mois = i + 1;
+            const actif = libelleMois(iso) === `${moisFrancais(i)} ${anneeVue}`;
+            return (
+              <button
+                key={mois}
+                type="button"
+                aria-pressed={actif}
+                className={cn(
+                  "h-9 rounded-full text-xs",
+                  actif ? "bg-ink text-white" : "text-ink-body hover:bg-surface",
+                )}
+                onClick={() => {
+                  onChoisir(anneeVue, mois);
+                  setOuvert(false);
+                }}
+              >
+                {moisFrancais(i)}
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 

@@ -64,11 +64,18 @@ test("analyse : onglets, filtres et chiffres", async ({ page }) => {
   await page.getByRole("tab", { name: "Tableau de bord" }).click();
   await page.getByRole("tab", { name: "Occupation" }).click();
   const annee = ((await taux.textContent()) ?? "").trim();
-  await page.getByLabel("Début").fill("2026-06-01");
-  await page.getByLabel("Fin").fill("2026-06-15");
+  await page.getByRole("button", { name: /Mois de début/ }).click();
+  const selecteur = page.getByRole("dialog", { name: "Choisir le mois" });
+  await selecteur.getByRole("button", { name: "Juin", exact: true }).click();
+  await expect(selecteur).toHaveCount(0);
+  await page.getByRole("button", { name: /Mois de fin/ }).click();
+  await page.getByRole("dialog", { name: "Choisir le mois" }).getByRole("button", { name: "Juin", exact: true }).click();
   await expect(page).toHaveURL(/debut=2026-06-01/);
-  await expect(page).toHaveURL(/fin=2026-06-15/);
+  await expect(page).toHaveURL(/fin=2026-06-30/);
   await expect(taux).not.toHaveText(annee);
+  await page.getByRole("button", { name: "Plage personnalisée" }).click();
+  await page.getByRole("textbox", { name: "Fin" }).fill("2026-06-15");
+  await expect(page).toHaveURL(/fin=2026-06-15/);
   expect(annee).toMatch(/%/);
 
   const logements = page.getByLabel("Logements");
