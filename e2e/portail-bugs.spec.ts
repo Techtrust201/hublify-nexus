@@ -40,18 +40,19 @@ test("calendrier : Aujourd'hui reste visible même si on y est déjà", async ({
   await connecter(page, "jean.martin@hublify.app");
   await page.goto("/espace/calendrier");
   await page.getByRole("button", { name: "Mois suivant" }).click();
+  const retour = page.getByRole("status").filter({ hasText: "Aujourd'hui est affiché" });
   await page.getByRole("button", { name: "Aujourd'hui" }).click();
-  await expect(page.getByRole("status")).toContainText("Aujourd'hui est affiché");
+  await expect(retour).toBeVisible();
   await page.getByRole("button", { name: "Aujourd'hui" }).click();
-  await expect(page.getByRole("status")).toContainText("Aujourd'hui est affiché");
+  await expect(retour).toBeVisible();
 });
 
 test("assistance : formulaire vide affiche les erreurs", async ({ page }) => {
   test.setTimeout(90_000);
   await connecter(page, "amelie.dubois@hublify.app");
   await page.goto("/assistance");
-  await expect(page.getByRole("button", { name: "Envoyer à l'assistance" })).toBeVisible();
+  await expect(page.locator("form[data-pret='oui']")).toBeVisible();
   await page.getByRole("button", { name: "Envoyer à l'assistance" }).click();
-  await expect(page.getByRole("alert").filter({ hasText: "Indiquez un sujet" })).toBeVisible();
-  await expect(page.getByRole("alert").filter({ hasText: "Indiquez un message" })).toBeVisible();
+  await expect(page.locator("#erreur-sujet")).toHaveText("Indiquez un sujet.");
+  await expect(page.locator("#erreur-message")).toHaveText("Indiquez un message.");
 });

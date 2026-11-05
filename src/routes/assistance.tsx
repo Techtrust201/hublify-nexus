@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/auth/auth-context";
 import { AppShell } from "@/components/layout/AppShell";
 import { ajouterMessageDash, ajouterNotif, idNouveau } from "@/data/session";
@@ -21,6 +21,10 @@ function PageAssistance() {
   const [message, setMessage] = useState("");
   const [envoye, setEnvoye] = useState(false);
   const [erreurs, setErreurs] = useState<{ sujet?: string; message?: string }>({});
+  const [pret, setPret] = useState(false);
+  useEffect(() => {
+    setPret(true);
+  }, []);
 
   return (
     <AppShell
@@ -28,6 +32,7 @@ function PageAssistance() {
       sousTitre="Un message suffit. Il reste dans la messagerie de l'équipe."
     >
       <form
+        data-pret={pret ? "oui" : "non"}
         className="mx-auto max-w-xl space-y-3 rounded-2xl border border-line bg-white p-4"
         onSubmit={(e) => {
           e.preventDefault();

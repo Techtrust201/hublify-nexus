@@ -304,15 +304,22 @@ test("portail prestataire : mission et rapport", async ({ page }) => {
   const rapport = page.getByPlaceholder("Rapport d'intervention");
   const jours = page.getByRole("group", { name: "Jours" }).getByRole("button");
   const nombre = await jours.count();
-  for (let i = 0; i < nombre && (await rapport.count()) === 0; i++) await jours.nth(i).click();
+  let indexMission = -1;
+  for (let i = 0; i < nombre && (await rapport.count()) === 0; i++) {
+    await jours.nth(i).click();
+    if ((await rapport.count()) > 0) indexMission = i;
+  }
   if ((await rapport.count()) > 0) {
     await rapport.first().fill("Rapport parcours démo");
     await page.getByRole("button", { name: "Enregistrer le rapport" }).first().click();
     await expect(page.getByText("Rapport enregistré.")).toBeVisible();
     await laisserEnregistrer(page);
     await page.reload();
+    if (indexMission >= 0) {
+      await page.getByRole("group", { name: "Jours" }).getByRole("button").nth(indexMission).click();
+    }
     await expect(page.getByText("Rapport parcours démo")).toBeVisible();
   } else {
-    await expect(page.getByText(/Démonstration|Ménage/).first()).toBeVisible();
+    await expect(page.getByText("Aucune mission ce jour.")).toBeVisible();
   }
 });
