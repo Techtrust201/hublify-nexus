@@ -44,7 +44,7 @@ export function BtnOutline({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "inline-flex h-11 min-h-11 items-center gap-1.5 rounded-card border border-line bg-white px-3 text-sm font-medium text-ink-body disabled:opacity-40 md:h-[34px] md:min-h-[34px] md:text-xs",
+        "inline-flex h-11 min-h-11 items-center gap-1.5 rounded-[14px] border border-line bg-white px-3 text-sm font-medium text-ink-body disabled:opacity-40 md:h-[34px] md:min-h-[34px] md:text-xs",
         className,
       )}
     >
@@ -69,7 +69,7 @@ export function BtnNavy({
       type={type}
       onClick={onClick}
       className={cn(
-        "inline-flex h-11 min-h-11 items-center gap-1.5 rounded-card bg-ink px-3 text-sm font-medium text-white md:h-[34px] md:min-h-[34px] md:text-xs",
+        "inline-flex h-11 min-h-11 items-center gap-1.5 rounded-[14px] bg-gest-primaire px-3 text-sm font-medium text-white md:h-[34px] md:min-h-[34px] md:text-xs",
         className,
       )}
     >

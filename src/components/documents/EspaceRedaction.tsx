@@ -57,7 +57,7 @@ export function EspaceRedaction({
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-lg font-medium text-ink">{titre}</h2>
               {badge ? (
-                <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-medium text-sky-800">
+                <span className="rounded-full bg-gest-jaune px-2 py-0.5 text-[11px] font-medium text-ink">
                   {badge}
                 </span>
               ) : null}
@@ -79,7 +79,7 @@ export function EspaceRedaction({
           >
             <div className="h-full bg-ink" style={{ width: `${prog.ratio}%` }} />
           </div>
-          <p className="text-[11px] text-emerald-700">Modifications conservées dans la session</p>
+          <p className="text-[11px] text-ink-body">Modifications conservées dans la session</p>
         </div>
       </header>
       <div className="grid lg:grid-cols-[minmax(220px,260px)_minmax(0,1fr)]">
@@ -94,15 +94,13 @@ export function EspaceRedaction({
                   aria-current={p.id === pageActive ? "page" : undefined}
                   className={cn(
                     "flex min-h-11 w-full items-start gap-2 rounded-card px-2 py-2 text-left text-sm",
-                    p.id === pageActive ? "bg-sky-50 text-ink" : "text-ink-body hover:bg-surface",
+                    p.id === pageActive ? "bg-surface text-ink" : "text-ink-body hover:bg-surface",
                   )}
                 >
                   <span
                     className={cn(
                       "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border",
-                      p.fait
-                        ? "border-emerald-600 bg-emerald-600 text-white"
-                        : "border-line-strong",
+                      p.fait ? "border-transparent bg-gest-vert text-ink" : "border-line-strong",
                     )}
                     aria-hidden
                   >
@@ -129,7 +127,7 @@ export function EspaceRedaction({
           ) : null}
           {pied}
         </aside>
-        <div className="min-h-[420px] bg-[#f6f1ee] p-4 sm:p-6">
+        <div className="min-h-[420px] bg-gest-jaune/40 p-4 sm:p-6">
           <p className="mb-3 text-center text-xs font-medium tracking-wide text-ink-muted uppercase">
             Aperçu document
             {mentionApercu ? (

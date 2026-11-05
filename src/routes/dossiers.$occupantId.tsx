@@ -154,7 +154,7 @@ function PageDossierLocataire() {
   ];
 
   return (
-    <AppShell titre={`Dossier · ${occupant.nom}`} sousTitre={occupant.logement}>
+    <AppShell titre={`Profil ${occupant.nom}`} sousTitre={`Locataire · ${occupant.logement}`}>
       <Link to="/occupants" className="text-xs text-ink-muted hover:text-ink">
         ← Occupants
       </Link>

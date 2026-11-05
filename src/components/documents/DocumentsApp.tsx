@@ -757,44 +757,25 @@ function Hub({
         {cartesVisibles.map((c) => {
           const Icone = iconeDossier(c.id);
           return (
-            <article key={c.id} className="pt-2">
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => onOuvrirCarte(c)}
-                  className="inline-flex max-w-[78%] rounded-t-xl bg-[#e7eef8] px-3 pt-2 pb-1 text-left text-xs font-semibold text-ink"
-                >
-                  {c.titre}
-                </button>
-                <div className="overflow-hidden rounded-card rounded-tl-none border border-line bg-white">
-                  <button
-                    type="button"
-                    onClick={() => onOuvrirCarte(c)}
-                    className="w-full text-left"
-                  >
-                    <span className="block bg-[#eef3f8] px-3 py-1.5 text-[11px] text-ink-muted">
-                      {c.desc}
-                    </span>
-                    <span className="flex h-32 items-center justify-center bg-gradient-to-b from-white to-surface-soft text-ink-body">
-                      <Icone className="size-12 stroke-[1.25]" />
-                    </span>
-                    {c.badge ? (
-                      <span className="block pb-3 text-center text-[11px] text-gest-alerte">
-                        {c.badge}
-                      </span>
-                    ) : null}
-                  </button>
-                  {c.href && c.vue ? (
-                    <button
-                      type="button"
-                      onClick={() => onAcceder(c.vue!)}
-                      className="flex min-h-11 w-full items-center justify-center border-t border-[#e7eef8] text-[11px] text-ink-muted hover:text-ink"
-                    >
-                      Documents archivés
-                    </button>
-                  ) : null}
-                </div>
-              </div>
+            <article key={c.id} className="pt-3">
+              <button
+                type="button"
+                onClick={() => onOuvrirCarte(c)}
+                className="w-full overflow-hidden rounded-card border border-line bg-white text-left shadow-[var(--shadow-carte)]"
+              >
+                <span className="block bg-surface px-4 pb-2 pt-3">
+                  <span className="block text-sm font-medium text-ink">{c.titre}</span>
+                  <span className="mt-0.5 block truncate text-[11px] text-ink-muted">{c.desc}</span>
+                </span>
+                <span className="flex h-32 items-center justify-center bg-gradient-to-b from-white to-surface-soft text-ink-body">
+                  <Icone className="size-12 stroke-[1.25]" />
+                </span>
+                {c.badge ? (
+                  <span className="block bg-gest-jaune py-2 text-center text-[11px] text-ink">
+                    {c.badge}
+                  </span>
+                ) : null}
+              </button>
             </article>
           );
         })}
