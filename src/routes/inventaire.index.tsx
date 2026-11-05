@@ -14,7 +14,7 @@ function PageInventaire() {
     <AppShell
       attendDonnees
       titre="Inventaire"
-      sousTitre="Conciergerie : linge de maison et consommables"
+      sousTitre="Tous les inventaires des consommables sont réunis ici"
     >
       <InventaireApp />
     </AppShell>
