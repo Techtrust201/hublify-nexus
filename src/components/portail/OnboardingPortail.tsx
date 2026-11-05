@@ -2,6 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ecrireMode, lireMode } from "@/components/portail/etat-local";
+import "@/components/portail/lexend-deca";
 import { Bouton, Marque } from "@/components/portail/chrome";
 import { toastOk } from "@/lib/feedback";
 
@@ -25,7 +26,7 @@ export function OnboardingPortail() {
       className="portail min-h-dvh bg-[var(--portail-fond-bas)]"
       data-portail-pret={pret ? "1" : "0"}
     >
-      <div className="relative mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-[linear-gradient(180deg,var(--portail-fond-haut)_0%,var(--portail-fond-bas)_100%)] px-5 pb-8 pt-6">
+      <div className="relative mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-[var(--portail-fond)] px-5 pb-8 pt-6">
         <div className="flex items-center justify-between">
           <button
             type="button"

@@ -422,10 +422,12 @@
  * Ces variables ne remplacent pas --canvas, --font-sans ni la palette gestionnaire.
  */
 .portail {
-  --portail-fond-haut: #e8e4dc;
-  --portail-fond-bas: #e4e2dc;
-  --portail-encre: #171a22;
-  --portail-encre-douce: #667085;
+  --font-portail: "Lexend Deca", ui-sans-serif, system-ui, sans-serif;
+  --portail-fond: #eae7de;
+  --portail-fond-haut: #eae7de;
+  --portail-fond-bas: #eae7de;
+  --portail-encre: #000000;
+  --portail-encre-douce: #000000;
   --portail-sarcelle: #5591a9;
   --portail-corail: #e11d48;
   --portail-lilas: #7c6bb5;
@@ -434,6 +436,11 @@
   --portail-carte: #ffffff;
   --portail-ombre: 0 4px 12px rgba(0, 0, 0, 0.15);
   --portail-rayon: 22px;
-  font-family: var(--font-display);
+  font-family: var(--font-portail);
   color: var(--portail-encre);
+  background-color: var(--portail-fond);
+}
+
+.portail .font-display {
+  font-family: var(--font-portail);
 }

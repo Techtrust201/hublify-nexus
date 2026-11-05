@@ -4,6 +4,7 @@
 // le profil étant déjà l'avatar de l'accueil (écart documenté).
 
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import "@/components/portail/lexend-deca";
 import { CalendarDays, FileText, Home, Mail, Plus, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "@/auth/auth-context";
@@ -147,13 +148,7 @@ function Coque({ children }: { children: ReactNode }) {
         className="portail min-h-dvh bg-[var(--portail-fond-bas)]"
         data-portail-pret={pretUi ? "1" : "0"}
       >
-        <div className="relative mx-auto flex h-dvh w-full max-w-[430px] flex-col overflow-hidden bg-[linear-gradient(180deg,var(--portail-fond-haut)_0%,var(--portail-fond-bas)_100%)]">
-          <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-            <span className="absolute -left-10 top-16 size-28 rounded-full bg-white/35" />
-            <span className="absolute -right-8 top-40 size-24 rounded-full bg-[#d5e4e2]/50" />
-            <span className="absolute bottom-24 left-6 size-20 rounded-full bg-white/25" />
-            <span className="absolute -right-4 bottom-10 size-16 rounded-full bg-[#efe8d4]/40" />
-          </div>
+        <div className="relative mx-auto flex h-dvh w-full max-w-[430px] flex-col overflow-hidden bg-[var(--portail-fond)]">
           <div className="relative z-10">
             <BandeauSync />
           </div>

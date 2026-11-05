@@ -59,10 +59,10 @@ function FicheLogement() {
                 </span>
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-[15px] font-semibold text-[var(--portail-encre)]">
-                  {nom} — {r.occupant}
+                <span className="block truncate text-[14px] font-normal text-black">
+                  Ma location - {nom} - {r.occupant}
                 </span>
-                <span className="mt-1 block text-[11px] font-medium text-[var(--portail-corail)]">
+                <span className="mt-1 block text-[12px] font-semibold text-black">
                   {r.arrivee} {r.heureArrivee} → {r.depart}
                 </span>
               </span>

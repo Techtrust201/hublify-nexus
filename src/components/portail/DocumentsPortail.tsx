@@ -305,8 +305,8 @@ function Liste({ classe, docs }: { classe: string; docs: DocVue[] }) {
                 void navigate({ to: "/espace/documents", hash: "voir" });
               }}
             >
-              <span className="block text-sm font-medium text-[#1d2939]">{d.titre}</span>
-              <span className="text-[11px] text-[#98a2b3]">Émis le {d.date}</span>
+              <span className="block text-[14px] font-normal text-black">{d.titre}</span>
+              <span className="text-[12px] font-semibold text-black">Émis le {d.date}</span>
             </button>
           </li>
         ))}
@@ -373,14 +373,16 @@ function Visualisation({ docs }: { docs: DocVue[] }) {
         </button>
       </Carte>
       {payable && (
-        <Bouton
+        <button
+          type="button"
           onClick={() => {
             ecrireDocCourant(doc.id);
             void navigate({ to: "/espace/documents", hash: "paiement" });
           }}
+          className="mx-auto flex h-[41px] w-[305px] max-w-full items-center justify-center rounded-[24px] bg-[#5591A9] text-[14px] font-extrabold text-white"
         >
           Procéder au paiement
-        </Bouton>
+        </button>
       )}
       {lien && !payable && (
         <Bouton
