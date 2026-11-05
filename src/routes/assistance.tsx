@@ -20,6 +20,7 @@ function PageAssistance() {
   const [sujet, setSujet] = useState("");
   const [message, setMessage] = useState("");
   const [envoye, setEnvoye] = useState(false);
+  const [erreurs, setErreurs] = useState<{ sujet?: string; message?: string }>({});
 
   return (
     <AppShell
@@ -32,7 +33,14 @@ function PageAssistance() {
           e.preventDefault();
           const titre = sujet.trim();
           const texte = message.trim();
-          if (titre.length < 3 || texte.length < 8) {
+          const suivant: { sujet?: string; message?: string } = {};
+          if (!titre) suivant.sujet = "Indiquez un sujet.";
+          else if (titre.length < 3) suivant.sujet = "Le sujet doit faire au moins 3 caractères.";
+          if (!texte) suivant.message = "Indiquez un message.";
+          else if (texte.length < 8)
+            suivant.message = "Le message doit faire au moins 8 caractères.";
+          setErreurs(suivant);
+          if (suivant.sujet || suivant.message) {
             toastErreur("Indiquez un sujet et un message.");
             return;
           }
@@ -61,19 +69,31 @@ function PageAssistance() {
           <input
             value={sujet}
             onChange={(e) => setSujet(e.target.value)}
-            required
+            aria-invalid={Boolean(erreurs.sujet)}
+            aria-describedby={erreurs.sujet ? "erreur-sujet" : undefined}
             className="mt-1 h-11 w-full rounded-full border border-line px-4 text-sm outline-none"
           />
+          {erreurs.sujet && (
+            <span id="erreur-sujet" role="alert" className="mt-1 block text-sm text-red-700">
+              {erreurs.sujet}
+            </span>
+          )}
         </label>
         <label className="block text-sm text-ink">
           Message
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            required
+            aria-invalid={Boolean(erreurs.message)}
+            aria-describedby={erreurs.message ? "erreur-message" : undefined}
             rows={5}
             className="mt-1 w-full rounded-2xl border border-line px-4 py-3 text-sm outline-none"
           />
+          {erreurs.message && (
+            <span id="erreur-message" role="alert" className="mt-1 block text-sm text-red-700">
+              {erreurs.message}
+            </span>
+          )}
         </label>
         <button
           type="submit"

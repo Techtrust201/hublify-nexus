@@ -128,15 +128,8 @@ function heureDouze(iso: string, repli: string) {
   return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
-function centreFrise(taches: TachePortail[]) {
-  const auj = isoLocal(new Date());
-  if (taches.some((t) => t.quand.slice(0, 10) === auj)) return new Date();
-  const dates = taches
-    .map((t) => new Date(t.quand))
-    .filter((d) => !Number.isNaN(d.getTime()))
-    .sort((a, b) => a.getTime() - b.getTime());
-  const prochaine = dates.find((d) => isoLocal(d) >= auj);
-  return prochaine ?? dates[dates.length - 1] ?? new Date();
+function centreFrise() {
+  return new Date();
 }
 
 export function AccueilPortail() {
@@ -192,7 +185,7 @@ function Journee({
   prestataire: boolean;
 }) {
   const navigate = useNavigate();
-  const centre = centreFrise(taches);
+  const centre = centreFrise();
   const [selection, setSelection] = useState(isoLocal(centre));
   const bandeau = joursAutour(centre);
   const duJour = taches.filter((t) => t.quand.slice(0, 10) === selection);

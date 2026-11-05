@@ -23,7 +23,12 @@ export function CalendrierPortail() {
   const { notes, ajouterNote, modifierNote, supprimerNote } = usePortailDonnees();
   const saisie = useRef<HTMLInputElement>(null);
   const [cursor, setCursor] = useState(() => new Date());
-  const [jourChoisi, setJourChoisi] = useState(() => new Date().toISOString().slice(0, 10));
+  const [jourChoisi, setJourChoisi] = useState(() => {
+    const maintenant = new Date();
+    return `${maintenant.getFullYear()}-${String(maintenant.getMonth() + 1).padStart(2, "0")}-${String(maintenant.getDate()).padStart(2, "0")}`;
+  });
+  const [retourAujourdhui, setRetourAujourdhui] = useState(0);
+  const jourRef = useRef<HTMLButtonElement>(null);
   const [note, setNote] = useState("");
   const [edition, setEdition] = useState<string | null>(null);
 
@@ -81,12 +86,23 @@ export function CalendrierPortail() {
         className="mx-auto flex h-10 items-center rounded-full bg-white px-6 text-sm font-medium text-[var(--portail-encre)] shadow-[0_4px_12px_rgba(0,0,0,0.1)]"
         onClick={() => {
           const maintenant = new Date();
-          setCursor(maintenant);
-          setJourChoisi(isoAujourdhui);
+          setCursor(new Date(maintenant.getFullYear(), maintenant.getMonth(), 1));
+          setJourChoisi(
+            `${maintenant.getFullYear()}-${String(maintenant.getMonth() + 1).padStart(2, "0")}-${String(maintenant.getDate()).padStart(2, "0")}`,
+          );
+          setRetourAujourdhui((n) => n + 1);
+          requestAnimationFrame(() =>
+            jourRef.current?.scrollIntoView({ block: "center", inline: "nearest" }),
+          );
         }}
       >
         Aujourd&apos;hui
       </button>
+      {retourAujourdhui > 0 && (
+        <p role="status" className="text-center text-[13px] font-semibold text-black">
+          Aujourd&apos;hui est affiché ({jourChoisi.split("-").reverse().join("/")}).
+        </p>
+      )}
       <div className="rounded-[16px] bg-white px-3 py-4 shadow-[var(--portail-ombre)]">
         <div className="mb-3 flex items-center justify-between px-1">
           <button
@@ -124,12 +140,13 @@ export function CalendrierPortail() {
             const choisi = Boolean(date && date === jourChoisi);
             return (
               <button
-                key={`${i}-${jour}`}
+                key={`${i}-${jour}-${choisi ? retourAujourdhui : 0}`}
+                ref={choisi ? jourRef : undefined}
                 type="button"
                 disabled={!jour}
                 onClick={() => jour && setJourChoisi(date)}
                 className={`mx-auto grid h-11 w-10 place-items-center text-base font-semibold text-[var(--portail-encre)] ${
-                  choisi ? "rounded-lg ring-2 ring-[#3b82f6]" : ""
+                  choisi ? "animate-pulse rounded-lg ring-4 ring-[#5591A9]" : ""
                 } ${marque && !choisi ? "underline decoration-2 underline-offset-4 decoration-[var(--portail-corail)]" : ""}`}
               >
                 {jour}

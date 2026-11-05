@@ -6,7 +6,7 @@ import { ajouterRapport, changerStatutMission, idNouveau, useSession } from "@/d
 import { deposerFichier, lireFichier } from "@/lib/documents.functions";
 import { preparerFichier, urlDepuisBase64 } from "@/lib/fichiers-client";
 import { descriptionVisible } from "@/lib/gestionnaire-planning";
-import { TACHES_DEMO_PRESTATAIRE } from "@/lib/portail-mobile";
+import { joursAutour } from "@/lib/portail-mobile";
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { useRef } from "react";
 
@@ -30,10 +30,25 @@ function ApercuFichier({ id }: { id: string }) {
   return <img src={src} alt={nom} className="mt-1 h-16 w-16 rounded-lg object-cover" />;
 }
 
+function isoLocal(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function etiquette(date: Date) {
+  return {
+    mois: date.toLocaleDateString("fr-FR", { month: "short" }).replace(".", ""),
+    numero: String(date.getDate()),
+    semaine: date.toLocaleDateString("fr-FR", { weekday: "short" }).replace(".", ""),
+    iso: isoLocal(date),
+  };
+}
+
 export function MissionsPortail() {
   const session = useSession();
   const peutMod = useDroit("mod-missions");
   const auth = useAuth();
+  const [jour, setJour] = useState(() => isoLocal(new Date()));
+  const bandeau = joursAutour(new Date());
   const [brouillon, setBrouillon] = useState<
     Record<string, { texte: string; photos: PhotoRapport[] }>
   >({});
@@ -47,23 +62,37 @@ export function MissionsPortail() {
             m.assigne.toLowerCase().includes("lucas"),
         )
       : session.missions;
-  const liste = miennes.length > 0 ? miennes : [];
+  const liste = (miennes.length > 0 ? miennes : []).filter((m) => m.date.slice(0, 10) === jour);
 
   return (
     <Ecran>
       <Entete titre="Toutes les tâches en cours" sousTitre="Ordre chronologique" />
+      <div className="grid grid-cols-5 gap-1.5" role="group" aria-label="Jours">
+        {bandeau.map((date) => {
+          const e = etiquette(date);
+          const on = e.iso === jour;
+          return (
+            <button
+              key={e.iso}
+              type="button"
+              aria-pressed={on}
+              onClick={() => setJour(e.iso)}
+              className={`flex h-[78px] flex-col items-center justify-center rounded-2xl text-[11px] capitalize ${
+                on ? "bg-[var(--portail-sarcelle)] text-white" : "bg-white text-black"
+              }`}
+            >
+              <span>{e.mois}</span>
+              <span className="text-lg font-semibold">{e.numero}</span>
+              <span>{e.semaine}</span>
+            </button>
+          );
+        })}
+      </div>
+      <p role="status" className="text-center text-[12px] font-semibold">
+        {liste.length} mission{liste.length > 1 ? "s" : ""} le {jour.split("-").reverse().join("/")}
+      </p>
       {liste.length === 0 && (
-        <ul className="space-y-2">
-          {TACHES_DEMO_PRESTATAIRE.map((t) => (
-            <li key={t.id} className="rounded-[22px] bg-white px-4 py-3">
-              <p className="text-sm font-medium">{t.titre}</p>
-              <p className="text-xs text-[#e11d48]">{t.heureLabel}</p>
-              <p className="mt-1 text-xs text-[#98a2b3]">
-                Démonstration — aucune mission assignée sur ce compte.
-              </p>
-            </li>
-          ))}
-        </ul>
+        <p className="rounded-[16px] bg-white px-4 py-3 text-sm">Aucune mission ce jour.</p>
       )}
       <ul className="space-y-3">
         {liste.map((m) => {
