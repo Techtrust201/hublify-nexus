@@ -213,7 +213,7 @@ function PiecesDossier() {
       existant?.statut === "archive"
         ? existant.statut
         : statut;
-    upsertDossierLocation({
+    const enregistre = upsertDossierLocation({
       id,
       occupantId: session.occupants[0]?.id ?? id,
       occupantNom: `${auth?.prenom ?? ""} ${auth?.nom ?? ""}`.trim(),
@@ -227,7 +227,7 @@ function PiecesDossier() {
       ...(revenusN ? { revenus: revenusN } : {}),
       ...(rfrN ? { rfr: rfrN } : {}),
     });
-    return id;
+    return { id, enregistre };
   };
 
   const recevoirFichier = (pieceId: string, cote: "" | "recto" | "verso", fichier: File) => {
@@ -237,10 +237,16 @@ function PiecesDossier() {
         toastErreur(prepare.erreur);
         return;
       }
+      const dossier = persisterPieces(piecesRef.current, "brouillon");
+      const enregistre = await dossier.enregistre;
+      if (!enregistre) {
+        toastErreur("Le dossier n'a pas pu être enregistré. Réessayez avant d'envoyer la pièce.");
+        return;
+      }
       const res = await deposerFichier({
         data: {
           contexte: "dossier",
-          refId: `${idDossier()}:${pieceId}`,
+          refId: `${dossier.id}:${pieceId}`,
           cote,
           nom: prepare.fichier.nom,
           mime: prepare.fichier.mime,
@@ -280,7 +286,7 @@ function PiecesDossier() {
   };
 
   const enregistrer = (statut: "brouillon" | "complet") => {
-    const id = persisterPieces(pieces, statut);
+    const { id } = persisterPieces(pieces, statut);
     toastOk(statut === "complet" ? "Dossier enregistré." : "Brouillon enregistré.");
     return id;
   };

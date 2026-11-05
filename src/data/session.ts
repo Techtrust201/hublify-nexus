@@ -849,7 +849,10 @@ export function upsertDossierLocation(dossier: DossierLocation) {
           : [dossier, ...e.dossiersLocation],
     };
   });
-  void pousserLigne("dossiersLocation", dossier).then((ok) => !ok && programmerReprise());
+  return pousserLigne("dossiersLocation", dossier).then((ok) => {
+    if (!ok) programmerReprise();
+    return ok;
+  });
 }
 
 /** Valide un départ : dossier + date de fin sur les deux calendriers. */

@@ -18,11 +18,18 @@ import {
   type RdvPortail,
   type ValidationEdl,
 } from "@/components/portail/etat-local";
+import {
+  aDuLocal,
+  fusionDoitEtrePubliee,
+  fusionnerPortail,
+} from "@/components/portail/synchro-portail";
 import type { ModePortail, PaiementSimulation } from "@/lib/portail-mobile";
 import { toastErreur } from "@/lib/feedback";
 
 export type PortailDonnees = EtatPortail & {
   pret: boolean;
+  /** Faux après un échec réseau : on n'écrit pas le mode par défaut, pour ne pas afficher un échec d'enregistrement fantôme. */
+  distantJoignable: boolean;
   definirMode: (mode: ModePortail) => void;
   demarrer: () => void;
   ajouterNote: (note: NoteCalendrier) => void;
@@ -39,95 +46,78 @@ export type PortailDonnees = EtatPortail & {
 
 const Ctx = createContext<PortailDonnees | null>(null);
 
-function aDuLocal(local: ReturnType<typeof lireInstantaneLocal>) {
-  return (
-    local.mode !== null ||
-    local.demarre ||
-    local.notes.length > 0 ||
-    local.paiements.length > 0 ||
-    Boolean(local.edl.valideLe) ||
-    local.rdv !== null ||
-    local.demandes.length > 0 ||
-    local.favoris.length > 0 ||
-    Boolean(local.docCourant) ||
-    Object.keys(local.candidature).length > 0
-  );
-}
-
-function fusionner(
-  distant: EtatPortail,
-  local: ReturnType<typeof lireInstantaneLocal>,
-): EtatPortail {
-  return {
-    mode: distant.mode ?? local.mode,
-    demarre: distant.demarre || local.demarre,
-    notes: distant.notes.length > 0 ? distant.notes : local.notes,
-    paiements: distant.paiements.length > 0 ? distant.paiements : local.paiements,
-    edl: distant.edl.valideLe || distant.edl.emisLe ? distant.edl : local.edl,
-    rdv: distant.rdv ?? local.rdv,
-    demandes: distant.demandes.length > 0 ? distant.demandes : local.demandes,
-    favoris: distant.favoris.length > 0 ? distant.favoris : local.favoris,
-    docCourant: distant.docCourant ?? local.docCourant,
-    candidature:
-      Object.keys(distant.candidature).length > 0 ? distant.candidature : local.candidature,
-  };
-}
-
 export function PortailDonneesProvider({ children }: { children: ReactNode }) {
   const [etat, setEtat] = useState<EtatPortail>(ETAT_PORTAIL_VIDE);
   const [pret, setPret] = useState(false);
+  const [distantJoignable, setDistantJoignable] = useState(false);
   const etatRef = useRef(etat);
   const sale = useRef(false);
+  const sauvegardes = useRef<Promise<void>>(Promise.resolve());
   etatRef.current = etat;
 
   useEffect(() => {
     let vivant = true;
     void (async () => {
-      const res = await chargerPortailDistant();
-      if (!vivant) return;
-      if (!res.ok) {
-        setEtat(fusionner(ETAT_PORTAIL_VIDE, lireInstantaneLocal()));
-        setPret(true);
-        return;
-      }
-      const local = lireInstantaneLocal();
-      const suivant = fusionner(res.data, local);
-      const garderSaisie = (actuel: EtatPortail): EtatPortail => ({
-        mode: actuel.mode ?? suivant.mode,
-        demarre: actuel.demarre || suivant.demarre,
-        notes: actuel.notes.length > 0 ? actuel.notes : suivant.notes,
-        paiements: actuel.paiements.length > 0 ? actuel.paiements : suivant.paiements,
-        edl: actuel.edl.valideLe ? actuel.edl : suivant.edl,
-        rdv: actuel.rdv ?? suivant.rdv,
-        demandes: actuel.demandes.length > 0 ? actuel.demandes : suivant.demandes,
-        favoris: actuel.favoris.length > 0 ? actuel.favoris : suivant.favoris,
-        docCourant: actuel.docCourant ?? suivant.docCourant,
-        candidature:
-          Object.keys(actuel.candidature).length > 0 ? actuel.candidature : suivant.candidature,
-      });
-      if (sale.current) {
-        setEtat(garderSaisie);
-        setPret(true);
-        return;
-      }
-      const distantVide =
-        !res.data.demarre &&
-        !res.data.mode &&
-        res.data.notes.length === 0 &&
-        res.data.paiements.length === 0 &&
-        !res.data.rdv &&
-        res.data.demandes.length === 0 &&
-        res.data.favoris.length === 0;
-      if (distantVide && aDuLocal(local)) {
-        const sauve = await sauverPortailDistant({ data: suivant });
+      try {
+        const res = await chargerPortailDistant();
         if (!vivant) return;
-        if (sauve.ok) oublierEtatMetierLocal();
-      } else if (!distantVide) {
-        oublierEtatMetierLocal();
+        if (!res.ok) {
+          setEtat(fusionnerPortail(ETAT_PORTAIL_VIDE, lireInstantaneLocal()));
+          setDistantJoignable(false);
+          setPret(true);
+          toastErreur(
+            "Le portail n'a pas pu se synchroniser. Vérifiez votre connexion et rechargez la page.",
+          );
+          return;
+        }
+        const local = lireInstantaneLocal();
+        const suivant = fusionnerPortail(res.data, local);
+        const garderSaisie = (actuel: EtatPortail): EtatPortail => ({
+          mode: actuel.mode ?? suivant.mode,
+          demarre: actuel.demarre || suivant.demarre,
+          notes: actuel.notes.length > 0 ? actuel.notes : suivant.notes,
+          paiements: actuel.paiements.length > 0 ? actuel.paiements : suivant.paiements,
+          edl: actuel.edl.valideLe ? actuel.edl : suivant.edl,
+          rdv: actuel.rdv ?? suivant.rdv,
+          demandes: actuel.demandes.length > 0 ? actuel.demandes : suivant.demandes,
+          favoris: actuel.favoris.length > 0 ? actuel.favoris : suivant.favoris,
+          docCourant: actuel.docCourant ?? suivant.docCourant,
+          candidature:
+            Object.keys(actuel.candidature).length > 0 ? actuel.candidature : suivant.candidature,
+        });
+        if (sale.current) {
+          setEtat(garderSaisie);
+          setDistantJoignable(true);
+          setPret(true);
+          return;
+        }
+        if (aDuLocal(local) && fusionDoitEtrePubliee(res.data, suivant)) {
+          try {
+            const sauve = await sauverPortailDistant({ data: suivant });
+            if (sauve.ok) oublierEtatMetierLocal();
+          } catch {
+            if (vivant) {
+              toastErreur(
+                "Le portail n'a pas pu se synchroniser. Vérifiez votre connexion et rechargez la page.",
+              );
+            }
+          }
+        } else if (!aDuLocal(local) || !fusionDoitEtrePubliee(res.data, suivant)) {
+          oublierEtatMetierLocal();
+        }
+        if (!vivant) return;
+        setEtat(sale.current ? garderSaisie : suivant);
+        setDistantJoignable(true);
+        setPret(true);
+      } catch {
+        if (!vivant) return;
+        setEtat(fusionnerPortail(ETAT_PORTAIL_VIDE, lireInstantaneLocal()));
+        setDistantJoignable(false);
+        setPret(true);
+        toastErreur(
+          "Le portail n'a pas pu se synchroniser. Vérifiez votre connexion et rechargez la page.",
+        );
       }
-      if (!vivant) return;
-      setEtat(sale.current ? garderSaisie : suivant);
-      setPret(true);
     })();
     return () => {
       vivant = false;
@@ -139,17 +129,30 @@ export function PortailDonneesProvider({ children }: { children: ReactNode }) {
     const suivant = recette(etatRef.current);
     etatRef.current = suivant;
     setEtat(suivant);
-    void sauverPortailDistant({ data: suivant }).then((res) => {
-      if (!res.ok && res.raison !== "non_configure") {
+    const promesse = sauvegardes.current.then(async () => {
+      const photo = etatRef.current;
+      try {
+        const res = await sauverPortailDistant({ data: photo });
+        if (etatRef.current !== photo) return;
+        if (!res.ok && res.raison !== "non_configure") {
+          toastErreur("L'enregistrement en base a échoué. Réessayez.");
+        }
+      } catch {
+        if (etatRef.current !== photo) return;
         toastErreur("L'enregistrement en base a échoué. Réessayez.");
       }
     });
+    sauvegardes.current = promesse.then(
+      () => undefined,
+      () => undefined,
+    );
     return suivant;
   }, []);
 
   const valeur: PortailDonnees = {
     ...etat,
     pret,
+    distantJoignable,
     definirMode: (mode) => enregistrer((e) => ({ ...e, mode })),
     demarrer: () => enregistrer((e) => ({ ...e, demarre: true, mode: e.mode ?? "resident" })),
     ajouterNote: (note) =>

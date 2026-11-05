@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { aLeDroit, estRolePortail } from "@/auth/permissions";
-import { emailActeur, nomActeur } from "@/data/portee-role";
 import { sessionDepuisRequete } from "@/lib/session-serveur.server";
 import {
   estContexteFichier,
@@ -9,7 +8,9 @@ import {
   type CoteFichier,
   type FichierMeta,
 } from "@/lib/fichiers-deposes";
+import { fichierAutorise, type ActeurFichier } from "@/lib/acces-fichiers";
 import { octetsVersBase64, pdfTexte } from "@/lib/pdf";
+import { preparerQuota } from "@/lib/quota-fichiers";
 import { getSql, type Sql } from "@/lib/sql";
 
 const PLAFOND_COMPTE: Partial<Record<ContexteFichier, number>> = {
@@ -153,8 +154,15 @@ function autorise(session: SessionFichier, contexte: ContexteFichier, ecriture: 
       : aLeDroit(session.droits, "voir-documents") || aLeDroit(session.droits, "mod-missions");
   }
   if (contexte === "dossier") {
+    if (
+      session.roleId === "lecteur" ||
+      session.roleId === "prestataire" ||
+      session.roleId === "proprietaire"
+    ) {
+      return false;
+    }
     if (session.roleId === "locataire" || session.roleId === "voyageur") return true;
-    if (portail || (ecriture && session.roleId === "lecteur")) return false;
+    if (portail) return false;
     return ecriture
       ? aLeDroit(session.droits, "mod-reservations")
       : aLeDroit(session.droits, "voir-documents") || aLeDroit(session.droits, "mod-reservations");
@@ -187,35 +195,79 @@ async function orgsLisibles(sql: Sql, session: SessionFichier) {
   return ids;
 }
 
+function acteurFichier(session: SessionFichier): ActeurFichier {
+  return {
+    userId: session.userId,
+    orgId: session.orgId,
+    orgType: session.orgType,
+    roleId: session.roleId,
+    droits: session.droits,
+    email: session.email,
+    prenom: session.prenom,
+    nom: session.nom,
+  };
+}
+
 async function referenceAutorisee(
   sql: Sql,
   session: SessionFichier,
   contexte: ContexteFichier,
   refId: string,
+  ecriture: boolean,
 ) {
-  if (session.roleId === "prestataire" && contexte === "mission") {
-    const rows = (await sql.query(
-      `select 1 from public.missions where id = $1 and org_prestataire_id = $2::uuid limit 1`,
-      [refId, session.orgId],
-    )) as unknown[];
-    return rows.length > 0;
+  const decision = await fichierAutorise(sql, acteurFichier(session), contexte, refId, ecriture);
+  return decision.ok;
+}
+
+function rattacheSql(contexte: "patrimoine" | "mission") {
+  if (contexte === "patrimoine") {
+    return `exists (
+      select 1 from public.biens b
+      where b.org_id = f.org_id and b.id = f.ref_id
+        and exists (
+          select 1 from jsonb_array_elements(coalesce(b.fiche->'photos', '[]'::jsonb)) elem
+          where elem->>'id' = f.id
+        )
+    )`;
   }
-  if (
-    (session.roleId === "locataire" || session.roleId === "voyageur") &&
-    contexte === "dossier"
-  ) {
-    const dossierId = refId.split(":")[0] ?? "";
-    if (!dossierId) return false;
-    const rows = (await sql.query(
-      `select lower(email) as email, lower(occupant_nom) as nom
-         from public.dossiers_location where org_id = $1::uuid and id = $2 limit 1`,
-      [session.orgId, dossierId],
-    )) as { email: string; nom: string }[];
-    const ligne = rows[0];
-    if (!ligne) return true;
-    return ligne.email === emailActeur(session) || ligne.nom === nomActeur(session);
+  return `exists (
+    select 1 from public.rapports_intervention r
+    where r.org_id = f.org_id and r.mission_id = f.ref_id and f.id = any(r.photos)
+  )`;
+}
+
+async function libererQuota(
+  sql: Sql,
+  orgId: string,
+  contexte: "patrimoine" | "mission",
+  refId: string,
+  plafond: number,
+) {
+  const lignes = (await sql.query(
+    `select f.id, f.created_at, ${rattacheSql(contexte)} as rattache
+       from public.fichiers_deposes f
+      where f.org_id = $1::uuid and f.contexte = $2 and f.ref_id = $3`,
+    [orgId, contexte, refId],
+  )) as { id: string; created_at: string | Date; rattache: boolean }[];
+  const maintenant = Date.now();
+  const plan = preparerQuota(
+    lignes.map((ligne) => {
+      const brut = new Date(ligne.created_at).getTime();
+      return {
+        id: String(ligne.id),
+        rattache: Boolean(ligne.rattache),
+        ageMs: Number.isFinite(brut) ? Math.max(0, maintenant - brut) : Number.POSITIVE_INFINITY,
+      };
+    }),
+    plafond,
+  );
+  if (plan.supprimer.length > 0) {
+    await sql.query(
+      `delete from public.fichiers_deposes where org_id = $1::uuid and id = any($2::text[])`,
+      [orgId, plan.supprimer],
+    );
   }
-  return true;
+  return plan.accepter;
 }
 
 function versBase64(contenu: unknown) {
@@ -270,18 +322,18 @@ export const deposerFichier = createServerFn({ method: "POST" })
       return { ok: false as const, erreur: "Droits insuffisants pour déposer ce fichier." };
     }
     const refId = depot.depot.contexte === "profil" ? session.userId : depot.depot.refId;
-    if (!(await referenceAutorisee(sql, session, depot.depot.contexte, refId))) {
+    if (!(await referenceAutorisee(sql, session, depot.depot.contexte, refId, true))) {
       return { ok: false as const, erreur: "Droits insuffisants pour déposer ce fichier." };
     }
     const orgId = await orgDuFichier(sql, session, depot.depot.contexte);
     const plafond = PLAFOND_COMPTE[depot.depot.contexte];
-    if (plafond && depot.depot.cote === "") {
-      const compte = (await sql.query(
-        `select count(*)::int as n from public.fichiers_deposes
-          where org_id = $1::uuid and contexte = $2 and ref_id = $3`,
-        [orgId, depot.depot.contexte, refId],
-      )) as { n: number }[];
-      if ((compte[0]?.n ?? 0) >= plafond) {
+    if (
+      plafond &&
+      depot.depot.cote === "" &&
+      (depot.depot.contexte === "patrimoine" || depot.depot.contexte === "mission")
+    ) {
+      const place = await libererQuota(sql, orgId, depot.depot.contexte, refId, plafond);
+      if (!place) {
         return { ok: false as const, erreur: `${plafond} fichiers maximum pour cet élément.` };
       }
     }
@@ -325,7 +377,7 @@ export const listerFichiers = createServerFn({ method: "POST" })
     }
     const refId = contexte === "profil" ? session.userId : String(data?.refId ?? "").trim();
     if (!refId) return { ok: false as const, erreur: "Référence manquante." };
-    if (!(await referenceAutorisee(sql, session, contexte, refId))) {
+    if (!(await referenceAutorisee(sql, session, contexte, refId, false))) {
       return { ok: false as const, erreur: "Droits insuffisants." };
     }
     const orgId = await orgDuFichier(sql, session, contexte);
@@ -363,7 +415,7 @@ async function lireContenu(sql: Sql, session: SessionFichier, id: string) {
   }
   if (
     !autorise(session, ligne.contexte, false) ||
-    !(await referenceAutorisee(sql, session, ligne.contexte, ligne.ref_id))
+    !(await referenceAutorisee(sql, session, ligne.contexte, ligne.ref_id, false))
   ) {
     return { ok: false as const, erreur: "Droits insuffisants." };
   }
@@ -392,7 +444,7 @@ export const retirerFichier = createServerFn({ method: "POST" })
     }
     if (
       !autorise(session, ligne.contexte, true) ||
-      !(await referenceAutorisee(sql, session, ligne.contexte, ligne.ref_id))
+      !(await referenceAutorisee(sql, session, ligne.contexte, ligne.ref_id, true))
     ) {
       return { ok: false as const, erreur: "Droits insuffisants." };
     }

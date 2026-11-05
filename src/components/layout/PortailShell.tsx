@@ -43,7 +43,7 @@ function Coque({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!donnees.pret || defautPose.current) return;
     defautPose.current = true;
-    if (!donnees.mode) {
+    if (!donnees.mode && donnees.distantJoignable) {
       donnees.definirMode(auth?.roleId === "prestataire" ? "prestataire" : "resident");
     }
   }, [auth?.roleId, donnees]);
@@ -122,10 +122,7 @@ function Coque({ children }: { children: ReactNode }) {
           { label: "Calendrier des séjours", to: "/espace/calendrier" },
         ]
       : auth?.roleId === "voyageur"
-        ? [
-            { label: "Préparer mon arrivée", to: "/espace/precheckin" },
-            ...actionsResident,
-          ]
+        ? [{ label: "Préparer mon arrivée", to: "/espace/precheckin" }, ...actionsResident]
         : prestataire
           ? [
               { label: "Rapport d'intervention", to: "/espace/missions" },

@@ -33,6 +33,13 @@ export function LivretApp({ charge }: { charge: ChargeLivrets }) {
   const [hydrate, setHydrate] = useState(false);
   const dernier = useRef(JSON.stringify(initiaux));
   const migre = useRef(false);
+  const livretsRef = useRef(livrets);
+  const peutEcrireRef = useRef(peutEcrire);
+  const chargeOkRef = useRef(charge.ok);
+  const generationSauve = useRef(0);
+  livretsRef.current = livrets;
+  peutEcrireRef.current = peutEcrire;
+  chargeOkRef.current = charge.ok;
 
   useEffect(() => {
     setHydrate(true);
@@ -56,9 +63,10 @@ export function LivretApp({ charge }: { charge: ChargeLivrets }) {
     setSynchro("cours");
     let annule = false;
     const timer = window.setTimeout(() => {
+      const generation = ++generationSauve.current;
       void sauverLivretsDistants({ data: { livrets } })
         .then((res) => {
-          if (annule) return;
+          if (annule || generation !== generationSauve.current) return;
           if (res.ok) {
             dernier.current = json;
             purgerLivretsLocaux();
@@ -70,7 +78,7 @@ export function LivretApp({ charge }: { charge: ChargeLivrets }) {
           toastErreur("Le livret n'a pas été enregistré.");
         })
         .catch(() => {
-          if (annule) return;
+          if (annule || generation !== generationSauve.current) return;
           setSynchro("erreur");
           toastErreur("Le livret n'a pas été enregistré.");
         });
@@ -80,6 +88,20 @@ export function LivretApp({ charge }: { charge: ChargeLivrets }) {
       window.clearTimeout(timer);
     };
   }, [livrets, peutEcrire, charge.ok]);
+
+  useEffect(() => {
+    return () => {
+      if (!peutEcrireRef.current || !chargeOkRef.current) return;
+      const frais = livretsRef.current;
+      const json = JSON.stringify(frais);
+      if (json === dernier.current) return;
+      const generation = ++generationSauve.current;
+      void sauverLivretsDistants({ data: { livrets: frais } }).then((res) => {
+        if (generation !== generationSauve.current || !res.ok) return;
+        dernier.current = json;
+      });
+    };
+  }, []);
 
   const liste = useMemo(() => {
     const q = recherche.trim().toLowerCase();
@@ -108,7 +130,7 @@ export function LivretApp({ charge }: { charge: ChargeLivrets }) {
         <Editeur
           livret={courant}
           pageActive={pageActive}
-          verrouille={!peutEcrire}
+          verrouille={!peutEcrire || !charge.ok}
           onRetour={() => setOuvert(null)}
           onPage={setPageId}
           onChange={(recette) => maj(courant.id, recette)}
