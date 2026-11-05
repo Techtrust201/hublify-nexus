@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useAuth } from "@/auth/auth-context";
 import { Bouton, Carte, Ecran, Entete, champClasse } from "@/components/portail/chrome";
 import { useAncre } from "@/components/portail/use-ancre";
-import { idNouveau, ouvrirConversationProspect, poserCollection, useSession } from "@/data/session";
+import { ajouterMessageFil, idNouveau, ouvrirConversationProspect, useSession } from "@/data/session";
 import { GESTIONNAIRE_PORTAIL } from "@/lib/portail-mobile";
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { useNavigate } from "@tanstack/react-router";
@@ -152,16 +152,13 @@ function Fil({ id }: { id: string }) {
             return;
           }
           const conversationId = conv?.id ?? id;
-          poserCollection("messagesFil", (liste) => [
-            ...liste,
-            {
-              id: idNouveau("msg"),
-              conversationId,
-              kind: "envoye" as const,
-              texte: texte.trim(),
-              heure: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-            },
-          ]);
+          ajouterMessageFil({
+            id: idNouveau("msg"),
+            conversationId,
+            kind: "envoye",
+            texte: texte.trim(),
+            heure: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+          });
           setTexte("");
           toastOk("Message envoyé.");
         }}
@@ -235,21 +232,18 @@ function NouveauContact() {
               type: "voyageur",
               assigne: auth?.email,
             });
-            poserCollection("messagesFil", (liste) => [
-              ...liste,
-              {
-                id: idNouveau("msg"),
-                conversationId,
-                kind: "envoye" as const,
-                texte: connu
-                  ? `Profil partagé avec ${nom}.`
-                  : `Lien directionnel pour ${nom} : ${lien}`,
-                heure: new Date().toLocaleTimeString("fr-FR", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }),
-              },
-            ]);
+            ajouterMessageFil({
+              id: idNouveau("msg"),
+              conversationId,
+              kind: "envoye",
+              texte: connu
+                ? `Profil partagé avec ${nom}.`
+                : `Lien directionnel pour ${nom} : ${lien}`,
+              heure: new Date().toLocaleTimeString("fr-FR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+            });
             if (connu) {
               setResultat("Contact déjà sur Hublify : le profil est dans la messagerie.");
               toastOk("Contact trouvé sur la plateforme.");

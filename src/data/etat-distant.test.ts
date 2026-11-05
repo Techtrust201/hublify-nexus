@@ -3,6 +3,7 @@ import {
   chargerEntite,
   ecrireCollections,
   insererEntite,
+  modifierEntite,
   lireEtat,
   type DepsEtat,
 } from "@/data/etat-distant";
@@ -29,7 +30,7 @@ function deps(
   options: Partial<{
     orgId: string | null;
     orgType: "gestionnaire" | "prestataire";
-    roleId: "administrateur" | "lecteur" | "prestataire";
+    roleId: "administrateur" | "lecteur" | "prestataire" | "locataire" | "voyageur" | "proprietaire";
     lignes: unknown[];
     sansSql: boolean;
   }> = {},
@@ -107,6 +108,49 @@ describe("ecrireCollections", () => {
     expect(await ecrireCollections(d, patch)).toEqual({ ok: true });
     expect(espion.appels[0]?.valeurs[0]).toBe(ORG_A);
     expect(espion.appels.flatMap((a) => a.valeurs)).not.toContain(ORG_B);
+  });
+
+  it("refuse au locataire de remplacer la collection des réservations", async () => {
+    const { d, espion } = deps({ roleId: "locataire" });
+    expect(await ecrireCollections(d, { reservationsDossier: [] })).toEqual({
+      ok: false,
+      raison: "interdit",
+    });
+    expect(espion.appels).toHaveLength(0);
+  });
+
+  it("refuse au voyageur d'insérer une réservation ou un montant négatif", async () => {
+    const voyageur = deps({ roleId: "voyageur" });
+    expect(
+      await insererEntite(voyageur.d, "reservationsDossier", {
+        id: "r-pirate",
+        montant: 1,
+        arrivee: "2026-05-01",
+        depart: "2026-05-03",
+      } as { id: string }),
+    ).toEqual({ ok: false, raison: "interdit" });
+    const admin = deps();
+    expect(
+      await insererEntite(admin.d, "reservationsDossier", {
+        id: "r-neg",
+        montant: -12,
+        arrivee: "2026-05-04",
+        depart: "2026-05-01",
+      } as { id: string }),
+    ).toEqual({ ok: false, raison: "invalide" });
+  });
+
+  it("limite le voyageur au pré-check-in de sa réservation", async () => {
+    const { d } = deps({
+      roleId: "voyageur",
+      lignes: [{ email: "autre@hublify.app", occupant: "Autre" }],
+    });
+    expect(
+      await modifierEntite(d, "reservationsDossier", "r-autre", {
+        montant: 1,
+        precheckinNote: "note",
+      }),
+    ).toEqual({ ok: false, raison: "introuvable" });
   });
 });
 

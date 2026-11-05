@@ -24,6 +24,7 @@ import { aLeDroit, type DroitId } from "@/auth/permissions";
 import { oublierEtatsLocaux } from "@/data/session";
 import { listerEquipe } from "@/lib/auth.functions";
 import { authClient } from "@/lib/auth-client";
+import { signalerDeconnexion } from "@/lib/fin-session";
 import { cn } from "@/lib/utils";
 
 type Entree = {
@@ -263,6 +264,7 @@ export function NavChrome({
         <button
           type="button"
           onClick={() => {
+            signalerDeconnexion();
             void authClient.signOut().then(async () => {
               oublierEtatsLocaux(null);
               await router.invalidate();

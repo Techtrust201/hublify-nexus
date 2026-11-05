@@ -191,11 +191,14 @@ export function droitsEffectifs(roleId: RoleId, personnalises?: readonly string[
   if (roleId === "super-admin") {
     return [...DROITS_PAR_ROLE["super-admin"]];
   }
+  const plafond = new Set<string>(DROITS_PAR_ROLE[roleId]);
+  const sousPlafond = (liste: readonly string[]): DroitId[] =>
+    liste.filter((id): id is DroitId => estDroitId(id) && plafond.has(id));
   if (personnalises?.includes(ACCES_RESTREINT)) {
-    return personnalises.filter(estDroitId);
+    return sousPlafond(personnalises);
   }
   if (personnalises && personnalises.length > 0) {
-    return personnalises.filter(estDroitId);
+    return sousPlafond(personnalises);
   }
   return [...DROITS_PAR_ROLE[roleId]];
 }

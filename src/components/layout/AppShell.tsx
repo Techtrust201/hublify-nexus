@@ -19,7 +19,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { CorpsEnAttente } from "@/components/layout/CorpsEnAttente";
-import { marquerNotifsLues, useSession, useSessionChargee } from "@/data/session";
+import {
+  marquerNotifsLues,
+  reessayerSync,
+  useLectureEchouee,
+  useSession,
+  useSessionChargee,
+} from "@/data/session";
 import { cn } from "@/lib/utils";
 
 export function AppShell({
@@ -56,6 +62,7 @@ export function AppShell({
       vueReservations === "planning");
   const session = useSession();
   const chargee = useSessionChargee();
+  const lectureEchouee = useLectureEchouee();
   const auth = useAuth();
   const voirDocs = useDroit("voir-documents");
   const peutParametrer = useDroit("mod-biens");
@@ -274,7 +281,26 @@ export function AppShell({
           id="contenu-principal"
           className="flex-1 p-4 pb-[calc(4.75rem+env(safe-area-inset-bottom))] lg:p-6 lg:pb-6"
         >
-          {attendDonnees && !chargee ? <CorpsEnAttente /> : children}
+          {attendDonnees && !chargee ? (
+            <CorpsEnAttente />
+          ) : attendDonnees && lectureEchouee ? (
+            <div role="alert" className="rounded-card border border-line bg-white p-6">
+              <h2 className="text-base text-ink">Les données n'ont pas pu être chargées</h2>
+              <p className="mt-2 text-sm text-ink-muted">
+                Le serveur n'a pas répondu. Les chiffres ne sont pas affichés, pour ne pas les
+                confondre avec un compte vide.
+              </p>
+              <button
+                type="button"
+                onClick={reessayerSync}
+                className="mt-4 inline-flex h-11 items-center rounded-card bg-ink px-4 text-sm font-medium text-white md:h-9"
+              >
+                Réessayer
+              </button>
+            </div>
+          ) : (
+            children
+          )}
         </main>
         <BarreOngletsMobile pathname={pathname} onMenu={() => setMobileOuvert(true)} />
       </div>

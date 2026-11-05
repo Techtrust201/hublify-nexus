@@ -11,6 +11,7 @@ import {
   roleParLabel,
   type RoleId,
 } from "@/auth/permissions";
+import { decisionRetrait, roleInvitable } from "@/data/portee-role";
 import { auth, avecInscriptionInterne } from "@/lib/auth";
 import { envoyerMail } from "@/lib/mail";
 import { rattacherUtilisateur } from "@/lib/rattacher";
@@ -113,7 +114,7 @@ export const inviterMembre = createServerFn({ method: "POST" })
       const prenom = input.prenom.trim();
       if (!prenom) throw new Error("Prénom requis");
       const roleId = roleParLabel(input.role);
-      if (roleId === "super-admin" || roleId === "prestataire") {
+      if (!roleInvitable(roleId)) {
         throw new Error("Ce rôle ne peut pas être attribué depuis l'équipe");
       }
       return {
@@ -186,7 +187,6 @@ export const retirerMembre = createServerFn({ method: "POST" })
     if (!moi || !aLeDroit(moi.droits, "gerer-equipe")) {
       throw new Error("Droits insuffisants");
     }
-    if (data.userId === moi.userId) throw new Error("Impossible de se retirer soi-même");
     const sql = getSql();
     if (!sql) throw new Error("Base indisponible");
     const cible = (await sql`
@@ -194,9 +194,12 @@ export const retirerMembre = createServerFn({ method: "POST" })
       where org_id = ${moi.orgId}::uuid and user_id = ${data.userId}::uuid
       limit 1
     `) as { role_id: RoleId }[];
-    if (cible[0]?.role_id === "super-admin") {
-      throw new Error("Un super-administrateur ne peut pas être retiré");
-    }
+    const decision = decisionRetrait({
+      acteurId: moi.userId,
+      cibleId: data.userId,
+      roleCible: cible[0]?.role_id ?? null,
+    });
+    if (!decision.ok) throw new Error(decision.erreur);
     await sql`
       delete from public.org_membres
       where org_id = ${moi.orgId}::uuid and user_id = ${data.userId}::uuid

@@ -1,13 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { etatCanon } from "@/data/etat-canon";
-import { calculerKpi } from "@/lib/kpi";
+import { calculerKpi, syntheseLoyers } from "@/lib/kpi";
+import { comptesReservations } from "@/components/reservations/tableau-vue";
+import { AUJOURD_HUI_MO1 } from "@/data/planning-mo1";
 
 describe("calculerKpi", () => {
   it("compte les loyers non validés du canon MO1", () => {
-    const kpi = calculerKpi(etatCanon());
+    const etat = etatCanon();
+    const kpi = calculerKpi(etat);
+    const synthese = syntheseLoyers(etat.loyers);
     expect(kpi.plomberie).toBeGreaterThanOrEqual(0);
-    expect(kpi.loyersRetard).toBeGreaterThan(0);
+    expect(kpi.loyersRetard).toBe(synthese.enAttente);
+    expect(kpi.impaye).toBe(synthese.impaye);
     expect(kpi.impaye).toBeGreaterThan(0);
+    expect(kpi.checkOut).toBe(
+      comptesReservations(etat.reservationsDossier, AUJOURD_HUI_MO1).departs,
+    );
   });
 
   it("ignore les réservations annulées", () => {
