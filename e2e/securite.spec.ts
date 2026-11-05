@@ -61,7 +61,13 @@ async function connecter(page: Page, email: string) {
 /** Par l'interface : c'est ce chemin qui purge aussi les copies locales. */
 async function deconnecter(page: Page) {
   await expect(async () => {
-    await page.getByRole("button", { name: "Se déconnecter" }).first().click();
+    const direct = page.getByRole("button", { name: "Se déconnecter" });
+    if ((await direct.count()) > 0) {
+      await direct.first().click();
+    } else {
+      await page.getByRole("button", { name: "Compte gestionnaire" }).click();
+      await page.getByRole("menuitem", { name: "Se déconnecter" }).click();
+    }
     await expect(page).toHaveURL(/\/connexion/, { timeout: 3000 });
   }).toPass({ timeout: 30_000 });
 }

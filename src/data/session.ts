@@ -586,6 +586,14 @@ export function rembourserLoyer(id: string, montant: number) {
   return true;
 }
 
+export function definirRelanceLoyer(id: string, relanceAuto: boolean) {
+  appliquerLocal((e) => ({
+    ...e,
+    loyers: e.loyers.map((l) => (l.id === id ? { ...l, relanceAuto } : l)),
+  }));
+  void pousserPatch("loyers", id, { relanceAuto }).then((ok) => !ok && programmerReprise());
+}
+
 export function marquerQuittance(id: string) {
   appliquerLocal((e) => ({
     ...e,
@@ -787,6 +795,11 @@ export function upsertOccupant(occupant: OccupantMo1) {
       ? liste.map((x, idx) => (idx === i ? { ...x, ...occupant, id: x.id } : x))
       : [occupant, ...liste];
   });
+}
+
+export function ajouterMessageDash(message: import("@/data/planning-mo1").MessageMo1) {
+  appliquerLocal((e) => ({ ...e, messagesDash: [message, ...e.messagesDash] }));
+  void pousserLigne("messagesDash", message).then((ok) => !ok && programmerReprise());
 }
 
 export function ajouterNotif(notif: Omit<NotifMo1, "id" | "lu"> & { id?: string }) {
