@@ -226,14 +226,7 @@ test("portail locataire : accueil, note, recherche, rendez-vous, paiement, messa
 }) => {
   await connecter(page, "jean.martin@hublify.app");
   await page.goto("/espace");
-  const demarrage = page.getByRole("button", { name: "Commencer" });
-  const journee = page.getByRole("heading", { name: "Tâches du jour" });
-  await expect(demarrage.or(journee)).toBeVisible();
-  if (await demarrage.isVisible()) {
-    await page.getByRole("button", { name: "Résident" }).click();
-    await demarrage.click();
-  }
-  await page.getByRole("button", { name: "Résident" }).click();
+  const journee = page.getByRole("heading", { name: /Bonjour/ });
   await expect(journee).toBeVisible();
 
   await page.getByRole("button", { name: "Ajouter" }).click();
@@ -257,8 +250,7 @@ test("portail locataire : accueil, note, recherche, rendez-vous, paiement, messa
   await expect(page.getByText(NOTE_MAJ)).toHaveCount(0);
 
   await page.goto("/espace");
-  await page.getByRole("button", { name: "Résident" }).click();
-  await expect(page.getByRole("heading", { name: "Tâches du jour" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Bonjour/ })).toBeVisible();
   await page.getByRole("button", { name: "Ajouter" }).click();
   await page.getByRole("button", { name: "Rechercher une location" }).click();
   await expect(page.getByRole("button", { name: "Saisonnier" })).toBeVisible();
@@ -307,11 +299,7 @@ test("portail locataire : accueil, note, recherche, rendez-vous, paiement, messa
 test("portail prestataire : mission et rapport", async ({ page }) => {
   await connecter(page, "lucas.menage@hublify.app");
   await page.goto("/espace");
-  const depart = page.getByRole("button", { name: "Commencer" });
-  if (await depart.isVisible().catch(() => false)) {
-    await page.getByRole("button", { name: "Prestataire" }).click();
-    await depart.click();
-  }
+  await expect(page.getByRole("heading", { name: "Ma Journée" })).toBeVisible();
   await page.goto("/espace/missions");
   const rapport = page.getByPlaceholder("Rapport d'intervention");
   if ((await rapport.count()) > 0) {

@@ -1,8 +1,14 @@
 import { useMemo, useState } from "react";
+import { ChevronRight, SquarePen } from "lucide-react";
 import { useAuth } from "@/auth/auth-context";
 import { Bouton, Carte, Ecran, Entete, champClasse } from "@/components/portail/chrome";
 import { useAncre } from "@/components/portail/use-ancre";
-import { ajouterMessageFil, idNouveau, ouvrirConversationProspect, useSession } from "@/data/session";
+import {
+  ajouterMessageFil,
+  idNouveau,
+  ouvrirConversationProspect,
+  useSession,
+} from "@/data/session";
 import { GESTIONNAIRE_PORTAIL } from "@/lib/portail-mobile";
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { useNavigate } from "@tanstack/react-router";
@@ -14,9 +20,18 @@ export function MessagesPortail() {
   return <Liste />;
 }
 
+const FILTRES = [
+  { id: "tous", label: "Tous" },
+  { id: "locataires", label: "Locataires" },
+  { id: "prestataires", label: "Prestataires" },
+  { id: "prospects", label: "Prospects" },
+  { id: "team", label: "Équipe" },
+] as const;
+
 function Liste() {
   const navigate = useNavigate();
   const session = useSession();
+  const [filtre, setFiltre] = useState<(typeof FILTRES)[number]["id"]>("tous");
   const conversations = session.conversations.length
     ? session.conversations
     : [
@@ -27,86 +42,97 @@ function Liste() {
           extrait: "Bonjour, je reste disponible pour le logement.",
           ilYa: "aujourd'hui",
           section: "team" as const,
+          type: "team" as const,
           badge: "Gestionnaire",
           nonLu: true,
         },
       ];
-  const prospects = conversations.filter(
-    (c) => c.section === "prospections" || c.badge === "Prospect",
-  );
-  const autres = conversations.filter((c) => !prospects.includes(c));
+  const lignes = [
+    {
+      id: "gestionnaire",
+      nom: `${GESTIONNAIRE_PORTAIL.nom}`,
+      initiales: "YR",
+      extrait: `${GESTIONNAIRE_PORTAIL.societe} · ${GESTIONNAIRE_PORTAIL.telephone}`,
+      ilYa: "",
+      nonLu: false,
+      section: "team" as const,
+      type: "team" as const,
+      badge: "Gestionnaire",
+    },
+    ...conversations,
+  ];
+  const visibles = lignes.filter((c) => {
+    if (filtre === "tous") return true;
+    if (filtre === "prospects") return c.section === "prospections" || c.badge === "Prospect";
+    if (filtre === "prestataires") return c.section === "prestataires" || c.type === "prestataire";
+    if (filtre === "team") return c.section === "team" || c.type === "team";
+    return c.type === "locataire" || c.type === "voyageur" || c.section === "inbox";
+  });
   return (
-    <Ecran>
-      <Entete titre="Messagerie" />
-      <button
-        type="button"
-        className="inline-flex min-h-11 items-center self-end text-xs font-medium text-[#5090A8]"
-        onClick={() => void navigate({ to: "/espace/messages", hash: "nouveau" })}
-      >
-        Nouveau contact
-      </button>
-      <Groupe
-        titre="Gestionnaire du logement"
-        lignes={[
-          {
-            id: "gestionnaire",
-            nom: `${GESTIONNAIRE_PORTAIL.nom} (${GESTIONNAIRE_PORTAIL.societe})`,
-            initiales: "YR",
-            extrait: GESTIONNAIRE_PORTAIL.telephone,
-            ilYa: "",
-            nonLu: false,
-          },
-        ]}
-      />
-      <Groupe titre="Échanges" lignes={autres} />
-      <Groupe titre="Prospects" lignes={prospects} />
-    </Ecran>
-  );
-}
-
-function Groupe({
-  titre,
-  lignes,
-}: {
-  titre: string;
-  lignes: Array<{
-    id: string;
-    nom: string;
-    initiales: string;
-    extrait: string;
-    ilYa: string;
-    nonLu?: boolean;
-  }>;
-}) {
-  const navigate = useNavigate();
-  if (lignes.length === 0) return null;
-  return (
-    <section className="space-y-2">
-      <h2 className="text-xs uppercase tracking-[0.14em] text-[#98a2b3]">{titre}</h2>
-      <ul className="overflow-hidden rounded-[22px] bg-white">
-        {lignes.map((c) => (
-          <li key={c.id} className="border-b border-[#f2f4f7] last:border-0">
+    <Ecran className="gap-3 px-0">
+      <div className="px-4">
+        <div className="grid grid-cols-[2.75rem_1fr_2.75rem] items-center">
+          <span />
+          <h1 className="text-center font-display text-[20px] font-semibold">Messagerie</h1>
+          <button
+            type="button"
+            aria-label="Nouveau contact"
+            onClick={() => void navigate({ to: "/espace/messages", hash: "nouveau" })}
+            className="grid size-11 place-items-center justify-self-end text-[#3b82f6]"
+          >
+            <SquarePen className="size-5" />
+          </button>
+        </div>
+      </div>
+      <div className="flex gap-2 overflow-x-auto px-4 pb-1" role="tablist" aria-label="Filtres">
+        {FILTRES.map((f) => {
+          const on = filtre === f.id;
+          return (
+            <button
+              key={f.id}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              onClick={() => setFiltre(f.id)}
+              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                on ? "bg-[#3b82f6] text-white" : "bg-white text-[#3b82f6]"
+              }`}
+            >
+              {f.label}
+            </button>
+          );
+        })}
+      </div>
+      <ul className="bg-white">
+        {visibles.map((c) => (
+          <li key={c.id} className="border-b border-[#f2f4f7]">
             <button
               type="button"
-              className="flex w-full items-center gap-3 px-3 py-3 text-left"
+              className="flex w-full items-center gap-3 px-4 py-3 text-left"
               onClick={() => void navigate({ to: "/espace/messages", hash: `fil-${c.id}` })}
             >
-              <span className="grid size-10 place-items-center rounded-full bg-[#e7f4f6] text-xs font-semibold text-[#5090A8]">
+              <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[#e7eef2] text-sm font-semibold text-[var(--portail-encre)]">
                 {c.initiales}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="flex items-center justify-between gap-2">
-                  <span className="truncate text-sm font-medium text-[#1d2939]">{c.nom}</span>
-                  <span className="text-[10px] text-[#98a2b3]">{c.ilYa}</span>
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="truncate text-[15px] font-semibold text-[var(--portail-encre)]">
+                    {c.nom}
+                  </span>
+                  <span className="shrink-0 text-[11px] text-[#98a2b3]">{c.ilYa}</span>
                 </span>
                 <span className="block truncate text-xs text-[#667085]">{c.extrait}</span>
               </span>
-              {c.nonLu && <span className="size-2 rounded-full bg-[#5090A8]" aria-label="Non lu" />}
+              {c.nonLu && <span className="size-2 rounded-full bg-[#3b82f6]" aria-label="Non lu" />}
+              <ChevronRight className="size-4 shrink-0 text-[#c5c8ce]" />
             </button>
           </li>
         ))}
+        {visibles.length === 0 && (
+          <li className="px-4 py-6 text-sm text-[#667085]">Aucune conversation dans ce filtre.</li>
+        )}
       </ul>
-    </section>
+    </Ecran>
   );
 }
 
@@ -136,7 +162,7 @@ function Fil({ id }: { id: string }) {
         {messages.map((m) => (
           <li
             key={m.id}
-            className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${m.kind === "envoye" ? "ml-auto bg-[#5090A8] text-white" : "bg-white text-[#1d2939]"}`}
+            className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${m.kind === "envoye" ? "ml-auto bg-[#1e2939] text-white" : "bg-white text-[#1d2939]"}`}
           >
             <p>{m.texte}</p>
             {m.heure && <p className="mt-1 text-[10px] opacity-70">{m.heure}</p>}

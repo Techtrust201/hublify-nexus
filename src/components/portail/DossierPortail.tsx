@@ -54,29 +54,30 @@ function Profil() {
   const uiMode = auth?.roleId === "prestataire" ? "prestataire" : "résident";
   return (
     <Ecran>
-      <Entete titre="Mon profil" surRetour={() => void navigate({ to: "/espace" })} />
-      <div className="flex items-center gap-3">
-        <span className="grid size-16 place-items-center rounded-full bg-[#5090A8] text-lg font-semibold text-white">
-          {(auth?.prenom?.[0] ?? "H").toUpperCase()}
-          {(auth?.nom?.[0] ?? "").toUpperCase()}
-        </span>
-        <div>
-          <p className="text-lg font-semibold text-[#1d2939]">
-            {auth?.prenom} {auth?.nom}
-          </p>
-          <p className="text-xs text-[#667085]">
-            {auth?.email} · mode {uiMode}
-          </p>
-        </div>
-      </div>
-      <Carte className="space-y-2 text-sm text-[#344054]">
-        <p className="font-medium text-[#1d2939]">À propos de moi</p>
-        <p className="text-xs text-[#667085]">
+      <Entete titre="" surRetour={() => void navigate({ to: "/espace" })} />
+      <span className="mx-auto grid size-24 place-items-center rounded-full bg-[var(--portail-sarcelle)] text-2xl font-semibold text-white">
+        {(auth?.prenom?.[0] ?? "H").toUpperCase()}
+        {(auth?.nom?.[0] ?? "").toUpperCase()}
+      </span>
+      <h1 className="text-center font-display text-[22px] font-semibold text-[var(--portail-encre)]">
+        {auth?.prenom} {auth?.nom}
+      </h1>
+      <div className="w-full space-y-3 text-sm text-[#344054]">
+        <p className="text-base font-semibold text-[var(--portail-encre)]">Mon profil</p>
+        <p>
+          <span className="block text-xs text-[#98a2b3]">Nom</span>
+          {auth?.nom}
+        </p>
+        <p>
+          <span className="block text-xs text-[#98a2b3]">Email</span>
+          {auth?.email}
+        </p>
+        <p className="text-xs text-[#98a2b3]">Mode {uiMode}</p>
+        <p className="text-base font-semibold text-[var(--portail-encre)]">À propos de moi</p>
+        <p className="rounded-[22px] bg-white px-4 py-3 text-xs text-[#667085] shadow-[var(--portail-ombre)]">
           Profil Hublify. Les droits d'accès au dossier sont validés ici, pas par le demandeur.
         </p>
-        <p>Nom {auth?.nom}</p>
-        <p>E-mail {auth?.email}</p>
-      </Carte>
+      </div>
       <Bouton onClick={() => void navigate({ to: "/espace/dossier", hash: "pieces" })}>
         Constituer mon dossier de location
       </Bouton>
@@ -810,20 +811,28 @@ export function ContactsPortail() {
   return (
     <Ecran>
       <Entete titre="Contacts" surRetour={() => void navigate({ to: "/espace/dossier" })} />
-      <Carte>
-        <p className="text-sm font-semibold text-[#1d2939]">
-          Gestionnaire : {GESTIONNAIRE_PORTAIL.nom} ({GESTIONNAIRE_PORTAIL.societe})
-        </p>
-        <p className="mt-1 text-sm text-[#344054]">Téléphone : {GESTIONNAIRE_PORTAIL.telephone}</p>
-        <p className="text-xs text-[#98a2b3]">{GESTIONNAIRE_PORTAIL.email}</p>
-        <button
-          type="button"
-          className="mt-2 text-xs font-medium text-[#5090A8]"
-          onClick={() => void navigate({ to: "/espace/messages" })}
-        >
-          Écrire
-        </button>
-      </Carte>
+      <ul className="overflow-hidden rounded-[22px] bg-white shadow-[var(--portail-ombre)]">
+        <li>
+          <button
+            type="button"
+            className="flex w-full items-center gap-3 px-4 py-3 text-left"
+            onClick={() => void navigate({ to: "/espace/messages" })}
+          >
+            <span className="grid size-12 place-items-center rounded-full bg-[#e7eef2] text-sm font-semibold">
+              YR
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[15px] font-semibold">
+                {GESTIONNAIRE_PORTAIL.nom}
+              </span>
+              <span className="block truncate text-xs text-[#667085]">
+                {GESTIONNAIRE_PORTAIL.societe} · {GESTIONNAIRE_PORTAIL.telephone}
+              </span>
+            </span>
+            <span className="text-xs font-semibold text-[#3b82f6]">Écrire</span>
+          </button>
+        </li>
+      </ul>
       {session.prestataires.map((p) => (
         <Carte key={p.id}>
           <p className="text-sm font-medium">{p.nom}</p>

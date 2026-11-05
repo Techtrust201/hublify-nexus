@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { ChevronLeft, ChevronRight, Clock, UserRound } from "lucide-react";
 import {
   Bouton,
   Carte,
@@ -67,78 +68,101 @@ export function CalendrierPortail() {
   const iso = (jour: string) =>
     `${annee}-${String(mois + 1).padStart(2, "0")}-${jour.padStart(2, "0")}`;
 
+  const aujourdhui = new Date();
+  const isoAujourdhui = `${aujourdhui.getFullYear()}-${String(aujourdhui.getMonth() + 1).padStart(2, "0")}-${String(aujourdhui.getDate()).padStart(2, "0")}`;
+  const duJour = occupations.filter((o) => o.date === jourChoisi);
+  const evenement = duJour[0] ?? occupations[0];
+
   return (
     <Ecran>
       <Entete titre="Calendrier" />
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          aria-label="Mois précédent"
-          className="grid size-11 place-items-center text-lg"
-          onClick={() => setCursor(new Date(annee, mois - 1, 1))}
-        >
-          ‹
-        </button>
-        <p className="text-sm font-semibold capitalize text-[#1d2939]">{libelleMois(cursor)}</p>
-        <button
-          type="button"
-          aria-label="Mois suivant"
-          className="grid size-11 place-items-center text-lg"
-          onClick={() => setCursor(new Date(annee, mois + 1, 1))}
-        >
-          ›
-        </button>
-      </div>
       <button
         type="button"
-        className="inline-flex min-h-11 items-center text-xs text-[#5090A8]"
-        onClick={() => setCursor(new Date())}
+        className="mx-auto flex h-10 items-center rounded-full bg-white px-6 text-sm font-medium text-[var(--portail-encre)] shadow-[0_4px_12px_rgba(0,0,0,0.1)]"
+        onClick={() => {
+          const maintenant = new Date();
+          setCursor(maintenant);
+          setJourChoisi(isoAujourdhui);
+        }}
       >
-        Aujourd'hui
+        Aujourd&apos;hui
       </button>
-      <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-[#98a2b3]">
-        {["lu", "ma", "me", "je", "ve", "sa", "di"].map((j) => (
-          <span key={j}>{j}</span>
-        ))}
-      </div>
-      <div className="grid grid-cols-7 gap-px">
-        {cases.map((jour, i) => {
-          const date = jour ? iso(jour) : "";
-          const marque =
-            occupations.some((o) => o.date === date) || notes.some((n) => n.jour === date);
-          const choisi = date && date === jourChoisi;
-          return (
-            <button
-              key={`${i}-${jour}`}
-              type="button"
-              disabled={!jour}
-              onClick={() => jour && setJourChoisi(date)}
-              className={`grid h-11 place-items-center rounded-xl text-sm ${
-                choisi
-                  ? "bg-[#1d2939] text-white"
-                  : marque
-                    ? "bg-[#5090A8] text-white"
-                    : "text-[#344054]"
-              }`}
-            >
-              {jour}
-            </button>
-          );
-        })}
-      </div>
-      <Carte className="space-y-2">
-        <p className="text-sm font-medium">
-          {ui.mode === "prestataire" ? "Prestations" : "Occupations"}
-        </p>
-        <ul className="space-y-1 text-sm text-[#344054]">
-          {occupations.slice(0, 8).map((o) => (
-            <li key={o.id}>
-              {o.date} · {o.label}
-            </li>
+      <div className="rounded-[24px] bg-white px-3 py-4 shadow-[var(--portail-ombre)]">
+        <div className="mb-3 flex items-center justify-between px-1">
+          <button
+            type="button"
+            aria-label="Mois précédent"
+            className="grid size-9 place-items-center rounded-full bg-[#f4f4f5] text-[var(--portail-encre)] shadow-sm"
+            onClick={() => setCursor(new Date(annee, mois - 1, 1))}
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+          <p className="text-lg font-semibold capitalize text-[var(--portail-encre)]">
+            {libelleMois(cursor)}
+          </p>
+          <button
+            type="button"
+            aria-label="Mois suivant"
+            className="grid size-9 place-items-center rounded-full bg-[#f4f4f5] text-[var(--portail-encre)] shadow-sm"
+            onClick={() => setCursor(new Date(annee, mois + 1, 1))}
+          >
+            <ChevronRight className="size-4" />
+          </button>
+        </div>
+        <div className="grid grid-cols-7 text-center text-[11px] text-[#98a2b3]">
+          {["lu", "ma", "me", "je", "ve", "sa", "di"].map((j) => (
+            <span key={j} className="py-1 capitalize">
+              {j}
+            </span>
           ))}
-          {occupations.length === 0 && <li className="text-[#98a2b3]">Rien sur cette période.</li>}
-        </ul>
-      </Carte>
+        </div>
+        <div className="grid grid-cols-7">
+          {cases.map((jour, i) => {
+            const date = jour ? iso(jour) : "";
+            const marque =
+              occupations.some((o) => o.date === date) || notes.some((n) => n.jour === date);
+            const choisi = Boolean(date && date === jourChoisi);
+            return (
+              <button
+                key={`${i}-${jour}`}
+                type="button"
+                disabled={!jour}
+                onClick={() => jour && setJourChoisi(date)}
+                className={`mx-auto grid h-11 w-10 place-items-center text-base font-semibold text-[var(--portail-encre)] ${
+                  choisi ? "rounded-lg ring-2 ring-[#3b82f6]" : ""
+                } ${marque && !choisi ? "underline decoration-2 underline-offset-4 decoration-[var(--portail-corail)]" : ""}`}
+              >
+                {jour}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      {evenement && (
+        <button
+          type="button"
+          onClick={() =>
+            void navigate({
+              to: ui.mode === "prestataire" ? "/espace/missions" : "/espace/logement",
+            })
+          }
+          className="flex w-full items-center gap-3 rounded-[22px] bg-white px-4 py-3 text-left shadow-[var(--portail-ombre)]"
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block text-xs text-[var(--portail-encre-douce)]">
+              {ui.mode === "prestataire" ? "Mission" : "Location"}
+            </span>
+            <span className="block truncate text-[15px] font-semibold">{evenement.label}</span>
+            <span className="mt-1 flex items-center gap-1 text-[11px] font-medium text-[var(--portail-corail)]">
+              <Clock className="size-3.5" fill="currentColor" />
+              {evenement.date}
+            </span>
+          </span>
+          <span className="grid size-11 place-items-center rounded-xl bg-[#f6f1df]">
+            <UserRound className="size-5" fill="currentColor" />
+          </span>
+        </button>
+      )}
       <Carte className="space-y-2">
         <p id="note-calendrier" className="text-sm font-medium">
           {edition ? "Modifier la note" : "Ajouter une note dans le calendrier"}

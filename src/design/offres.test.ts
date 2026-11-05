@@ -8,7 +8,7 @@ import {
   prixAnnuelCentimes,
   prixMoisRemise,
 } from "@/design/offres";
-import { estCheminAuth, estCheminMarketing } from "@/lib/routes-publiques";
+import { estAccueilPortailPublic, estCheminAuth, estCheminMarketing } from "@/lib/routes-publiques";
 
 describe("offres V1", () => {
   it("applique la remise annuelle de 20 % sans dérive de centimes", () => {
@@ -55,5 +55,8 @@ describe("routes publiques", () => {
     expect(estCheminMarketing("/cgv")).toBe(true);
     expect(estCheminAuth("/faq")).toBe(false);
     expect(estCheminMarketing("/reservations")).toBe(false);
+    expect(estAccueilPortailPublic("/espace")).toBe(true);
+    expect(estAccueilPortailPublic("/espace/")).toBe(true);
+    expect(estAccueilPortailPublic("/espace/documents")).toBe(false);
   });
 });
