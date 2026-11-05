@@ -310,7 +310,7 @@ export function PlanningGrid({
               <button
                 type="button"
                 onClick={() => setPrestation({ bienId: biens[0]?.id ?? "", date: isoJour(ancre) })}
-                className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-accent-teal px-5 text-sm font-medium text-white"
+                className="inline-flex h-[38px] w-[200px] shrink-0 items-center justify-center gap-2 rounded-gest-primaire bg-gest-primaire font-sans text-sm font-medium leading-5 text-white"
               >
                 <Plus className="size-4" />
                 Créer une Mission

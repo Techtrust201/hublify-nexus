@@ -114,12 +114,12 @@ function CarteKpi({
   onClick?: (() => void) | undefined;
 }) {
   const corps = (
-    <div className="min-h-[116px] rounded-2xl border border-line bg-white p-4 shadow-sm">
+    <div className="min-h-[116px] rounded-gest-carte border border-gest-bordure bg-gest-carte p-4 font-sans shadow-gest-carte">
       <div className="flex items-center justify-between gap-2">
         <p
           className={cn(
-            "flex min-w-0 items-center gap-2 text-sm",
-            titreDanger ? "text-danger-loyer" : "text-ink-body",
+            "flex min-w-0 items-center gap-2 font-sans text-sm font-normal leading-5",
+            titreDanger ? "text-gest-alerte" : "text-gest-item",
           )}
         >
           <Icone className="size-4 shrink-0" />
@@ -134,11 +134,13 @@ function CarteKpi({
           {badge}
         </span>
       </div>
-      <p className="mt-2 text-ink">
-        <span className="text-2xl leading-8">{valeur} </span>
-        <span className="text-sm text-ink-muted">{unite}</span>
+      <p className="mt-2">
+        <span className="font-sans text-2xl font-medium leading-8 text-gest-chiffre">
+          {valeur}{" "}
+        </span>
+        <span className="font-sans text-sm font-normal leading-5 text-gest-libelle">{unite}</span>
       </p>
-      <p className="mt-1 text-xs text-ink-muted">{detail}</p>
+      <p className="mt-1 font-sans text-xs font-normal text-gest-libelle">{detail}</p>
     </div>
   );
   const classe =

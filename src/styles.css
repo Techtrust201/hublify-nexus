@@ -63,6 +63,27 @@
   --color-gest-jaune: var(--gest-jaune);
   --color-gest-pastille: var(--gest-pastille);
   --color-gest-alerte: var(--gest-alerte);
+  /* Alias des mêmes hex : titre, KPI, sidebar, bouton, cartes, barres. */
+  --color-gest-titre: var(--gest-texte);
+  --color-gest-chiffre: var(--gest-texte-fort);
+  --color-gest-libelle: var(--gest-texte-secondaire);
+  --color-gest-item: var(--gest-texte);
+  --color-gest-primaire: var(--gest-primaire);
+  --color-gest-sidebar: var(--gest-carte);
+  --color-gest-bordure: var(--gest-carte-bord);
+  --color-gest-carte: var(--gest-carte);
+  --color-gest-zone: var(--gest-fond);
+  --color-gest-barre-verte: var(--gest-vert);
+  --color-gest-barre-bord: var(--line-strong);
+  --color-gest-barre-rouge: var(--gest-rouge);
+  --color-gest-barre-jaune: var(--gest-jaune);
+  --color-gest-outils: var(--gest-pastille);
+  --radius-gest-carte: 10px;
+  --radius-gest-primaire: 14px;
+  --radius-gest-debut: 10px;
+  --radius-gest-barre: 4px;
+  --radius-gest-outils: 10px;
+  --shadow-gest-carte: var(--shadow-carte);
   --radius-card: 0.625rem;
   --radius-bouton: 0.875rem;
   --z-index-sticky: 10;
