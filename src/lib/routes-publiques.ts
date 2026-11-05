@@ -20,6 +20,10 @@ export const CHEMINS_MARKETING = [
   "/cgv",
   "/confidentialite",
   "/choix-du-profil",
+  "/blog",
+  "/guides",
+  "/modeles",
+  "/nouveautes",
 ] as const;
 
 export function estCheminAuth(pathname: string): boolean {

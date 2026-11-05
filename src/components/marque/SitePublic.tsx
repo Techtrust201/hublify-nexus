@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { Instagram, Linkedin, Menu, X, Youtube } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Logo } from "@/components/marque/Logo";
 import { inscrireListeBailleurs } from "@/lib/liste-bailleurs.functions";
 
@@ -104,25 +104,6 @@ export function SitePublic({ children }: { children: ReactNode }) {
               La gestion locative claire, fiable et humaine pour les propriétaires bailleurs et les
               petites agences.
             </p>
-            <ul className="mt-4 flex gap-2">
-              {(
-                [
-                  ["LinkedIn", Linkedin],
-                  ["Instagram", Instagram],
-                  ["YouTube", Youtube],
-                ] as const
-              ).map(([nom, Icone]) => (
-                <li key={nom}>
-                  <a
-                    href="/"
-                    aria-label={nom}
-                    className="inline-flex size-9 items-center justify-center rounded-lg bg-[#f3f4f6] text-v1-ink"
-                  >
-                    <Icone className="size-4" aria-hidden />
-                  </a>
-                </li>
-              ))}
-            </ul>
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-v1-ink">Produit</p>
@@ -137,7 +118,7 @@ export function SitePublic({ children }: { children: ReactNode }) {
                 <Link to="/confidentialite">Sécurité</Link>
               </li>
               <li>
-                <a href="/#fonctionnalites">Nouveautés</a>
+                <Link to="/nouveautes">Nouveautés</Link>
               </li>
             </ul>
           </div>
@@ -151,13 +132,13 @@ export function SitePublic({ children }: { children: ReactNode }) {
                   <Link to="/faq">Centre d'aide</Link>
                 </li>
                 <li>
-                  <Link to="/faq">Guides bailleurs</Link>
+                  <Link to="/guides">Guides bailleurs</Link>
                 </li>
                 <li>
-                  <Link to="/faq">Modèles gratuits</Link>
+                  <Link to="/modeles">Modèles gratuits</Link>
                 </li>
                 <li>
-                  <Link to="/faq">Blog</Link>
+                  <Link to="/blog">Blog</Link>
                 </li>
               </ul>
             </div>

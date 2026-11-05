@@ -2,7 +2,10 @@ import { expect, test, type Page } from "@playwright/test";
 
 const MOT_DE_PASSE = process.env["DEMO_AUTH_PASSWORD"] ?? "";
 
-test.skip(!process.env["DATABASE_URL"] || !MOT_DE_PASSE, "DATABASE_URL ou mot de passe démo absent");
+test.skip(
+  !process.env["DATABASE_URL"] || !MOT_DE_PASSE,
+  "DATABASE_URL ou mot de passe démo absent",
+);
 
 async function debordement(page: Page) {
   return page.evaluate(
@@ -51,7 +54,8 @@ test.describe("pages publiques", () => {
       await expect(page.getByText("sans engagement", { exact: false })).toBeVisible();
       await page.goto("/");
       await page.getByRole("link", { name: "Blog" }).click();
-      await expect(page).toHaveURL(/\/faq/);
+      await expect(page).toHaveURL(/\/blog/);
+      await expect(page.getByRole("heading", { name: "Notes de gestion" })).toBeVisible();
       await page.goto("/");
       await expect(page.getByRole("link", { name: "Tarifs" }).first()).toBeVisible();
       await page.getByRole("link", { name: "Tarifs" }).first().click();
@@ -61,7 +65,14 @@ test.describe("pages publiques", () => {
 
   test("ordinateur : pages publiques sans débordement", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
-    for (const route of ["/", "/faq", "/cgv", "/inscription", "/connexion", "/mot-de-passe-oublie"]) {
+    for (const route of [
+      "/",
+      "/faq",
+      "/cgv",
+      "/inscription",
+      "/connexion",
+      "/mot-de-passe-oublie",
+    ]) {
       await page.goto(route);
       expect(await debordement(page)).toBeLessThanOrEqual(1);
     }
@@ -80,7 +91,9 @@ test.describe("pages publiques", () => {
     await inscrire.click();
     await expect(page.getByText("Inscription enregistrée")).toBeVisible();
     await page.reload();
-    const mails = await page.request.get(`/api/test/mails?destinataire=${encodeURIComponent(email)}`);
+    const mails = await page.request.get(
+      `/api/test/mails?destinataire=${encodeURIComponent(email)}`,
+    );
     expect(mails.ok()).toBeTruthy();
     const corps = (await mails.json()) as { mails: unknown[] };
     expect(corps.mails.length).toBeGreaterThan(0);
