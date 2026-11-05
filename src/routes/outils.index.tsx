@@ -35,7 +35,7 @@ const OUTILS = [
     vers: "/outils/baux" as const,
   },
   {
-    titre: "Vue Annuelle",
+    titre: "Vue annuelle",
     texte: "Disponibilités, blocages et réservations sur l'année.",
     icone: CalendarDays,
     vers: "/outils/vue-annuelle" as const,

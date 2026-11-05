@@ -51,7 +51,7 @@ export const PARAMETRAGE_DEFAUT: ParametrageSession = {
   notifsPush: true,
   notifsSms: false,
   rappelPaiement: true,
-  rappelPaiementHeures: "00",
+  rappelPaiementHeures: "24",
   notifLoyer: true,
   notifMessage: true,
   notifMission: true,
@@ -82,7 +82,7 @@ export const PARAMETRAGE_DEFAUT: ParametrageSession = {
   consignesDepart: "État des lieux de sortie, relevé des compteurs, photos du logement.",
   upsells: [
     { id: "u-dej", nom: "Petit-déjeuner", prix: 15, actif: true },
-    { id: "u-late", nom: "Late Check-out (14h)", prix: 25, actif: true },
+    { id: "u-late", nom: "Départ tardif (14 h)", prix: 25, actif: true },
     { id: "u-park", nom: "Parking sécurisé", prix: 10, actif: false },
     { id: "u1", nom: "Lit bébé", prix: 20, actif: true },
     { id: "u2", nom: "Ménage supplémentaire", prix: 45, actif: true },
@@ -93,9 +93,14 @@ export const PARAMETRAGE_DEFAUT: ParametrageSession = {
 export function fusionnerParametrage(
   partiel?: Partial<ParametrageSession> | null,
 ): ParametrageSession {
-  return {
+  const fusion: ParametrageSession = {
     ...PARAMETRAGE_DEFAUT,
     ...partiel,
     upsells: partiel?.upsells ?? PARAMETRAGE_DEFAUT.upsells,
   };
+  // « 00 » était la valeur de remplissage : un rappel à 0 h ne prévient personne.
+  if (!fusion.rappelPaiementHeures || fusion.rappelPaiementHeures === "00") {
+    fusion.rappelPaiementHeures = "24";
+  }
+  return fusion;
 }

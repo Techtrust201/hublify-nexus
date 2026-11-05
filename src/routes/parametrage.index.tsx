@@ -11,7 +11,7 @@ import {
 } from "@/data/parametrage-mo1";
 import { PanneauNotifications } from "@/components/parametrage/PanneauNotifications";
 import { useReglagesEtendus, type ReglagesEtendus } from "@/data/reglages-etendus";
-import { confirmer, toastOk } from "@/lib/feedback";
+import { confirmer, toastErreur, toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/parametrage/")({
@@ -449,7 +449,14 @@ function PageParametrage() {
             className="mt-4 h-11 rounded-card bg-accent-teal px-4 text-sm font-medium text-white md:h-9"
             onClick={() => {
               const prix = Number(prixUpsell.replace(",", "."));
-              if (!nomUpsell.trim() || Number.isNaN(prix)) return;
+              if (!nomUpsell.trim()) {
+                toastErreur("Indiquez le nom de l'upsell.");
+                return;
+              }
+              if (Number.isNaN(prix) || prix < 0) {
+                toastErreur("Indiquez un prix en euros, positif ou nul.");
+                return;
+              }
               const suivant = {
                 ...brouillon,
                 upsells: [

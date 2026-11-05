@@ -86,7 +86,18 @@ export function UpsellsApp({
   const enregistrer = () => {
     const nom = brouillon.nom.trim();
     const prix = Number(brouillon.prix.replace(",", "."));
-    if (!nom || Number.isNaN(prix) || prix < 0 || !peutEcrire) return;
+    if (!peutEcrire) {
+      toastErreur("L'enregistrement des upsells est indisponible pour le moment.");
+      return;
+    }
+    if (!nom) {
+      toastErreur("Indiquez le nom de l'upsell.");
+      return;
+    }
+    if (Number.isNaN(prix) || prix < 0) {
+      toastErreur("Indiquez un prix en euros, positif ou nul.");
+      return;
+    }
     const fiche: FicheUpsell = {
       code: brouillon.code.trim(),
       type: brouillon.type.trim() || "Service",

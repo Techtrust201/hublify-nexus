@@ -88,7 +88,7 @@ export function PanneauNotifications({
         <div className="space-y-3">
           <p className="text-sm font-medium text-ink">Rappels et relances</p>
           <Ligne
-            label={`Rappel de paiement ${brouillon.rappelPaiementHeures || "00"}h avant le début de la réservation`}
+            label={`Rappel de paiement ${brouillon.rappelPaiementHeures || "24"} h avant le début de la réservation`}
             detail="Recevoir les notifications par mail, message, notification des réservations non payées avant l'arrivée."
             actif={brouillon.rappelPaiement}
             onChange={(v) => onPatch({ rappelPaiement: v })}

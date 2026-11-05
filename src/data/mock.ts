@@ -323,9 +323,9 @@ export const ANCRE_PLANNING = new Date(2026, 2, 4);
 export const ORDRE_BIENS = ["b4", "b2", "b1", "b3"] as const;
 
 export const TEAM: TeamMate[] = [
-  { id: "t1", nom: "Erik Dunnell", initiales: "ER" },
-  { id: "t2", nom: "Emily Smith", initiales: "EM" },
-  { id: "t3", nom: "Arthur Ajolk", initiales: "AR" },
+  { id: "t1", nom: "Éric Durand", initiales: "ED" },
+  { id: "t2", nom: "Émilie Moreau", initiales: "EM" },
+  { id: "t3", nom: "Arthur Rolland", initiales: "AR" },
 ];
 
 export const MESSAGES: Message[] = [
@@ -378,7 +378,7 @@ export const MESSAGES: Message[] = [
   {
     id: "msg6",
     canal: "team",
-    auteur: "Erik Dunnell",
+    auteur: "Éric Durand",
     initiales: "ER",
     texte: "Peux-tu relancer Sophie Martin pour le code Wi-Fi ?",
     ilYa: "Il y a 12 min",
@@ -386,7 +386,7 @@ export const MESSAGES: Message[] = [
   {
     id: "msg7",
     canal: "team",
-    auteur: "Emily Smith",
+    auteur: "Émilie Moreau",
     initiales: "EM",
     texte: "Quittance Lucie Blanc générée, je l'archive dans Documents.",
     ilYa: "Il y a 45 min",

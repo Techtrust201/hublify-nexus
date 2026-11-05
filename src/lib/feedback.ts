@@ -148,11 +148,44 @@ export function ouvrirBase64(nom: string, mime: string, base64: string) {
   toast.success(`Aperçu : ${nom}`);
 }
 
-export function copierTexte(texte: string, message = "Copié dans le presse-papiers.") {
-  void navigator.clipboard.writeText(texte).then(
-    () => toastOk(message),
-    () => toastErreur("Copie impossible."),
-  );
+async function ecrirePressePapiers(texte: string) {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await Promise.race([
+        navigator.clipboard.writeText(texte),
+        new Promise((_, rejeter) => {
+          setTimeout(() => rejeter(new Error("presse-papiers")), 1500);
+        }),
+      ]);
+      return true;
+    }
+  } catch {
+    /* Le presse-papiers asynchrone est souvent refusé hors geste sécurisé. */
+  }
+  try {
+    const zone = document.createElement("textarea");
+    zone.value = texte;
+    zone.setAttribute("readonly", "");
+    zone.style.position = "fixed";
+    zone.style.top = "0";
+    zone.style.left = "0";
+    zone.style.opacity = "0";
+    document.body.appendChild(zone);
+    zone.focus();
+    zone.select();
+    const ok = document.execCommand("copy");
+    zone.remove();
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function copierTexte(texte: string, message = "Copié dans le presse-papiers.") {
+  const ok = await ecrirePressePapiers(texte);
+  if (ok) toastOk(message);
+  else toastErreur("Copie impossible. Sélectionnez le texte pour le copier à la main.");
+  return ok;
 }
 
 export function choisirFichier(onChoisi: (nom: string) => void) {

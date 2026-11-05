@@ -133,7 +133,6 @@ export function DocumentsApp({
   useEffect(() => {
     if (logement) {
       setLogementFiltre(logement);
-      setFiltresOuverts(true);
     }
   }, [logement]);
 
@@ -312,6 +311,7 @@ export function DocumentsApp({
           selection={selection}
           onSelection={setSelection}
           onFiltres={() => setFiltresOuverts(true)}
+          logementActif={logementFiltre}
           onRetour={() => aller("hub")}
           actionsEntete={
             <>
@@ -345,6 +345,7 @@ export function DocumentsApp({
           selection={selection}
           onSelection={setSelection}
           onFiltres={() => setFiltresOuverts(true)}
+          logementActif={logementFiltre}
           onRetour={() => aller("hub")}
           montrerOccupant
           bandeau={
@@ -424,6 +425,7 @@ export function DocumentsApp({
           selection={selection}
           onSelection={setSelection}
           onFiltres={() => setFiltresOuverts(true)}
+          logementActif={logementFiltre}
           onRetour={() => aller("hub")}
           actionsEntete={
             <BtnOutline onClick={importerDoc}>
@@ -470,6 +472,7 @@ export function DocumentsApp({
           selection={selection}
           onSelection={setSelection}
           onFiltres={() => setFiltresOuverts(true)}
+          logementActif={logementFiltre}
           onRetour={() => aller("hub")}
           actionsEntete={
             <>
@@ -870,6 +873,7 @@ function ListeDocs({
   selection,
   onSelection,
   onFiltres,
+  logementActif = "Tous",
   onRetour,
   actionsEntete,
   onglets,
@@ -892,6 +896,7 @@ function ListeDocs({
   selection: string[];
   onSelection: (ids: string[]) => void;
   onFiltres: () => void;
+  logementActif?: string;
   onRetour: () => void;
   actionsEntete: ReactNode;
   onglets?: ReactNode;
@@ -938,7 +943,8 @@ function ListeDocs({
         <div className="space-y-2 border-b border-surface-soft p-4">
           <div className="flex gap-2">
             <BtnOutline onClick={onFiltres}>
-              <Home className="size-2.5" /> Tous
+              <Home className="size-2.5" />{" "}
+              {logementActif === "Tous" ? "Tous les logements" : logementActif}
             </BtnOutline>
             <label className="flex h-11 flex-1 items-center gap-2 rounded-card border border-line px-3 md:h-[34px]">
               <Search className="size-3 text-ink-muted" />

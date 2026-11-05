@@ -178,7 +178,7 @@ export function DialogInviter({
                 nom: nom.trim(),
                 email: email.trim(),
                 role,
-                affectation: affectation.trim() || "Assignment",
+                affectation: affectation.trim() || "Non précisée",
                 droits:
                   modeDroits === "personnalise"
                     ? droitsPersonnalises(roleParLabel(role), droits)

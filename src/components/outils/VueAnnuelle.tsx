@@ -126,7 +126,7 @@ export function VueAnnuelle() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs text-ink-muted">Outils</p>
-          <h2 className="text-lg text-ink">Vue Annuelle</h2>
+          <h2 className="text-lg text-ink">Vue annuelle</h2>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <select

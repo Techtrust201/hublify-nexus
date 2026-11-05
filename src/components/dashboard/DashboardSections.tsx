@@ -17,7 +17,7 @@ import type { CanalMo1, EvenementMo1, LoyerMo1, MessageMo1 } from "@/data/planni
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useKpiMo1, useSession } from "@/data/session";
 import { METHODES_PAIEMENT } from "@/data/v1-metier";
-import { copierTexte } from "@/lib/feedback";
+import { copierTexte, toastErreur } from "@/lib/feedback";
 import { messageRelancePaiement, resteADevoir } from "@/lib/gestionnaire-planning";
 import { datesEvenementPourAffichage } from "@/lib/periode-demo";
 import { cn, useSessionBool } from "@/lib/utils";
@@ -518,8 +518,14 @@ export function LoyersSection({
               onClick={() => {
                 if (!aRembourser || !onRembourser) return;
                 const montant = Number(montantRembourse.replace(",", "."));
-                if (!Number.isFinite(montant) || montant <= 0 || montant > aRembourser.montant)
+                if (!Number.isFinite(montant) || montant <= 0) {
+                  toastErreur("Indiquez un montant de remboursement positif.");
                   return;
+                }
+                if (montant > aRembourser.montant) {
+                  toastErreur("Le remboursement ne peut pas dépasser le montant du paiement.");
+                  return;
+                }
                 onRembourser(aRembourser.id, montant);
                 setARembourser(null);
               }}
@@ -556,7 +562,7 @@ export function EvenementsSection({
           onClick={() => setOuvert((o) => !o)}
         >
           <Star className="size-4" />
-          Événements en Cours
+          Événements en cours
           <span className="text-xs text-ink-muted">
             {evenements.length} événement{evenements.length > 1 ? "s" : ""} détecté
             {evenements.length > 1 ? "s" : ""}

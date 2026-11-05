@@ -23,7 +23,7 @@ const ICONE_TYPE: Record<TypeInterlocuteur, typeof Plane> = {
 const SECTIONS: { id: SectionConversation; label: string }[] = [
   { id: "prospections", label: "Mes prospections" },
   { id: "prestataires", label: "Mes prestataires" },
-  { id: "team", label: "Mes teams mate" },
+  { id: "team", label: "Mes coéquipiers" },
 ];
 
 function LigneConversation({

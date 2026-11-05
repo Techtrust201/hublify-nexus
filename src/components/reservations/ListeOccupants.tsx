@@ -32,7 +32,8 @@ import {
   retirerPrestataire,
   useSession,
 } from "@/data/session";
-import { copierTexte, confirmer, telechargerDemo, toastOk } from "@/lib/feedback";
+import { copierTexte, confirmer, telechargerDemo, toastErreur, toastOk } from "@/lib/feedback";
+import { emailValide } from "@/lib/saisie";
 import { cn } from "@/lib/utils";
 import type { CategoriePrestataire, Prestataire } from "@/data/types";
 
@@ -182,7 +183,15 @@ export function ListeOccupants() {
 
   const enregistrerForm = () => {
     const nom = form.nom.trim();
-    if (!nom) return;
+    if (!nom) {
+      toastErreur("Indiquez le nom.");
+      return;
+    }
+    if (form.email.trim() && !emailValide(form.email)) {
+      toastErreur("Indiquez un e-mail valide, ou laissez le champ vide.");
+      return;
+    }
+    const email = form.email.trim() || "—";
     const initiales = nom
       .split(/\s+/)
       .slice(0, 2)
@@ -196,7 +205,7 @@ export function ListeOccupants() {
         type: form.type,
         logement: form.logement.trim() || "—",
         telephone: form.telephone.trim() || "—",
-        email: form.email.trim() || `${nom.toLowerCase().replace(/\s+/g, ".")}@email.fr`,
+        email,
         arrivee: editionOccupant?.arrivee ?? isoJour(new Date()),
         statut: "Actif",
       };
@@ -211,7 +220,7 @@ export function ListeOccupants() {
         nom,
         categorie: categorieDe(form.metier.trim() || "Maintenance"),
         telephone: form.telephone.trim() || "—",
-        email: form.email.trim() || `${nom.toLowerCase().replace(/\s+/g, ".")}@email.fr`,
+        email,
         ville: "",
         actif: true,
         note: 0,

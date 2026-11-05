@@ -29,7 +29,7 @@ export const Route = createFileRoute("/team/")({
     }));
   },
   head: () => ({
-    meta: [{ title: "Team Mate — Hublify" }],
+    meta: [{ title: "Team mate — Hublify" }],
   }),
   component: PageTeam,
 });
@@ -39,7 +39,7 @@ function PageTeam() {
   return (
     <AppShell
       attendDonnees
-      titre="Team Mate"
+      titre="Team mate"
       sousTitre="Constituez votre équipe afin de vous assister au quotidien"
     >
       <TeamPage membres={membres} />

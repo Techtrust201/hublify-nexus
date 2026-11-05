@@ -121,7 +121,7 @@ export const inviterMembre = createServerFn({ method: "POST" })
         nom: input.nom.trim(),
         email,
         roleId,
-        affectation: input.affectation.trim() || "Assignment",
+        affectation: input.affectation.trim() || "Non précisée",
         droits: bornesDroits(roleId, input.droits),
       };
     },

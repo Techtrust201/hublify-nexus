@@ -251,7 +251,7 @@ export function PropositionBail({
                   >
                     <option value={redacteur}>{redacteur}</option>
                     <option value="Clément Dubois">Clément Dubois</option>
-                    <option value="Emily Smith">Emily Smith</option>
+                    <option value="Émilie Moreau">Émilie Moreau</option>
                   </select>
                 </label>
               </Bloc>
