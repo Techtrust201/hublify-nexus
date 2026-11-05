@@ -137,6 +137,7 @@ test.describe("portails", () => {
     await demarrerPortail(page);
     await page.getByRole("button", { name: "Ajouter" }).click();
     await page.getByRole("button", { name: "Préparer mon arrivée" }).click();
+    await page.getByRole("button", { name: "Continuer" }).click();
     await expect(page.getByRole("heading", { name: "Formulaire de check-in" })).toBeVisible();
     const identite = page.getByLabel("Identité");
     const avant = await identite.inputValue();

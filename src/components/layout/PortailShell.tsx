@@ -107,6 +107,7 @@ function Coque({ children }: { children: ReactNode }) {
     hash?: string;
   };
   const actionsResident: ActionPlus[] = [
+    { label: "Étapes du séjour", to: "/espace", hash: "etapes" },
     { label: "Rechercher une prestation", to: "/espace", hash: "autour" },
     { label: "Rechercher une location", to: "/espace", hash: "recherche" },
     { label: "Ajouter une note dans le calendrier", to: "/espace/calendrier", hash: "note" },

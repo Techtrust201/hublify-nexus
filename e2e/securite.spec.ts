@@ -116,7 +116,7 @@ test.describe("cloisonnement par rôle", () => {
   test("un prestataire atterrit sur le portail", async ({ page }) => {
     await connecter(page, COMPTES.prestataire);
     await expect(page).toHaveURL(/\/espace/);
-    await expect(page.getByText(/Prestataire/i).first()).toBeVisible();
+    await expect(page.getByTestId("role-portail")).toHaveAttribute("data-role", "prestataire");
   });
 
   test("un locataire n'ouvre pas /tarifs", async ({ page }) => {
