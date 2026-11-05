@@ -7,8 +7,9 @@ test("landing 1440 : pied de page et hero du frame HD", async ({ page }) => {
   await expect(page.getByText("petites agences.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Nous écrire" })).toBeVisible();
 
-  await page.getByRole("link", { name: "LinkedIn" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("link", { name: "LinkedIn" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Instagram" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "YouTube" })).toHaveCount(0);
   await page.getByRole("link", { name: "Sécurité" }).click();
   await expect(page).toHaveURL(/\/confidentialite/);
   await page.goto("/");

@@ -11,14 +11,18 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AssistanceRouteImport } from './routes/assistance'
+import { Route as BlogRouteImport } from './routes/blog'
 import { Route as CguRouteImport } from './routes/cgu'
 import { Route as CgvRouteImport } from './routes/cgv'
 import { Route as ChoixDuProfilRouteImport } from './routes/choix-du-profil'
 import { Route as ConfidentialiteRouteImport } from './routes/confidentialite'
 import { Route as ConnexionRouteImport } from './routes/connexion'
 import { Route as FaqRouteImport } from './routes/faq'
+import { Route as GuidesRouteImport } from './routes/guides'
 import { Route as InscriptionRouteImport } from './routes/inscription'
+import { Route as ModelesRouteImport } from './routes/modeles'
 import { Route as MotDePasseOublieRouteImport } from './routes/mot-de-passe-oublie'
+import { Route as NouveautesRouteImport } from './routes/nouveautes'
 import { Route as ParrainageRouteImport } from './routes/parrainage'
 import { Route as ProfilRouteImport } from './routes/profil'
 import { Route as ReinitialiserMotDePasseRouteImport } from './routes/reinitialiser-mot-de-passe'
@@ -74,6 +78,11 @@ const AssistanceRoute = AssistanceRouteImport.update({
   path: '/assistance',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogRoute = BlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CguRoute = CguRouteImport.update({
   id: '/cgu',
   path: '/cgu',
@@ -104,14 +113,29 @@ const FaqRoute = FaqRouteImport.update({
   path: '/faq',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GuidesRoute = GuidesRouteImport.update({
+  id: '/guides',
+  path: '/guides',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InscriptionRoute = InscriptionRouteImport.update({
   id: '/inscription',
   path: '/inscription',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ModelesRoute = ModelesRouteImport.update({
+  id: '/modeles',
+  path: '/modeles',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MotDePasseOublieRoute = MotDePasseOublieRouteImport.update({
   id: '/mot-de-passe-oublie',
   path: '/mot-de-passe-oublie',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NouveautesRoute = NouveautesRouteImport.update({
+  id: '/nouveautes',
+  path: '/nouveautes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ParrainageRoute = ParrainageRouteImport.update({
@@ -339,14 +363,18 @@ const ApiTestMailsRoute = ApiTestMailsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/assistance': typeof AssistanceRoute
+  '/blog': typeof BlogRoute
   '/cgu': typeof CguRoute
   '/cgv': typeof CgvRoute
   '/choix-du-profil': typeof ChoixDuProfilRoute
   '/confidentialite': typeof ConfidentialiteRoute
   '/connexion': typeof ConnexionRoute
   '/faq': typeof FaqRoute
+  '/guides': typeof GuidesRoute
   '/inscription': typeof InscriptionRoute
+  '/modeles': typeof ModelesRoute
   '/mot-de-passe-oublie': typeof MotDePasseOublieRoute
+  '/nouveautes': typeof NouveautesRoute
   '/parrainage': typeof ParrainageRoute
   '/profil': typeof ProfilRoute
   '/reinitialiser-mot-de-passe': typeof ReinitialiserMotDePasseRoute
@@ -395,14 +423,18 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/assistance': typeof AssistanceRoute
+  '/blog': typeof BlogRoute
   '/cgu': typeof CguRoute
   '/cgv': typeof CgvRoute
   '/choix-du-profil': typeof ChoixDuProfilRoute
   '/confidentialite': typeof ConfidentialiteRoute
   '/connexion': typeof ConnexionRoute
   '/faq': typeof FaqRoute
+  '/guides': typeof GuidesRoute
   '/inscription': typeof InscriptionRoute
+  '/modeles': typeof ModelesRoute
   '/mot-de-passe-oublie': typeof MotDePasseOublieRoute
+  '/nouveautes': typeof NouveautesRoute
   '/parrainage': typeof ParrainageRoute
   '/profil': typeof ProfilRoute
   '/reinitialiser-mot-de-passe': typeof ReinitialiserMotDePasseRoute
@@ -452,14 +484,18 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/assistance': typeof AssistanceRoute
+  '/blog': typeof BlogRoute
   '/cgu': typeof CguRoute
   '/cgv': typeof CgvRoute
   '/choix-du-profil': typeof ChoixDuProfilRoute
   '/confidentialite': typeof ConfidentialiteRoute
   '/connexion': typeof ConnexionRoute
   '/faq': typeof FaqRoute
+  '/guides': typeof GuidesRoute
   '/inscription': typeof InscriptionRoute
+  '/modeles': typeof ModelesRoute
   '/mot-de-passe-oublie': typeof MotDePasseOublieRoute
+  '/nouveautes': typeof NouveautesRoute
   '/parrainage': typeof ParrainageRoute
   '/profil': typeof ProfilRoute
   '/reinitialiser-mot-de-passe': typeof ReinitialiserMotDePasseRoute
@@ -510,14 +546,18 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/assistance'
+    | '/blog'
     | '/cgu'
     | '/cgv'
     | '/choix-du-profil'
     | '/confidentialite'
     | '/connexion'
     | '/faq'
+    | '/guides'
     | '/inscription'
+    | '/modeles'
     | '/mot-de-passe-oublie'
+    | '/nouveautes'
     | '/parrainage'
     | '/profil'
     | '/reinitialiser-mot-de-passe'
@@ -566,14 +606,18 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/assistance'
+    | '/blog'
     | '/cgu'
     | '/cgv'
     | '/choix-du-profil'
     | '/confidentialite'
     | '/connexion'
     | '/faq'
+    | '/guides'
     | '/inscription'
+    | '/modeles'
     | '/mot-de-passe-oublie'
+    | '/nouveautes'
     | '/parrainage'
     | '/profil'
     | '/reinitialiser-mot-de-passe'
@@ -622,14 +666,18 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/assistance'
+    | '/blog'
     | '/cgu'
     | '/cgv'
     | '/choix-du-profil'
     | '/confidentialite'
     | '/connexion'
     | '/faq'
+    | '/guides'
     | '/inscription'
+    | '/modeles'
     | '/mot-de-passe-oublie'
+    | '/nouveautes'
     | '/parrainage'
     | '/profil'
     | '/reinitialiser-mot-de-passe'
@@ -679,14 +727,18 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AssistanceRoute: typeof AssistanceRoute
+  BlogRoute: typeof BlogRoute
   CguRoute: typeof CguRoute
   CgvRoute: typeof CgvRoute
   ChoixDuProfilRoute: typeof ChoixDuProfilRoute
   ConfidentialiteRoute: typeof ConfidentialiteRoute
   ConnexionRoute: typeof ConnexionRoute
   FaqRoute: typeof FaqRoute
+  GuidesRoute: typeof GuidesRoute
   InscriptionRoute: typeof InscriptionRoute
+  ModelesRoute: typeof ModelesRoute
   MotDePasseOublieRoute: typeof MotDePasseOublieRoute
+  NouveautesRoute: typeof NouveautesRoute
   ParrainageRoute: typeof ParrainageRoute
   ProfilRoute: typeof ProfilRoute
   ReinitialiserMotDePasseRoute: typeof ReinitialiserMotDePasseRoute
@@ -749,6 +801,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AssistanceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog': {
+      id: '/blog'
+      path: '/blog'
+      fullPath: '/blog'
+      preLoaderRoute: typeof BlogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cgu': {
       id: '/cgu'
       path: '/cgu'
@@ -791,6 +850,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FaqRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/guides': {
+      id: '/guides'
+      path: '/guides'
+      fullPath: '/guides'
+      preLoaderRoute: typeof GuidesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/inscription': {
       id: '/inscription'
       path: '/inscription'
@@ -798,11 +864,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InscriptionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/modeles': {
+      id: '/modeles'
+      path: '/modeles'
+      fullPath: '/modeles'
+      preLoaderRoute: typeof ModelesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/mot-de-passe-oublie': {
       id: '/mot-de-passe-oublie'
       path: '/mot-de-passe-oublie'
       fullPath: '/mot-de-passe-oublie'
       preLoaderRoute: typeof MotDePasseOublieRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nouveautes': {
+      id: '/nouveautes'
+      path: '/nouveautes'
+      fullPath: '/nouveautes'
+      preLoaderRoute: typeof NouveautesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/parrainage': {
@@ -1119,14 +1199,18 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AssistanceRoute: AssistanceRoute,
+  BlogRoute: BlogRoute,
   CguRoute: CguRoute,
   CgvRoute: CgvRoute,
   ChoixDuProfilRoute: ChoixDuProfilRoute,
   ConfidentialiteRoute: ConfidentialiteRoute,
   ConnexionRoute: ConnexionRoute,
   FaqRoute: FaqRoute,
+  GuidesRoute: GuidesRoute,
   InscriptionRoute: InscriptionRoute,
+  ModelesRoute: ModelesRoute,
   MotDePasseOublieRoute: MotDePasseOublieRoute,
+  NouveautesRoute: NouveautesRoute,
   ParrainageRoute: ParrainageRoute,
   ProfilRoute: ProfilRoute,
   ReinitialiserMotDePasseRoute: ReinitialiserMotDePasseRoute,
