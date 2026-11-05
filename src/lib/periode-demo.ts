@@ -65,6 +65,27 @@ function libelleJour(date: Date) {
   return `${date.getDate()} ${MOIS[date.getMonth()]} ${date.getFullYear()}`;
 }
 
+function isoLocal(date: Date) {
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const j = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${m}-${j}`;
+}
+
+/** Intervalle réel d'un événement semé, calé sur aujourd'hui comme son libellé. */
+export function intervalleEvenement(id: string, maintenant = new Date()) {
+  const plan = EVENEMENTS_SEED[id];
+  if (!plan) return null;
+  const debut = ajouterJours(maintenant, plan.debut);
+  const fin = ajouterJours(maintenant, plan.fin ?? plan.debut);
+  return { debut: isoLocal(debut), fin: isoLocal(fin) };
+}
+
+export function evenementCouvreJour(id: string, jour: string, maintenant = new Date()) {
+  const plage = intervalleEvenement(id, maintenant);
+  if (!plage) return false;
+  return jour >= plage.debut && jour <= plage.fin;
+}
+
 /**
  * Libellé affiché d'un événement. Les trois fiches semées suivent la période
  * courante ; un événement saisi par l'utilisateur conserve sa date.

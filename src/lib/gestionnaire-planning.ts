@@ -42,6 +42,8 @@ export type MetaPrestation = {
   /** Cycle d'envoi affiché dans le panneau En détails. */
   envoi?: EnvoiPrestation;
   note?: string;
+  noteVoyageur?: string;
+  noteInterne?: string;
   marketplace?: boolean;
   signifiee?: boolean;
 };

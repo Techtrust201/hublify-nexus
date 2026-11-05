@@ -236,14 +236,52 @@ export function DetailsMission({
                 Détails
               </button>
             </div>
-            <div className="mt-2 grid gap-2 md:grid-cols-2">
-              <Barre label={`Montant payé : ${pct} %`} pct={pct} classe="bg-[#f3b4b4]" />
+            <div className="mt-2 grid gap-2 md:grid-cols-3">
               <Barre
-                label={`Suppléments payés : ${formatMontant(upsellsMontant)}`}
+                label={`Caution payée : ${formatMontant(resa?.caution ?? 0)}`}
+                pct={resa?.caution ? 100 : 0}
+                classe="bg-[#f3b4b4]"
+              />
+              <Barre
+                label={`Loyer payé : ${formatMontant(paye)} / ${formatMontant(du)}`}
+                pct={pct}
+                classe="bg-gest-barre-verte"
+              />
+              <Barre
+                label={`Upsells payés : ${formatMontant(upsellsMontant)}`}
                 pct={upsellsMontant > 0 ? 100 : 0}
-                classe="bg-[#b7ebc9]"
+                classe="bg-gest-barre-verte"
               />
             </div>
+            {resa && (
+              <div className="mt-3 grid gap-2 text-xs text-ink-body sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-xl bg-surface-soft p-3">
+                  <p>Paiement de la location : {formatMontant(du)}</p>
+                  <p>Frais ménage : {formatMontant(resa.fraisMenage ?? 0)}</p>
+                  <p className="mt-2 font-medium">Total location : {formatMontant(du)}</p>
+                </div>
+                <div className="rounded-xl bg-surface-soft p-3">
+                  <p>Frais de gestion facturés</p>
+                  <p>Ménage : {formatMontant(resa.fraisMenage ?? 0)}</p>
+                  <p>Commission : {formatMontant(resa.commissionMontant ?? 0)}</p>
+                </div>
+                <div className="rounded-xl bg-surface-soft p-3">
+                  <p>Upsells : {formatMontant(upsellsMontant)}</p>
+                  <p className="mt-2 font-medium">
+                    Total upsells : {formatMontant(upsellsMontant)}
+                  </p>
+                </div>
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    className="h-10 w-full rounded-gest-primaire bg-gest-primaire text-sm font-medium text-white"
+                    onClick={() => toastOk("Demande de paiement enregistrée sur le séjour.")}
+                  >
+                    Demander un paiement
+                  </button>
+                </div>
+              </div>
+            )}
             {voirDetail && resa && (
               <p className="mt-2 text-xs text-ink-muted">
                 Séjour {formatMontant(paye)} / {formatMontant(du)} · suppléments{" "}
@@ -374,21 +412,48 @@ export function DetailsMission({
             </form>
           )}
 
+          <div className="mt-4 space-y-1 text-xs text-ink-body">
+            <p className="font-medium text-ink">Time line</p>
+            <p>Ouverture espace locataire : {resa ? jourFr(resa.arrivee) : "—"}</p>
+            <p>Transfert du lien de réservation : {resa ? resa.email : "—"}</p>
+            <p>Réception et activation le : {resa?.heureArrivee ?? live.heure}</p>
+            <p>
+              Pré-checkin effectué le :{" "}
+              {resa?.precheckinStatut === "fait" ? jourFr(resa.arrivee) : "en attente"}
+            </p>
+            <p>Mise à jour et transfert des informations : {LIBELLES_ENVOI[envoi]}</p>
+          </div>
           {peutMod && (
-            <label className="mt-4 block text-xs text-ink-muted">
-              Note
-              <textarea
-                defaultValue={note}
-                key={live.id}
-                onBlur={(e) => {
-                  if (e.target.value === note) return;
-                  poserMeta({ note: e.target.value });
-                  toastOk("Note enregistrée.");
-                }}
-                rows={2}
-                className="mt-1 w-full rounded-2xl border border-line px-3 py-2 text-sm text-ink outline-none"
-              />
-            </label>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <label className="block text-xs text-ink-muted">
+                Note du voyageur
+                <textarea
+                  key={`${live.id}-voy`}
+                  defaultValue={meta.noteVoyageur ?? ""}
+                  onBlur={(e) => {
+                    if (e.target.value === (meta.noteVoyageur ?? "")) return;
+                    poserMeta({ noteVoyageur: e.target.value });
+                    toastOk("Note du voyageur enregistrée.");
+                  }}
+                  rows={3}
+                  className="mt-1 w-full rounded-2xl border border-line bg-surface-soft px-3 py-2 text-sm text-ink outline-none"
+                />
+              </label>
+              <label className="block text-xs text-ink-muted">
+                Note interne
+                <textarea
+                  key={`${live.id}-int`}
+                  defaultValue={meta.noteInterne ?? note}
+                  onBlur={(e) => {
+                    if (e.target.value === (meta.noteInterne ?? note)) return;
+                    poserMeta({ noteInterne: e.target.value, note: e.target.value });
+                    toastOk("Note interne enregistrée.");
+                  }}
+                  rows={3}
+                  className="mt-1 w-full rounded-2xl border border-line bg-surface-soft px-3 py-2 text-sm text-ink outline-none"
+                />
+              </label>
+            </div>
           )}
 
           <div className="mt-4 flex flex-wrap justify-end gap-2">
