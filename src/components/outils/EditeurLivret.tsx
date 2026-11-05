@@ -12,11 +12,13 @@ import {
   Trash2,
   Underline,
 } from "lucide-react";
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { LivretAccueil, PageLivret } from "@/data/livrets";
 import { pageRenseignee } from "@/data/livrets";
 import { useSession } from "@/data/session";
 import { choisirFichierComplet, telechargerDemo } from "@/lib/feedback";
+import { geocoderAdresseLivret } from "@/lib/plan-osm.functions";
+import { urlIntegrerOsm } from "@/lib/plan-osm";
 import { cn } from "@/lib/utils";
 
 const COULEURS = ["#E5E7EB", "#D1D5DB", "#99A1AF", "#4A5565", "#1E2939", "#99E0B6", "#FFF7DE", "#F87159"];
@@ -67,6 +69,10 @@ export function EditeurLivret({
   const role = rolePage(pageActive.nom);
   const biens = session.biens.map((b) => b.nom);
   const lieux = biens.includes(livret.logement) || !livret.logement ? biens : [livret.logement, ...biens];
+  const adresseLogement =
+    session.biens
+      .find((b) => b.nom.toLowerCase() === livret.logement.trim().toLowerCase())
+      ?.adresse?.trim() ?? "";
 
   const majPage = (partiel: Partial<PageLivret>) => {
     onChange((l) => ({
@@ -150,7 +156,7 @@ export function EditeurLivret({
         />
       </label>
 
-      <div className="grid items-start gap-3 xl:grid-cols-[240px_minmax(0,1fr)_minmax(280px,360px)]">
+      <div className="grid items-start gap-3 xl:grid-cols-[200px_minmax(0,1fr)_622px]">
         <aside className="space-y-3 rounded-card border border-line bg-white p-3 shadow-[var(--shadow-carte)]">
           <p className="text-sm font-medium text-ink">Contenu du livret</p>
           <ul className="space-y-1">
@@ -330,7 +336,13 @@ export function EditeurLivret({
               <Download className="size-4" />
             </button>
           </div>
-          <Apercu livret={livret} page={pageActive} role={role} mobile={mobile} />
+          <Apercu
+            livret={livret}
+            page={pageActive}
+            role={role}
+            mobile={mobile}
+            adresse={adresseLogement}
+          />
         </section>
       </div>
     </div>
@@ -447,65 +459,303 @@ function BoutonStyle({
   );
 }
 
+/** Largeur du canevas d'aperçu mesurée sur les frames 297:13745, 302:15377 et 302:16629. */
+const LARGEUR_APERCU = 598;
+
 function Apercu({
   livret,
   page,
   role,
   mobile,
+  adresse,
 }: {
   livret: LivretAccueil;
   page: PageLivret;
   role: RolePage;
   mobile: boolean;
+  adresse: string;
 }) {
+  const contenu =
+    role === "accueil" ? (
+      <ApercuAccueil livret={livret} page={page} />
+    ) : role === "pratique" ? (
+      <ApercuPratique livret={livret} page={page} />
+    ) : role === "acces" ? (
+      <ApercuAcces livret={livret} page={page} adresse={adresse} />
+    ) : (
+      <ApercuTexte livret={livret} page={page} role={role} />
+    );
   return (
-    <div className={cn("rounded-card bg-[#D1D5DB] p-3 text-ink", mobile && "mx-auto max-w-[240px]")}>
-      <div className="flex items-center gap-3 rounded-card bg-[#C4C8CE] p-3">
-        <span className="flex size-12 items-center justify-center rounded-card border border-line bg-white text-[10px]">
-          {livret.logo || "Logo"}
-        </span>
-        <p className="text-lg font-medium">{role === "accueil" ? page.titre || "Titre principal" : "Image de couverture"}</p>
+    <div className={cn("overflow-hidden", mobile && "mx-auto w-[240px]")}>
+      <div
+        style={
+          mobile ? { zoom: 240 / LARGEUR_APERCU, width: LARGEUR_APERCU } : { width: LARGEUR_APERCU }
+        }
+      >
+        {contenu}
       </div>
-      {role === "accueil" && (
-        <>
-          <p className="mt-2 text-sm">{page.sousTitre || "Sous titre"}</p>
-          <p className="mt-4 text-center text-lg font-medium">Aperçu dynamique</p>
-        </>
-      )}
-      {role === "bienvenue" && <p className="mt-4 text-center text-lg font-medium">Aperçu dynamique</p>}
-      <div className="mt-3 min-h-24 rounded-card border border-ink/30 bg-white/40 p-3 text-sm whitespace-pre-line">
-        {page.texte || "Texte"}
-      </div>
-      {role === "bienvenue" && (
-        <div className="mt-3 grid grid-cols-2 gap-1 text-[10px]">
-          <Puce>{livret.logement || "Nom du logement"}</Puce>
-          <Puce>{livret.contact || "Contact"}</Puce>
-        </div>
-      )}
-      {role === "pratique" && (
-        <div className="mt-3 space-y-2 text-[10px]">
-          <div className="flex gap-2">
-            <Puce>Arrivée {livret.arrivee || "à partir de 16 h"}</Puce>
-            <Puce>Départ {livret.depart || "avant 10 h"}</Puce>
-          </div>
-          <Puce>Wi-Fi {livret.wifiNom || "Nom"} · {livret.wifiCode || "Code"}</Puce>
-          <Puce>Rappel des règles</Puce>
-        </div>
-      )}
-      {role === "acces" && (
-        <div className="mt-3 space-y-2 text-[10px]">
-          <Puce>{livret.logement || "Adresse du logement"}</Puce>
-          <Puce>Plan</Puce>
-          <div className="flex gap-2">
-            <Puce>{livret.boiteNom || "Nom boîte à clé"}</Puce>
-            <Puce>{livret.boiteCode || "Code"}</Puce>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-function Puce({ children }: { children: ReactNode }) {
-  return <span className="inline-flex rounded border border-ink/20 bg-white/70 px-2 py-1">{children}</span>;
+function Boite({
+  left,
+  top,
+  width,
+  height,
+  children,
+  className,
+  fond = false,
+}: {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  children?: ReactNode;
+  className?: string;
+  fond?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "absolute box-border flex items-center justify-center overflow-hidden border border-[#525252] px-2 text-center text-[13px] leading-tight text-[#1b1b1b]",
+        fond ? "bg-[#D9D9D9]" : "bg-transparent",
+        className,
+      )}
+      style={{ left, top, width, height }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function BandeCouverture({ logo, libelle }: { logo: string; libelle: string }) {
+  return (
+    <div
+      className="absolute top-0 left-0 bg-[#D9D9D9]"
+      style={{ width: LARGEUR_APERCU, height: 180 }}
+    >
+      <Boite left={18} top={14} width={94} height={85}>
+        {logo || "Logo"}
+      </Boite>
+      <p
+        className="absolute text-[26px] leading-none font-medium text-[#1b1b1b]"
+        style={{ left: 150, top: 74 }}
+      >
+        {libelle}
+      </p>
+    </div>
+  );
+}
+
+/** Frame 297:13745 — bandeau, logo et rectangle d'introduction aux positions mesurées. */
+function ApercuAccueil({ livret, page }: { livret: LivretAccueil; page: PageLivret }) {
+  return (
+    <div
+      data-testid="apercu-livret"
+      className="relative border border-[#525252] bg-[#D9D9D9] text-[#1b1b1b]"
+      style={{ width: LARGEUR_APERCU, height: 671 }}
+    >
+      <Boite
+        left={24}
+        top={71}
+        width={294}
+        height={45}
+        className="justify-start px-[18px] text-left text-xs"
+      >
+        {page.titre || "Titre principal"}
+      </Boite>
+      <Boite left={137} top={145} width={182} height={39} className="text-xs">
+        {page.sousTitre || "Sous titre"}
+      </Boite>
+      <p className="absolute text-[13px] leading-none" style={{ left: 392, top: 118 }}>
+        Image de Couverture
+      </p>
+      <div className="absolute right-0 left-0 h-px bg-black" style={{ top: 236 }} />
+      <Boite left={26} top={261} width={94} height={85}>
+        {livret.logo || "Logo"}
+      </Boite>
+      <p className="absolute text-[28px] leading-none font-medium" style={{ left: 183, top: 296 }}>
+        Aperçu dynamique
+      </p>
+      <Boite
+        left={91}
+        top={373}
+        width={427}
+        height={180}
+        className="items-start justify-start p-3 text-left text-xs whitespace-pre-line"
+      >
+        {page.texte}
+      </Boite>
+    </div>
+  );
+}
+
+/** Frame 302:15377 — horaires, Wi-Fi, description et règles en grille. */
+function ApercuPratique({ livret, page }: { livret: LivretAccueil; page: PageLivret }) {
+  const description = page.texte.trim() || "Description des éléments inclus";
+  return (
+    <div
+      data-testid="apercu-livret"
+      className="relative bg-white text-[#1b1b1b]"
+      style={{ width: LARGEUR_APERCU, height: 653 }}
+    >
+      <BandeCouverture logo={livret.logo} libelle="Image de couverture" />
+      <Boite left={58} top={212} width={203} height={56} fond>
+        <span>
+          Arrivée
+          <span className="mt-0.5 block">{livret.arrivee || "à Partir de 00h00"}</span>
+        </span>
+      </Boite>
+      <Boite left={356} top={215} width={203} height={56} fond>
+        <span>
+          Départ
+          <span className="mt-0.5 block">{livret.depart || "Avant 00h00"}</span>
+        </span>
+      </Boite>
+      <Boite left={58} top={293} width={111} height={39} fond>
+        Wifi
+      </Boite>
+      <Boite left={58} top={338} width={198} height={39} fond>
+        {livret.wifiNom || "Nom"}
+      </Boite>
+      <Boite left={281} top={338} width={198} height={39} fond>
+        {livret.wifiCode || "Code"}
+      </Boite>
+      <Boite
+        left={58}
+        top={406}
+        width={501}
+        height={118}
+        fond
+        className="items-start justify-start p-3 text-left text-xs whitespace-pre-line"
+      >
+        {description}
+      </Boite>
+      <Boite left={58} top={535} width={501} height={118} fond>
+        Rappel des règles de base
+      </Boite>
+    </div>
+  );
+}
+
+/** Frame 302:16629 — adresse du logement et plan OpenStreetMap. */
+function ApercuAcces({
+  livret,
+  page,
+  adresse,
+}: {
+  livret: LivretAccueil;
+  page: PageLivret;
+  adresse: string;
+}) {
+  return (
+    <div
+      data-testid="apercu-livret"
+      className="relative bg-[#D9D9D9] text-[#1b1b1b]"
+      style={{ width: LARGEUR_APERCU, height: 672 }}
+    >
+      <BandeCouverture logo={livret.logo} libelle="Image de couverture" />
+      <Boite left={57} top={203} width={476} height={29} className="px-2 text-[11px]">
+        {adresse || "Adresse du logement voir descriptif dans le paramétrage du logement"}
+      </Boite>
+      <div
+        className="absolute overflow-hidden border border-[#525252]"
+        style={{ left: 58, top: 251, width: 475, height: 164 }}
+      >
+        <PlanLogement adresse={adresse} />
+      </div>
+      <Boite
+        left={58}
+        top={420}
+        width={473}
+        height={63}
+        className="items-start justify-start px-3 text-left text-xs whitespace-pre-line"
+      >
+        {page.texte || "Texte"}
+      </Boite>
+      <Boite left={58} top={510} width={136} height={29} className="text-[11px]">
+        {livret.boiteNom || "Nom boîte à clé"}
+      </Boite>
+      <Boite left={208} top={510} width={122} height={29} className="text-[11px]">
+        {livret.boiteCode || "Code boîte à clé"}
+      </Boite>
+    </div>
+  );
+}
+
+function ApercuTexte({
+  livret,
+  page,
+  role,
+}: {
+  livret: LivretAccueil;
+  page: PageLivret;
+  role: RolePage;
+}) {
+  return (
+    <div
+      data-testid="apercu-livret"
+      className="relative bg-[#D9D9D9] text-[#1b1b1b]"
+      style={{ width: LARGEUR_APERCU, height: 420 }}
+    >
+      <BandeCouverture logo={livret.logo} libelle="Image de couverture" />
+      <Boite
+        left={58}
+        top={210}
+        width={482}
+        height={120}
+        className="items-start justify-start p-3 text-left text-xs whitespace-pre-line"
+      >
+        {page.texte || "Texte"}
+      </Boite>
+      {role === "bienvenue" ? (
+        <>
+          <Boite left={58} top={348} width={220} height={36} fond className="text-[11px]">
+            {livret.logement || "Nom du logement"}
+          </Boite>
+          <Boite left={292} top={348} width={220} height={36} fond className="text-[11px]">
+            {livret.contact || "Contact"}
+          </Boite>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+function PlanLogement({ adresse }: { adresse: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    const propre = adresse.trim();
+    if (!propre) {
+      setSrc(null);
+      return;
+    }
+    let ignore = false;
+    setSrc(null);
+    geocoderAdresseLivret({ data: { adresse: propre } })
+      .then((res) => {
+        if (!ignore) setSrc(res.point ? urlIntegrerOsm(res.point) : "");
+      })
+      .catch(() => {
+        if (!ignore) setSrc("");
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [adresse]);
+
+  if (!src) {
+    return (
+      <div className="flex h-full items-center justify-center text-sm text-[#1b1b1b]">MAP</div>
+    );
+  }
+  return (
+    <iframe
+      title="Plan du logement"
+      src={src}
+      className="h-full w-full border-0"
+      referrerPolicy="no-referrer-when-downgrade"
+    />
+  );
 }
