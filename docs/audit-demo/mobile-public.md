@@ -39,4 +39,4 @@ Le paiement du portail reste une simulation (bandeau visible, aucune banque). Ce
 
 ## Commit de fusion
 
-Le commit de fusion vers `main` est indiqué dans le message de merge de la pull request `audit/mobile-public`. Il est recopié ici dès qu'il existe : _en attente de la fusion_.
+`76e2cf6b7587845dd56a5c3d6beb0a35db62fd82` — merge de la pull request #21 (`audit/mobile-public`) dans `main`.
