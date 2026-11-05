@@ -14,7 +14,7 @@ test("chaque frame HD s'ouvre par un clic", async ({ page }) => {
   await page.getByRole("button", { name: "Se connecter" }).click();
   await expect(page).not.toHaveURL(/connexion/);
   await page.goto("/espace");
-  await page.getByRole("button", { name: "Ajouter" }).click();
+  await expect(page.getByRole("heading", { name: /Bonjour/ })).toBeVisible();
   await page.getByRole("button", { name: "Étapes du séjour" }).click();
   await expect(page.getByRole("heading", { name: "Étapes du séjour" })).toBeVisible();
   expect(await page.getByRole("button").count()).toBeGreaterThanOrEqual(FRAMES_HD.length);

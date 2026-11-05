@@ -344,6 +344,13 @@ function Journee({
           );
         })}
       </ul>
+      <button
+        type="button"
+        className="text-[14px] font-semibold text-black"
+        onClick={() => void navigate({ to: "/espace", hash: "etapes" })}
+      >
+        Étapes du séjour
+      </button>
       <Bouton onClick={() => void navigate({ to: "/espace", hash: "taches" })}>
         Tâches en cours
         <span className="ml-2 grid size-6 place-items-center rounded-full bg-white/25 text-xs">
