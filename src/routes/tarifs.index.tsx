@@ -22,15 +22,14 @@ function PageTarifs() {
   const navigate = useNavigate();
 
   return (
-    <AppShell attendDonnees titre="Tarifs" sousTitre="Prix par nuit, règles et ensembles de règles">
-      <p className="mb-3 rounded-card border border-line bg-white px-4 py-3 text-xs text-ink-muted">
-        Les tarifs se modifient ici. En V1, aucune API channel manager ni Stripe n'est connectée :
-        les OTA ne sont pas mis à jour automatiquement. Cochez « Enregistrer uniquement pour cette
-        période » pour qu'une règle ne dépasse pas les dates saisies.
-      </p>
+    <AppShell
+      attendDonnees
+      titre="Tarifs"
+      sousTitre="Prix par nuit et règles. Aucune API channel manager ni Stripe : une règle reste locale, et « Enregistrer uniquement pour cette période » la borne aux dates saisies."
+    >
       <PlanningGrid
         onglet={onglet}
-        vueInitiale="mois"
+        vueInitiale="3jours"
         onOnglet={(v) => {
           if (v === "missions") navigate({ to: "/missions" });
           else if (v === "reservations") navigate({ to: "/reservations" });

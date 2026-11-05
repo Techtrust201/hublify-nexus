@@ -1,11 +1,12 @@
 import { formatCentimes } from "@/lib/analyse-finance";
 
-export const ENCRE = "#243044";
-export const AMBRE = "#e0b03a";
-export const SAUGE = "#1f8f78";
-export const GRIS = "#8aa0a8";
+/** Gris foncé de la maquette Analyse (barres, donut, courbes), pas le sarcelle produit. */
+export const ENCRE = "#4B5563";
+export const AMBRE = "#9CA3AF";
+export const SAUGE = "#1E2939";
+export const GRIS = "#D1D5DB";
 
-export const COULEURS_CANAL = [ENCRE, "#5d6b7c", "#8b97a3", SAUGE, AMBRE, "#5591a9", "#c4a574"];
+export const COULEURS_CANAL = ["#1E2939", "#4B5563", "#6B7280", "#9CA3AF", "#D1D5DB"];
 
 export function euro(centimes: number) {
   return formatCentimes(centimes, "auto");

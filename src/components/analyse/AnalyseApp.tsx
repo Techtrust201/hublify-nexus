@@ -105,7 +105,7 @@ export function AnalyseApp({
 
   return (
     <AppShell attendDonnees titre="Analyse, Revenus & Paiements" sousTitre={sousTitre}>
-      <div className="space-y-4 rounded-card bg-[#f4f6f8] p-3 sm:p-4">
+      <div className="space-y-4 rounded-card bg-[#E5E7EB] p-3 sm:p-4">
         <BarreOnglets
           label="Écrans d'analyse"
           valeur={

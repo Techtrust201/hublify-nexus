@@ -28,6 +28,7 @@ const ROUTES = [
   "/prestataires/nouveau",
   "/documents",
   "/messagerie",
+  "/tarifs",
   "/inventaire",
   "/espace",
   "/espace/calendrier",

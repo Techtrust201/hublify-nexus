@@ -43,7 +43,7 @@ function LigneConversation({
       aria-current={active ? "true" : undefined}
       className={cn(
         "relative flex min-h-11 w-full gap-2.5 border-b border-surface-soft px-3 py-3 text-left",
-        active && "bg-surface-soft",
+        active && "bg-line",
       )}
     >
       <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-line text-[10px] text-ink-body">
@@ -136,7 +136,7 @@ export function ListeConversations({
         <button
           type="button"
           onClick={onEcrire}
-          className="inline-flex h-11 shrink-0 items-center gap-1 rounded-card bg-ink px-3 text-sm font-medium text-white"
+          className="inline-flex h-11 shrink-0 items-center gap-1 rounded-bouton bg-ink px-3 text-sm font-medium text-white"
         >
           <Plus className="size-3" />
           Écrire
@@ -168,7 +168,11 @@ export function ListeConversations({
               <button
                 type="button"
                 onClick={() => onToggleSection(s.id)}
-                className="flex min-h-11 w-full items-center justify-between px-3 py-1.5 text-[11px] text-ink-muted md:min-h-0"
+                aria-expanded={ouverte}
+                className={cn(
+                  "flex min-h-11 w-full items-center justify-between px-3 py-1.5 text-[11px] md:min-h-0",
+                  ouverte ? "font-medium text-ink" : "text-ink-muted",
+                )}
               >
                 <span className="flex items-center gap-1.5">
                   {s.label}

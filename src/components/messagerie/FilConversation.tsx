@@ -231,7 +231,7 @@ export function FilConversation({
                     "max-w-[70%] whitespace-pre-line rounded-[16px] px-3.5 py-2.5 text-xs leading-[19.5px]",
                     envoye
                       ? "rounded-tr-md bg-ink text-white"
-                      : "rounded-tl-md border border-line bg-white text-ink-status shadow-sm",
+                      : "rounded-tl-md bg-surface-soft text-ink-body",
                   )}
                 >
                   {m.texte}

@@ -388,7 +388,8 @@ export function validerInsertion(
   }
   if (collection === "messagesFil") {
     const texte = typeof item["texte"] === "string" ? item["texte"].trim() : "";
-    if (!texte || texte.length > 4000) return "invalide";
+    const pieces = Array.isArray(item["pieces"]) ? item["pieces"] : [];
+    if ((!texte && pieces.length === 0) || texte.length > 4000) return "invalide";
   }
   if (collection === "loyers") {
     const montant = item["montant"];
