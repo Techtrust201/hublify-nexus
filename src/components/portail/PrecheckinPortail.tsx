@@ -13,7 +13,11 @@ export function PrecheckinPortail({ extra }: { extra: ExtraPrecheckin }) {
   const navigate = useNavigate();
   const ancre = useAncre();
   const session = useSession();
-  const [introVue, setIntroVue] = useState(ancre === "formulaire");
+  const [introVue, setIntroVue] = useState(() => {
+    if (ancre === "formulaire") return true;
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem("hublify.precheckin.intro") === "1";
+  });
   const resa = session.reservationsDossier[0];
   const [identite, setIdentite] = useState(resa?.precheckinIdentite || resa?.occupant || "");
   const [nb, setNb] = useState(String(resa?.precheckinNbPersonnes || resa?.voyageurs || 1));
@@ -71,7 +75,16 @@ export function PrecheckinPortail({ extra }: { extra: ExtraPrecheckin }) {
   );
   const demandePiece = extra.photo || extra.fichier || extra.telephone || extra.rectoVerso;
 
-  if (!introVue) return <IntroDossier onContinuer={() => setIntroVue(true)} />;
+  if (!introVue) {
+    return (
+      <IntroDossier
+        onContinuer={() => {
+          sessionStorage.setItem("hublify.precheckin.intro", "1");
+          setIntroVue(true);
+        }}
+      />
+    );
+  }
 
   return (
     <Ecran>

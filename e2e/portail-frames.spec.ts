@@ -20,9 +20,10 @@ test("chaque frame HD s'ouvre par un clic", async ({ page }) => {
   expect(await page.getByRole("button").count()).toBeGreaterThanOrEqual(FRAMES_HD.length);
 
   for (const frame of FRAMES_HD) {
-    await page.goto("/espace#etapes");
     await page.getByRole("button", { name: frame.noeud }).click();
     await expect(page.locator(`[data-frame="${frame.id}"]`)).toBeVisible();
+    await page.goBack();
+    await expect(page.getByRole("heading", { name: "Étapes du séjour" })).toBeVisible();
   }
 });
 
@@ -32,6 +33,7 @@ test("intro du pré-check-in puis formulaire", async ({ page }) => {
   await page.getByLabel("Adresse e-mail").fill("sophie.martin@hublify.app");
   await page.locator('input[name="password"]').fill(MOT_DE_PASSE);
   await page.getByRole("button", { name: "Se connecter" }).click();
+  await expect(page).not.toHaveURL(/connexion/);
   await page.goto("/espace/precheckin");
   await expect(page.getByRole("button", { name: "Continuer" })).toBeVisible();
   await page.getByRole("button", { name: "Continuer" }).click();

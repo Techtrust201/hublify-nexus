@@ -204,7 +204,7 @@ function Coque({ children }: { children: ReactNode }) {
           )}
 
           {plus && (
-            <div className="absolute inset-x-4 bottom-24 z-40 space-y-2">
+            <div className="absolute inset-x-4 bottom-24 z-40 max-h-[70dvh] space-y-2 overflow-y-auto">
               <ul className="space-y-2">
                 {actionsPlus.map((a) => (
                   <li key={a.label}>
