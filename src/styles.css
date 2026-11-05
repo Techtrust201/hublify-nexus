@@ -402,9 +402,13 @@
     color: var(--gest-alerte);
   }
 
-  /* La landing garde son crème. L'auth, plus bas, reste un écran blanc. */
+  /* La landing garde son crème. L'auth reste blanche : son frame n'est pas le fond d'app. */
   body:has([data-surface="public"]) {
     background-color: var(--v1-canvas-warm);
+  }
+
+  body:has([data-surface="auth"]) {
+    background-color: #ffffff;
   }
 
   button:focus-visible,

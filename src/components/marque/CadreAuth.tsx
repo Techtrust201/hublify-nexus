@@ -25,7 +25,7 @@ export function CadreAuth({
   large?: boolean;
 }) {
   return (
-    <div className="flex min-h-dvh flex-col bg-white text-ink">
+    <div data-surface="auth" className="flex min-h-dvh flex-col bg-white text-ink">
       <header className="flex items-center justify-between gap-4 px-5 pt-8 lg:px-[72px] lg:pt-10">
         <Link
           to="/"

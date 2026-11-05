@@ -148,6 +148,36 @@ test.describe("maquette auth et fond", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
     expect(await fond(page)).toBe("rgb(247, 245, 240)");
+    const jetons = await page.evaluate(() => {
+      const style = getComputedStyle(document.documentElement);
+      const sonde = document.createElement("div");
+      sonde.className = "portail";
+      sonde.style.backgroundColor = "var(--canvas)";
+      sonde.style.color = "var(--ink-body)";
+      sonde.style.borderTop = "1px solid var(--line)";
+      document.body.appendChild(sonde);
+      const rendu = getComputedStyle(sonde);
+      const lu = {
+        canvas: rendu.backgroundColor,
+        line: rendu.borderTopColor,
+        texte: rendu.color,
+        portail: rendu.fontFamily,
+        primaire: style.getPropertyValue("--gest-primaire").trim(),
+        carte: style.getPropertyValue("--gest-carte").trim(),
+        rayon: style.getPropertyValue("--radius-card").trim(),
+      };
+      sonde.remove();
+      return lu;
+    });
+    expect(jetons).toMatchObject({
+      canvas: "rgb(234, 231, 222)",
+      line: "rgb(229, 231, 235)",
+      texte: "rgb(74, 85, 101)",
+      primaire: "#5591a9",
+    });
+    expect(jetons.carte).toMatch(/^#fff(fff)?$/);
+    expect(jetons.rayon).toMatch(/^\.?625rem$/);
+    expect(jetons.portail).toContain("Lexend Deca");
     expect(await fond(page, "#produit")).toBe("rgb(247, 246, 242)");
     expect(await fond(page, "#fonctionnalites")).toBe("rgb(247, 245, 240)");
     expect(await debordement(page)).toBeLessThanOrEqual(1);
