@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import {
+  ArrowRight,
   Bell,
   Building2,
   Calculator,
@@ -83,7 +84,7 @@ function Hero() {
               to="/choix-du-profil"
               className="inline-flex h-12 items-center rounded-lg bg-v1-brand px-5 text-sm text-white"
             >
-              Essayer gratuitement
+              essayer gratuitement
             </Link>
             <a
               href="#fonctionnalites"
@@ -867,9 +868,10 @@ function Faq() {
             </p>
             <Link
               to="/faq"
-              className="mt-4 inline-flex h-12 items-center rounded-[10px] bg-v1-brand px-5 text-sm text-white"
+              className="mt-4 inline-flex h-12 items-center gap-2 rounded-[10px] bg-v1-brand px-5 text-sm text-white"
             >
               Nous écrire
+              <ArrowRight className="size-4" aria-hidden />
             </Link>
           </div>
         </div>

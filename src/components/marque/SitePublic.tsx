@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { Menu, X } from "lucide-react";
+import { Instagram, Linkedin, Menu, X, Youtube } from "lucide-react";
 import { Logo } from "@/components/marque/Logo";
 import { inscrireListeBailleurs } from "@/lib/liste-bailleurs.functions";
 
@@ -101,9 +101,28 @@ export function SitePublic({ children }: { children: ReactNode }) {
           <div>
             <Logo />
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-v1-ink-body">
-              La gestion locative claire, fidèle et humaine pour les propriétaires bailleurs et les
-              petites régies.
+              La gestion locative claire, fiable et humaine pour les propriétaires bailleurs et les
+              petites agences.
             </p>
+            <ul className="mt-4 flex gap-2">
+              {(
+                [
+                  ["LinkedIn", Linkedin],
+                  ["Instagram", Instagram],
+                  ["YouTube", Youtube],
+                ] as const
+              ).map(([nom, Icone]) => (
+                <li key={nom}>
+                  <a
+                    href="/"
+                    aria-label={nom}
+                    className="inline-flex size-9 items-center justify-center rounded-lg bg-[#f3f4f6] text-v1-ink"
+                  >
+                    <Icone className="size-4" aria-hidden />
+                  </a>
+                </li>
+              ))}
+            </ul>
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-v1-ink">Produit</p>
@@ -115,10 +134,10 @@ export function SitePublic({ children }: { children: ReactNode }) {
                 <a href="/#tarifs">Tarifs</a>
               </li>
               <li>
-                <Link to="/faq">Questions fréquentes</Link>
+                <Link to="/confidentialite">Sécurité</Link>
               </li>
               <li>
-                <Link to="/parrainage">Parrainage</Link>
+                <a href="/#fonctionnalites">Nouveautés</a>
               </li>
             </ul>
           </div>
@@ -132,13 +151,13 @@ export function SitePublic({ children }: { children: ReactNode }) {
                   <Link to="/faq">Centre d'aide</Link>
                 </li>
                 <li>
-                  <Link to="/cgv">Conditions de vente</Link>
+                  <Link to="/faq">Guides bailleurs</Link>
                 </li>
                 <li>
-                  <Link to="/cgu">Conditions d'utilisation</Link>
+                  <Link to="/faq">Modèles gratuits</Link>
                 </li>
                 <li>
-                  <Link to="/confidentialite">Confidentialité</Link>
+                  <Link to="/faq">Blog</Link>
                 </li>
               </ul>
             </div>
@@ -146,15 +165,13 @@ export function SitePublic({ children }: { children: ReactNode }) {
               <p className="text-xs font-semibold uppercase tracking-wide text-v1-ink">À propos</p>
               <ul className="mt-3 space-y-2 text-sm text-v1-ink-body">
                 <li>
-                  <Link to="/choix-du-profil">Créer un compte</Link>
+                  <Link to="/choix-du-profil">Nous rejoindre</Link>
                 </li>
                 <li>
-                  <Link to="/connexion">Connexion</Link>
+                  <Link to="/parrainage">Partenaires</Link>
                 </li>
                 <li>
-                  <Link to="/faq" hash="contact">
-                    Contact
-                  </Link>
+                  <Link to="/faq">Contact</Link>
                 </li>
               </ul>
             </div>
@@ -212,9 +229,12 @@ export function SitePublic({ children }: { children: ReactNode }) {
             <Link to="/cgu">Mentions légales</Link>
             <Link to="/confidentialite">Confidentialité</Link>
             <Link to="/cgu">CGU</Link>
-            <Link to="/cgv">Conditions de vente</Link>
+            <a href="#statut-services">Statut des services</a>
           </p>
-          <p>Tous les systèmes sont opérationnels</p>
+          <p id="statut-services" className="inline-flex items-center gap-2">
+            <span aria-hidden className="size-1.5 rounded-full bg-v1-brand" />
+            Tous les systèmes sont opérationnels
+          </p>
         </div>
       </footer>
     </div>
