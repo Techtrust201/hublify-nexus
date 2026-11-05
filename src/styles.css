@@ -100,8 +100,7 @@
   /*
    * Palette Hublify V1.0 (fichier Figma kBd9QQDfrAlr59dtwyUQZq, page 1).
    * Utilitaires : bg-v1-brand, text-v1-ink, border-v1-line, font-display…
-   * La palette opérationnelle MO1 (--canvas, --ink, --line) reste en place
-   * tant que les écrans métier ne sont pas repris frame par frame.
+   * --canvas suit --gest-fond #EAE7DE. La landing reste sur --v1-canvas-warm.
    */
   --color-v1-brand: var(--v1-brand);
   --color-v1-brand-soft: var(--v1-brand-soft);
@@ -192,6 +191,7 @@
   /*
    * Palette MO1 — hex exacts. Si un token oklch shadcn diverge, le hex gagne ici.
    * Ne pas réutiliser --primary / --border oklch dans les écrans maquette.
+   * Le fond d'app est --gest-fond #EAE7DE, pas un blanc pur.
    */
   --canvas: var(--gest-fond);
   --surface: #f9fafb;
@@ -260,7 +260,7 @@
   --v1-ink-subtle: #8b90a0;
   --v1-canvas: #f7f6f2;
   --v1-canvas-warm: #f7f5f0;
-  --v1-canvas-auth: #f6f7fb;
+  --v1-canvas-auth: #ffffff;
   --v1-line: #d9dfdb;
   --v1-line-strong: #c6cec9;
   --v1-line-auth: #dadde6;
@@ -401,6 +401,15 @@
 
   .espace-gestionnaire [role="alert"] {
     color: var(--gest-alerte);
+  }
+
+  /* La landing garde son crème. L'auth reste blanche : son frame n'est pas le fond d'app. */
+  body:has([data-surface="public"]) {
+    background-color: var(--v1-canvas-warm);
+  }
+
+  body:has([data-surface="auth"]) {
+    background-color: #ffffff;
   }
 
   button:focus-visible,

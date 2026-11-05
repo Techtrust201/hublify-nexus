@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
-import { boutonAuth, CadreAuth, champAuth } from "@/components/marque/CadreAuth";
+import { boutonAuth, CadreAuth, champAuth, labelAuth } from "@/components/marque/CadreAuth";
 import { ChampMotDePasse } from "@/components/ui/champ-mot-de-passe";
 import { toastErreur, toastOk } from "@/lib/feedback";
 
@@ -42,12 +42,13 @@ function PageReset() {
 
   return (
     <CadreAuth
+      kicker="Récupération du compte"
       titre="Nouveau mot de passe"
       description="Choisissez un mot de passe d'au moins 10 caractères."
     >
-      <form className="space-y-3" onSubmit={(ev) => void enregistrer(ev)}>
+      <form className="space-y-4" onSubmit={(ev) => void enregistrer(ev)}>
         <div>
-          <label htmlFor="champ-mdp-reset" className="mb-1.5 block text-xs text-v1-ink-body">
+          <label htmlFor="champ-mdp-reset" className={labelAuth}>
             Mot de passe
           </label>
           <ChampMotDePasse
@@ -63,9 +64,9 @@ function PageReset() {
           {enCours ? "Enregistrement…" : "Enregistrer"}
         </button>
       </form>
-      <p className="mt-4 text-center text-sm">
-        <Link to="/connexion" className="font-medium text-v1-ink">
-          Connexion
+      <p className="mt-4 text-center text-sm text-ink">
+        <Link to="/connexion" className="font-semibold text-ink-deep">
+          Se connecter
         </Link>
       </p>
     </CadreAuth>

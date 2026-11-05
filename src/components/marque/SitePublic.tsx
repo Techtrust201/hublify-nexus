@@ -33,7 +33,7 @@ export function SitePublic({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-dvh bg-v1-canvas text-v1-ink">
+    <div data-surface="public" className="min-h-dvh bg-v1-canvas text-v1-ink">
       <a
         href="#contenu"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-toast focus:rounded-lg focus:bg-v1-brand focus:px-3 focus:py-2 focus:text-white"

@@ -1,7 +1,8 @@
 import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tanstack/react-router";
+import { ArrowRight, CircleHelp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { SUPER_ADMINS, accueilPourRole } from "@/auth/permissions";
-import { boutonAuth, CadreAuth, champAuth } from "@/components/marque/CadreAuth";
+import { boutonAuth, CadreAuth, champAuth, labelAuth } from "@/components/marque/CadreAuth";
 import { ChampMotDePasse } from "@/components/ui/champ-mot-de-passe";
 import { authClient } from "@/lib/auth-client";
 import { getSession } from "@/lib/auth.functions";
@@ -102,54 +103,68 @@ function PageConnexion() {
     <CadreAuth
       kicker="Commencer"
       titre="Se connecter"
-      description="Accédez à votre espace Hublify et reprenez là où vous vous étiez arrêtés."
+      description="Accédez à votre espace Hublify et reprenez là où vous vous êtes arrêté."
     >
-      <form className="space-y-3" onSubmit={(ev) => void connecter(ev)}>
-        <label className="block">
-          <span className="mb-1.5 block text-xs text-ink-body">Adresse e-mail</span>
-          <input
-            ref={champEmail}
-            name="email"
-            type="email"
-            autoComplete="username"
-            required
-            defaultValue={MODE_DEMO ? "contact@tech-trust.fr" : ""}
-            className={champAuth}
-          />
-        </label>
-        <div>
-          <label htmlFor="champ-mdp" className="mb-1.5 block text-xs text-ink-body">
-            Mot de passe
+      <div className="space-y-4">
+        <form className="space-y-4" onSubmit={(ev) => void connecter(ev)}>
+          <label className="block">
+            <span className={labelAuth}>Adresse e-mail</span>
+            <input
+              ref={champEmail}
+              name="email"
+              type="email"
+              autoComplete="username"
+              required
+              placeholder="camille@atelier.fr"
+              defaultValue={MODE_DEMO ? "contact@tech-trust.fr" : ""}
+              className={champAuth}
+            />
+            <span className="mt-1.5 flex items-center gap-1.5 text-[13px] leading-4 text-ink-subtle">
+              <CircleHelp className="size-3.5 shrink-0" aria-hidden />
+              Utilisez l'adresse associée à votre espace de travail.
+            </span>
           </label>
-          <div className="mb-1 flex justify-end">
-            <Link to="/mot-de-passe-oublie" className="text-xs text-v1-ink-muted">
-              Mot de passe oublié ?
-            </Link>
+          <div>
+            <label htmlFor="champ-mdp" className={labelAuth}>
+              Mot de passe
+            </label>
+            <ChampMotDePasse
+              ref={champMdp}
+              id="champ-mdp"
+              name="password"
+              autoComplete="current-password"
+              required
+              minLength={10}
+              defaultValue={MODE_DEMO ? MDP_DEMO : ""}
+              className={champAuth}
+            />
+            <div className="mt-2.5 flex items-center justify-between gap-3">
+              <label className="flex items-center gap-2 text-sm text-ink">
+                <input
+                  type="checkbox"
+                  name="souvenir"
+                  defaultChecked
+                  className="size-[18px] accent-brand"
+                />
+                Se souvenir de moi
+              </label>
+              <Link to="/mot-de-passe-oublie" className="text-sm text-ink-body">
+                Mot de passe oublié ?
+              </Link>
+            </div>
           </div>
-          <ChampMotDePasse
-            ref={champMdp}
-            id="champ-mdp"
-            name="password"
-            autoComplete="current-password"
-            required
-            minLength={10}
-            defaultValue={MODE_DEMO ? MDP_DEMO : ""}
-          />
-        </div>
-        <label className="flex items-center gap-2 text-sm text-v1-ink-body">
-          <input type="checkbox" name="souvenir" className="size-4 accent-v1-brand" />
-          Se souvenir de moi
-        </label>
-        <button type="submit" disabled={enCours || !pret} className={boutonAuth}>
-          {enCours ? "Connexion…" : "Se connecter"}
-        </button>
-      </form>
-      <p className="mt-4 text-center text-sm text-ink-subtle">
-        Nouveau sur Hublify ?{" "}
-        <Link to="/inscription" className="font-medium text-v1-brand">
-          Créer un compte
-        </Link>
-      </p>
+          <button type="submit" disabled={enCours || !pret} className={boutonAuth}>
+            {enCours ? "Connexion…" : "Se connecter"}
+            {enCours ? null : <ArrowRight className="size-[17px]" aria-hidden />}
+          </button>
+        </form>
+        <p className="text-center text-sm text-ink">
+          Nouveau sur Hublify ?{" "}
+          <Link to="/inscription" className="font-semibold text-ink-deep">
+            Créer un compte
+          </Link>
+        </p>
+      </div>
 
       {MODE_DEMO && (
         <div className="mt-6 rounded-card border border-surface-soft bg-surface px-3 py-3">
