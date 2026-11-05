@@ -31,3 +31,5 @@ Vérifications locales : `npx tsc --noEmit`, `npm test` (202 tests), `npm run bu
 ## Migrations
 
 Aucune. Les correctifs tiennent dans le code applicatif.
+
+Commit fusionné : `d67b03527df973424ce6deccea33b154045718cb` (merge de la pull request #23 dans `main`).
