@@ -98,6 +98,7 @@ export function InventaireApp() {
     .filter((l) => l.verdict !== "non-suivi");
 
   const titre = ONGLETS.find((o) => o.id === onglet)?.label ?? "Inventaire";
+  const vitrine = lignes.filter((i) => i.onglet === "1").slice(0, 2);
   const biensDispos = session.biens.map((b) => b.nom).filter((n) => !lieuxAssignes.includes(n));
 
   const supprimer = async (ids: string[]) => {
@@ -225,36 +226,38 @@ export function InventaireApp() {
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-2xl text-ink">Inventaire</h2>
-          <p className="max-w-xl text-sm text-ink-subtle">
-            Tous les inventaires des consommables sont réunis ici. Le linge de maison reste dans son
-            onglet. L'inventaire mobilier se rédige dans les états des lieux.
-          </p>
-        </div>
-        <BtnNavy
-          className="h-[49px] px-5 text-sm"
-          onClick={() => {
-            const csv = [
-              "Marque;Designation;Type;Qte;Emplacement;Prix;LieuStockage",
-              ...filtrés.map((i) => {
-                const champs = champsDe(i.serie);
-                return `${champs.marque};${i.designation};${champs.typeArticle || i.etat};${i.qte};${i.emplacement};${champs.prixCentimes};${champs.lieuStockage}`;
-              }),
-            ];
-            telechargerDemo(`inventaire-${onglet}.csv`, csv.join("\n"));
-          }}
-        >
-          <Download className="size-4" /> Télécharger le tableau
-        </BtnNavy>
+      <div className="mb-4">
+        <h2 className="text-2xl text-ink">Inventaire</h2>
+        <p className="max-w-xl text-sm text-ink-subtle">
+          Tous les inventaires des consommables sont réunis ici
+        </p>
       </div>
 
-      <p className="mb-4 text-xs text-ink-muted">
-        <Link to="/outils/etats-des-lieux" className="font-medium text-ink underline">
-          Ouvrir l'inventaire logement et mobilier
-        </Link>
-      </p>
+      <section className="mb-4 flex flex-wrap items-center gap-3 rounded-card bg-[#f3f1ea] px-4 py-3">
+        {vitrine.map((i) => {
+          const champs = champsDe(i.serie);
+          return (
+            <article
+              key={i.id}
+              className="flex w-[210px] items-center gap-2 rounded-card border border-line bg-white p-2"
+            >
+              <span className="flex size-14 shrink-0 items-center justify-center rounded-[8px] bg-surface-soft text-2xl">
+                {i.emoji || "📦"}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-xs text-ink">{i.designation}</span>
+                <span className="block truncate text-[10px] text-ink-muted">
+                  {champs.marque || i.code} · {i.qte} pièces
+                </span>
+                <span className="block text-[10px] text-ink">
+                  {champs.prixCentimes > 0 ? euroCentimes(champs.prixCentimes) : "—"}
+                </span>
+              </span>
+            </article>
+          );
+        })}
+        <p className="text-sm text-ink">Proposition commerciale — À VOIR PLUS TARD</p>
+      </section>
 
       <div className="mb-4 flex flex-wrap gap-2">
         {ONGLETS.map((o) => (
@@ -266,7 +269,7 @@ export function InventaireApp() {
 
       <section className="mb-4 rounded-card border border-line bg-white px-4 py-3">
         <p className="text-sm text-ink">
-          Assigner un ou plusieurs lieux d'utilisation de cet inventaire
+          Assigner un ou plusieurs lieu d'utilisation de cet inventaire :
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {lieuxAssignes.map((nom) => (
@@ -318,7 +321,7 @@ export function InventaireApp() {
                 setCreer(true);
               }}
             >
-              <Plus className="size-3" /> Ajouter un élément
+              <Plus className="size-3" /> Ajouter item
             </BtnOutline>
             <BtnOutline
               disabled={selection.length !== 1}
@@ -390,7 +393,7 @@ export function InventaireApp() {
             <p className="px-4 py-10 text-center text-sm text-ink-muted">
               {recherche.trim()
                 ? "Aucun élément pour cette recherche."
-                : "Cet inventaire est vide. Utilisez « Ajouter un élément »."}
+                : "Cet inventaire est vide. Utilisez « Ajouter item »."}
             </p>
           )}
         </div>
@@ -399,14 +402,14 @@ export function InventaireApp() {
             <thead className="border-b border-surface-soft text-xs text-ink-subtle">
               <tr>
                 <th className="w-14 px-6 py-4" />
-                <th className="px-3 py-4 font-medium">Marque</th>
-                <th className="px-3 py-4 font-medium">Désignation</th>
-                <th className="px-3 py-4 font-medium">Type</th>
-                <th className="px-3 py-4 font-medium">QTÉ</th>
-                <th className="px-3 py-4 font-medium">Emplacement</th>
-                <th className="px-3 py-4 font-medium">Prix unitaire</th>
-                <th className="px-3 py-4 font-medium">Lieu stockage</th>
-                <th className="px-3 py-4 font-medium">Actions</th>
+                <th className="px-3 py-4 text-[11px] font-medium tracking-wide">MARQUE</th>
+                <th className="px-3 py-4 text-[11px] font-medium tracking-wide">DÉSIGNATION</th>
+                <th className="px-3 py-4 text-[11px] font-medium tracking-wide">TYPE</th>
+                <th className="px-3 py-4 text-[11px] font-medium tracking-wide">QTÉ</th>
+                <th className="px-3 py-4 text-[11px] font-medium tracking-wide">EMPLACEMENT</th>
+                <th className="px-3 py-4 text-[11px] font-medium tracking-wide">PRIX UNITAIRE</th>
+                <th className="px-3 py-4 text-[11px] font-medium tracking-wide">LIEU STOCKAGE</th>
+                <th className="px-3 py-4 text-[11px] font-medium tracking-wide">ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -473,20 +476,37 @@ export function InventaireApp() {
                   <td colSpan={9} className="px-6 py-10 text-center text-sm text-ink-muted">
                     {recherche.trim()
                       ? "Aucun élément pour cette recherche."
-                      : "Cet inventaire est vide. Utilisez « Ajouter un élément »."}
+                      : "Cet inventaire est vide. Utilisez « Ajouter item »."}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </ScrollHint>
+        <div className="flex justify-end px-4 py-3">
+          <BtnOutline
+            onClick={() => {
+              const csv = [
+                "Marque;Designation;Type;Qte;Emplacement;Prix;LieuStockage",
+                ...filtrés.map((i) => {
+                  const champs = champsDe(i.serie);
+                  return `${champs.marque};${i.designation};${champs.typeArticle || i.etat};${i.qte};${i.emplacement};${champs.prixCentimes};${champs.lieuStockage}`;
+                }),
+              ];
+              telechargerDemo(`inventaire-${onglet}.csv`, csv.join("\n"));
+            }}
+          >
+            <Download className="size-3" /> Télécharger le tableau
+          </BtnOutline>
+        </div>
       </section>
 
       <section className="mt-4 rounded-card bg-[#d9d9d9] px-5 py-4 text-sm text-ink">
         <h3 className="font-medium">État et prévision du stock</h3>
         <p className="mt-1 text-xs text-ink-body">
           {lieuxAssignes[0] ?? "Aucun lieu assigné"} · {reservationsActives} réservation
-          {reservationsActives > 1 ? "s" : ""} · {occupants} occupant{occupants > 1 ? "s" : ""}
+          {reservationsActives > 1 ? "s" : ""} · {occupants} occupant{occupants > 1 ? "s" : ""}{" "}
+          total
         </p>
         {suivi.length === 0 ? (
           <p className="mt-3 text-xs text-ink-body">
@@ -508,13 +528,19 @@ export function InventaireApp() {
                   </span>
                 </span>
                 <span className="text-xs font-medium">
-                  {verdict === "correct" ? "Stock correct" : "Stock insuffisant"}
+                  {verdict === "correct" ? "Stock CORRECT" : "Stock INCORRECT"}
                 </span>
               </li>
             ))}
           </ul>
         )}
       </section>
+
+      <p className="mt-4 text-xs text-ink-muted">
+        <Link to="/outils/etats-des-lieux" className="font-medium text-ink underline">
+          Ouvrir l'inventaire logement et mobilier
+        </Link>
+      </p>
 
       <Dialog
         open={creer || Boolean(edition)}

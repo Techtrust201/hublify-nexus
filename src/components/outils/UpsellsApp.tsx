@@ -1,4 +1,4 @@
-import { Eye, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Download, Eye, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/auth/auth-context";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -155,56 +155,74 @@ export function UpsellsApp({
 
   return (
     <div className="space-y-4">
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-2xl text-ink">Upsells</h2>
+          <p className="mt-1 max-w-xl text-sm text-ink-subtle">
+            Tous les Upsells et les ventes additionnelles à proposer aux voyageurs sont réunis ici
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={telecharger}
+          className="inline-flex h-10 items-center gap-1.5 rounded-card border border-line bg-white px-3 text-sm text-ink-body"
+        >
+          <Download className="size-3.5" /> Télécharger le tableau
+        </button>
+      </header>
       <section className="rounded-card border border-line bg-white p-4 sm:p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-medium text-ink">Liste des upsells</h2>
-            <p className="mt-1 text-xs text-ink-muted">
-              {visibles.length} élément{visibles.length > 1 ? "s" : ""} · tarif unitaire proposé au
-              voyageur
+            <p className="text-sm font-medium text-ink">
+              Liste des Upsells et Ventes additionnels
             </p>
+            <p className="mt-1 text-xs text-ink-muted">{visibles.length} éléments</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={telecharger}
-              className="inline-flex h-11 items-center rounded-card border border-line px-3 text-sm text-ink-body md:h-9"
-            >
-              Télécharger le tableau
-            </button>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <label className="flex h-10 w-full items-center gap-2 rounded-card border border-line px-3 text-sm sm:w-56">
+              <Search className="size-4 text-ink-muted" aria-hidden />
+              <span className="sr-only">Rechercher</span>
+              <input
+                value={recherche}
+                onChange={(e) => setRecherche(e.target.value)}
+                placeholder="Rechercher"
+                className="w-full bg-transparent text-ink outline-none"
+              />
+            </label>
             <button
               type="button"
               disabled={!peutEcrire}
               onClick={() => ouvrirEdition()}
-              className="inline-flex h-11 items-center gap-1 rounded-card bg-accent-teal px-4 text-sm font-medium text-white md:h-9"
+              className="inline-flex h-10 items-center gap-1 rounded-card border border-line px-3 text-sm text-ink-body"
             >
               <Plus className="size-3.5" /> Ajouter
             </button>
+            <button
+              type="button"
+              disabled={!peutEcrire || visibles.length === 0}
+              onClick={() => {
+                const premier = visibles[0];
+                if (premier) ouvrirEdition(premier);
+              }}
+              className="inline-flex h-10 items-center gap-1 rounded-card border border-line px-3 text-sm text-ink-body"
+            >
+              <Pencil className="size-3.5" /> Modifier
+            </button>
           </div>
         </div>
-        <label className="mt-4 flex h-11 items-center gap-2 rounded-card border border-line px-3 text-sm md:h-9">
-          <Search className="size-4 text-ink-muted" aria-hidden />
-          <span className="sr-only">Rechercher</span>
-          <input
-            value={recherche}
-            onChange={(e) => setRecherche(e.target.value)}
-            placeholder="Rechercher un code, un service, une ville"
-            className="w-full bg-transparent text-ink outline-none"
-          />
-        </label>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
             <thead>
               <tr className="border-b border-line text-xs text-ink-muted">
                 {[
-                  "Code",
-                  "Désignation",
-                  "Type",
-                  "Prestataire",
-                  "Pièce jointe",
-                  "Ville",
-                  "Tarif",
-                  "Actions",
+                  "CODE",
+                  "DÉSIGNATION",
+                  "TYPE",
+                  "PRESTATAIRE",
+                  "PIÈCE JOINTE",
+                  "VILLE",
+                  "TARIF UNITAIRE",
+                  "ACTIONS",
                 ].map((col) => (
                   <th key={col} className="px-2 py-2 font-medium">
                     {col}

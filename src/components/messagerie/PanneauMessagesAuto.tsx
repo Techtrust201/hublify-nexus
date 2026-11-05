@@ -1,4 +1,4 @@
-import { Bot, ChevronLeft, Plus } from "lucide-react";
+import { ChevronLeft, Plus, Search, Star } from "lucide-react";
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -28,39 +28,91 @@ export function PanneauMessagesAuto({
   onRetour: () => void;
   className?: string;
 }) {
+  const [recherche, setRecherche] = useState("");
+  const [ouvert, setOuvert] = useState(parcours[0]?.id ?? "");
+  const q = recherche.trim().toLowerCase();
+  const visibles = q
+    ? parcours.filter(
+        (p) =>
+          p.nom.toLowerCase().includes(q) ||
+          p.types.some((t) => `${t.libelle} ${t.modele}`.toLowerCase().includes(q)),
+      )
+    : parcours;
+  const detail = visibles.find((p) => p.id === ouvert) ?? visibles[0];
+
   return (
     <section className={cn("flex min-h-0 min-w-0 flex-1 flex-col bg-white", className)}>
-      <header className="flex flex-wrap items-center gap-3 border-b border-surface-soft px-4 py-3">
+      <div className="relative border-b border-surface-soft px-6 py-6 text-center">
         <button
           type="button"
           onClick={onRetour}
-          className="flex size-11 items-center justify-center rounded-card border border-line text-ink-body"
+          className="absolute left-4 top-4 flex size-11 items-center justify-center rounded-card border border-line text-ink-body"
           aria-label="Retour à la conversation"
         >
           <ChevronLeft className="size-4" />
         </button>
-        <div className="min-w-0 flex-1">
-          <h2 className="flex items-center gap-2 text-sm text-ink">
-            <Bot className="size-4" aria-hidden />
-            Paramétrage des messages automatiques
-          </h2>
-          <p className="text-xs text-ink-muted">
-            Chaque parcours envoie un message type quand son déclencheur se produit.
-          </p>
-        </div>
+        <h2 className="font-sans text-[28px] font-medium leading-tight text-ink">
+          Automatisation des messages
+        </h2>
+        <p className="mx-auto mt-2 max-w-xl text-sm leading-5 text-ink-subtle">
+          Créez et gérez vos parcours de messages automatiques, les messages apparaîtront également
+          dans votre messagerie.
+        </p>
         <button
           type="button"
-          onClick={() => onChange(ajouterParcours(parcours))}
-          className="inline-flex h-11 items-center gap-1.5 rounded-card border border-line px-3 text-xs font-medium text-ink-body"
+          onClick={() => {
+            const suivants = ajouterParcours(parcours);
+            const cree = suivants[suivants.length - 1];
+            if (cree) setOuvert(cree.id);
+            onChange(suivants);
+          }}
+          className="mt-4 inline-flex h-10 items-center gap-1.5 rounded-[14px] bg-ink px-5 text-sm font-medium text-white"
         >
-          <Plus className="size-3.5" />
-          Ajouter un parcours
+          <Plus className="size-4" />
+          Créer un nouveau parcours
         </button>
-      </header>
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
-        {parcours.map((p) => (
-          <ParcoursCarte key={p.id} parcours={p} onChange={onChange} tous={parcours} />
-        ))}
+      </div>
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+        <label className="flex h-[46px] items-center gap-3 rounded-card border border-line px-4">
+          <Search className="size-4 text-ink-muted" aria-hidden />
+          <span className="sr-only">Rechercher</span>
+          <input
+            value={recherche}
+            onChange={(e) => setRecherche(e.target.value)}
+            placeholder="Rechercher un modèle ou un document..."
+            className="h-full w-full bg-transparent text-sm outline-none placeholder:text-ink-muted"
+          />
+        </label>
+        <p className="flex items-start gap-2 text-xs text-ink-body">
+          <Star className="mt-0.5 size-3.5 shrink-0 fill-ink text-ink" aria-hidden />
+          Modèle de parcours de message automatique, vous pouvez attribuer un parcours différent à
+          chacun depuis la fenêtre de discussion commune.
+        </p>
+        <div className="grid gap-3 md:grid-cols-3">
+          {visibles.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              aria-pressed={detail?.id === p.id}
+              onClick={() => setOuvert(p.id)}
+              className={cn(
+                "rounded-card border px-4 py-3 text-left text-sm text-ink",
+                detail?.id === p.id ? "border-ink bg-surface-soft" : "border-line",
+              )}
+            >
+              {p.nom}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-ink-muted">
+          Configuration des envois automatiques, les messages apparaîtront également dans votre
+          discussion commune.
+        </p>
+        {detail ? (
+          <ParcoursCarte parcours={detail} onChange={onChange} tous={parcours} />
+        ) : (
+          <p className="text-sm text-ink-muted">Aucun parcours ne correspond à cette recherche.</p>
+        )}
       </div>
     </section>
   );
@@ -96,12 +148,13 @@ function ParcoursCarte({
         </label>
       </div>
       <ul>
-        {parcours.types.map((type) => (
+        {parcours.types.map((type, index) => (
           <li
             key={type.id}
             className="flex flex-col gap-2 border-b border-surface-soft px-4 py-3 last:border-b-0 sm:flex-row sm:items-center"
           >
             <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-ink">Etape {index + 1}</p>
               <p className="text-xs text-ink">{type.libelle}</p>
               <p className="text-[11px] text-ink-muted">
                 {libelleDeclencheur(type.declencheur)} ·{" "}

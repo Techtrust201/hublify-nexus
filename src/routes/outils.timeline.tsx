@@ -11,11 +11,7 @@ export const Route = createFileRoute("/outils/timeline")({
 
 function PageTimeline() {
   return (
-    <AppShell
-      attendDonnees
-      titre="Timeline"
-      sousTitre="Échanges de documents et réservations du portefeuille"
-    >
+    <AppShell attendDonnees>
       <TimelineApp />
     </AppShell>
   );
