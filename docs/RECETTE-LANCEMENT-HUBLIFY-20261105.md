@@ -2,21 +2,21 @@
 
 > **Statut : NON VALIDÉ POUR UNE MISE EN PRODUCTION CLIENT.**
 > Ce document est un **plan d'exécution**, pas un procès-verbal de tests effectués sur le site.
-> Source des parcours : maquette PDF Hublify (146 pages), code de \`main\` et branche \`fix/demo-integration-finale\`, tests E2E existants.
+> Source des parcours : maquette PDF Hublify (146 pages), code de `main` et branche `fix/demo-integration-finale`, tests E2E existants.
 
 ## Périmètre et état observé
 
-- \`main\` est la branche de production Vercel, distincte de la branche de fusion des PR #15–#17.
-- Branche intégrée : \`fix/demo-integration-finale\` / PR #18, migrations \`014\`, \`015\`, \`016\`.
+- `main` est la branche de production Vercel, distincte de la branche de fusion des PR #15–#17.
+- Branche intégrée : `fix/demo-integration-finale` / PR #18, migrations `014`, `015`, `016`.
 - CI de PR #18 : typecheck, unités, migrations sur Postgres local, build, Playwright Chromium réussis.
 - Les tests synthétiques ne valent **pas** vérification du site Vercel contre la base Neon de production.
 - Des alertes de sécurité non résolues subsistent sur les accès aux fichiers privés et aux conversations.
-- Les domaines \`.vercel.app\` du projet disposent d'une protection SSO Vercel : vérifier les accès des vrais testeurs.
+- Les domaines `.vercel.app` du projet disposent d'une protection SSO Vercel : vérifier les accès des vrais testeurs.
 
 ## Décision de diffusion
 
 - [ ] Aucune alerte de sécurité P0 concernant les fichiers et conversations.
-- [ ] Toutes les migrations \`014\` → \`016\` validées contre une copie/staging de la base réelle.
+- [ ] Toutes les migrations `014` → `016` validées contre une copie/staging de la base réelle.
 - [ ] Sauvegarde Neon vérifiée et restauration exercée avant mise à jour.
 - [ ] Tous les tests CI verts **sur le commit exact à déployer**.
 - [ ] Contrôle d'authentification du lien client (sans donner accès au tableau de bord Vercel).
@@ -98,7 +98,7 @@ Indiquer pour chaque test la version, l'URL, le rôle, une capture ou un log, et
 
 ## Evidence de validation à joindre avant le GO
 
-\`\`\`
+```
 Commit de release :
 URL de test :
 URL client :
@@ -116,4 +116,4 @@ Compte lecteur :
 Erreurs Sentry/Vercel :
 Décision GO / NO-GO :
 Validé par :
-\`\`\`
+```
