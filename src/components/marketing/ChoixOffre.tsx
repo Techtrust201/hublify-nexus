@@ -2,14 +2,13 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { CadreAuth } from "@/components/marque/CadreAuth";
-import {
-  formaterEuros,
-  OFFRES,
-  prixAnnuelCentimes,
-  type IdOffre,
-  type PeriodeOffre,
-} from "@/design/offres";
+import { OFFRES, prixAnnuelCentimes, type IdOffre, type PeriodeOffre } from "@/design/offres";
 import { cn } from "@/lib/utils";
+
+function prixChoix(centimes: number, periode: "mois" | "an"): string {
+  const valeur = periode === "mois" ? centimes : prixAnnuelCentimes(centimes);
+  return `${(valeur / 100).toFixed(2)}€/${periode === "mois" ? "mois" : "annuel"}`;
+}
 
 const CHOIX: { id: IdOffre; annuel: boolean }[] = [
   { id: "freemium", annuel: false },
@@ -100,7 +99,7 @@ export function ChoixOffre() {
                           : "border-v1-line-auth bg-white text-v1-ink-subtle",
                       )}
                     >
-                      {formaterEuros(item.prixMoisCentimes)}/mois
+                      {prixChoix(item.prixMoisCentimes, "mois")}
                     </button>
                     <button
                       type="button"
@@ -115,7 +114,7 @@ export function ChoixOffre() {
                           : "border-v1-line-auth bg-white text-v1-ink-subtle",
                       )}
                     >
-                      {formaterEuros(prixAnnuelCentimes(item.prixMoisCentimes))}/an
+                      {prixChoix(item.prixMoisCentimes, "an")}
                     </button>
                   </>
                 ) : null}
@@ -124,10 +123,6 @@ export function ChoixOffre() {
           );
         })}
       </fieldset>
-      <p className="mt-3 text-xs text-v1-ink-muted">
-        L'annuel reprend la remise de 20 % indiquée sur la landing. L'essai freemium ne demande
-        aucune carte bancaire.
-      </p>
       <button
         type="button"
         onClick={continuer}

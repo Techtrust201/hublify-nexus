@@ -21,7 +21,6 @@ test("une inscription crée un org vide, sans parc Redris", async ({ page }) => 
   await page.goto("/inscription");
   await page.locator('input[name="prenom"]').fill("Nina");
   await page.locator('input[name="nom"]').fill("Martin");
-  await page.locator('input[name="nomOrg"]').fill(`Org ${suffixe}`);
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill("Hublify-Adherent-2026!");
   await page.locator('input[name="confirmation"]').fill("Hublify-Adherent-2026!");
