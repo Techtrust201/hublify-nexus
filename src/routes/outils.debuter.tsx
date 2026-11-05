@@ -60,6 +60,34 @@ const DOCS_RECUS = [
 
 const FAQ: Array<{ question: string; reponse: string }> = [
   {
+    question: "Planifie-t-on des soirées, ou faut-il l'accord du propriétaire ?",
+    reponse:
+      "Les règles du logement (fêtes, animaux, fumeur) sont dans la fiche du lieu. En cas de doute, écrivez au gestionnaire avant d'inviter.",
+  },
+  {
+    question: "Je reçois une proposition de bail de la part des gestionnaires",
+    reponse: "Ouvrez Messagerie : la proposition se lit dans le fil, puis se signe depuis le bail.",
+  },
+  {
+    question: "Le bail signé est envoyé au gestionnaire : paiement des arrhes",
+    reponse:
+      "Après signature, préparez les arrhes avec « Je procède à un paiement ». Le gestionnaire valide l'encaissement.",
+  },
+  {
+    question: "Je reçois la confirmation du bail au moment d'un premier paiement",
+    reponse:
+      "La confirmation part lorsque le premier paiement est validé. La quittance se retrouve dans Documents.",
+  },
+  {
+    question: "Je reçois le bail contractuel de mon logement après signature",
+    reponse: "Le PDF signé est dans Documents, vue logements, dès que les deux parties ont signé.",
+  },
+  {
+    question: "Quelques jours avant notre arrivée dans ce lieu, que faire ?",
+    reponse:
+      "Complétez le pré-check-in, vérifiez l'heure d'arrivée et le rendez-vous indiqué dans Messagerie.",
+  },
+  {
     question: "Comment ajouter mon premier logement ?",
     reponse:
       "Ouvrez Lieux, puis « Ajouter un lieu ou logement ». Le type, l'adresse et le livret d'accueil se renseignent dans la fiche.",
@@ -274,7 +302,7 @@ function PageDebuter() {
               {DOCS_RECUS.map((doc) => (
                 <li key={doc}>
                   <Link
-                    to="/documents"
+                    to={doc === "Inventaire du logement" ? "/inventaire" : "/documents"}
                     className="flex items-center gap-2 text-sm text-ink-body hover:text-ink"
                   >
                     <FileText className="size-3.5 text-ink-muted" /> {doc}

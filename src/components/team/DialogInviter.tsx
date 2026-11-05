@@ -201,16 +201,18 @@ export function ModeDroits({
   mode,
   onProfil,
   onPersonnalise,
+  libelleProfil = "Profil",
 }: {
   mode: "profil" | "personnalise";
   onProfil: () => void;
   onPersonnalise: () => void;
+  libelleProfil?: string;
 }) {
   return (
     <div className="mb-3 inline-flex rounded-card border border-line p-0.5">
       {(
         [
-          ["profil", "Profil", onProfil],
+          ["profil", libelleProfil, onProfil],
           ["personnalise", "Personnalisé", onPersonnalise],
         ] as const
       ).map(([id, label, onClick]) => (

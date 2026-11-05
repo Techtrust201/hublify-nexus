@@ -214,20 +214,20 @@ function PageParametrage() {
 
           <Bloc titre="Documents à fournir obligatoires">
             <Toggle
-              label="Exiger le téléchargement de l'identifiant légal"
-              detail="Photographie de la pièce d'identité en plus des données saisies."
+              label="Exiger le téléchargement du identifiant légal"
+              detail="Lorsque cette option est activée, les utilisateurs doivent télécharger une photographie de leur identifiant légal dans l'application Hublify, en plus de saisir leurs données."
               actif={brouillon.exigerIdentifiant}
               onChange={(v) => patch({ exigerIdentifiant: v })}
             />
             <Toggle
               label="Exiger l'identifiant légal pour tous les voyageurs"
-              detail="Tous les voyageurs, pas seulement le voyageur principal."
+              detail="Lorsque cette option est activée, tous les voyageurs et pas seulement le voyageur principal doivent télécharger une photographie de leur identifiant légal dans l'application Hublify, en plus de saisir leurs données."
               actif={brouillon.identifiantTousVoyageurs}
               onChange={(v) => patch({ identifiantTousVoyageurs: v })}
             />
             <Toggle
-              label="Accepter n'importe quelle pièce d'identité"
-              detail="Toute pièce d'identité officielle délivrée par un gouvernement."
+              label="Accepter n'importe quel pièce d'identité"
+              detail="Lorsque cette option est activée, les utilisateurs pourront fournir n'importe quelle pièce d'identité gouvernementale délivrée."
               actif={brouillon.accepterToutePiece}
               onChange={(v) => patch({ accepterToutePiece: v })}
             />

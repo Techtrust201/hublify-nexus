@@ -164,9 +164,10 @@ export function CompteGestionnaire() {
           </div>
           <div className="space-y-2">
             <p className="text-xs text-ink-muted">
-              La carte d'identité est requise avant d'activer les paiements. Déposez le recto et le
-              verso, en photo ou depuis vos fichiers.
+              Votre carte d'identité ne sera pas visible mais permettra une vérification de votre
+              profil.
             </p>
+            <p className="text-xs font-medium text-ink">ajouter Carte d'identité</p>
             <Piece
               cote="recto"
               nom={docs.find((d) => /recto/i.test(d.titre))?.fichier?.nom}
@@ -330,8 +331,11 @@ export function CompteGestionnaire() {
             </p>
           )}
           <p className="text-xs text-ink-subtle">
-            Hublify ne se substitue pas au détenteur de la carte professionnelle. Assurance,
-            garantie financière et conditions d'exercice restent celles de votre agrément.
+            Intégrez votre propre site internet dans notre market place afin que les candidats
+            locataires ainsi que les voyageurs puissent trouver vos annonces.{" "}
+            <Link to="/assistance" className="underline">
+              Contactez-nous
+            </Link>
           </p>
         </Bloc>
 
@@ -409,7 +413,7 @@ export function CompteGestionnaire() {
             />
           </label>
           <label className="block text-xs text-ink-muted">
-            Ajouter votre RIB — IBAN
+            ajouter votre rib
             <input
               value={brouillon.iban}
               onChange={(e) => {

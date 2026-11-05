@@ -31,10 +31,11 @@ import {
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { enregistrerDroitsMembre, inviterMembre, retirerMembre } from "@/lib/auth.functions";
 import { cn } from "@/lib/utils";
+import { DROITS_CATALOGUE } from "@/auth/permissions";
 import { CarteMessage } from "./CarteMessage";
-import { DialogDroits } from "./DialogDroits";
 import { DialogInviter } from "./DialogInviter";
 import { DialogSupprimer } from "./DialogSupprimer";
+import { PanneauDroitsEquipe } from "./PanneauDroitsEquipe";
 
 const BADGE: Record<StatutMembre, { label: string; classe: string }> = {
   actif: { label: "Actif", classe: "bg-ink text-white" },
@@ -52,6 +53,7 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
   const [edition, setEdition] = useState<MembreEquipe | null>(null);
   const [suppression, setSuppression] = useState<MembreEquipe | null>(null);
   const [messagePour, setMessagePour] = useState<string | null>(null);
+  const [profilPour, setProfilPour] = useState<string | null>(null);
   const [formDroit, setFormDroit] = useState(false);
   const [nomDroit, setNomDroit] = useState("");
   const [descDroit, setDescDroit] = useState("");
@@ -132,7 +134,13 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm text-ink">{nomComplet(m)}</p>
+                      <button
+                        type="button"
+                        onClick={() => setProfilPour((id) => (id === m.id ? null : m.id))}
+                        className="text-left text-sm text-ink"
+                      >
+                        {nomComplet(m)}
+                      </button>
                       <span className={cn("rounded px-2 py-0.5 text-[10px]", badge.classe)}>
                         {badge.label}
                       </span>
@@ -182,6 +190,44 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
                     )}
                   </div>
                 </div>
+                {profilPour === m.id && (
+                  <div className="grid gap-3 px-5 pb-4 md:grid-cols-2">
+                    <article className="rounded-card border border-line p-4">
+                      <p className="text-sm text-ink">Détails du profil</p>
+                      <p className="mt-1 text-xs text-ink-muted">
+                        Informations générales — listing droits d'accès
+                      </p>
+                      <ul className="mt-2 space-y-1 text-xs text-ink-body">
+                        {m.droits.length === 0 && <li>Aucun droit enregistré.</li>}
+                        {m.droits.map((id) => (
+                          <li key={id}>{DROITS_CATALOGUE.find((d) => d.id === id)?.titre ?? id}</li>
+                        ))}
+                      </ul>
+                    </article>
+                    <article className="rounded-card border border-line p-4">
+                      <p className="text-sm text-ink">Actions en cours</p>
+                      <p className="mt-1 text-xs text-ink-muted">
+                        {m.statut === "attente"
+                          ? "Invitation en attente"
+                          : "Invitations et tâches liées à ce membre"}
+                      </p>
+                      <ul className="mt-2 space-y-1 text-xs text-ink-body">
+                        {actions.filter((a) =>
+                          `${a.titre} ${a.detail}`.toLowerCase().includes(m.prenom.toLowerCase()),
+                        ).length === 0 && <li>Aucune action en attente.</li>}
+                        {actions
+                          .filter((a) =>
+                            `${a.titre} ${a.detail}`.toLowerCase().includes(m.prenom.toLowerCase()),
+                          )
+                          .map((a) => (
+                            <li key={a.id}>
+                              {a.titre} · {a.quand}
+                            </li>
+                          ))}
+                      </ul>
+                    </article>
+                  </div>
+                )}
                 {messagePour === m.id && (
                   <div className="px-5 pb-4">
                     <CarteMessage
@@ -514,19 +560,46 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
           }
         }}
       />
-      <DialogDroits
-        membre={edition}
-        onFermer={() => setEdition(null)}
-        onEnregistrer={async (id, droits) => {
-          try {
-            await enregistrerDroitsMembre({ data: { userId: id, droits } });
-            toastOk("Droits enregistrés.");
-            await router.invalidate();
-          } catch {
-            toastErreur("Impossible d'enregistrer ces droits.");
-          }
-        }}
-      />
+      {edition && (
+        <PanneauDroitsEquipe
+          membre={edition}
+          biens={session.biens}
+          onFermer={() => setEdition(null)}
+          onEnregistrer={async (id, droits) => {
+            try {
+              await enregistrerDroitsMembre({ data: { userId: id, droits } });
+              toastOk("Droits enregistrés.");
+              setEdition(null);
+              await router.invalidate();
+            } catch {
+              toastErreur("Impossible d'enregistrer ces droits.");
+            }
+          }}
+          onAjouterBien={(membreId, bienNom) => {
+            const nom = `Bien · ${bienNom}`;
+            majDroits((liste) => {
+              const existe = liste.find((d) => d.nom === nom);
+              if (existe) {
+                return liste.map((d) =>
+                  d.id === existe.id && !d.membresIds.includes(membreId)
+                    ? { ...d, membresIds: [...d.membresIds, membreId] }
+                    : d,
+                );
+              }
+              return [
+                ...liste,
+                {
+                  id: idNouveau("dp"),
+                  nom,
+                  description: `Accès au bien ou à l'événement ${bienNom}`,
+                  membresIds: [membreId],
+                },
+              ];
+            });
+            toastOk(`${bienNom} ajouté aux accès de ${edition.prenom}.`);
+          }}
+        />
+      )}
       <DialogSupprimer
         membre={suppression}
         onFermer={() => setSuppression(null)}

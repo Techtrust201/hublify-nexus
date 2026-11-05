@@ -368,10 +368,12 @@ export function LoyersSection({
       >
         <span className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-ink">
           <FileCheck className="size-4 shrink-0" />
-          Les Loyers et paiements en attente
+          Les Loyers Payés Cette Semaine
           <span className="basis-full text-xs text-ink-muted sm:basis-auto">
-            {synthese.enAttente} en attente · {synthese.impaye.toLocaleString("fr-FR")} €
-            {synthese.nombre !== synthese.enAttente ? ` · ${synthese.nombre} au total` : ""}
+            paiements totaux : {loyers.reduce((s, l) => s + l.montant, 0).toLocaleString("fr-FR")} €
+            {synthese.enAttente > 0
+              ? ` · ${synthese.enAttente} en attente · ${synthese.impaye.toLocaleString("fr-FR")} €`
+              : ""}
           </span>
         </span>
         {ouvert ? (
@@ -423,9 +425,9 @@ export function LoyersSection({
                         setReference("");
                         setAValider(l);
                       }}
-                      className="h-7 rounded-full bg-chip-urgent px-3 text-xs font-medium text-ink-subtle"
+                      className="h-11 rounded-card border border-line bg-white px-3 text-xs font-medium text-ink-body md:h-7"
                     >
-                      ajouter paiement
+                      Valider paiement
                     </button>
                   )}
                   <button
@@ -497,7 +499,7 @@ export function LoyersSection({
                     className="inline-flex h-11 items-center gap-1 rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[26px]"
                   >
                     <FileCheck className="size-2.5" />
-                    {viaPlateforme?.(l) ? "Télécharger quittance" : "Saisir montant → quittance"}
+                    Générer quittance
                   </button>
                 </div>
               ) : (
@@ -515,7 +517,7 @@ export function LoyersSection({
                       className="inline-flex h-11 items-center gap-1 rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[26px]"
                     >
                       <FileCheck className="size-2.5" />
-                      Télécharger quittance
+                      Quittance générée
                     </button>
                   ) : (
                     <button
