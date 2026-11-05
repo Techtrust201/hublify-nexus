@@ -324,10 +324,21 @@ export function InventaireApp() {
               <Plus className="size-3" /> Ajouter item
             </BtnOutline>
             <BtnOutline
-              disabled={selection.length !== 1}
               onClick={() => {
-                const cible = lignes.find((i) => i.id === selection[0]);
-                if (!cible) return;
+                const cible =
+                  selection.length === 1
+                    ? lignes.find((i) => i.id === selection[0])
+                    : selection.length === 0
+                      ? filtrés[0]
+                      : undefined;
+                if (!cible) {
+                  toastErreur(
+                    selection.length > 1
+                      ? "Sélectionnez un seul élément à modifier."
+                      : "Aucun élément à modifier.",
+                  );
+                  return;
+                }
                 ouvrirEdition(cible);
               }}
             >

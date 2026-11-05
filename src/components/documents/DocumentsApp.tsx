@@ -103,10 +103,12 @@ export function DocumentsApp({
   vue,
   onVue,
   logement,
+  onglet: ongletUrl,
 }: {
   vue: VueDocuments;
-  onVue: (v: VueDocuments) => void;
+  onVue: (v: VueDocuments, onglet?: OngletResident) => void;
   logement?: string;
+  onglet?: OngletResident;
 }) {
   const navigate = useNavigate();
   const [recherche, setRecherche] = useState("");
@@ -119,7 +121,7 @@ export function DocumentsApp({
   const [filtresOuverts, setFiltresOuverts] = useState(false);
   const [logementFiltre, setLogementFiltre] = useState(logement ?? "Tous");
   const [typeFiltre, setTypeFiltre] = useState("Tous");
-  const [onglet, setOnglet] = useState<OngletResident>("locataires");
+  const [onglet, setOnglet] = useState<OngletResident>(ongletUrl ?? "locataires");
   const [rapport, setRapport] = useState<{ titre: string; logement: string } | null>(null);
   const [selection, setSelection] = useState<string[]>([]);
   const documents = useDocuments();
@@ -135,6 +137,10 @@ export function DocumentsApp({
       setLogementFiltre(logement);
     }
   }, [logement]);
+
+  useEffect(() => {
+    if (ongletUrl) setOnglet(ongletUrl);
+  }, [ongletUrl]);
 
   const docsFiltres = useMemo(() => {
     let list = [...documents];
@@ -293,7 +299,7 @@ export function DocumentsApp({
           onOuvrirCarte={(c) => {
             if (c.onglet) setOnglet(c.onglet);
             if (c.href) void navigate({ to: c.href });
-            else if (c.vue) aller(c.vue);
+            else if (c.vue) onVue(c.vue, c.onglet);
           }}
         />
       )}

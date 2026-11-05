@@ -146,12 +146,14 @@ function PageDebuter() {
   const [depart, setDepart] = useState(() => isoPlus(18));
   const [missionTitre, setMissionTitre] = useState("Ménage de bienvenue");
   const [missionHeure, setMissionHeure] = useState("10:00");
+  const [prestataireId, setPrestataireId] = useState("");
   const [nouveauBien, setNouveauBien] = useState("");
   const [paiement, setPaiement] = useState(false);
   const [motifPaiement, setMotifPaiement] = useState<"Loyer" | "Arrhes" | "Caution">("Caution");
   const [montantPaiement, setMontantPaiement] = useState("850");
 
   const bien = session.biens.find((b) => b.id === bienId) ?? session.biens[0];
+  const prestataire = session.prestataires.find((p) => p.id === prestataireId);
 
   const creer = () => {
     if (!bien) {
@@ -172,6 +174,10 @@ function PageDebuter() {
     }
     if (depart <= arrivee) {
       toastErreur("Le départ doit être après l'arrivée.");
+      return;
+    }
+    if (!prestataire) {
+      toastErreur("Choisissez un prestataire.");
       return;
     }
     const id = idNouveau("r");
@@ -223,7 +229,7 @@ function PageDebuter() {
       type: "Menage",
       emoji: "🧹",
       heure: missionHeure,
-      assigne: "Amélie Dubois",
+      assigne: prestataire.nom,
       statut: "a_faire",
       description: `Mission créée depuis Je débute pour ${voyageur.trim()} à ${bien.nom}.`,
     });
@@ -441,6 +447,7 @@ function PageDebuter() {
               >
                 <button
                   type="button"
+                  aria-pressed={etape === e.n}
                   onClick={() => setEtape(e.n)}
                   className="flex min-w-0 flex-1 items-center gap-2 text-left"
                 >
@@ -507,6 +514,7 @@ function PageDebuter() {
                     <button
                       key={b.id}
                       type="button"
+                      aria-pressed={bienId === b.id}
                       onClick={() => setBienId(b.id)}
                       className={cn(
                         "rounded-card border px-4 py-3 text-left",
@@ -601,6 +609,26 @@ function PageDebuter() {
                     className="mt-1 h-[34px] w-full rounded-[8px] border border-line px-3 text-sm outline-none"
                   />
                 </label>
+                <p className="mt-4 text-xs text-ink-subtle">Prestataire</p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  {session.prestataires.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      aria-pressed={prestataireId === p.id}
+                      onClick={() => setPrestataireId(p.id)}
+                      className={cn(
+                        "rounded-card border px-4 py-3 text-left",
+                        prestataireId === p.id
+                          ? "border-ink bg-surface"
+                          : "border-line hover:bg-surface",
+                      )}
+                    >
+                      <p className="text-sm text-ink">{p.nom}</p>
+                      <p className="mt-0.5 text-xs text-ink-muted">{p.categorie}</p>
+                    </button>
+                  ))}
+                </div>
                 <ul className="mt-4 space-y-1 rounded-card bg-surface p-3 text-xs text-ink-body">
                   <li>Logement : {bien?.nom ?? "—"}</li>
                   <li>
