@@ -86,6 +86,8 @@ export type FicheLieu = {
   numeroDpe: string;
   surfaceM2: string;
   pieces: number;
+  nombreEtages: number;
+  occupantsMax: number;
   chambres: number;
   sallesDeBain: number;
   anneeConstruction: string;
@@ -358,6 +360,8 @@ export function ficheVierge(): FicheLieu {
     numeroDpe: "",
     surfaceM2: "",
     pieces: 1,
+    nombreEtages: 0,
+    occupantsMax: 0,
     chambres: 1,
     sallesDeBain: 1,
     anneeConstruction: "",
@@ -434,6 +438,8 @@ export function normaliserFiche(partiel: unknown): FicheLieu {
       Boolean(brut["welcomeBook"]) || String(brut["welcomeBookTexte"] ?? "").trim() !== "",
     nombreCles: Number(brut["nombreCles"] ?? 0) || 0,
     pieces: Number(brut["pieces"] ?? 1) || 1,
+    nombreEtages: Number(brut["nombreEtages"] ?? 0) || 0,
+    occupantsMax: Number(brut["occupantsMax"] ?? 0) || 0,
     chambres: Number(brut["chambres"] ?? 1) || 1,
     sallesDeBain: Number(brut["sallesDeBain"] ?? 1) || 1,
     parkingExterieur: Number(brut["parkingExterieur"] ?? 0) || 0,

@@ -222,42 +222,60 @@ export function FicheLieuDialog({
                     </label>
                   </div>
 
-                  <label className="block text-xs text-ink-muted">
-                    Type
-                    <select
-                      value={
-                        TYPES_LIEU.includes(brouillon.typologie) ||
-                        typesPerso.includes(brouillon.typologie)
-                          ? brouillon.typologie
-                          : brouillon.typologie
-                      }
-                      onChange={(e) => maj({ typologie: e.target.value })}
-                      className={CHAMP}
-                    >
-                      {GROUPES_TYPES.map((g) => (
-                        <optgroup key={g.id} label={g.label}>
-                          {g.items.map((item) => (
-                            <option key={item} value={item}>
-                              {item}
-                            </option>
-                          ))}
-                        </optgroup>
-                      ))}
-                      {typesPerso.length > 0 && (
-                        <optgroup label="Ajoutés à la liste">
-                          {typesPerso.map((item) => (
-                            <option key={item} value={item}>
-                              {item}
-                            </option>
-                          ))}
-                        </optgroup>
-                      )}
-                      {!TYPES_LIEU.includes(brouillon.typologie) &&
-                        !typesPerso.includes(brouillon.typologie) && (
-                          <option value={brouillon.typologie}>{brouillon.typologie}</option>
+                  <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                    <label className="block text-xs text-ink-muted">
+                      Type
+                      <select
+                        value={
+                          TYPES_LIEU.includes(brouillon.typologie) ||
+                          typesPerso.includes(brouillon.typologie)
+                            ? brouillon.typologie
+                            : brouillon.typologie
+                        }
+                        onChange={(e) => maj({ typologie: e.target.value })}
+                        className={CHAMP}
+                      >
+                        {GROUPES_TYPES.map((g) => (
+                          <optgroup key={g.id} label={g.label}>
+                            {g.items.map((item) => (
+                              <option key={item} value={item}>
+                                {item}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ))}
+                        {typesPerso.length > 0 && (
+                          <optgroup label="Ajoutés à la liste">
+                            {typesPerso.map((item) => (
+                              <option key={item} value={item}>
+                                {item}
+                              </option>
+                            ))}
+                          </optgroup>
                         )}
-                    </select>
-                  </label>
+                        {!TYPES_LIEU.includes(brouillon.typologie) &&
+                          !typesPerso.includes(brouillon.typologie) && (
+                            <option value={brouillon.typologie}>{brouillon.typologie}</option>
+                          )}
+                      </select>
+                    </label>
+                    <label className="block text-xs text-ink">
+                      + attacher à un immeuble
+                      <select
+                        aria-label="Attacher à un immeuble"
+                        value={brouillon.fiche.immeubleId ?? ""}
+                        onChange={(e) => majFiche({ immeubleId: e.target.value || null })}
+                        className={CHAMP}
+                      >
+                        <option value="">Aucun immeuble</option>
+                        {immeubles.map((i) => (
+                          <option key={i.id} value={i.id}>
+                            {i.nom}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
                   {brouillon.typologie.startsWith("Château") && (
                     <p className="text-xs text-ink-muted">Rare, haut de gamme.</p>
                   )}
@@ -320,7 +338,7 @@ export function FicheLieuDialog({
                       />
                     </label>
                     <label className="block text-xs text-ink-muted">
-                      Ascenseur O/N
+                      ascenseur Y/N
                       <select
                         value={brouillon.fiche.ascenseur}
                         onChange={(e) =>
@@ -345,7 +363,7 @@ export function FicheLieuDialog({
                       />
                     </label>
                     <label className="block text-xs text-ink-muted">
-                      Assigner un gestionnaire principal
+                      + Assigner un propriétaire principal
                       <input
                         value={brouillon.fiche.gestionnaire}
                         onChange={(e) => majFiche({ gestionnaire: e.target.value })}
@@ -376,7 +394,7 @@ export function FicheLieuDialog({
                       Proposé en meublé de tourisme
                     </label>
                     <label className="block text-xs text-ink-muted">
-                      Numéro d'enregistrement en mairie
+                      Numéro d'enregistrement mairie, en cas de location touristique. Obligatoire
                       <input
                         value={brouillon.fiche.enregistrementMairie}
                         onChange={(e) => majFiche({ enregistrementMairie: e.target.value })}
@@ -387,7 +405,7 @@ export function FicheLieuDialog({
                   </fieldset>
 
                   <label className="block text-xs text-ink-muted">
-                    Numéro DPE — optionnel
+                    numero DPE. Optionnel
                     <input
                       value={brouillon.fiche.numeroDpe}
                       onChange={(e) => majFiche({ numeroDpe: e.target.value })}
@@ -395,50 +413,63 @@ export function FicheLieuDialog({
                     />
                   </label>
 
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="block text-xs text-ink-muted">
-                      Surface (m²)
-                      <input
-                        inputMode="decimal"
-                        value={brouillon.fiche.surfaceM2}
-                        onChange={(e) => majFiche({ surfaceM2: e.target.value })}
-                        className={CHAMP}
+                  <fieldset className="space-y-3 rounded-card border border-line p-4">
+                    <legend className="px-1 text-sm text-ink">Données du bien</legend>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="block text-xs text-ink-muted">
+                        Surface totale (m²)
+                        <input
+                          inputMode="decimal"
+                          value={brouillon.fiche.surfaceM2}
+                          onChange={(e) => majFiche({ surfaceM2: e.target.value })}
+                          className={CHAMP}
+                        />
+                      </label>
+                      <label className="block text-xs text-ink-muted">
+                        Année de construction
+                        <input
+                          inputMode="numeric"
+                          value={brouillon.fiche.anneeConstruction}
+                          onChange={(e) => majFiche({ anneeConstruction: e.target.value })}
+                          className={CHAMP}
+                        />
+                      </label>
+                    </div>
+                    <div className="flex flex-wrap gap-4">
+                      <Stepper
+                        label="Nombre de pièces"
+                        value={brouillon.fiche.pieces}
+                        onChange={(pieces) => majFiche({ pieces })}
                       />
-                    </label>
-                    <label className="block text-xs text-ink-muted">
-                      Année de construction
-                      <input
-                        inputMode="numeric"
-                        value={brouillon.fiche.anneeConstruction}
-                        onChange={(e) => majFiche({ anneeConstruction: e.target.value })}
-                        className={CHAMP}
+                      <Stepper
+                        label="Nombre d'étages"
+                        value={brouillon.fiche.nombreEtages}
+                        onChange={(nombreEtages) => majFiche({ nombreEtages })}
                       />
-                    </label>
-                  </div>
-                  <div className="flex flex-wrap gap-4">
-                    <Stepper
-                      label="Pièces"
-                      value={brouillon.fiche.pieces}
-                      onChange={(pieces) => majFiche({ pieces })}
-                    />
-                    <Stepper
-                      label="Chambres"
-                      value={brouillon.fiche.chambres}
-                      onChange={(chambres) => majFiche({ chambres })}
-                    />
-                    <Stepper
-                      label="Salles de bain"
-                      value={brouillon.fiche.sallesDeBain}
-                      onChange={(sallesDeBain) => majFiche({ sallesDeBain })}
-                    />
-                  </div>
+                      <Stepper
+                        label="Chambres"
+                        value={brouillon.fiche.chambres}
+                        onChange={(chambres) => majFiche({ chambres })}
+                      />
+                      <Stepper
+                        label="Salles de bain"
+                        value={brouillon.fiche.sallesDeBain}
+                        onChange={(sallesDeBain) => majFiche({ sallesDeBain })}
+                      />
+                    </div>
+                  </fieldset>
 
                   <fieldset
                     id="section-cles"
                     className="space-y-3 rounded-card border border-line p-4"
                   >
-                    <legend className="px-1 text-sm text-ink">Gestion des clés</legend>
+                    <legend className="px-1 text-sm text-ink">Paramétrage du bien</legend>
                     <div className="flex flex-wrap items-end gap-4">
+                      <Stepper
+                        label="Nombre d'occupant max"
+                        value={brouillon.fiche.occupantsMax}
+                        onChange={(occupantsMax) => majFiche({ occupantsMax })}
+                      />
                       <Stepper
                         label="Nombre maximum de clés"
                         value={brouillon.fiche.nombreCles}
@@ -485,7 +516,7 @@ export function FicheLieuDialog({
                         />
                       </label>
                       <label className="block text-xs text-ink-muted">
-                        Nom du Wi-Fi
+                        Nom du Wifi
                         <input
                           value={brouillon.acces.wifi}
                           onChange={(e) =>
@@ -495,7 +526,7 @@ export function FicheLieuDialog({
                         />
                       </label>
                       <label className="block text-xs text-ink-muted">
-                        Code du Wi-Fi
+                        Code du Wifi
                         <input
                           value={brouillon.acces.wifiMdp}
                           onChange={(e) =>
@@ -518,7 +549,7 @@ export function FicheLieuDialog({
                   </fieldset>
 
                   <fieldset className="space-y-3 rounded-card border border-line p-4">
-                    <legend className="px-1 text-sm text-ink">Choix du type de loyer</legend>
+                    <legend className="px-1 text-sm text-ink">Paramétrage des tarifs</legend>
                     <div className="flex flex-wrap gap-4 text-sm text-ink">
                       {(
                         [
@@ -539,9 +570,7 @@ export function FicheLieuDialog({
                     </div>
                     <div className="grid gap-3 sm:grid-cols-3">
                       <label className="block text-xs text-ink-muted">
-                        {brouillon.fiche.typeLoyer === "forfaitaire"
-                          ? "Montant forfaitaire (€)"
-                          : "Loyer hors charges (€)"}
+                        Montant du loyer mensuel hors charges
                         <input
                           inputMode="decimal"
                           value={brouillon.fiche.loyerHorsCharges}
@@ -551,7 +580,7 @@ export function FicheLieuDialog({
                         />
                       </label>
                       <label className="block text-xs text-ink-muted">
-                        Charges (€)
+                        Montant des charges
                         <input
                           inputMode="decimal"
                           value={brouillon.fiche.charges}
@@ -562,7 +591,7 @@ export function FicheLieuDialog({
                         />
                       </label>
                       <label className="block text-xs text-ink-muted">
-                        Tarif nuit (€)
+                        Tarification standard de la nuitée saisonnière
                         <input
                           inputMode="decimal"
                           value={brouillon.fiche.tarifNuit}
@@ -1104,7 +1133,7 @@ function Espaces({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-ink">Couchages</p>
+        <p className="text-sm text-ink">Composition du logement</p>
         <BtnOutline onClick={ajouter}>
           <Plus className="size-3" /> Ajouter une pièce
         </BtnOutline>
