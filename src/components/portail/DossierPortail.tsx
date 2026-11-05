@@ -62,20 +62,35 @@ function Profil() {
       <h1 className="text-center font-display text-[22px] font-semibold text-[var(--portail-encre)]">
         {auth?.prenom} {auth?.nom}
       </h1>
-      <div className="w-full space-y-3 text-sm text-[#344054]">
-        <p className="text-base font-semibold text-[var(--portail-encre)]">Mon profil</p>
+      <div className="w-full space-y-3 text-[14px] font-normal text-black">
+        <p className="text-[16px] font-semibold">Mon profil</p>
         <p>
-          <span className="block text-xs text-[#98a2b3]">Nom</span>
+          <span className="block text-[12px] font-semibold">Nom</span>
           {auth?.nom}
         </p>
         <p>
-          <span className="block text-xs text-[#98a2b3]">Email</span>
+          <span className="block text-[12px] font-semibold">Email</span>
           {auth?.email}
         </p>
-        <p className="text-xs text-[#98a2b3]">Mode {uiMode}</p>
-        <p className="text-base font-semibold text-[var(--portail-encre)]">À propos de moi</p>
-        <p className="rounded-[22px] bg-white px-4 py-3 text-xs text-[#667085] shadow-[var(--portail-ombre)]">
+        <p className="text-[12px] font-semibold">Mode {uiMode}</p>
+        <p className="text-[16px] font-semibold">Contact supplémentaire et garants</p>
+        <div className="grid grid-cols-2 gap-3 text-[12px] font-semibold">
+          <p>
+            Contact supplémentaire
+            <span className="mt-1 block font-normal">{auth?.email}</span>
+          </p>
+          <p>
+            Garant
+            <span className="mt-1 block font-normal">{GESTIONNAIRE_PORTAIL.nom}</span>
+          </p>
+        </div>
+        <p className="text-[16px] font-semibold">À propos de moi</p>
+        <p className="min-h-[66px] rounded-[16px] bg-white px-4 py-3 text-[12px] font-semibold shadow-[var(--portail-ombre)]">
           Profil Hublify. Les droits d'accès au dossier sont validés ici, pas par le demandeur.
+        </p>
+        <p className="text-[16px] font-semibold">Mon historique de location</p>
+        <p className="rounded-[16px] bg-white px-4 py-3 text-[14px] font-normal shadow-[var(--portail-ombre)]">
+          Séjours et quittances du compte
         </p>
       </div>
       <Bouton onClick={() => void navigate({ to: "/espace/dossier", hash: "pieces" })}>

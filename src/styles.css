@@ -457,7 +457,7 @@
   --portail-plus: #f6f1df;
   --portail-carte: #ffffff;
   --portail-ombre: 0 4px 12px rgba(0, 0, 0, 0.15);
-  --portail-rayon: 22px;
+  --portail-rayon: 16px;
   font-family: var(--font-portail);
   color: var(--portail-encre);
   background-color: var(--portail-fond);
