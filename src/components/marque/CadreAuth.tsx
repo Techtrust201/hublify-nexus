@@ -72,4 +72,4 @@ export const champAuth =
 export const labelAuth = "mb-1.5 block text-sm font-medium text-ink-deep";
 
 export const boutonAuth =
-  "flex h-[50px] w-full items-center justify-center gap-2 rounded-xl bg-brand text-[15px] font-semibold text-white disabled:opacity-50";
+  "flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand text-[15px] font-semibold text-white disabled:opacity-50";
