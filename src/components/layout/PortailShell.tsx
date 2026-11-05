@@ -35,18 +35,20 @@ function Coque({ children }: { children: ReactNode }) {
   const session = useSession();
   const chargee = useSessionChargee();
   const donnees = usePortailDonnees();
+  const [pretUi, setPretUi] = useState(false);
   const [plus, setPlus] = useState(false);
   const [notifs, setNotifs] = useState(false);
   const [navCachee, setNavCachee] = useState(false);
   const defautPose = useRef(false);
 
+  useEffect(() => setPretUi(true), []);
+
   useEffect(() => {
-    if (!donnees.pret || defautPose.current) return;
+    if (!donnees.pret || !auth || !donnees.distantJoignable || defautPose.current) return;
     defautPose.current = true;
-    if (!donnees.mode && donnees.distantJoignable) {
-      donnees.definirMode(auth?.roleId === "prestataire" ? "prestataire" : "resident");
-    }
-  }, [auth?.roleId, donnees]);
+    const attendu = auth.roleId === "prestataire" ? "prestataire" : "resident";
+    if (donnees.mode !== attendu) donnees.definirMode(attendu);
+  }, [auth, donnees]);
 
   const mode = donnees.mode ?? "resident";
   const prestataire = mode === "prestataire";
@@ -57,6 +59,7 @@ function Coque({ children }: { children: ReactNode }) {
     demarrer: donnees.demarrer,
     masquerNav: setNavCachee,
     ouvrirNotifs: () => setNotifs(true),
+    alertes: session.notifications.filter((n) => !n.lu).length,
   };
 
   const tabs = [
@@ -140,13 +143,16 @@ function Coque({ children }: { children: ReactNode }) {
 
   return (
     <PortailUiProvider valeur={ui}>
-      <div className="min-h-dvh bg-[#dfe8e4]">
-        <div className="relative mx-auto flex h-dvh w-full max-w-[430px] flex-col overflow-hidden bg-[linear-gradient(165deg,#f7fbf8_0%,#f4f6ef_42%,#f8f1e8_100%)] shadow-[0_0_0_1px_rgba(28,25,23,0.05)]">
+      <div
+        className="portail min-h-dvh bg-[var(--portail-fond-bas)]"
+        data-portail-pret={pretUi ? "1" : "0"}
+      >
+        <div className="relative mx-auto flex h-dvh w-full max-w-[430px] flex-col overflow-hidden bg-[linear-gradient(180deg,var(--portail-fond-haut)_0%,var(--portail-fond-bas)_100%)]">
           <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-            <span className="absolute -left-8 top-10 size-24 rounded-full bg-[#d7efe4]/80" />
-            <span className="absolute right-6 top-24 size-16 rounded-full bg-[#f6d9c8]/70" />
-            <span className="absolute -right-6 bottom-36 size-28 rounded-full bg-[#d5ebf2]/80" />
-            <span className="absolute bottom-28 left-8 size-14 rounded-full bg-[#efe4c6]/80" />
+            <span className="absolute -left-10 top-16 size-28 rounded-full bg-white/35" />
+            <span className="absolute -right-8 top-40 size-24 rounded-full bg-[#d5e4e2]/50" />
+            <span className="absolute bottom-24 left-6 size-20 rounded-full bg-white/25" />
+            <span className="absolute -right-4 bottom-10 size-16 rounded-full bg-[#efe8d4]/40" />
           </div>
           <div className="relative z-10">
             <BandeauSync />
@@ -234,7 +240,7 @@ function Coque({ children }: { children: ReactNode }) {
 
           {!navCachee && (
             <nav
-              className="absolute inset-x-3 bottom-3 z-30 flex items-end justify-between rounded-full bg-[#e7f4f6]/95 px-3 pb-2 pt-2 shadow-[0_8px_24px_rgba(30,40,30,0.06)] backdrop-blur"
+              className="absolute inset-x-0 bottom-0 z-30 flex items-end justify-between rounded-t-[28px] bg-[var(--portail-nav)]/95 px-5 pb-3 pt-2 shadow-[0_-6px_16px_rgba(0,0,0,0.06)] backdrop-blur"
               aria-label="Navigation portail"
             >
               {tabs.map((t) => {
@@ -244,7 +250,7 @@ function Coque({ children }: { children: ReactNode }) {
                       key={t.id}
                       type="button"
                       onClick={() => setPlus((v) => !v)}
-                      className="-mt-7 flex size-14 items-center justify-center rounded-full bg-[#f6f1df] text-[#1d2939] shadow-[0_8px_20px_rgba(30,40,30,0.12)]"
+                      className="-mt-8 flex size-14 items-center justify-center rounded-full bg-[var(--portail-plus)] text-[var(--portail-encre)] shadow-[var(--portail-ombre)]"
                       aria-label="Ajouter"
                       aria-expanded={plus}
                     >
@@ -261,10 +267,14 @@ function Coque({ children }: { children: ReactNode }) {
                     aria-label={t.titre}
                     className={cn(
                       "flex size-11 items-center justify-center",
-                      current ? "text-[#5090A8]" : "text-[#98a2b3]",
+                      current ? "text-[var(--portail-sarcelle)]" : "text-[#98a2b3]",
                     )}
                   >
-                    <t.icone className="size-5" strokeWidth={current ? 2.4 : 1.8} />
+                    <t.icone
+                      className="size-6"
+                      strokeWidth={current ? 1.6 : 1.8}
+                      {...(current ? { fill: "currentColor" } : {})}
+                    />
                   </Link>
                 );
               })}

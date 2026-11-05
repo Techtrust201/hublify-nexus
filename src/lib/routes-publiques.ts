@@ -29,3 +29,8 @@ export function estCheminAuth(pathname: string): boolean {
 export function estCheminMarketing(pathname: string): boolean {
   return (CHEMINS_MARKETING as readonly string[]).includes(pathname);
 }
+
+/** Accueil mobile visible sans session : onboarding 374:2271, avant connexion. */
+export function estAccueilPortailPublic(pathname: string): boolean {
+  return pathname === "/espace" || pathname === "/espace/";
+}

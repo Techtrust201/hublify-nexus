@@ -25,7 +25,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { hydraterSession } from "@/data/session";
 import { getSession } from "@/lib/auth.functions";
 import { CLE_DECONNEXION } from "@/lib/fin-session";
-import { estCheminAuth, estCheminMarketing } from "@/lib/routes-publiques";
+import { estAccueilPortailPublic, estCheminAuth, estCheminMarketing } from "@/lib/routes-publiques";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -104,7 +104,9 @@ export const Route = createRootRouteWithContext<{
     }
     const auth = await getSession();
     if (!auth) {
-      if (estCheminMarketing(location.pathname)) return { auth: null };
+      if (estCheminMarketing(location.pathname) || estAccueilPortailPublic(location.pathname)) {
+        return { auth: null };
+      }
       throw redirect({ to: "/connexion" });
     }
     if (estRolePortail(auth.roleId)) {
@@ -235,7 +237,12 @@ function RootComponent() {
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
         <DialogueConfirmation />
-        <Toaster position="bottom-center" mobileOffset={{ bottom: "6rem" }} richColors closeButton />
+        <Toaster
+          position="bottom-center"
+          mobileOffset={{ bottom: "6rem" }}
+          richColors
+          closeButton
+        />
       </AuthProvider>
     </QueryClientProvider>
   );

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Bell, ChevronLeft } from "lucide-react";
+import { Bell, ChevronLeft, Home } from "lucide-react";
 import { createContext, useContext, type ReactNode } from "react";
 import type { ModePortail } from "@/lib/portail-mobile";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ export type PortailUi = {
   demarrer: () => void;
   masquerNav: (valeur: boolean) => void;
   ouvrirNotifs: () => void;
+  alertes: number;
 };
 
 const Ctx = createContext<PortailUi | null>(null);
@@ -35,6 +36,26 @@ export function Ecran({ children, className }: { children: ReactNode; className?
   return <div className={cn("flex flex-col gap-4 px-4 pb-6 pt-3", className)}>{children}</div>;
 }
 
+export function Cloche({ className }: { className?: string }) {
+  const ui = usePortailUi();
+  return (
+    <button
+      type="button"
+      onClick={ui.ouvrirNotifs}
+      aria-label="Notifications"
+      className={cn(
+        "relative grid size-11 shrink-0 place-items-center rounded-full text-[var(--portail-encre)]",
+        className,
+      )}
+    >
+      <Bell className="size-6" fill="currentColor" strokeWidth={1.5} />
+      {ui.alertes > 0 && (
+        <span className="absolute right-2 top-2 size-2 rounded-full bg-[#e11d48]" aria-hidden />
+      )}
+    </button>
+  );
+}
+
 export function Entete({
   titre,
   sousTitre,
@@ -44,7 +65,6 @@ export function Entete({
   sousTitre?: string | undefined;
   surRetour?: (() => void) | undefined;
 }) {
-  const ui = usePortailUi();
   return (
     <div className="flex items-start gap-2">
       {surRetour ? (
@@ -52,27 +72,30 @@ export function Entete({
           type="button"
           onClick={surRetour}
           aria-label="Retour"
-          className="mt-0.5 grid size-11 shrink-0 place-items-center rounded-full text-[#344054]"
+          className="mt-0.5 grid size-11 shrink-0 place-items-center rounded-full text-[var(--portail-encre)]"
         >
-          <ChevronLeft className="size-5" />
+          <ChevronLeft className="size-6" strokeWidth={2.4} />
         </button>
       ) : (
-        <span className="size-11 shrink-0" />
+        <Link
+          to="/espace"
+          aria-label="Accueil"
+          className="mt-0.5 grid size-11 shrink-0 place-items-center rounded-full text-[var(--portail-encre)]"
+        >
+          <Home className="size-6" fill="currentColor" strokeWidth={1.5} />
+        </Link>
       )}
-      <div className="min-w-0 flex-1 pt-1 text-center">
+      <div className="min-w-0 flex-1 pt-2 text-center">
         {titre && (
-          <h1 className="text-[17px] font-semibold leading-tight text-[#1d2939]">{titre}</h1>
+          <h1 className="font-display text-[20px] font-semibold leading-tight text-[var(--portail-encre)]">
+            {titre}
+          </h1>
         )}
-        {sousTitre && <p className="mt-0.5 text-xs text-[#98a2b3]">{sousTitre}</p>}
+        {sousTitre && (
+          <p className="mt-0.5 text-sm text-[var(--portail-encre-douce)]">{sousTitre}</p>
+        )}
       </div>
-      <button
-        type="button"
-        onClick={ui.ouvrirNotifs}
-        aria-label="Notifications"
-        className="mt-0.5 grid size-11 shrink-0 place-items-center rounded-full text-[#344054]"
-      >
-        <Bell className="size-5" />
-      </button>
+      <Cloche className="mt-0.5" />
     </div>
   );
 }
@@ -81,7 +104,7 @@ export function Carte({ children, className }: { children: ReactNode; className?
   return (
     <section
       className={cn(
-        "rounded-[22px] bg-white p-4 shadow-[0_10px_28px_rgba(70,80,60,0.06)]",
+        "rounded-[var(--portail-rayon)] bg-[var(--portail-carte)] p-4 shadow-[var(--portail-ombre)]",
         className,
       )}
     >
@@ -110,7 +133,7 @@ export function Bouton({
       disabled={disabled}
       className={cn(
         "flex h-12 w-full items-center justify-center rounded-full px-4 text-sm font-semibold transition disabled:opacity-50",
-        variante === "plein" && "bg-[#5090A8] text-white",
+        variante === "plein" && "bg-[var(--portail-sarcelle)] text-white",
         variante === "ghost" && "text-[#5090A8]",
         variante === "ligne" && "border border-[#d0d5dd] bg-white text-[#1d2939]",
       )}

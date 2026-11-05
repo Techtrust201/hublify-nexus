@@ -1,9 +1,9 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Clock, FileText, KeyRound, Shield, SprayCan, Wallet } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Briefcase, Clock, FileText, Home, UserRound } from "lucide-react";
+import { useState } from "react";
 import { useAuth } from "@/auth/auth-context";
 import { AutourDeMoi, OffreDetail, RechercheBail } from "@/components/portail/RecherchePortail";
-import { Bouton, Carte, Ecran, Entete, Marque, usePortailUi } from "@/components/portail/chrome";
+import { Bouton, Carte, Cloche, Ecran, Entete, usePortailUi } from "@/components/portail/chrome";
 import {
   ecrirePin,
   ecrireWebAuthnId,
@@ -15,7 +15,6 @@ import { useAncre } from "@/components/portail/use-ancre";
 import { useSession } from "@/data/session";
 import {
   appliquerDecisionDemande,
-  etiquetteJour,
   joursAutour,
   tachesDuJour,
   trierTaches,
@@ -109,20 +108,43 @@ function tachesAffichees(params: {
   return trierTaches([...finance, ...checkins]);
 }
 
+function isoLocal(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function etiquetteLocale(date: Date) {
+  return {
+    mois: date.toLocaleDateString("fr-FR", { month: "short" }).replace(".", ""),
+    numero: String(date.getDate()),
+    semaine: date.toLocaleDateString("fr-FR", { weekday: "short" }).replace(".", ""),
+    iso: isoLocal(date),
+  };
+}
+
+function heureDouze(iso: string, repli: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return repli;
+  return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+function centreFrise(taches: TachePortail[]) {
+  const auj = isoLocal(new Date());
+  if (taches.some((t) => t.quand.slice(0, 10) === auj)) return new Date();
+  const dates = taches
+    .map((t) => new Date(t.quand))
+    .filter((d) => !Number.isNaN(d.getTime()))
+    .sort((a, b) => a.getTime() - b.getTime());
+  const prochaine = dates.find((d) => isoLocal(d) >= auj);
+  return prochaine ?? dates[dates.length - 1] ?? new Date();
+}
+
 export function AccueilPortail() {
   const ancre = useAncre();
-  const ui = usePortailUi();
   const auth = useAuth();
   const session = useSession();
   const vide =
     session.biens.length === 0 && session.missions.length === 0 && session.loyers.length === 0;
 
-  useEffect(() => {
-    ui.masquerNav(!ui.demarre && ancre === "");
-    return () => ui.masquerNav(false);
-  }, [ancre, ui]);
-
-  if (!ui.demarre && ancre === "") return <Demarrage />;
   if (ancre === "taches") return <ToutesLesTaches vide={vide} />;
   if (ancre === "demande") return <DemandeAcces />;
   if (ancre === "intervention") return <Intervention />;
@@ -132,240 +154,182 @@ export function AccueilPortail() {
   if (ancre === "recherche") return <RechercheBail />;
   if (ancre.startsWith("offre-")) return <OffreDetail id={ancre.slice("offre-".length)} />;
 
+  const prestataire = auth?.roleId === "prestataire";
   const taches = tachesAffichees({
     vide,
-    prestataire: ui.mode === "prestataire",
+    prestataire,
     proprietaire: auth?.roleId === "proprietaire",
     missions: session.missions,
     loyers: session.loyers,
     reservations: session.reservationsDossier,
   });
-  const jour = new Date();
-  const duJour = tachesDuJour(taches, jour.toISOString().slice(0, 10));
+  const duJour = tachesDuJour(taches, isoLocal(new Date()));
   return (
     <Journee
-      prenom={auth?.prenom ?? "Bonjour"}
-      nom={auth?.nom ?? ""}
+      prenom={auth?.prenom?.trim() || "vous"}
       initiales={`${auth?.prenom?.[0] ?? "H"}${auth?.nom?.[0] ?? ""}`.toUpperCase()}
-      taches={ui.mode === "prestataire" ? taches : duJour}
+      taches={prestataire ? taches : duJour}
       total={taches.length}
-      prestataire={ui.mode === "prestataire"}
-      jour={jour}
+      prestataire={prestataire}
     />
-  );
-}
-
-function SelecteurMode() {
-  const ui = usePortailUi();
-  const choix = [
-    { id: "resident" as const, label: "Résident" },
-    { id: "prestataire" as const, label: "Prestataire" },
-  ];
-  return (
-    <div
-      role="group"
-      aria-label="Mode du portail"
-      className="grid w-full grid-cols-2 gap-1 rounded-full bg-white p-1 shadow-sm"
-    >
-      {choix.map((c) => {
-        const on = ui.mode === c.id;
-        return (
-          <button
-            key={c.id}
-            type="button"
-            aria-pressed={on}
-            onClick={() => ui.definirMode(c.id)}
-            className={`h-11 rounded-full text-xs font-semibold ${on ? "bg-[#5090A8] text-white" : "text-[#667085]"}`}
-          >
-            {c.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function pastille(categorie: TachePortail["categorie"]) {
-  if (categorie === "Finance") return { fond: "bg-[#f8d7e3] text-[#b4234d]", icone: Wallet };
-  if (categorie === "Mission") return { fond: "bg-[#d7f0e6] text-[#067647]", icone: SprayCan };
-  return { fond: "bg-[#e4dcff] text-[#6941c6]", icone: KeyRound };
-}
-
-function Demarrage() {
-  const ui = usePortailUi();
-  const auth = useAuth();
-  const proprietaire = auth?.roleId === "proprietaire";
-  const voyageur = auth?.roleId === "voyageur";
-  const titre = proprietaire ? "Vos biens" : voyageur ? "Votre séjour" : "Pilotage et gestion";
-  const texte = proprietaire
-    ? "Suivez les loyers, les séjours et les documents de vos biens."
-    : voyageur
-      ? "Préparez votre arrivée, vos documents et vos messages avec le gestionnaire."
-      : "Cet outil est conçu pour vous aider à gérer vos locations et vos missions.";
-  return (
-    <Ecran className="items-center pt-8 text-center">
-      {proprietaire ? (
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#5090A8]">
-          Espace propriétaire
-        </p>
-      ) : (
-        <SelecteurMode />
-      )}
-      <Marque className="mt-6" />
-      <div className="relative mt-4 h-24 w-full" aria-hidden>
-        <span className="absolute left-8 top-2 grid size-14 place-items-center rounded-2xl bg-white text-xl shadow-sm">
-          📅
-        </span>
-        <span className="absolute right-10 top-6 grid size-14 place-items-center rounded-2xl bg-white text-xl shadow-sm">
-          🔑
-        </span>
-      </div>
-      <h1 className="text-[26px] font-semibold leading-tight text-[#1d2939]">{titre}</h1>
-      <p className="max-w-[18rem] text-sm leading-relaxed text-[#667085]">{texte}</p>
-      <div className="mt-4 w-full">
-        <Bouton onClick={() => ui.demarrer()}>Commencer</Bouton>
-      </div>
-      <p className="text-[11px] text-[#98a2b3]">
-        {proprietaire
-          ? "Biens, loyers et séjours"
-          : ui.mode === "prestataire"
-            ? "Mode Prestataire"
-            : voyageur
-              ? "Mode voyageur"
-              : "Mode Résident"}
-      </p>
-    </Ecran>
   );
 }
 
 function Journee({
   prenom,
-  nom,
   initiales,
   taches,
   total,
   prestataire,
-  jour,
 }: {
   prenom: string;
-  nom: string;
   initiales: string;
   taches: TachePortail[];
   total: number;
   prestataire: boolean;
-  jour: Date;
 }) {
   const navigate = useNavigate();
-  const ui = usePortailUi();
-  const auth = useAuth();
-  const proprietaire = auth?.roleId === "proprietaire";
-  const [selection, setSelection] = useState(jour.toISOString().slice(0, 10));
-  const bandeau = joursAutour(jour);
-  const visibles = taches.filter((t) => t.quand.slice(0, 10) === selection || taches.length <= 4);
-  return (
-    <Ecran>
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => void navigate({ to: "/espace/dossier" })}
-          className="grid size-12 place-items-center rounded-full bg-[#5090A8] text-sm font-semibold text-white"
-          aria-label="Mon profil"
-        >
-          {initiales}
-        </button>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs text-[#667085]">Bonjour !</p>
-          <p className="truncate text-lg font-semibold text-[#1d2939]">
-            {prenom} {nom}
-          </p>
+  const centre = centreFrise(taches);
+  const [selection, setSelection] = useState(isoLocal(centre));
+  const bandeau = joursAutour(centre);
+  const duJour = taches.filter((t) => t.quand.slice(0, 10) === selection);
+  const ouvrir = (t: TachePortail) =>
+    void navigate({ to: t.route, ...(t.hash ? { hash: t.hash } : {}) });
+
+  if (prestataire) {
+    return (
+      <Ecran className="gap-5">
+        <div className="grid grid-cols-[1fr_auto] items-start">
+          <h1 className="pt-2 text-center font-display text-[32px] font-normal leading-none text-[var(--portail-encre)]">
+            Ma Journée
+          </h1>
+          <Cloche />
         </div>
+        <div className="grid grid-cols-5 gap-1.5">
+          {bandeau.map((date) => {
+            const e = etiquetteLocale(date);
+            const on = e.iso === selection;
+            return (
+              <button
+                key={e.iso}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setSelection(e.iso)}
+                className={`flex h-[78px] flex-col items-center justify-center rounded-2xl text-[11px] capitalize shadow-[0_4px_12px_rgba(0,0,0,0.08)] ${
+                  on
+                    ? "bg-[var(--portail-sarcelle)] text-white"
+                    : "bg-white text-[var(--portail-encre)]"
+                }`}
+              >
+                <span>{e.mois}</span>
+                <span className="text-lg font-semibold leading-none">{e.numero}</span>
+                <span className="capitalize">{e.semaine}</span>
+              </button>
+            );
+          })}
+        </div>
+        <ul className="relative ml-2 space-y-3 border-l-2 border-[#1d2939] py-1 pl-5">
+          {duJour.length === 0 && (
+            <li className="rounded-2xl bg-white px-4 py-3 text-sm text-[var(--portail-encre-douce)] shadow-[var(--portail-ombre)]">
+              Rien de prévu ce jour. Choisissez un autre jour ou ouvrez les missions.
+            </li>
+          )}
+          {duJour.map((t, index) => {
+            const [titre, ...reste] = t.titre.split(" — ");
+            const lieu = reste.join(" — ");
+            const actif = index === Math.floor(duJour.length / 2);
+            return (
+              <li key={t.id} className="relative">
+                <span
+                  className="absolute -left-[27px] top-5 size-3 rounded-full bg-[#c5c8ce] ring-4 ring-[#e6e3db]"
+                  aria-hidden
+                />
+                <button
+                  type="button"
+                  onClick={() => ouvrir(t)}
+                  className={`w-full rounded-2xl px-4 py-3 text-left shadow-[var(--portail-ombre)] ${
+                    actif ? "bg-white" : "bg-[#f3f0f5]"
+                  }`}
+                >
+                  <span className="flex items-center gap-1 text-sm font-semibold text-[var(--portail-lilas)]">
+                    <Clock className="size-3.5" fill="currentColor" />
+                    {heureDouze(t.quand, t.heureLabel)}
+                  </span>
+                  <span className="mt-0.5 block text-[15px] font-semibold text-[var(--portail-encre)]">
+                    {titre}
+                  </span>
+                  {lieu && (
+                    <span className="block text-sm text-[var(--portail-encre-douce)]">{lieu}</span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </Ecran>
+    );
+  }
+
+  return (
+    <Ecran className="gap-3">
+      <div className="flex items-center gap-2">
         <button
           type="button"
-          aria-label="Notifications"
-          onClick={ui.ouvrirNotifs}
-          className="grid size-11 place-items-center text-[#344054]"
+          aria-label="Mon logement"
+          onClick={() => void navigate({ to: "/espace/logement" })}
+          className="grid size-11 place-items-center text-[var(--portail-encre)]"
         >
-          <Shield className="sr-only" />
-          <span className="text-lg" aria-hidden>
-            🔔
-          </span>
+          <Home className="size-6" fill="currentColor" strokeWidth={1.5} />
         </button>
-      </div>
-      {proprietaire ? (
-        <p className="text-center text-xs font-semibold uppercase tracking-[0.14em] text-[#5090A8]">
-          Espace propriétaire
-        </p>
-      ) : (
-        <SelecteurMode />
-      )}
-      <h1 className="text-center text-lg font-semibold text-[#1d2939]">
-        {prestataire ? "Ma journée" : "Tâches du jour"}
-      </h1>
-      <div className="grid grid-cols-5 gap-1">
-        {bandeau.map((date) => {
-          const e = etiquetteJour(date);
-          const on = e.iso === selection;
-          return (
-            <button
-              key={e.iso}
-              type="button"
-              onClick={() => setSelection(e.iso)}
-              className="flex min-w-0 flex-col items-center gap-0.5 py-1 text-[10px] text-[#667085]"
-            >
-              <span className="capitalize">{e.mois}</span>
-              <span
-                className={`grid size-8 place-items-center rounded-full text-base font-semibold ${on ? "bg-[#5090A8] text-white" : "text-[#1d2939]"}`}
-              >
-                {e.numero}
-              </span>
-              <span>{e.semaine}</span>
-            </button>
-          );
-        })}
+        <button
+          type="button"
+          aria-label="Mon profil"
+          onClick={() => void navigate({ to: "/espace/dossier" })}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        >
+          <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[var(--portail-sarcelle)] text-sm font-semibold text-white">
+            {initiales}
+          </span>
+          <h1 className="min-w-0 font-display leading-tight text-[var(--portail-encre)]">
+            <span className="block text-[15px] font-medium">Bonjour !</span>
+            <span className="block truncate text-[22px] font-semibold">{prenom}</span>
+          </h1>
+        </button>
+        <Cloche />
       </div>
       {taches.length === 0 && (
         <Carte>
-          <p className="text-sm text-[#667085]">
+          <p className="text-sm text-[var(--portail-encre-douce)]">
             Rien de prévu pour le moment. Les appels de loyer, le check-in et les états des lieux
             s'affichent ici dès qu'ils vous concernent.
           </p>
         </Carte>
       )}
-      <ul className={prestataire ? "relative space-y-3 pl-14" : "space-y-3"}>
-        {prestataire && (
-          <span className="absolute bottom-3 left-[3.25rem] top-3 w-px bg-[#d0d5dd]" aria-hidden />
-        )}
-        {(visibles.length > 0 ? visibles : taches).map((t) => {
-          const p = pastille(t.categorie);
+      <ul className="mt-6 space-y-3">
+        {taches.map((t) => {
+          const Icone = t.categorie === "Finance" ? Briefcase : UserRound;
           return (
-            <li key={t.id} className="relative">
-              {prestataire && (
-                <span className="absolute -left-14 top-3 w-12 text-right text-[10px] text-[#667085]">
-                  {t.heureLabel}
-                </span>
-              )}
+            <li key={t.id}>
               <button
                 type="button"
-                onClick={() =>
-                  void navigate({
-                    to: t.route,
-                    ...(t.hash ? { hash: t.hash } : {}),
-                  })
-                }
-                className="flex w-full items-center gap-3 rounded-[22px] bg-white px-3 py-3 text-left shadow-[0_8px_24px_rgba(70,80,60,0.05)]"
+                onClick={() => ouvrir(t)}
+                className="flex w-full items-center gap-3 rounded-[22px] bg-white px-4 py-3 text-left shadow-[var(--portail-ombre)]"
               >
-                <span className={`grid size-10 shrink-0 place-items-center rounded-full ${p.fond}`}>
-                  <p.icone className="size-4" />
-                </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px] font-medium text-[#1d2939]">
+                  <span className="block text-xs text-[var(--portail-encre-douce)]">
+                    {t.categorie === "Finance" ? "Finance" : "Action"}
+                  </span>
+                  <span className="block truncate text-[15px] font-semibold text-[var(--portail-encre)]">
                     {t.titre}
                   </span>
-                  {!prestataire && (
-                    <span className="mt-1 flex items-center gap-1 text-[11px] text-[#e11d48]">
-                      <Clock className="size-3" /> {t.heureLabel}
-                    </span>
-                  )}
+                  <span className="mt-1 flex items-center gap-2 text-[11px] font-medium text-[var(--portail-corail)]">
+                    <Clock className="size-3.5" fill="currentColor" />
+                    {heureDouze(t.quand, t.heureLabel)}
+                    <span>{t.quand.slice(0, 10).split("-").reverse().join("/")}</span>
+                  </span>
+                </span>
+                <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#f6f1df] text-[var(--portail-encre)]">
+                  <Icone className="size-5" fill="currentColor" strokeWidth={1.5} />
                 </span>
               </button>
             </li>
@@ -374,7 +338,7 @@ function Journee({
       </ul>
       <Bouton onClick={() => void navigate({ to: "/espace", hash: "taches" })}>
         Tâches en cours
-        <span className="ml-2 grid size-5 place-items-center rounded-full bg-white/20 text-xs">
+        <span className="ml-2 grid size-6 place-items-center rounded-full bg-white/25 text-xs">
           {total}
         </span>
       </Bouton>
