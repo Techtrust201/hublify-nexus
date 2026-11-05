@@ -20,6 +20,7 @@ import { useReglagesMessagerie } from "@/components/messagerie/useReglagesMessag
 import { cibleConversation, messagesDeclenches } from "@/data/messagerie-auto";
 import {
   DOCUMENTS_LIES,
+  MESSAGES_MO1,
   completerMessagesFil,
   type ActionFil,
   type Conversation,
@@ -30,7 +31,15 @@ import {
 import { profilDepuisConversation } from "@/data/profil-interlocuteur";
 import { propositionPour } from "@/data/reglages-messagerie";
 import type { BrouillonBail } from "@/data/proposition-bail";
-import { ajouterNotif, modifierSession, useSession } from "@/data/session";
+import {
+  ajouterMessageFil,
+  ajouterNotif,
+  enregistrerConversation,
+  idNouveau,
+  modifierSession,
+  useSession,
+  useSessionChargee,
+} from "@/data/session";
 import { choisirFichierComplet, confirmer, telechargerPdf, toastOk } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
@@ -74,6 +83,7 @@ function PageMessagerie() {
   const redacteur = auth ? `${auth.prenom} ${auth.nom}` : "Yannick Rath";
   const [reglages, mettreAJourReglages] = useReglagesMessagerie();
   const session = useSession();
+  const chargee = useSessionChargee();
   const conversations = session.conversations;
   const messages = session.messagesFil;
   const setConversations = (next: Conversation[] | ((prev: Conversation[]) => Conversation[])) => {
@@ -84,7 +94,7 @@ function PageMessagerie() {
     const resolu = typeof next === "function" ? next(messages) : next;
     modifierSession((e) => ({ ...e, messagesFil: resolu }));
   };
-  const [selection, setSelection] = useState(conv ?? "c-brian");
+  const [selection, setSelection] = useState(conv ?? "");
   const [recherche, setRecherche] = useState("");
   const [archives, setArchives] = useState(false);
   const [brouillon, setBrouillon] = useState("");
@@ -121,6 +131,16 @@ function PageMessagerie() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conv, conversations]);
 
+  useEffect(() => {
+    if (!chargee) return;
+    const avecFil = new Set(messages.map((m) => m.conversationId));
+    for (const message of MESSAGES_MO1) {
+      if (avecFil.has(message.conversationId)) continue;
+      if (!conversations.some((c) => c.id === message.conversationId)) continue;
+      ajouterMessageFil(message);
+    }
+  }, [chargee, conversations, messages]);
+
   const filtrees = useMemo(() => {
     const q = recherche.trim().toLowerCase();
     return conversations.filter((c) => {
@@ -148,6 +168,18 @@ function PageMessagerie() {
     });
   };
 
+  useEffect(() => {
+    if (!chargee || conv) return;
+    const premiere =
+      conversations.find((c) => !c.archivee && c.section === "inbox") ??
+      conversations.find((c) => !c.archivee);
+    if (!premiere) return;
+    setSelection(premiere.id);
+    aller({ conv: premiere.id });
+    // La première conversation visible s'ouvre sans clic, comme sur la maquette.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chargee, conv, conversations]);
+
   const selectionner = (id: string) => {
     setSelection(id);
     setPanneau(null);
@@ -169,17 +201,14 @@ function PageMessagerie() {
     if ((!texte && piecesBrouillon.length === 0) || !actif) return;
     const heure = heureMaintenant();
     const extrait = texte || piecesBrouillon.map((p) => p.nom).join(", ");
-    setMessages((liste) => [
-      ...liste,
-      {
-        id: `m-local-${Date.now()}`,
-        conversationId: actif.id,
-        kind: "envoye",
-        texte,
-        heure,
-        ...(piecesBrouillon.length ? { pieces: piecesBrouillon } : {}),
-      },
-    ]);
+    ajouterMessageFil({
+      id: idNouveau("m"),
+      conversationId: actif.id,
+      kind: "envoye",
+      texte,
+      heure,
+      ...(piecesBrouillon.length ? { pieces: piecesBrouillon } : {}),
+    });
     setConversations((liste) =>
       liste.map((c) => (c.id === actif.id ? { ...c, extrait, ilYa: "À l'instant" } : c)),
     );
@@ -233,26 +262,25 @@ function PageMessagerie() {
       { nom: actif.nom, heure, date, bien: actif.bienNom ?? "" },
     );
     const piece = `Proposition de bail - ${actif.nom}${actif.bienNom ? ` - ${actif.bienNom}` : ""}`;
-    setMessages((liste) => [
-      ...liste,
-      ...textes.map((texte, index) => ({
-        id: `m-auto-${Date.now()}-${index}`,
+    textes.forEach((texte, index) => {
+      ajouterMessageFil({
+        id: idNouveau(`m-auto-${index}`),
         conversationId: actif.id,
-        kind: "systeme" as const,
-        iconeSysteme: "key" as const,
+        kind: "systeme",
+        iconeSysteme: "key",
         texte,
-      })),
-      {
-        id: `m-bail-${Date.now()}`,
-        conversationId: actif.id,
-        kind: "envoye" as const,
-        heure,
-        texte: signature
-          ? `Bonjour,\nLa proposition de bail est prête pour signature. Merci de suivre le parcours indiqué.\nBien à vous,\n${redacteur}`
-          : `Bonjour,\nVous trouverez ci-joint la proposition de bail.\nBien à vous,\n${redacteur}`,
-        pieces: [{ nom: piece, taille: "186 Ko" }],
-      },
-    ]);
+      });
+    });
+    ajouterMessageFil({
+      id: idNouveau("m-bail"),
+      conversationId: actif.id,
+      kind: "envoye",
+      heure,
+      texte: signature
+        ? `Bonjour,\nLa proposition de bail est prête pour signature. Merci de suivre le parcours indiqué.\nBien à vous,\n${redacteur}`
+        : `Bonjour,\nVous trouverez ci-joint la proposition de bail.\nBien à vous,\n${redacteur}`,
+      pieces: [{ nom: piece, taille: "186 Ko" }],
+    });
     setConversations((liste) =>
       liste.map((c) =>
         c.id === actif.id ? { ...c, extrait: "Proposition de bail", ilYa: "À l'instant" } : c,
@@ -506,10 +534,10 @@ function PageMessagerie() {
         ouvert={ecrire}
         onFermer={() => setEcrire(false)}
         onEnvoyer={(destinataire, objet, texte, pieces) => {
-          const id = `c-new-${Date.now()}`;
+          const id = idNouveau("c");
           const corps = [objet && `Objet : ${objet}`, texte].filter(Boolean).join("\n\n");
           const extrait = corps || pieces.map((p) => p.nom).join(", ");
-          const conv: Conversation = {
+          const nouvelle: Conversation = {
             id,
             section: "inbox",
             nom: destinataire,
@@ -521,18 +549,15 @@ function PageMessagerie() {
             nonLu: false,
             archivee: false,
           };
-          setConversations((liste) => [conv, ...liste]);
-          setMessages((liste) => [
-            ...liste,
-            {
-              id: `m-new-${Date.now()}`,
-              conversationId: id,
-              kind: "envoye",
-              texte: corps,
-              heure: heureMaintenant(),
-              ...(pieces.length ? { pieces } : {}),
-            },
-          ]);
+          void enregistrerConversation(nouvelle);
+          ajouterMessageFil({
+            id: idNouveau("m"),
+            conversationId: id,
+            kind: "envoye",
+            texte: corps,
+            heure: heureMaintenant(),
+            ...(pieces.length ? { pieces } : {}),
+          });
           setSelection(id);
           setFilMobileOuvert(true);
           setArchives(false);

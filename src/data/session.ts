@@ -463,7 +463,21 @@ export function ouvrirConversationProspect(params: {
 
 const apresConversation = new Map<string, Promise<boolean>>();
 
+export function enregistrerConversation(ligne: Conversation) {
+  appliquerLocal((e) => ({
+    ...e,
+    conversations: [ligne, ...e.conversations.filter((c) => c.id !== ligne.id)],
+  }));
+  const promesse = pousserLigne("conversations", ligne).then((ok) => {
+    if (!ok) programmerReprise();
+    return ok;
+  });
+  apresConversation.set(ligne.id, promesse);
+  return promesse;
+}
+
 export function ajouterMessageFil(message: EtatSession["messagesFil"][number]) {
+  if (etat.messagesFil.some((m) => m.id === message.id)) return;
   appliquerLocal((e) => ({ ...e, messagesFil: [...e.messagesFil, message] }));
   const attente = apresConversation.get(message.conversationId) ?? Promise.resolve(true);
   void attente.then((ok) => {

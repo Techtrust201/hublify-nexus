@@ -1,13 +1,14 @@
 // SOURCE: Hublify V1.0 — Maq V1 Gestionnaire / Analyse
 
 import {
+  Area,
   Bar,
   BarChart,
+  ComposedChart,
   CartesianGrid,
   Cell,
   Legend,
   Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -16,7 +17,15 @@ import {
   YAxis,
 } from "recharts";
 import type { MoisAnalyse, PartCanal } from "@/lib/analyse-vue";
-import { AMBRE, COULEURS_CANAL, ENCRE, GRIS, SAUGE, euro } from "@/components/analyse/presentation";
+import {
+  AMBRE,
+  COULEURS_CANAL,
+  ENCRE,
+  ROUGE,
+  SAUGE,
+  VERT,
+  euro,
+} from "@/components/analyse/presentation";
 
 function eurosTooltip(value: unknown) {
   const n = typeof value === "number" ? value : Number(value);
@@ -30,13 +39,13 @@ export function GraphiqueOccupation({ mois }: { mois: MoisAnalyse[] }) {
     <div className="h-52 w-full min-w-0">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} barCategoryGap="28%">
-          <CartesianGrid vertical={false} stroke="#e6e8ec" />
+          <CartesianGrid vertical={false} stroke="#E5E7EB" />
           <XAxis
             dataKey="mois"
-            tick={{ fontSize: 11, fill: "#6a7282" }}
+            tick={{ fontSize: 11, fill: "#99A1AF" }}
             interval={data.length > 8 ? 1 : 0}
           />
-          <YAxis tick={{ fontSize: 11, fill: "#6a7282" }} unit="%" width={36} />
+          <YAxis tick={{ fontSize: 11, fill: "#99A1AF" }} unit="%" width={36} />
           <Tooltip formatter={(v) => [`${v} %`, "Occupation"]} />
           <Bar dataKey="taux" fill={ENCRE} radius={[5, 5, 0, 0]} maxBarSize={36} />
         </BarChart>
@@ -55,13 +64,13 @@ export function GraphiqueEncaissements({ mois }: { mois: MoisAnalyse[] }) {
     <div className="h-56 w-full min-w-0">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} barGap={2}>
-          <CartesianGrid vertical={false} stroke="#e6e8ec" />
+          <CartesianGrid vertical={false} stroke="#E5E7EB" />
           <XAxis
             dataKey="mois"
-            tick={{ fontSize: 11, fill: "#6a7282" }}
+            tick={{ fontSize: 11, fill: "#99A1AF" }}
             interval={data.length > 8 ? 1 : 0}
           />
-          <YAxis tick={{ fontSize: 11, fill: "#6a7282" }} width={48} />
+          <YAxis tick={{ fontSize: 11, fill: "#99A1AF" }} width={48} />
           <Tooltip formatter={(v) => eurosTooltip(v)} />
           <Legend />
           <Bar dataKey="Encaissés" fill={ENCRE} radius={[4, 4, 0, 0]} maxBarSize={22} />
@@ -93,19 +102,27 @@ export function GraphiqueProgression({
   return (
     <div className="h-52 w-full min-w-0">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data}>
-          <CartesianGrid stroke="#e6e8ec" vertical={false} />
+        <ComposedChart data={data}>
+          <CartesianGrid stroke="#E5E7EB" vertical={false} />
           <XAxis
             dataKey="mois"
-            tick={{ fontSize: 11, fill: "#6a7282" }}
+            tick={{ fontSize: 11, fill: "#99A1AF" }}
             interval={data.length > 8 ? 1 : 0}
           />
-          <YAxis tick={{ fontSize: 11, fill: "#6a7282" }} width={48} />
+          <YAxis tick={{ fontSize: 11, fill: "#99A1AF" }} width={48} />
           <Tooltip formatter={(v) => (serieA === "taux" ? `${v} %` : eurosTooltip(v))} />
           <Legend />
-          <Line type="monotone" dataKey={nomA} stroke={SAUGE} strokeWidth={2} dot={false} />
-          <Line type="monotone" dataKey={nomB} stroke={GRIS} strokeWidth={2} dot={false} />
-        </LineChart>
+          <Area
+            type="monotone"
+            dataKey={nomA}
+            stroke={SAUGE}
+            fill={VERT}
+            fillOpacity={0.55}
+            strokeWidth={2}
+            dot={false}
+          />
+          <Line type="monotone" dataKey={nomB} stroke={ROUGE} strokeWidth={2} dot={false} />
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
   );

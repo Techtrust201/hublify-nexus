@@ -1,5 +1,6 @@
 // SOURCE: Hublify V1.0 — Maq V1 Gestionnaire / Analyse
 
+import { useEffect, useRef } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   AnalyseApp,
@@ -39,24 +40,32 @@ export const Route = createFileRoute("/analyse/")({
   component: PageAnalyse,
 });
 
+function rechercheVisible(suivant: RechercheAnalyse): RechercheAnalyse {
+  return {
+    ...(suivant.vue ? { vue: suivant.vue } : {}),
+    ...(suivant.onglet ? { onglet: suivant.onglet } : {}),
+    ...(suivant.logement ? { logement: suivant.logement } : {}),
+    ...(suivant.debut ? { debut: suivant.debut } : {}),
+    ...(suivant.fin ? { fin: suivant.fin } : {}),
+  };
+}
+
 function PageAnalyse() {
   const navigate = useNavigate();
   const recherche = Route.useSearch();
+  // Deux changements rapides (début puis fin) partagent encore l'ancienne
+  // recherche du routeur : on mémorise le dernier envoi pour ne pas l'écraser.
+  const courant = useRef(recherche);
+  useEffect(() => {
+    courant.current = recherche;
+  }, [recherche]);
   return (
     <AnalyseApp
       recherche={recherche}
       onRecherche={(patch) => {
-        const suivant = { ...recherche, ...patch };
-        void navigate({
-          to: "/analyse",
-          search: {
-            ...(suivant.vue ? { vue: suivant.vue } : {}),
-            ...(suivant.onglet ? { onglet: suivant.onglet } : {}),
-            ...(suivant.logement ? { logement: suivant.logement } : {}),
-            ...(suivant.debut ? { debut: suivant.debut } : {}),
-            ...(suivant.fin ? { fin: suivant.fin } : {}),
-          },
-        });
+        const suivant = rechercheVisible({ ...courant.current, ...patch });
+        courant.current = suivant;
+        void navigate({ to: "/analyse", search: suivant });
       }}
     />
   );

@@ -177,6 +177,13 @@ describe("écritures et invitations", () => {
     ).toBe("invalide");
     expect(validerInsertion("messagesFil", { id: "m", texte: "   " })).toBe("invalide");
     expect(
+      validerInsertion("messagesFil", {
+        id: "m",
+        texte: "",
+        pieces: [{ nom: "Bail.pdf", taille: "12 Ko" }],
+      }),
+    ).toBe("ok");
+    expect(
       validerInsertion("messagesFil", { id: "m", texte: "Séjour confirmé — été 2026 🎉" }),
     ).toBe("ok");
   });

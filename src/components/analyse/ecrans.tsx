@@ -41,7 +41,7 @@ export function EcranOccupation({ vue }: { vue: AnalyseVue }) {
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm text-ink-body">Taux d'occupation</p>
-              <p className="mt-1 text-4xl tracking-tight text-[#0f7a45]">{k.tauxOccupation} %</p>
+              <p className="mt-1 text-4xl tracking-tight text-ink">{k.tauxOccupation} %</p>
             </div>
             <p className="max-w-[14rem] text-right text-xs text-ink-muted">
               {k.nuitsReservees} nuits occupées sur {k.nuitsDisponibles} disponibles
@@ -117,7 +117,7 @@ export function EcranOccupation({ vue }: { vue: AnalyseVue }) {
             nomA="Cette période"
             nomB="Année précédente"
           />
-          <p className="mt-2 flex items-center gap-2 rounded-card bg-surface-soft px-3 py-2 text-xs text-ink-body">
+          <p className="mt-2 flex items-center gap-2 rounded-card bg-gest-vert px-3 py-2 text-xs text-ink">
             {k.nuitsReservees} nuits occupées cette période
             {k.variationEncaisse !== null
               ? ` · encaissements ${k.variationEncaisse > 0 ? "+" : ""}${k.variationEncaisse} %`
@@ -397,7 +397,7 @@ export function EcranGestionnaires({ vue }: { vue: AnalyseVue }) {
                       <p className="text-ink-muted">sur {euro(p.attendu)}</p>
                       <span className="mt-1 block h-1.5 w-28 overflow-hidden rounded-full bg-surface-soft">
                         <span
-                          className="block h-full bg-[#1f8f78]"
+                          className="block h-full bg-ink-body"
                           style={{
                             width: `${p.attendu > 0 ? Math.min(100, Math.round((p.encaisse / p.attendu) * 100)) : 0}%`,
                           }}
