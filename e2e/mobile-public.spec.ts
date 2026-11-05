@@ -23,11 +23,7 @@ async function connecter(page: Page, email: string) {
 }
 
 async function demarrerPortail(page: Page) {
-  const commencer = page.getByRole("button", { name: "Commencer" });
-  const journee = page.getByRole("heading", { name: /Tâches du jour|Ma journée/ });
-  await expect(commencer.or(journee)).toBeVisible();
-  if (await commencer.isVisible()) await commencer.click();
-  await expect(journee).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Bonjour|Ma Journée/ })).toBeVisible();
 }
 
 test.describe("pages publiques", () => {
@@ -105,10 +101,9 @@ test.describe("portails", () => {
     const note = `Note mobile ${Date.now().toString(36)}`;
     await connecter(page, "jean.martin@hublify.app");
     await page.goto("/espace");
-    const resident = page.getByRole("button", { name: "Résident" });
-    if (await resident.isVisible().catch(() => false)) await resident.click();
     await demarrerPortail(page);
-    await expect(page.getByRole("heading", { name: "Tâches du jour" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Bonjour/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Let's Start" })).toHaveCount(0);
     await page.getByRole("link", { name: "Agenda" }).click();
     await expect(page.getByRole("heading", { name: "Calendrier" })).toBeVisible();
     expect(await debordement(page)).toBeLessThanOrEqual(1);
@@ -161,7 +156,7 @@ test.describe("portails", () => {
     await page.goto("/espace");
     await expect(page.getByText("plus tard")).toHaveCount(0);
     await demarrerPortail(page);
-    await expect(page.getByRole("heading", { name: "Tâches du jour" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Bonjour/ })).toBeVisible();
     expect(await debordement(page)).toBeLessThanOrEqual(1);
     await page.getByRole("button", { name: "Ajouter" }).click();
     await expect(page.getByRole("button", { name: "Voir les loyers" })).toBeVisible();
@@ -173,10 +168,7 @@ test.describe("portails", () => {
     test.setTimeout(90_000);
     await connecter(page, "lucas.menage@hublify.app");
     await page.goto("/espace");
-    const mode = page.getByRole("group", { name: "Mode du portail" });
-    if (await mode.isVisible().catch(() => false)) {
-      await mode.getByRole("button", { name: "Prestataire" }).click();
-    }
+    await expect(page.getByRole("heading", { name: "Ma Journée" })).toBeVisible();
     await demarrerPortail(page);
     await page.getByRole("button", { name: "Ajouter" }).click();
     await page.getByRole("button", { name: "Rapport d'intervention" }).click();

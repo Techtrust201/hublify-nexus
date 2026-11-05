@@ -25,16 +25,57 @@ function FicheLogement() {
   const bien = session.biens[0];
   const nom = bien?.nom ?? "Appartement Colette";
   const adresse = bien?.adresse ?? "8 rue Lycklama, 06400 Cannes";
+  const sejours = session.reservationsDossier.filter((r) => r.statut !== "Annulé");
   return (
     <Ecran>
-      <Entete titre="Mon logement" />
+      <Entete titre="Mon logement" surRetour={() => void navigate({ to: "/espace" })} />
+      <p className="text-center text-xs text-[var(--portail-encre-douce)]">
+        Pour clôturer un bail, déclarez une date de départ. Les documents de sortie sont alors
+        préparés.
+      </p>
+      <ul className="space-y-3">
+        {(sejours.length > 0
+          ? sejours
+          : [
+              {
+                id: "demo-logement",
+                occupant: nom,
+                arrivee: "2026-11-10",
+                depart: "2026-11-13",
+                heureArrivee: "10:00",
+                heureDepart: "15:00",
+              },
+            ]
+        ).map((r) => (
+          <li key={r.id}>
+            <button
+              type="button"
+              onClick={() => void navigate({ to: "/espace", hash: "acces" })}
+              className="flex w-full items-center gap-3 rounded-[22px] bg-white px-3 py-3 text-left shadow-[var(--portail-ombre)]"
+            >
+              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#f6f1df]">
+                <span className="text-lg" aria-hidden>
+                  ⌂
+                </span>
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-[15px] font-semibold text-[var(--portail-encre)]">
+                  {nom} — {r.occupant}
+                </span>
+                <span className="mt-1 block text-[11px] font-medium text-[var(--portail-corail)]">
+                  {r.arrivee} {r.heureArrivee} → {r.depart}
+                </span>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
       <Carte className="space-y-2">
-        <p className="text-base font-semibold text-[#1d2939]">{nom}</p>
-        <p className="text-sm text-[#667085]">{adresse}</p>
+        <p className="text-base font-semibold text-[#1d2939]">{adresse}</p>
         <p className="text-xs text-[#667085]">{session.parametrage.consignesArrivee}</p>
         <button
           type="button"
-          className="text-sm font-medium text-[#5090A8]"
+          className="text-sm font-semibold text-[var(--portail-encre)]"
           onClick={() => void navigate({ to: "/espace", hash: "acces" })}
         >
           Fiche d'accès

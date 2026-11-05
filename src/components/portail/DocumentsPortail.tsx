@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { FileText, Home, Receipt, ScrollText } from "lucide-react";
+import { FileText, Home, ScrollText } from "lucide-react";
 import { useMemo, useState } from "react";
 import { BandeauSimulation, Bouton, Carte, Ecran, Entete } from "@/components/portail/chrome";
 import { usePortailDonnees } from "@/components/portail/etat-portail";
@@ -204,56 +204,69 @@ export function DocumentsPortail() {
 
 function Hub({ docs }: { docs: DocVue[] }) {
   const navigate = useNavigate();
-  const tuiles: Array<{ hash: string; titre: string; detail: string; icone: typeof Home }> = [
-    { hash: "location", titre: "Ma location", detail: "Bail, facture voyageur", icone: Home },
+  const tuiles: Array<{
+    hash: string;
+    titre: string;
+    detail: string;
+    icone: typeof Home;
+    decalage: string;
+  }> = [
+    {
+      hash: "location",
+      titre: "Ma location",
+      detail: "informations\nBail/facture voyageur",
+      icone: Home,
+      decalage: "",
+    },
     {
       hash: "quittances",
       titre: "Quittances",
-      detail: "Appels, quittances, historique",
-      icone: Receipt,
+      detail: "Appels de loyer\nQuittances\nhistorique paiement",
+      icone: Home,
+      decalage: "mt-3",
     },
     {
       hash: "edl",
       titre: "État des lieux",
-      detail: "Entrée, sortie, inventaire",
+      detail: "Inventaire",
       icone: ScrollText,
+      decalage: "mt-8",
     },
-    { hash: "reglement", titre: "Documents", detail: "Règlement, fiche d'accès", icone: FileText },
+    {
+      hash: "reglement",
+      titre: "Documents",
+      detail: "Règlement intérieur\nFiche d'accès",
+      icone: FileText,
+      decalage: "mt-2",
+    },
   ];
   return (
     <Ecran>
-      <Entete titre="Vos documents" sousTitre="Vos tâches en attente" />
-      <button
-        type="button"
-        className="text-xs text-[#5090A8]"
-        onClick={() => void navigate({ to: "/espace", hash: "taches" })}
-      >
-        Voir les tâches en attente
-      </button>
-      <div className="grid grid-cols-2 gap-3">
+      <Entete titre="Vos Documents" sousTitre="Vos tâches en attente" />
+      <div className="grid grid-cols-2 gap-x-4 px-1">
         {tuiles.map((t) => (
           <button
             key={t.hash}
             type="button"
             onClick={() => void navigate({ to: "/espace/documents", hash: t.hash })}
-            className="flex h-32 flex-col items-start justify-between rounded-[22px] bg-white p-4 text-left shadow-[0_8px_24px_rgba(70,80,60,0.05)]"
+            className={`flex h-[148px] flex-col items-center justify-center gap-1 rounded-[22px] bg-white px-3 text-center text-[var(--portail-encre)] shadow-[var(--portail-ombre)] ${t.decalage}`}
           >
-            <t.icone className="size-5 text-[#5090A8]" />
-            <span>
-              <span className="block text-sm font-semibold text-[#1d2939]">{t.titre}</span>
-              <span className="text-[11px] text-[#98a2b3]">{t.detail}</span>
+            <t.icone className="mb-1 size-7" fill="currentColor" strokeWidth={1.5} />
+            <span className="text-[15px] font-semibold leading-tight">{t.titre}</span>
+            <span className="whitespace-pre-line text-[11px] leading-snug text-[var(--portail-encre-douce)]">
+              {t.detail}
             </span>
           </button>
         ))}
       </div>
-      <Carte>
-        <p className="text-sm font-medium text-[#1d2939]">Information à propos du propriétaire</p>
-        <p className="mt-1 text-xs text-[#667085]">
-          {GESTIONNAIRE_PORTAIL.nom} ({GESTIONNAIRE_PORTAIL.societe}) ·{" "}
-          {GESTIONNAIRE_PORTAIL.telephone}
-        </p>
-      </Carte>
-      <p className="text-[11px] text-[#98a2b3]">
+      <button
+        type="button"
+        onClick={() => void navigate({ to: "/espace/contacts" })}
+        className="mt-4 flex min-h-16 w-full items-center justify-center rounded-[22px] bg-white px-4 text-center text-sm font-semibold text-[var(--portail-encre)] shadow-[var(--portail-ombre)]"
+      >
+        Information à propos du propriétaire
+      </button>
+      <p className="text-center text-[11px] text-[var(--portail-encre-douce)]">
         {docs.length} documents suivis. Les archives de plus de deux ans ne conservent que la ligne.
       </p>
     </Ecran>

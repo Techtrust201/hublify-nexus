@@ -51,7 +51,7 @@ export function MissionsPortail() {
 
   return (
     <Ecran>
-      <Entete titre="Missions" sousTitre="Mode Prestataire" />
+      <Entete titre="Toutes les tâches en cours" sousTitre="Ordre chronologique" />
       {liste.length === 0 && (
         <ul className="space-y-2">
           {TACHES_DEMO_PRESTATAIRE.map((t) => (
