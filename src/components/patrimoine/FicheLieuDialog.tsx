@@ -143,9 +143,14 @@ export function FicheLieuDialog({
   return (
     <Dialog open={ouvert} onOpenChange={(o) => !o && onFermer()}>
       <DialogContent className="flex max-h-[92dvh] max-w-3xl flex-col gap-0 overflow-hidden p-0">
-        <div className="shrink-0 space-y-1 px-6 pb-2 pt-6">
-          <DialogTitle>Lieu ou logement</DialogTitle>
-          <DialogDescription>Ajouter ou modifier une information.</DialogDescription>
+        <div className="shrink-0 space-y-3 px-6 pb-3 pt-6">
+          <p className="text-xs text-ink-muted">Bien immo / créer un logement</p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <DialogTitle className="text-2xl font-medium text-ink">Lieu ou logement</DialogTitle>
+              <DialogDescription>Ajouter ou modifier une information.</DialogDescription>
+            </div>
+          </div>
         </div>
         {brouillon && (
           <form
@@ -165,7 +170,7 @@ export function FicheLieuDialog({
               onEnregistrer(brouillon);
             }}
           >
-            <div className="flex shrink-0 flex-wrap gap-1 border-b border-line px-6">
+            <div className="mx-6 flex shrink-0 flex-wrap rounded-[14px] border border-line bg-white p-1">
               {(
                 [
                   ["infos", "Informations"],
@@ -178,11 +183,10 @@ export function FicheLieuDialog({
                   key={id}
                   type="button"
                   onClick={() => setOnglet(id)}
+                  aria-pressed={onglet === id}
                   className={cn(
-                    "h-11 border-b-2 px-3 text-sm md:h-9",
-                    onglet === id
-                      ? "border-ink font-medium text-ink"
-                      : "border-transparent text-ink-subtle",
+                    "h-11 flex-1 rounded-[10px] px-3 text-sm md:h-9",
+                    onglet === id ? "bg-surface-soft font-medium text-ink" : "text-ink-body",
                   )}
                 >
                   {label}
