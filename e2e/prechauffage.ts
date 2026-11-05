@@ -19,6 +19,10 @@ const ROUTES = [
   "/outils/upsells",
   "/precheckin",
   "/espace/precheckin",
+  "/faq",
+  "/profil",
+  "/outils/timeline",
+  "/outils/baux",
 ];
 
 export default async function prechauffer() {

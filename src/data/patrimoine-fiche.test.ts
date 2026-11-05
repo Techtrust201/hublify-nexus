@@ -13,6 +13,7 @@ import {
   extraireNotation,
   fichePourBien,
   ficheVierge,
+  normaliserFiche,
   importerAnnonce,
   libelleCourt,
   litDoubleValide,
@@ -179,6 +180,11 @@ describe("loyer, lits, annonce", () => {
     expect(relu.nom).toBe("Colette");
     expect(relu.fiche?.description).toBe("Lumineux");
     expect(relu.fiche?.photos).toEqual([]);
+    const avecPhoto = normaliserFiche({
+      photos: [{ id: "p1", nom: "salon.jpg", dataUrl: "data:image/jpeg;base64,AAAA" }],
+    });
+    expect(avecPhoto.photos).toEqual([{ id: "p1", nom: "salon.jpg" }]);
+    expect(JSON.stringify(avecPhoto.photos)).not.toContain("data:");
 
     const texte = importerAnnonce("Villa des pins\nNote : 4,8/5\nPiscine au sud.");
     expect(texte.nom).toBe("Villa des pins");

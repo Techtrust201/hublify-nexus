@@ -76,7 +76,7 @@ function VueGenerale() {
 
   return (
     <AppShell attendDonnees>
-      <KpiCards />
+      <KpiCards versImpayes="/analyse" />
 
       {voirCalendrier && (
         <div id="planning" className="mt-4">

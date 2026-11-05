@@ -12,16 +12,17 @@ import {
   Star,
   Wrench,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { CanalMo1, EvenementMo1, LoyerMo1, MessageMo1 } from "@/data/planning-mo1";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useKpiMo1, useSession } from "@/data/session";
 import { METHODES_PAIEMENT } from "@/data/v1-metier";
 import { copierTexte } from "@/lib/feedback";
 import { messageRelancePaiement, resteADevoir } from "@/lib/gestionnaire-planning";
+import { datesEvenementPourAffichage } from "@/lib/periode-demo";
 import { cn, useSessionBool } from "@/lib/utils";
 
-export function KpiCards() {
+export function KpiCards({ versImpayes = "/analyse" }: { versImpayes?: "/analyse" }) {
   const kpi = useKpiMo1();
   const voirFinances = useDroit("voir-finances");
   return (
@@ -41,7 +42,7 @@ export function KpiCards() {
               <span className="text-ink-body">{kpi.impaye.toLocaleString("fr-FR")} €</span>
             </>
           }
-          href="#paiements"
+          vers={versImpayes}
         />
       )}
       <CarteKpi
@@ -89,6 +90,7 @@ function CarteKpi({
   unite,
   detail,
   href,
+  vers,
 }: {
   icone: typeof AlertTriangle;
   titre: string;
@@ -99,6 +101,7 @@ function CarteKpi({
   unite: string;
   detail: ReactNode;
   href?: string;
+  vers?: "/analyse";
 }) {
   const corps = (
     <div className="min-h-[116px] rounded-card border border-line bg-white p-4">
@@ -130,12 +133,18 @@ function CarteKpi({
       <p className="mt-1 text-xs text-ink-muted">{detail}</p>
     </div>
   );
+  const classe =
+    "block rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
+  if (vers) {
+    return (
+      <Link to={vers} className={classe}>
+        {corps}
+      </Link>
+    );
+  }
   if (!href) return corps;
   return (
-    <a
-      href={href}
-      className="block rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-    >
+    <a href={href} className={classe}>
       {corps}
     </a>
   );
@@ -533,6 +542,7 @@ export function EvenementsSection({
   onAjouter: () => void;
 }) {
   const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.evenements", true);
+  const maintenant = useMemo(() => new Date(), []);
   const modResa = useDroit("mod-reservations");
   const modFinances = useDroit("mod-finances");
   const peutAjouter = modResa || modFinances;
@@ -607,7 +617,9 @@ export function EvenementsSection({
                     {e.impact}
                   </span>
                 </div>
-                <p className="mt-2 pl-8 text-xs text-ink-muted">📅 {e.dates}</p>
+                <p className="mt-2 pl-8 text-xs text-ink-muted">
+                  📅 {datesEvenementPourAffichage(e.id, e.dates, maintenant)}
+                </p>
                 <p className="mt-1 pl-8 text-xs text-ink-subtle">{e.description}</p>
               </li>
             ))}

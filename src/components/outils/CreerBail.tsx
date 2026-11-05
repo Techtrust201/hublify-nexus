@@ -27,6 +27,14 @@ const champ =
 
 const TYPES_BAIL = TYPES_RESERVATION.flatMap((g) => g.options).filter((t) => t.startsWith("Bail"));
 
+/** Horodatage d'affichage. Appelé seulement après montage : `toLocale*` diverge entre Node et le navigateur. */
+function horodatageRedaction(maintenant = new Date()) {
+  return {
+    date: maintenant.toLocaleDateString("fr-FR"),
+    heure: maintenant.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+  };
+}
+
 const PAGES = [
   "type",
   "designations",
@@ -58,10 +66,15 @@ export function CreerBail() {
   );
   const [surloyer, setSurloyer] = useState("");
   const [calendrier, setCalendrier] = useState(true);
+  const [horodatage, setHorodatage] = useState<{ date: string; heure: string } | null>(null);
 
   useEffect(() => {
     if (!bienId && session.biens[0]) setBienId(session.biens[0].id);
   }, [bienId, session.biens]);
+
+  useEffect(() => {
+    setHorodatage(horodatageRedaction());
+  }, []);
 
   const bien = session.biens.find((b) => b.id === bienId);
   const loyerN = Number(loyer.replace(",", ".")) || 0;
@@ -150,7 +163,7 @@ export function CreerBail() {
       type: "Bail",
       filtre: "Bail",
       logement: bien?.nom ?? "—",
-      date: new Date().toLocaleDateString("fr-FR"),
+      date: horodatageRedaction().date,
       taille: "PDF",
       modifiePar: "Vous",
       photos: 0,
@@ -164,7 +177,7 @@ export function CreerBail() {
         type: "Dossier",
         filtre: "Dossiers",
         logement: bien?.nom ?? "—",
-        date: new Date().toLocaleDateString("fr-FR"),
+        date: horodatageRedaction().date,
         taille: "—",
         modifiePar: "Vous",
         photos: 0,
@@ -484,10 +497,10 @@ export function CreerBail() {
         meta={
           <>
             <span className="rounded-card bg-surface-soft px-2 py-1 text-[11px] text-ink-muted">
-              {new Date().toLocaleDateString("fr-FR")}
+              {horodatage?.date ?? "\u00a0"}
             </span>
             <span className="rounded-card bg-surface-soft px-2 py-1 text-[11px] text-ink-muted">
-              {new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+              {horodatage?.heure ?? "\u00a0"}
             </span>
           </>
         }

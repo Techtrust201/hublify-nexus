@@ -38,8 +38,7 @@ export function FaqListe({ idPrefix = "faq" }: { idPrefix?: string }) {
             </h3>
             {estOuvert ? (
               <p id={panelId} className="mt-3 text-[13px] leading-relaxed text-[#111]">
-                {item.reponse ??
-                  "Cette réponse n'est pas encore publiée. Écrivez-nous : nous compléterons la FAQ."}
+                {item.reponse}
               </p>
             ) : null}
           </div>
