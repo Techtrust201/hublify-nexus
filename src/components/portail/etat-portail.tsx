@@ -77,37 +77,45 @@ export function PortailDonneesProvider({ children }: { children: ReactNode }) {
   const [etat, setEtat] = useState<EtatPortail>(ETAT_PORTAIL_VIDE);
   const [pret, setPret] = useState(false);
   const etatRef = useRef(etat);
+  const sauvegardes = useRef<Promise<void>>(Promise.resolve());
   etatRef.current = etat;
 
   useEffect(() => {
     let vivant = true;
     void (async () => {
-      const res = await chargerPortailDistant();
-      if (!vivant) return;
-      if (!res.ok) {
+      try {
+        const res = await chargerPortailDistant();
+        if (!vivant) return;
+        if (!res.ok) {
+          setEtat(fusionner(ETAT_PORTAIL_VIDE, lireInstantaneLocal()));
+          setPret(true);
+          return;
+        }
+        const local = lireInstantaneLocal();
+        const suivant = fusionner(res.data, local);
+        const distantVide =
+          !res.data.demarre &&
+          !res.data.mode &&
+          res.data.notes.length === 0 &&
+          res.data.paiements.length === 0 &&
+          !res.data.rdv &&
+          res.data.demandes.length === 0 &&
+          res.data.favoris.length === 0;
+        if (distantVide && aDuLocal(local)) {
+          const sauve = await sauverPortailDistant({ data: suivant });
+          if (sauve.ok) oublierEtatMetierLocal();
+        } else if (!distantVide) {
+          oublierEtatMetierLocal();
+        }
+        if (!vivant) return;
+        setEtat(suivant);
+        setPret(true);
+      } catch {
+        if (!vivant) return;
         setEtat(fusionner(ETAT_PORTAIL_VIDE, lireInstantaneLocal()));
         setPret(true);
-        return;
+        toastErreur("Le portail n'a pas pu se synchroniser. Vérifiez votre connexion et rechargez la page.");
       }
-      const local = lireInstantaneLocal();
-      const suivant = fusionner(res.data, local);
-      const distantVide =
-        !res.data.demarre &&
-        !res.data.mode &&
-        res.data.notes.length === 0 &&
-        res.data.paiements.length === 0 &&
-        !res.data.rdv &&
-        res.data.demandes.length === 0 &&
-        res.data.favoris.length === 0;
-      if (distantVide && aDuLocal(local)) {
-        const sauve = await sauverPortailDistant({ data: suivant });
-        if (sauve.ok) oublierEtatMetierLocal();
-      } else if (!distantVide) {
-        oublierEtatMetierLocal();
-      }
-      if (!vivant) return;
-      setEtat(suivant);
-      setPret(true);
     })();
     return () => {
       vivant = false;
@@ -118,11 +126,18 @@ export function PortailDonneesProvider({ children }: { children: ReactNode }) {
     const suivant = recette(etatRef.current);
     etatRef.current = suivant;
     setEtat(suivant);
-    void sauverPortailDistant({ data: suivant }).then((res) => {
-      if (!res.ok && res.raison !== "non_configure") {
-        toastErreur("L'enregistrement en base a échoué. Réessayez.");
-      }
-    });
+    // Serialiser les mutations : un enregistrement lent ne doit pas ecraser le plus recent.
+    sauvegardes.current = sauvegardes.current
+      .catch(() => undefined)
+      .then(async () => {
+        const res = await sauverPortailDistant({ data: suivant });
+        if (!res.ok) {
+          toastErreur("La modification n'a pas ete enregistree. Verifiez votre connexion et reessayez.");
+        }
+      })
+      .catch(() => {
+        toastErreur("La modification n'a pas ete enregistree. Verifiez votre connexion et reessayez.");
+      });
     return suivant;
   }, []);
 
