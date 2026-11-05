@@ -56,7 +56,7 @@ function AjoutPrestataire() {
     const ville = form.ville.trim();
     const telephone = form.telephone.trim();
     const email = form.email.trim().toLowerCase();
-    if (!nom || !ville || !telephone || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+    if (!nom || !ville || !telephone || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       toastErreur("Renseignez un nom, une ville, un téléphone et une adresse e-mail valide.");
       return;
     }
