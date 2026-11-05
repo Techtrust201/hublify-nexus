@@ -1,14 +1,7 @@
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { Circle, CircleCheck, CircleHelp } from "lucide-react";
 import { useEffect, useState } from "react";
-import {
-  BoutonGoogle,
-  boutonAuth,
-  CadreAuth,
-  champAuth,
-  labelAuth,
-  SeparateurOu,
-} from "@/components/marque/CadreAuth";
+import { boutonAuth, CadreAuth, champAuth, labelAuth } from "@/components/marque/CadreAuth";
 import { lireRechercheInscription, offreParId } from "@/design/offres";
 import { forceMotDePasse } from "@/lib/force-mot-de-passe";
 import { ChampMotDePasse } from "@/components/ui/champ-mot-de-passe";
@@ -111,8 +104,6 @@ function PageInscription() {
         </p>
       ) : null}
       <div className="space-y-4">
-        <BoutonGoogle libelle="S'inscrire avec Google" />
-        <SeparateurOu />
         <form className="space-y-4" onSubmit={(ev) => void inscrire(ev)}>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block">
@@ -176,8 +167,7 @@ function PageInscription() {
                 </span>
               </div>
               <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
-                {/* Le frame écrit « 8 caractères ». L'icône et l'envoi suivent le minimum produit : 10. */}
-                <Exigence ok={force.longueur} libelle="8 caractères" />
+                <Exigence ok={force.longueur} libelle="10 caractères" />
                 <Exigence ok={force.chiffre} libelle="1 chiffre" />
                 <Exigence ok={force.special} libelle="1 caractère spécial" />
               </ul>

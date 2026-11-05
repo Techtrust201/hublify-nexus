@@ -15,7 +15,9 @@ test.describe("maquette auth et fond", () => {
     await page.setViewportSize({ width: 1440, height: 1024 });
     await page.goto("/connexion");
     await expect(page.getByRole("heading", { name: "Se connecter" })).toBeVisible();
-    await expect(page.getByText("Accédez à votre espace Clair")).toBeVisible();
+    await expect(page.getByText("Accédez à votre espace Hublify")).toBeVisible();
+    await expect(page.getByText("© 2026 Hublify")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Continuer avec Google" })).toHaveCount(0);
     await expect(
       page.getByText("Utilisez l'adresse associée à votre espace de travail."),
     ).toBeVisible();
@@ -33,9 +35,6 @@ test.describe("maquette auth et fond", () => {
     expect(Math.abs((boiteBouton?.width ?? 0) - boite!.width)).toBeLessThan(4);
 
     await expect(page.getByRole("button", { name: "Se connecter" })).toBeEnabled();
-    await page.getByRole("button", { name: "Continuer avec Google" }).click();
-    await expect(page.getByText("n'est pas ouverte sur cet espace")).toBeVisible();
-    await expect(page).toHaveURL(/\/connexion/);
 
     await page.getByRole("button", { name: "Afficher le mot de passe" }).click();
     await expect(page.locator('input[name="password"]')).toHaveAttribute("type", "text");
@@ -72,13 +71,12 @@ test.describe("maquette auth et fond", () => {
     await page.goto("/inscription");
     await expect(page.getByRole("heading", { name: "Créer un compte" })).toBeVisible();
     await expect(page.getByText("Sécurité du mot de passe")).toBeVisible();
-    await expect(page.getByText("8 caractères")).toBeVisible();
+    await expect(page.getByText("10 caractères")).toBeVisible();
+    await expect(page.getByRole("button", { name: "S'inscrire avec Google" })).toHaveCount(0);
     await expect(page.getByLabel("Prénom")).toBeVisible();
     await expect(page.getByRole("textbox", { name: "Nom", exact: true })).toBeVisible();
     await expect(page.locator('input[name="nomOrg"]')).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Continuer" })).toBeEnabled();
-    await page.getByRole("button", { name: "S'inscrire avec Google" }).click();
-    await expect(page.getByText("n'est pas ouverte sur cet espace")).toBeVisible();
     await page.getByRole("link", { name: "Conditions d'utilisation" }).first().click();
     await expect(page).toHaveURL(/\/cgu/);
     await page.goto("/inscription");
@@ -92,9 +90,9 @@ test.describe("maquette auth et fond", () => {
     await expect(page.getByRole("heading", { name: "Mot de passe oublié ?" })).toBeVisible();
     await expect(page.getByText("Vérifiez l'orthographe avant de continuer.")).toBeVisible();
     await expect(page.getByText("Lien valable 30 minutes")).toBeVisible();
-    await expect(page.getByRole("link", { name: "aide@clair.fr" })).toHaveAttribute(
+    await expect(page.getByRole("link", { name: "aide@hublify.app" })).toHaveAttribute(
       "href",
-      "mailto:aide@clair.fr",
+      "mailto:aide@hublify.app",
     );
     await page.getByRole("link", { name: "Se connecter" }).click();
     await expect(page).toHaveURL(/\/connexion/);

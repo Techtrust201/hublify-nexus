@@ -2,14 +2,7 @@ import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tansta
 import { ArrowRight, CircleHelp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { SUPER_ADMINS, accueilPourRole } from "@/auth/permissions";
-import {
-  BoutonGoogle,
-  boutonAuth,
-  CadreAuth,
-  champAuth,
-  labelAuth,
-  SeparateurOu,
-} from "@/components/marque/CadreAuth";
+import { boutonAuth, CadreAuth, champAuth, labelAuth } from "@/components/marque/CadreAuth";
 import { ChampMotDePasse } from "@/components/ui/champ-mot-de-passe";
 import { authClient } from "@/lib/auth-client";
 import { getSession } from "@/lib/auth.functions";
@@ -53,9 +46,9 @@ const COMPTES_DEMO = [
   { email: "claire.lecture@hublify.app", role: "Lecture" },
 ];
 
-/** Le bouton Google de la maquette est affiché. Le fournisseur n'est pas branché : le clic le dit. */
+/** La connexion Google n'est pas branchée : le bouton reste hors de l'écran. */
 export function boutonGoogleVisible(): boolean {
-  return true;
+  return false;
 }
 
 /** Exposé pour les tests unitaires — ne lit jamais le mot de passe hors DEV. */
@@ -110,11 +103,9 @@ function PageConnexion() {
     <CadreAuth
       kicker="Commencer"
       titre="Se connecter"
-      description="Accédez à votre espace Clair et reprenez là où vous vous êtes arrêté."
+      description="Accédez à votre espace Hublify et reprenez là où vous vous êtes arrêté."
     >
       <div className="space-y-4">
-        <BoutonGoogle libelle="Continuer avec Google" />
-        <SeparateurOu />
         <form className="space-y-4" onSubmit={(ev) => void connecter(ev)}>
           <label className="block">
             <span className={labelAuth}>Adresse e-mail</span>

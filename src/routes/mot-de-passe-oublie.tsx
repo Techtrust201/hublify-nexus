@@ -86,8 +86,8 @@ function PageOublie() {
             </p>
             <p className="mt-0.5 text-[13px] leading-5 text-ink-body">
               Contactez notre équipe à{" "}
-              <a href="mailto:aide@clair.fr" className="underline">
-                aide@clair.fr
+              <a href="mailto:aide@hublify.app" className="underline">
+                aide@hublify.app
               </a>
             </p>
           </div>
