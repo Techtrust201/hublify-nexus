@@ -159,7 +159,8 @@
 
 :root {
   --radius: 0.75rem;
-  --radius-card: 0.625rem; /* 10px — cartes et boutons MO1 */
+  --radius-card: 0.625rem; /* 10px — cartes */
+  --radius-bouton: 0.875rem; /* 14px — bouton primaire */
 
   --z-sticky: 10;
   --z-dropdown: 20;
@@ -177,7 +178,7 @@
   --surface-soft: #f3f4f6;
   --accent-teal: var(--gest-primaire);
   --danger-loyer: var(--gest-alerte);
-  /* Tokens Figma gestionnaire : primaires, pastilles, cartes. */
+  /* Tokens Figma gestionnaire, partagés avec les autres lots. */
   --gest-texte: #4a5565;
   --gest-texte-fort: #1e2939;
   --gest-texte-secondaire: #99a1af;

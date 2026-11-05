@@ -15,10 +15,9 @@ export function Carte({
   return (
     <article
       className={cn(
-        "rounded-card border border-line p-4 shadow-[0_1px_0_rgba(30,41,57,0.04)]",
-        teinte === "blanc" && "bg-white",
-        teinte === "menthe" && "border-[#d7ebe3] bg-[#E7F3EE]",
-        teinte === "sable" && "border-[#f0e2c4] bg-[#fbf6ea]",
+        "rounded-card border border-line bg-white p-4 shadow-[var(--shadow-carte)]",
+        teinte === "menthe" && "border-transparent bg-gest-vert",
+        teinte === "sable" && "border-transparent bg-gest-jaune",
         className,
       )}
     >
@@ -47,7 +46,7 @@ export function Kpi({
   icone?: ReactNode;
 }) {
   const valeurClasse =
-    teinte === "menthe" ? "text-ink" : teinte === "sable" ? "text-[#8a5a00]" : "text-ink";
+    "text-ink";
   return (
     <Carte teinte={teinte} className="flex min-h-[132px] flex-col">
       <div className="flex items-start justify-between gap-2">

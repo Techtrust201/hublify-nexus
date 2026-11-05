@@ -361,7 +361,13 @@ export function PlanningGrid({
 
         {!maquetteAccueil && (
           <div className="border-b border-surface-soft px-4 py-2">
-            <ChampRechercheCalendrier valeur={rechercheCal} onChange={setRechercheCal} />
+            <ChampRechercheCalendrier
+              valeur={rechercheCal}
+              onChange={setRechercheCal}
+              {...(onglet === "tarifs"
+                ? { placeholder: "Rechercher par prestataire ou appartement…" }
+                : {})}
+            />
           </div>
         )}
 
@@ -519,10 +525,13 @@ export function PlanningGrid({
                   key={id}
                   type="button"
                   onClick={() => setVue(id)}
+                  aria-pressed={vue === id}
                   className={cn(
                     "h-11 min-h-11 border-r border-line px-3 text-xs font-medium last:border-r-0",
                     id === "5jours" && "hidden sm:block",
-                    vue === id ? "bg-tab-active text-ink-body" : "bg-white text-ink-body",
+                    vue === id && onglet === "tarifs" && "bg-ink text-white",
+                    vue === id && onglet !== "tarifs" && "bg-tab-active text-ink-body",
+                    vue !== id && "bg-white text-ink-body",
                   )}
                 >
                   {label}
@@ -1240,6 +1249,7 @@ function TarifsJours({
                   key={key}
                   type="button"
                   onClick={() => onCreerRegle(bien.id, key)}
+                  aria-label={`${bien.nom} le ${key}, ${prix} euros${reserve ? ", réservé" : ""}`}
                   className="relative min-h-[71px] border-b border-r border-surface-soft px-1 py-2 text-center"
                 >
                   <span className="absolute inset-x-0 top-0 h-2 bg-surface-soft" />
