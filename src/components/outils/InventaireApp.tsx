@@ -61,8 +61,7 @@ export function InventaireApp() {
   const supprimer = async (ids: string[]) => {
     const ok = await confirmer({
       titre: ids.length > 1 ? `Retirer ${ids.length} éléments ?` : "Retirer cet élément ?",
-      description:
-        "L'inventaire est enregistré localement : vous pourrez recréer la ligne à tout moment.",
+      description: "La ligne est retirée de l'inventaire enregistré.",
       libelleConfirmer: "Retirer",
       danger: true,
     });

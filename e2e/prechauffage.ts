@@ -23,6 +23,18 @@ const ROUTES = [
   "/profil",
   "/outils/timeline",
   "/outils/baux",
+  "/reservations/nouveau",
+  "/prestataires",
+  "/prestataires/nouveau",
+  "/documents",
+  "/messagerie",
+  "/inventaire",
+  "/espace",
+  "/espace/calendrier",
+  "/espace/documents",
+  "/espace/logement",
+  "/espace/messages",
+  "/espace/missions",
 ];
 
 export default async function prechauffer() {
