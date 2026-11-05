@@ -21,6 +21,14 @@ export type LivretAccueil = {
   couleurFond: string;
   logo: string;
   pages: PageLivret[];
+  contact?: string;
+  arrivee?: string;
+  depart?: string;
+  wifiNom?: string;
+  wifiCode?: string;
+  boiteNom?: string;
+  boiteCode?: string;
+  couvertureNom?: string;
 };
 
 function page(
@@ -47,24 +55,31 @@ export const LIVRETS_INITIAUX: LivretAccueil[] = [
     pages: [
       page(
         "accueil",
-        "Page d'accueil",
+        "Entête du livret",
         "Bonjour et bienvenue",
         "Votre séjour commence ici",
         "Notre équipe est présente pour vous accueillir. Retrouvez ici l'essentiel du logement, du quartier et des règles de la maison.",
       ),
       page(
-        "quartier",
-        "Le quartier",
-        "Autour de vous",
-        "Commerces et transports",
-        "Boulangerie au coin de la rue, marché le matin, arrêt de bus à deux minutes.",
+        "bienvenue",
+        "Bienvenue",
+        "Bienvenue",
+        "Mot d'accueil",
+        "Bonjour et bienvenue chez vous.\n\nNous sommes ravis de vous accueillir.",
       ),
       page(
-        "regles",
-        "Règles de la maison",
-        "Pour que tout se passe bien",
-        "Quelques consignes",
-        "Pas de fête, silence après 22 h, et merci de laisser le logement comme vous l'avez trouvé.",
+        "pratique",
+        "Informations pratique",
+        "Le logement au quotidien",
+        "Horaires et règles",
+        "Boulangerie au coin de la rue, marché le matin, arrêt de bus à deux minutes.\n\nPas de fête, silence après 22 h, et merci de laisser le logement comme vous l'avez trouvé.",
+      ),
+      page(
+        "acces",
+        "Accès",
+        "Entrer dans le logement",
+        "Codes et clés",
+        "L'adresse et les codes sont ceux de la fiche du logement. Le code de la boîte à clés se déverrouille après le pré-check-in.",
       ),
     ],
   },
@@ -246,5 +261,17 @@ export function normaliserLivret(brut: unknown): LivretAccueil | null {
     couleurFond: String(o.couleurFond ?? "#f7f6f2"),
     logo: String(o.logo ?? "Hublify"),
     pages,
+    ...texteOptionnel("contact", o.contact),
+    ...texteOptionnel("arrivee", o.arrivee),
+    ...texteOptionnel("depart", o.depart),
+    ...texteOptionnel("wifiNom", o.wifiNom),
+    ...texteOptionnel("wifiCode", o.wifiCode),
+    ...texteOptionnel("boiteNom", o.boiteNom),
+    ...texteOptionnel("boiteCode", o.boiteCode),
+    ...texteOptionnel("couvertureNom", o.couvertureNom),
   };
+}
+
+function texteOptionnel<K extends string>(cle: K, valeur: unknown): Partial<Record<K, string>> {
+  return typeof valeur === "string" && valeur.length > 0 ? ({ [cle]: valeur } as Record<K, string>) : {};
 }

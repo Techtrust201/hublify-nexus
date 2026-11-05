@@ -1,22 +1,18 @@
 import { Copy, Plus, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/auth/auth-context";
-import { EspaceRedaction } from "@/components/documents/EspaceRedaction";
+import { EditeurLivret } from "@/components/outils/EditeurLivret";
 import {
   dupliquerLivret,
   lireLivretsLegacy,
   LIVRETS_INITIAUX,
-  livretRenomme,
-  pageRenseignee,
   purgerLivretsLocaux,
   type LivretAccueil,
-  type PageLivret,
 } from "@/data/livrets";
 import { peutEcrireLivrets } from "@/data/outils-distant";
 import { sauverLivretsDistants } from "@/data/outils-remote";
 import { formatDateLongue } from "@/data/reservations-mo1";
 import { choisirFichierComplet, confirmer, toastErreur, toastOk } from "@/lib/feedback";
-import { cn } from "@/lib/utils";
 
 type ChargeLivrets = { ok: true; livrets: LivretAccueil[] } | { ok: false; raison: string };
 
@@ -127,13 +123,28 @@ export function LivretApp({ charge }: { charge: ChargeLivrets }) {
     return (
       <div className="space-y-3">
         <StatutSynchro synchro={synchro} revision={revision} />
-        <Editeur
+        <EditeurLivret
           livret={courant}
           pageActive={pageActive}
           verrouille={!peutEcrire || !charge.ok}
           onRetour={() => setOuvert(null)}
           onPage={setPageId}
           onChange={(recette) => maj(courant.id, recette)}
+          onEnregistrer={() => {
+            if (!peutEcrire || !charge.ok) return;
+            setSynchro("cours");
+            void sauverLivretsDistants({ data: { livrets } }).then((res) => {
+              if (!res.ok) {
+                setSynchro("erreur");
+                toastErreur("Le livret n'a pas été enregistré.");
+                return;
+              }
+              dernier.current = JSON.stringify(livrets);
+              setSynchro("ok");
+              setRevision((n) => n + 1);
+              toastOk("Livret enregistré.");
+            });
+          }}
         />
       </div>
     );
@@ -273,198 +284,6 @@ export function LivretApp({ charge }: { charge: ChargeLivrets }) {
   );
 }
 
-function Editeur({
-  livret,
-  pageActive,
-  verrouille,
-  onRetour,
-  onPage,
-  onChange,
-}: {
-  livret: LivretAccueil;
-  pageActive: PageLivret;
-  verrouille: boolean;
-  onRetour: () => void;
-  onPage: (id: string) => void;
-  onChange: (recette: (l: LivretAccueil) => LivretAccueil) => void;
-}) {
-  const [apercuMobile, setApercuMobile] = useState(false);
-  const majPage = (partiel: Partial<PageLivret>) => {
-    onChange((l) => ({
-      ...l,
-      modifieLe: new Date().toISOString().slice(0, 10),
-      pages: l.pages.map((p) => (p.id === pageActive.id ? { ...p, ...partiel } : p)),
-    }));
-  };
-
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <button type="button" onClick={onRetour} className="text-sm font-medium text-ink-body">
-          ← Tous les modèles
-        </button>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            aria-pressed={!apercuMobile}
-            onClick={() => setApercuMobile(false)}
-            className={cn(
-              "h-9 rounded-card border px-3 text-xs",
-              apercuMobile ? "border-line text-ink-body" : "border-ink bg-ink text-white",
-            )}
-          >
-            Aperçu
-          </button>
-          <button
-            type="button"
-            aria-pressed={apercuMobile}
-            onClick={() => setApercuMobile(true)}
-            className={cn(
-              "h-9 rounded-card border px-3 text-xs",
-              apercuMobile ? "border-ink bg-ink text-white" : "border-line text-ink-body",
-            )}
-          >
-            Mobile
-          </button>
-        </div>
-      </div>
-      <label className="block max-w-xl text-xs text-ink-muted">
-        Logement assigné
-        <input
-          value={livret.logement}
-          disabled={verrouille}
-          onChange={(e) =>
-            onChange((l) => ({
-              ...l,
-              logement: e.target.value,
-              modifieLe: new Date().toISOString().slice(0, 10),
-            }))
-          }
-          className="mt-1 h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none md:h-9"
-        />
-      </label>
-      <label className="block max-w-xl text-xs text-ink-muted">
-        Renommez ce livret
-        <input
-          value={livret.nom}
-          disabled={verrouille}
-          onChange={(e) => onChange((l) => livretRenomme(l, e.target.value))}
-          className="mt-1 h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none md:h-9"
-        />
-      </label>
-      <EspaceRedaction
-        titre={livret.nom}
-        badge={livret.famille === "fiche" ? "Fiche d'accès" : "Livret"}
-        sousTitre={`${livret.logement} · #${livret.reference}`}
-        pages={livret.pages.map((p) => ({
-          id: p.id,
-          label: p.nom,
-          detail: pageRenseignee(p) ? "Renseignée" : "À compléter",
-          fait: pageRenseignee(p),
-        }))}
-        pageActive={pageActive.id}
-        onPage={onPage}
-        unite="pages renseignées"
-        {...(verrouille
-          ? {}
-          : {
-              onAjouter: () => {
-                const id = `page-${Date.now().toString(36)}`;
-                onChange((l) => ({
-                  ...l,
-                  pages: [
-                    ...l.pages,
-                    { id, nom: "Nouvelle page", titre: "", sousTitre: "", texte: "" },
-                  ],
-                }));
-                onPage(id);
-              },
-            })}
-        libelleAjouter="Ajouter une page"
-        pied={
-          <p className="mt-4 rounded-card bg-surface px-3 py-2 text-[11px] leading-relaxed text-ink-muted">
-            Personnalisez la première page, le logo et le texte d'introduction. L'aperçu à droite
-            suit la couleur de fond.
-          </p>
-        }
-        apercu={
-          <article
-            style={{ background: livret.couleurFond }}
-            className={cn("rounded-card p-4", apercuMobile && "mx-auto max-w-[280px]")}
-          >
-            <p className="text-[11px] font-medium uppercase tracking-[0.4px] text-ink-muted">
-              {livret.logo || "Logo"}
-            </p>
-            <h3 className="mt-6 font-display text-2xl text-ink">{pageActive.titre || "Titre"}</h3>
-            <p className="mt-1 text-sm text-ink-body">{pageActive.sousTitre || "Sous-titre"}</p>
-            <p className="mt-4 text-sm leading-relaxed text-ink">
-              {pageActive.texte || "Texte d'introduction"}
-            </p>
-          </article>
-        }
-      />
-      <div className="grid gap-3 rounded-card border border-line bg-white p-4 sm:grid-cols-2">
-        <label className="block text-xs text-ink-muted">
-          Nom de la page
-          <input
-            value={pageActive.nom}
-            disabled={verrouille}
-            onChange={(e) => majPage({ nom: e.target.value })}
-            className="mt-1 h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none md:h-9"
-          />
-        </label>
-        <label className="block text-xs text-ink-muted">
-          Logo
-          <input
-            value={livret.logo}
-            disabled={verrouille}
-            onChange={(e) => onChange((l) => ({ ...l, logo: e.target.value }))}
-            className="mt-1 h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none md:h-9"
-          />
-        </label>
-        <label className="block text-xs text-ink-muted">
-          Titre principal
-          <input
-            value={pageActive.titre}
-            disabled={verrouille}
-            onChange={(e) => majPage({ titre: e.target.value })}
-            className="mt-1 h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none md:h-9"
-          />
-        </label>
-        <label className="block text-xs text-ink-muted">
-          Sous-titre
-          <input
-            value={pageActive.sousTitre}
-            disabled={verrouille}
-            onChange={(e) => majPage({ sousTitre: e.target.value })}
-            className="mt-1 h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none md:h-9"
-          />
-        </label>
-        <label className="block text-xs text-ink-muted sm:col-span-2">
-          Texte d'introduction
-          <textarea
-            value={pageActive.texte}
-            disabled={verrouille}
-            onChange={(e) => majPage({ texte: e.target.value })}
-            className="mt-1 h-28 w-full rounded-card border border-line px-3 py-2 text-sm text-ink outline-none"
-          />
-        </label>
-        <label className="flex items-center gap-3 text-xs text-ink-muted">
-          Couleur de fond
-          <input
-            type="color"
-            value={couleurValide(livret.couleurFond)}
-            disabled={verrouille}
-            onChange={(e) => onChange((l) => ({ ...l, couleurFond: e.target.value }))}
-            className={cn(
-              "h-11 w-16 cursor-pointer rounded-card border border-line bg-white md:h-9",
-            )}
-          />
-        </label>
-      </div>
-    </div>
-  );
-}
 
 function StatutSynchro({
   synchro,
@@ -491,9 +310,6 @@ function clonerLivret(livret: LivretAccueil): LivretAccueil {
   return { ...livret, pages: livret.pages.map((page) => ({ ...page })) };
 }
 
-function couleurValide(valeur: string) {
-  return /^#[0-9a-fA-F]{6}$/.test(valeur) ? valeur : "#f7f6f2";
-}
 
 function creer(famille: "livret" | "fiche"): LivretAccueil {
   const maintenant = new Date();
