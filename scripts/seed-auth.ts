@@ -9,6 +9,7 @@ import {
   ecrireAccesLieu,
 } from "../src/data/metier.ts";
 import { auth, avecInscriptionInterne } from "../src/lib/auth.ts";
+import { semerOutilsDemo } from "../src/data/seed-outils.ts";
 import { ORG_LUCAS_ID, ORG_REDRIS_ID } from "../src/lib/orgs.ts";
 import { rattacherUtilisateur } from "../src/lib/rattacher.ts";
 import { fermerPool, getSql, type Sql } from "../src/lib/sql.ts";
@@ -90,15 +91,20 @@ const emailsObsoletes = ["yannick.rath@hublify.app"];
 
 const MISSIONS_LUCAS = ["ms1", "ms6"];
 
-async function semerCollection(sql: Sql, orgId: string, collection: CollectionMetier, items: unknown[]) {
+async function semerCollection(
+  sql: Sql,
+  orgId: string,
+  collection: CollectionMetier,
+  items: unknown[],
+) {
   // Les missions confiées à Lucas portent l'org du prestataire : c'est ce
   // rattachement qui les rend visibles depuis son compte.
   if (collection === "missions") {
     const ids = (items as { id: string }[]).map((m) => m.id);
-    await sql.query(`delete from public.missions where org_id = $1::uuid and id <> all($2::text[])`, [
-      orgId,
-      ids,
-    ]);
+    await sql.query(
+      `delete from public.missions where org_id = $1::uuid and id <> all($2::text[])`,
+      [orgId, ids],
+    );
     for (const mission of items as { id: string; assigne?: string }[]) {
       const presta = MISSIONS_LUCAS.includes(mission.id) ? ORG_LUCAS_ID : null;
       const ligne = presta ? { ...mission, assigne: "Lucas Ménage" } : mission;
@@ -182,6 +188,7 @@ async function main() {
     await semerCollection(sql, ORG_REDRIS_ID, cle, canon[cle] as unknown[]);
   }
   await ecrireParametrage(sql, ORG_REDRIS_ID, canon.parametrage);
+  await semerOutilsDemo(sql, ORG_REDRIS_ID);
 
   const cleAcces = process.env.APP_CRYPTO_KEY;
   if (cleAcces) {
@@ -204,7 +211,8 @@ async function main() {
   }
 
   const n = await sql`select count(*)::int as n from public.org_membres`;
-  const biens = await sql`select count(*)::int as n from public.biens where org_id = ${ORG_REDRIS_ID}::uuid`;
+  const biens =
+    await sql`select count(*)::int as n from public.biens where org_id = ${ORG_REDRIS_ID}::uuid`;
   console.log(
     "Membres",
     (n[0] as { n: number }).n,

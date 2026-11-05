@@ -61,6 +61,55 @@ const VIDE: FicheUpsell = {
   pieceJointe: "",
 };
 
+/** Fiche telle qu'elle est stockée, sans repli sur le catalogue. */
+export function ficheStockee(brut: unknown): FicheUpsell | null {
+  if (!brut || typeof brut !== "object") return null;
+  const o = brut as Partial<FicheUpsell>;
+  const texte = (valeur: unknown, defaut = "") => (typeof valeur === "string" ? valeur : defaut);
+  return {
+    code: texte(o.code).slice(0, 80),
+    type: texte(o.type, "Service").slice(0, 80) || "Service",
+    prestataire: texte(o.prestataire).slice(0, 160),
+    ville: texte(o.ville).slice(0, 80),
+    pieceJointe: texte(o.pieceJointe).slice(0, 200),
+  };
+}
+
+export const CLE_FICHES_UPSELL = "hublify.upsells.fiches.v1";
+
+export function lireFichesUpsellLegacy(): Record<string, FicheUpsell> | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const brut = localStorage.getItem(CLE_FICHES_UPSELL);
+    if (!brut) return null;
+    const parsed = JSON.parse(brut) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const fiches: Record<string, FicheUpsell> = {};
+    for (const [id, valeur] of Object.entries(parsed)) {
+      const fiche = ficheStockee(valeur);
+      if (id.trim() && fiche) fiches[id] = fiche;
+    }
+    return Object.keys(fiches).length > 0 ? fiches : null;
+  } catch {
+    return null;
+  }
+}
+
+export function purgerFichesUpsellLocales() {
+  if (typeof localStorage === "undefined") return;
+  localStorage.removeItem(CLE_FICHES_UPSELL);
+}
+
+/** La base gagne dès qu'une fiche d'organisation existe. */
+export function fusionMigrationFiches(
+  distantes: Record<string, FicheUpsell>,
+  legacy: Record<string, FicheUpsell> | null,
+): { fiches: Record<string, FicheUpsell>; pousser: boolean } {
+  if (Object.keys(distantes).length > 0) return { fiches: { ...distantes }, pousser: false };
+  if (legacy && Object.keys(legacy).length > 0) return { fiches: { ...legacy }, pousser: true };
+  return { fiches: {}, pousser: false };
+}
+
 export function ficheEffective(id: string, surcharge?: Partial<FicheUpsell> | null): FicheUpsell {
   return {
     ...VIDE,

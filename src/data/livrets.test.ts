@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { dupliquerLivret, LIVRETS_INITIAUX, livretRenomme, pageRenseignee } from "@/data/livrets";
+import {
+  dupliquerLivret,
+  fusionMigrationLivrets,
+  LIVRETS_INITIAUX,
+  livretRenomme,
+  pageRenseignee,
+} from "@/data/livrets";
 
 describe("livrets d'accueil", () => {
   it("propose un livret et une fiche d'accès distincts", () => {
@@ -16,5 +22,19 @@ describe("livrets d'accueil", () => {
     copie.pages[0]!.texte = "autre";
     expect(source.pages[0]!.texte).not.toBe("autre");
     expect(livretRenomme(source, "  Accueil villa  ").nom).toBe("Accueil villa");
+  });
+
+  it("ne reprend le navigateur que si la base de l'organisation est vide", () => {
+    const distant = LIVRETS_INITIAUX[0]!;
+    const legacy = LIVRETS_INITIAUX[1]!;
+    expect(fusionMigrationLivrets([distant], [legacy]).pousser).toBe(false);
+    expect(fusionMigrationLivrets([distant], [legacy]).livrets.map((l) => l.id)).toEqual([
+      distant.id,
+    ]);
+    expect(fusionMigrationLivrets([], [legacy])).toMatchObject({
+      pousser: true,
+      livrets: [legacy],
+    });
+    expect(fusionMigrationLivrets([], null)).toEqual({ livrets: [], pousser: false });
   });
 });

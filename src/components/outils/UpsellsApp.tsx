@@ -1,35 +1,21 @@
 import { Eye, Pencil, Plus, Search, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useAuth } from "@/auth/auth-context";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import {
-  csvUpsells,
   ficheEffective,
   filtrerUpsells,
+  fusionMigrationFiches,
+  lireFichesUpsellLegacy,
+  purgerFichesUpsellLocales,
   type FicheUpsell,
+  csvUpsells,
 } from "@/data/upsells-catalogue";
 import { modifierSession, useSession } from "@/data/session";
 import type { UpsellParam } from "@/data/parametrage-mo1";
-import { confirmer, toastOk } from "@/lib/feedback";
-
-const CLE = "hublify.upsells.fiches.v1";
-
-function lireSurcharges(): Record<string, FicheUpsell> {
-  if (typeof localStorage === "undefined") return {};
-  try {
-    const brut = localStorage.getItem(CLE);
-    if (!brut) return {};
-    const parsed = JSON.parse(brut) as unknown;
-    return parsed && typeof parsed === "object" ? (parsed as Record<string, FicheUpsell>) : {};
-  } catch {
-    return {};
-  }
-}
-
-function ecrireSurcharge(id: string, fiche: FicheUpsell) {
-  const toutes = { ...lireSurcharges(), [id]: fiche };
-  localStorage.setItem(CLE, JSON.stringify(toutes));
-  return toutes;
-}
+import { peutEcrireFichesUpsell } from "@/data/outils-distant";
+import { retirerFicheUpsellDistante, sauverFicheUpsellDistante } from "@/data/outils-remote";
+import { confirmer, toastErreur, toastOk } from "@/lib/feedback";
 
 type Brouillon = FicheUpsell & { nom: string; prix: string };
 
@@ -43,13 +29,41 @@ const VIDE: Brouillon = {
   pieceJointe: "",
 };
 
-export function UpsellsApp() {
+export function UpsellsApp({
+  fichesInitiales,
+  distantOk,
+}: {
+  fichesInitiales: Record<string, FicheUpsell>;
+  distantOk: boolean;
+}) {
   const session = useSession();
+  const auth = useAuth();
+  const peutEcrire = Boolean(distantOk && auth && peutEcrireFichesUpsell(auth));
   const [recherche, setRecherche] = useState("");
-  const [fiches, setFiches] = useState(lireSurcharges);
+  const [fiches, setFiches] = useState(fichesInitiales);
   const [edition, setEdition] = useState<string | "nouveau" | null>(null);
   const [apercu, setApercu] = useState<string | null>(null);
   const [brouillon, setBrouillon] = useState<Brouillon>(VIDE);
+  const [enCours, setEnCours] = useState(false);
+  const migre = useRef(false);
+
+  useEffect(() => {
+    if (migre.current || !peutEcrire) return;
+    migre.current = true;
+    const decision = fusionMigrationFiches(fichesInitiales, lireFichesUpsellLegacy());
+    if (!decision.pousser) {
+      if (Object.keys(fichesInitiales).length > 0) purgerFichesUpsellLocales();
+      return;
+    }
+    setFiches(decision.fiches);
+    void Promise.all(
+      Object.entries(decision.fiches).map(([upsellId, fiche]) =>
+        sauverFicheUpsellDistante({ data: { upsellId, fiche } }),
+      ),
+    ).then((resultats) => {
+      if (resultats.every((res) => res.ok)) purgerFichesUpsellLocales();
+    });
+  }, [fichesInitiales, peutEcrire]);
 
   const lignes = session.parametrage.upsells;
   const visibles = useMemo(
@@ -72,7 +86,7 @@ export function UpsellsApp() {
   const enregistrer = () => {
     const nom = brouillon.nom.trim();
     const prix = Number(brouillon.prix.replace(",", "."));
-    if (!nom || Number.isNaN(prix) || prix < 0) return;
+    if (!nom || Number.isNaN(prix) || prix < 0 || !peutEcrire) return;
     const fiche: FicheUpsell = {
       code: brouillon.code.trim(),
       type: brouillon.type.trim() || "Service",
@@ -80,29 +94,40 @@ export function UpsellsApp() {
       ville: brouillon.ville.trim(),
       pieceJointe: brouillon.pieceJointe.trim(),
     };
-    if (edition === "nouveau") {
-      const id = `u-${Date.now().toString(36)}`;
-      modifierSession((e) => ({
-        ...e,
-        parametrage: {
-          ...e.parametrage,
-          upsells: [...e.parametrage.upsells, { id, nom, prix, actif: true }],
-        },
-      }));
-      setFiches(ecrireSurcharge(id, fiche));
-      toastOk("Upsell ajouté.");
-    } else if (edition) {
-      modifierSession((e) => ({
-        ...e,
-        parametrage: {
-          ...e.parametrage,
-          upsells: e.parametrage.upsells.map((u) => (u.id === edition ? { ...u, nom, prix } : u)),
-        },
-      }));
-      setFiches(ecrireSurcharge(edition, fiche));
-      toastOk("Upsell mis à jour.");
-    }
-    setEdition(null);
+    const id = edition === "nouveau" ? `u-${Date.now().toString(36)}` : edition;
+    if (!id) return;
+    setEnCours(true);
+    void sauverFicheUpsellDistante({ data: { upsellId: id, fiche } })
+      .then((res) => {
+        if (!res.ok) {
+          toastErreur("L'upsell n'a pas été enregistré.");
+          return;
+        }
+        if (edition === "nouveau") {
+          modifierSession((e) => ({
+            ...e,
+            parametrage: {
+              ...e.parametrage,
+              upsells: [...e.parametrage.upsells, { id, nom, prix, actif: true }],
+            },
+          }));
+          toastOk("Upsell ajouté.");
+        } else {
+          modifierSession((e) => ({
+            ...e,
+            parametrage: {
+              ...e.parametrage,
+              upsells: e.parametrage.upsells.map((u) => (u.id === id ? { ...u, nom, prix } : u)),
+            },
+          }));
+          toastOk("Upsell mis à jour.");
+        }
+        setFiches((actuelles) => ({ ...actuelles, [id]: fiche }));
+        purgerFichesUpsellLocales();
+        setEdition(null);
+      })
+      .catch(() => toastErreur("L'upsell n'a pas été enregistré."))
+      .finally(() => setEnCours(false));
   };
 
   const telecharger = () => {
@@ -138,6 +163,7 @@ export function UpsellsApp() {
             </button>
             <button
               type="button"
+              disabled={!peutEcrire}
               onClick={() => ouvrirEdition()}
               className="inline-flex h-11 items-center gap-1 rounded-card bg-accent-teal px-4 text-sm font-medium text-white md:h-9"
             >
@@ -200,6 +226,7 @@ export function UpsellsApp() {
                         <button
                           type="button"
                           aria-label={`Modifier ${u.nom}`}
+                          disabled={!peutEcrire}
                           onClick={() => ouvrirEdition(u)}
                           className="flex size-11 items-center justify-center rounded-card text-ink-muted hover:bg-surface md:size-8"
                         >
@@ -208,6 +235,7 @@ export function UpsellsApp() {
                         <button
                           type="button"
                           aria-label={`Retirer ${u.nom}`}
+                          disabled={!peutEcrire}
                           onClick={() => {
                             void (async () => {
                               const ok = await confirmer({
@@ -218,6 +246,13 @@ export function UpsellsApp() {
                                 danger: true,
                               });
                               if (!ok) return;
+                              const res = await retirerFicheUpsellDistante({
+                                data: { upsellId: u.id },
+                              });
+                              if (!res.ok) {
+                                toastErreur("L'upsell n'a pas été retiré.");
+                                return;
+                              }
                               modifierSession((e) => ({
                                 ...e,
                                 parametrage: {
@@ -225,6 +260,11 @@ export function UpsellsApp() {
                                   upsells: e.parametrage.upsells.filter((x) => x.id !== u.id),
                                 },
                               }));
+                              setFiches((actuelles) => {
+                                const suivantes = { ...actuelles };
+                                delete suivantes[u.id];
+                                return suivantes;
+                              });
                               toastOk("Upsell retiré.");
                             })();
                           }}
@@ -296,6 +336,7 @@ export function UpsellsApp() {
           </div>
           <button
             type="button"
+            disabled={enCours || !peutEcrire}
             onClick={enregistrer}
             className="mt-4 h-11 rounded-card bg-accent-teal px-4 text-sm font-medium text-white md:h-9"
           >
