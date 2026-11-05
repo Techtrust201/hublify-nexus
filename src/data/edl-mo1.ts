@@ -1,3 +1,6 @@
+import { formatDateLongue } from "@/data/reservations-mo1";
+import { projeterDateDemo } from "@/lib/periode-demo";
+
 export type EtatPiece = "ok" | "usure" | "a_reparer";
 
 export type PointEdl = {
@@ -307,6 +310,19 @@ export const DOSSIERS_EDL: DossierEdl[] = [
     pieces: PIECES_COLETTE_ENTREE,
   },
 ];
+
+/** Seuls les dossiers du corpus suivent la période courante. */
+export const IDS_DOSSIERS_EDL_SEED = new Set(DOSSIERS_EDL.map((d) => d.id));
+
+export function dateEdlAffichee(id: string, iso: string, maintenant = new Date()) {
+  if (!IDS_DOSSIERS_EDL_SEED.has(id)) return formatDateLongue(iso);
+  const [annee, mois, jour] = iso.split("-").map(Number);
+  if (!annee || !mois || !jour) return formatDateLongue(iso);
+  const projetee = projeterDateDemo(new Date(annee, mois - 1, jour), maintenant);
+  const m = String(projetee.getMonth() + 1).padStart(2, "0");
+  const j = String(projetee.getDate()).padStart(2, "0");
+  return formatDateLongue(`${projetee.getFullYear()}-${m}-${j}`);
+}
 
 export function piecesModele(suffix = Date.now().toString(36)): PieceEdl[] {
   return [
