@@ -55,7 +55,18 @@ test("patrimoine : liste des biens et fiche CONFIG", async ({ page }) => {
   await page.goto("/patrimoines");
   await expect(page.getByRole("columnheader", { name: "Logement", exact: true })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "Notation" })).toBeVisible();
-  await expect(page.getByText("Bientôt disponible")).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Statut" }).first()).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Documents" })).toBeVisible();
+  await expect(page.getByText("Bientôt disponible")).toHaveCount(0);
+  const debord = await page.locator("table").first().evaluate((table) => {
+    const scroller = table.parentElement;
+    const entetes = [...table.querySelectorAll("th")].map((th) => th.getBoundingClientRect());
+    const horsCadre = entetes.some((r) => r.right > window.innerWidth + 1 || r.left < 0);
+    return !scroller || scroller.scrollWidth > scroller.clientWidth + 1 || horsCadre;
+  });
+  expect(debord).toBe(false);
+  const documents = await page.getByRole("columnheader", { name: "Documents" }).boundingBox();
+  expect((documents?.x ?? 0) + (documents?.width ?? 0)).toBeLessThanOrEqual(1440);
 
   await page.getByRole("button", { name: "Ajouter un lieu ou logement" }).click();
   const dialogue = page.getByRole("dialog");

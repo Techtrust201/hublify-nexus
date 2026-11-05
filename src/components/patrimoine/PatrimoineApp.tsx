@@ -528,10 +528,21 @@ export function PatrimoineApp({
           ))}
         </div>
         <ScrollHint className="hidden @min-[920px]:block">
-          <table className="w-full min-w-[900px] text-left text-xs">
+          <table className="w-full table-fixed text-left text-xs">
+            <colgroup>
+              <col className="w-[4%]" />
+              <col className="w-[15%]" />
+              <col className="w-[12%]" />
+              <col className="w-[11%]" />
+              <col className="w-[15%]" />
+              <col className="w-[11%]" />
+              <col className="w-[9%]" />
+              <col className="w-[11%]" />
+              <col className="w-[12%]" />
+            </colgroup>
             <thead className="border-b border-surface-soft text-ink-subtle">
               <tr>
-                <th className="w-12 px-4 py-3" />
+                <th className="px-2 py-3" />
                 <th className="px-2 py-3 font-medium">Logement</th>
                 <th className="px-2 py-3 font-medium">Propriétaire</th>
                 <th className="px-2 py-3 font-medium">Immeuble</th>
@@ -553,7 +564,7 @@ export function PatrimoineApp({
                     selLog.includes(l.id) && "bg-surface",
                   )}
                 >
-                  <td className="px-4 py-4">
+                  <td className="px-2 py-4">
                     <label className="flex min-h-11 items-center md:min-h-0">
                       <input
                         type="checkbox"
@@ -568,16 +579,18 @@ export function PatrimoineApp({
                     </label>
                   </td>
                   <td className="px-2 py-4">
-                    <div className="flex items-start gap-2">
-                      <span className="mt-1 flex size-7 items-center justify-center rounded-[8px] bg-surface-soft">
+                    <div className="flex min-w-0 items-start gap-2">
+                      <span className="mt-1 flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-surface-soft">
                         <Home className="size-3 text-ink-body" />
                       </span>
-                      <div>
-                        <p className="text-sm text-ink">{l.nom}</p>
-                        <p className="text-[11px] text-ink-muted">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm text-ink" title={l.nom}>
+                          {l.nom}
+                        </p>
+                        <p className="truncate text-[11px] text-ink-muted">
                           {libelleCourt(l.typologie)} · {l.surface}
                         </p>
-                        <span className="mt-0.5 inline-block rounded border border-line px-1.5 text-[10px] text-ink-subtle">
+                        <span className="mt-0.5 inline-block max-w-full truncate rounded border border-line px-1.5 text-[10px] text-ink-subtle">
                           {libelleUsage(
                             fichesEffectives.get(l.id)?.usage ?? (l.meuble ? "meublé" : "vide"),
                           )}
@@ -586,17 +599,23 @@ export function PatrimoineApp({
                     </div>
                   </td>
                   <td className="px-2 py-4">
-                    <span className="inline-flex items-center gap-2">
-                      <span className="flex size-6 items-center justify-center rounded-full bg-line text-[10px] text-ink-body">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-line text-[10px] text-ink-body">
                         {l.initiales}
                       </span>
-                      {l.proprietaire}
+                      <span className="truncate" title={l.proprietaire}>
+                        {l.proprietaire}
+                      </span>
                     </span>
                   </td>
-                  <td className="px-2 py-4 text-ink-body">{l.immeuble}</td>
-                  <td className="px-2 py-4 text-ink-body">{l.adresse}</td>
+                  <td className="truncate px-2 py-4 text-ink-body" title={l.immeuble}>
+                    {l.immeuble}
+                  </td>
+                  <td className="truncate px-2 py-4 text-ink-body" title={l.adresse}>
+                    {l.adresse}
+                  </td>
                   <td className="px-2 py-4">
-                    <span className="inline-flex items-center gap-1">
+                    <span className="inline-flex max-w-full items-center gap-1">
                       <AlerteLieu
                         nom={l.nom}
                         alertes={alertesDe(l.id, l.nom)}
@@ -608,21 +627,24 @@ export function PatrimoineApp({
                   <td className="px-2 py-4">
                     <BadgeStatut statut={l.statut} />
                   </td>
-                  <td className="px-2 py-4">
-                    <BtnOutline
-                      className="h-[30px]"
+                  <td className="overflow-hidden px-2 py-4">
+                    <button
+                      type="button"
+                      aria-label="Voir docs"
                       onClick={() =>
                         void navigate({
                           to: "/documents",
                           search: { vue: "logements", logement: l.nom },
                         })
                       }
+                      className="inline-flex h-[30px] max-w-full items-center gap-1 rounded-[14px] border border-line bg-white px-2 text-xs font-medium text-ink-body"
                     >
-                      <Eye className="size-2.5" /> Voir docs
-                    </BtnOutline>
+                      <Eye className="size-2.5 shrink-0" />
+                      <span className="truncate">Docs</span>
+                    </button>
                   </td>
                   <td className="px-2 py-4">
-                    <div className="flex justify-end gap-1 text-ink-body">
+                    <div className="flex justify-end gap-0.5 text-ink-body">
                       <button
                         type="button"
                         aria-label={`Configurer ${l.nom}`}
@@ -679,9 +701,6 @@ export function PatrimoineApp({
           <p className="flex items-center gap-2 text-sm text-ink">
             <Building2 className="size-4" />
             Immeubles
-            <span className="rounded-full bg-surface-soft px-2 py-0.5 text-xs text-ink-subtle">
-              Bientôt disponible
-            </span>
             <span className="rounded bg-surface-soft px-1.5 text-xs text-ink-subtle">
               {immeubles.length}
             </span>
@@ -763,7 +782,7 @@ export function PatrimoineApp({
           ))}
         </div>
         <ScrollHint className="hidden @min-[740px]:block">
-          <table className="w-full min-w-[700px] text-left text-xs">
+          <table className="w-full table-fixed text-left text-xs">
             <thead className="border-b border-surface-soft text-ink-subtle">
               <tr>
                 <th className="w-12 px-4 py-3" />
@@ -793,11 +812,13 @@ export function PatrimoineApp({
                     </label>
                   </td>
                   <td className="px-2 py-4">
-                    <span className="inline-flex items-center gap-2 text-sm text-ink">
-                      <span className="flex size-7 items-center justify-center rounded-[8px] bg-surface-soft">
+                    <span className="flex min-w-0 items-center gap-2 text-sm text-ink">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-surface-soft">
                         <Building2 className="size-3 text-ink-body" />
                       </span>
-                      {i.nom}
+                      <span className="truncate" title={i.nom}>
+                        {i.nom}
+                      </span>
                     </span>
                   </td>
                   <td className="px-2 py-4">
@@ -813,7 +834,9 @@ export function PatrimoineApp({
                       <Home className="size-3" /> {i.logements} logements
                     </span>
                   </td>
-                  <td className="px-2 py-4 text-ink-body">{i.adresse}</td>
+                  <td className="truncate px-2 py-4 text-ink-body" title={i.adresse}>
+                    {i.adresse}
+                  </td>
                   <td className="px-2 py-4">
                     <BadgeStatut statut={i.statut} />
                   </td>
