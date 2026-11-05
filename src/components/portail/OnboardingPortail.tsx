@@ -61,7 +61,14 @@ export function OnboardingPortail() {
         </div>
         <div className="flex flex-1 flex-col items-center justify-center text-center">
           <Marque />
-          <h1 className="mt-10 font-display text-[28px] font-semibold leading-tight text-[var(--portail-encre)]">
+          <img
+            src="/portail/onboarding-scene.webp"
+            alt=""
+            width={306}
+            height={212}
+            className="mt-6 h-auto w-[min(100%,306px)]"
+          />
+          <h1 className="mt-4 font-display text-[28px] font-semibold leading-tight text-[var(--portail-encre)]">
             Management &amp; gestion
           </h1>
           <p className="mt-4 max-w-[18rem] text-sm leading-relaxed text-[var(--portail-encre-douce)]">
