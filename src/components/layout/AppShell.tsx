@@ -1,6 +1,6 @@
 // SOURCE: Maquette MO1 — sidebar gestionnaire + en-tête (frame Dashboard/Calendar/Missions/3days)
 
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { Bell, ChevronDown, Menu, X } from "lucide-react";
 import {
   estPagePlanningHorsAccueil,
@@ -8,6 +8,8 @@ import {
 } from "@/components/layout/RetourVueGenerale";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth, useDroit } from "@/auth/auth-context";
+import { authClient } from "@/lib/auth-client";
+import { signalerDeconnexion } from "@/lib/fin-session";
 import { BandeauSync } from "@/components/layout/BandeauSync";
 import { BarreOngletsMobile } from "@/components/layout/BarreOngletsMobile";
 import { NavChrome } from "@/components/layout/NavChrome";
@@ -21,6 +23,7 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 import { CorpsEnAttente } from "@/components/layout/CorpsEnAttente";
 import {
   marquerNotifsLues,
+  oublierEtatsLocaux,
   reessayerSync,
   useLectureEchouee,
   useSession,
@@ -64,6 +67,9 @@ export function AppShell({
   const chargee = useSessionChargee();
   const lectureEchouee = useLectureEchouee();
   const auth = useAuth();
+  const navigate = useNavigate();
+  const router = useRouter();
+  const accueil = pathname === "/";
   const voirDocs = useDroit("voir-documents");
   const peutParametrer = useDroit("mod-biens");
   const notifsNonLues = session.notifications.filter((n) => !n.lu).length;
@@ -82,20 +88,25 @@ export function AppShell({
       </a>
 
       <aside
-        className="sticky top-0 hidden h-dvh w-[255px] shrink-0 flex-col border-r border-line bg-white lg:flex"
+        className="sticky top-0 hidden h-dvh w-[255px] shrink-0 flex-col overflow-hidden border-r border-line bg-white lg:flex"
         aria-label="Navigation principale"
       >
         <NavChrome pathname={pathname} densite="desktop" />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-sticky border-b border-line bg-white/90 px-4 pt-[env(safe-area-inset-top)] backdrop-blur-sm lg:px-6">
-          <div className="flex min-h-[80px] items-center justify-between gap-4 py-3">
+        <header
+          className={cn(
+            "sticky top-0 z-sticky px-4 pt-[env(safe-area-inset-top)] lg:px-6",
+            accueil ? "bg-canvas" : "border-b border-line bg-white/90 backdrop-blur-sm",
+          )}
+        >
+          <div className="flex min-h-[72px] items-center justify-between gap-4 py-3">
             <div className="flex min-w-0 items-center gap-3">
               <button
                 ref={hamburgerRef}
                 type="button"
-                className="flex size-11 shrink-0 items-center justify-center rounded-card border border-line text-ink-body lg:hidden"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full border border-line text-ink-body lg:hidden"
                 onClick={() => setMobileOuvert(true)}
                 aria-label={mobileOuvert ? "Fermer la navigation" : "Ouvrir la navigation"}
                 aria-expanded={mobileOuvert}
@@ -103,15 +114,10 @@ export function AppShell({
               >
                 <Menu className="size-4" />
               </button>
-              {pathname === "/" && auth ? (
-                <div className="min-w-0">
-                  <p className="text-[11px] uppercase tracking-[0.16em] text-ink-muted">
-                    Vue générale
-                  </p>
-                  <h1 className="truncate text-xl font-medium leading-tight text-ink-deep">
-                    Bonjour {auth.prenom}
-                  </h1>
-                </div>
+              {accueil && auth ? (
+                <h1 className="min-w-0 truncate text-[26px] font-medium leading-none text-ink">
+                  Bonjour <span className="font-normal text-ink-body">{auth.prenom}</span>
+                </h1>
               ) : titre ? (
                 <div className="min-w-0">
                   <h1 className="truncate text-lg font-medium leading-tight text-ink-deep">
@@ -129,7 +135,7 @@ export function AppShell({
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               {actions ? <div className="flex shrink-0 items-center">{actions}</div> : null}
               <DropdownMenu modal={false}>
-                <DropdownMenuTrigger className="hidden h-10 shrink-0 items-center gap-1 rounded-card border border-line bg-canvas px-3 text-sm font-medium text-ink outline-none lg:inline-flex">
+                <DropdownMenuTrigger className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full bg-ink-muted px-4 text-sm text-ink outline-none">
                   Outils
                   <ChevronDown className="size-3.5 shrink-0" />
                 </DropdownMenuTrigger>
@@ -158,6 +164,12 @@ export function AppShell({
                   <DropdownMenuItem asChild>
                     <Link to="/inventaire">Inventaire</Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/prestataires">Prestataires</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/occupants">Occupants</Link>
+                  </DropdownMenuItem>
                   {voirDocs && (
                     <DropdownMenuItem asChild>
                       <Link to="/outils/etats-des-lieux">États des lieux</Link>
@@ -177,20 +189,13 @@ export function AppShell({
                 }}
               >
                 <DropdownMenuTrigger
-                  className="relative inline-flex size-11 shrink-0 items-center justify-center gap-2 rounded-card border border-line bg-canvas text-sm text-ink outline-none sm:h-11 sm:w-auto sm:px-3 lg:h-10"
+                  className="relative inline-flex size-9 shrink-0 items-center justify-center rounded-full text-ink outline-none hover:bg-white/60"
                   aria-label="Notifications"
                 >
                   <Bell className="size-4 shrink-0" />
-                  <span className="hidden sm:inline">Alertes</span>
-                  <span
-                    className={cn(
-                      "flex size-5 shrink-0 items-center justify-center rounded-full text-[10px]",
-                      notifsNonLues > 0 ? "bg-ink text-white" : "bg-transparent text-transparent",
-                    )}
-                    aria-hidden={notifsNonLues === 0}
-                  >
-                    {notifsNonLues > 0 ? notifsNonLues : "0"}
-                  </span>
+                  {notifsNonLues > 0 && (
+                    <span className="absolute right-1 top-1 size-2 rounded-full bg-chip-urgent" />
+                  )}
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
@@ -220,20 +225,45 @@ export function AppShell({
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Link
-                to="/profil"
-                title={auth ? `${auth.prenom} · ${auth.role}` : undefined}
-                className="hidden min-h-10 items-center whitespace-nowrap rounded-card border border-line bg-canvas px-3 text-sm font-medium text-ink lg:inline-flex"
-              >
-                {auth ? (
-                  <>
-                    {auth.prenom}
-                    <span className="hidden xl:inline"> · {auth.role}</span>
-                  </>
-                ) : (
-                  "Compte"
-                )}
-              </Link>
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger
+                  className="inline-flex min-h-10 flex-col items-start justify-center rounded-full px-1 text-left outline-none"
+                  aria-label="Compte gestionnaire"
+                >
+                  <span className="text-[11px] leading-none text-ink-muted">
+                    Compte gestionnaire
+                  </span>
+                  <span className="mt-1 inline-flex items-center gap-1.5 text-sm text-ink">
+                    <span className="size-2.5 shrink-0 rounded-full bg-[#b9fbbd]" aria-hidden />
+                    <span className="max-w-[9rem] truncate">
+                      {auth ? `${auth.prenom} ${auth.nom}` : "Compte"}
+                    </span>
+                    <ChevronDown className="size-3.5 shrink-0 text-ink-muted" />
+                  </span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem asChild>
+                    <Link to="/profil">Profil</Link>
+                  </DropdownMenuItem>
+                  {peutParametrer && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/parametrage">Paramétrage</Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      signalerDeconnexion();
+                      void authClient.signOut().then(async () => {
+                        oublierEtatsLocaux(null);
+                        await router.invalidate();
+                        await navigate({ to: "/connexion" });
+                      });
+                    }}
+                  >
+                    Se déconnecter
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>

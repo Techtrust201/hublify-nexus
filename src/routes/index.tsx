@@ -12,7 +12,7 @@ import {
   LoyersSection,
   MessagesSection,
 } from "@/components/dashboard/DashboardSections";
-import { PlanningGrid } from "@/components/dashboard/PlanningGrid";
+import { PlanningGrid, type FiltreMaquette } from "@/components/dashboard/PlanningGrid";
 import { PanneauEnDetails } from "@/components/dashboard/PanneauEnDetails";
 import { AppShell } from "@/components/layout/AppShell";
 import {
@@ -75,6 +75,12 @@ function VueGenerale() {
   const [creerEvent, setCreerEvent] = useState(false);
   const [resaId, setResaId] = useState<string | null>(null);
   const [mission, setMission] = useState<MissionMo1 | null>(null);
+  const [filtres, setFiltres] = useState<Set<FiltreMaquette>>(() => new Set());
+
+  const filtrerPlanning = (id: FiltreMaquette) => {
+    setFiltres(new Set([id]));
+    document.getElementById("planning")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const allerOnglet = (v: OngletPlanning) => {
     if (v === "reservations") navigate({ to: "/reservations" });
@@ -86,15 +92,22 @@ function VueGenerale() {
     <AppShell attendDonnees>
       {compteVide && (
         <p className="mb-4 rounded-card border border-line bg-white px-4 py-3 text-sm text-ink-muted">
-          Cet espace ne contient encore aucun logement, séjour ou loyer. Les indicateurs resteront
-          à zéro tant que vous n'aurez rien enregistré.
+          Cet espace ne contient encore aucun logement, séjour ou loyer. Les indicateurs resteront à
+          zéro tant que vous n'aurez rien enregistré.
         </p>
       )}
-      <KpiCards versImpayes="/analyse" />
+      <KpiCards
+        versImpayes="/analyse"
+        onCheck={() => filtrerPlanning("checkin")}
+        onInterventions={() => filtrerPlanning("taches")}
+      />
 
       {voirCalendrier && (
         <div id="planning" className="mt-4">
           <PlanningGrid
+            maquetteAccueil
+            filtres={filtres}
+            onFiltres={setFiltres}
             onglet={onglet}
             onOnglet={allerOnglet}
             onReservation={(id) => {

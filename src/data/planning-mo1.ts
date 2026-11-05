@@ -60,6 +60,8 @@ export type LoyerMo1 = {
   methode?: string;
   reference?: string;
   payeLe?: string;
+  /** Relance automatique mail / SMS / lien. Persisté en base. */
+  relanceAuto?: boolean;
 };
 
 export type EvenementMo1 = {

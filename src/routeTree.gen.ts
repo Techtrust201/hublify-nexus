@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AssistanceRouteImport } from './routes/assistance'
 import { Route as CguRouteImport } from './routes/cgu'
 import { Route as CgvRouteImport } from './routes/cgv'
 import { Route as ChoixDuProfilRouteImport } from './routes/choix-du-profil'
@@ -34,6 +35,8 @@ import { Route as EspaceLogementRouteImport } from './routes/espace.logement'
 import { Route as EspaceMessagesRouteImport } from './routes/espace.messages'
 import { Route as EspaceMissionsRouteImport } from './routes/espace.missions'
 import { Route as EspacePrecheckinRouteImport } from './routes/espace.precheckin'
+import { Route as FormationsSeFormerRouteImport } from './routes/formations.se-former'
+import { Route as FormationsUtiliserRouteImport } from './routes/formations.utiliser'
 import { Route as InventaireIndexRouteImport } from './routes/inventaire.index'
 import { Route as MessagerieIndexRouteImport } from './routes/messagerie.index'
 import { Route as MissionsIndexRouteImport } from './routes/missions.index'
@@ -64,6 +67,11 @@ import { Route as ApiTestMailsRouteImport } from './routes/api/test/mails'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssistanceRoute = AssistanceRouteImport.update({
+  id: '/assistance',
+  path: '/assistance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CguRoute = CguRouteImport.update({
@@ -184,6 +192,16 @@ const EspaceMissionsRoute = EspaceMissionsRouteImport.update({
 const EspacePrecheckinRoute = EspacePrecheckinRouteImport.update({
   id: '/espace/precheckin',
   path: '/espace/precheckin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FormationsSeFormerRoute = FormationsSeFormerRouteImport.update({
+  id: '/formations/se-former',
+  path: '/formations/se-former',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FormationsUtiliserRoute = FormationsUtiliserRouteImport.update({
+  id: '/formations/utiliser',
+  path: '/formations/utiliser',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InventaireIndexRoute = InventaireIndexRouteImport.update({
@@ -320,6 +338,7 @@ const ApiTestMailsRoute = ApiTestMailsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/assistance': typeof AssistanceRoute
   '/cgu': typeof CguRoute
   '/cgv': typeof CgvRoute
   '/choix-du-profil': typeof ChoixDuProfilRoute
@@ -341,6 +360,8 @@ export interface FileRoutesByFullPath {
   '/espace/messages': typeof EspaceMessagesRoute
   '/espace/missions': typeof EspaceMissionsRoute
   '/espace/precheckin': typeof EspacePrecheckinRoute
+  '/formations/se-former': typeof FormationsSeFormerRoute
+  '/formations/utiliser': typeof FormationsUtiliserRoute
   '/missions/$missionId': typeof MissionsMissionIdRoute
   '/outils/baux': typeof OutilsBauxRoute
   '/outils/debuter': typeof OutilsDebuterRoute
@@ -373,6 +394,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/assistance': typeof AssistanceRoute
   '/cgu': typeof CguRoute
   '/cgv': typeof CgvRoute
   '/choix-du-profil': typeof ChoixDuProfilRoute
@@ -394,6 +416,8 @@ export interface FileRoutesByTo {
   '/espace/messages': typeof EspaceMessagesRoute
   '/espace/missions': typeof EspaceMissionsRoute
   '/espace/precheckin': typeof EspacePrecheckinRoute
+  '/formations/se-former': typeof FormationsSeFormerRoute
+  '/formations/utiliser': typeof FormationsUtiliserRoute
   '/missions/$missionId': typeof MissionsMissionIdRoute
   '/outils/baux': typeof OutilsBauxRoute
   '/outils/debuter': typeof OutilsDebuterRoute
@@ -427,6 +451,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/assistance': typeof AssistanceRoute
   '/cgu': typeof CguRoute
   '/cgv': typeof CgvRoute
   '/choix-du-profil': typeof ChoixDuProfilRoute
@@ -448,6 +473,8 @@ export interface FileRoutesById {
   '/espace/messages': typeof EspaceMessagesRoute
   '/espace/missions': typeof EspaceMissionsRoute
   '/espace/precheckin': typeof EspacePrecheckinRoute
+  '/formations/se-former': typeof FormationsSeFormerRoute
+  '/formations/utiliser': typeof FormationsUtiliserRoute
   '/missions/$missionId': typeof MissionsMissionIdRoute
   '/outils/baux': typeof OutilsBauxRoute
   '/outils/debuter': typeof OutilsDebuterRoute
@@ -482,6 +509,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/assistance'
     | '/cgu'
     | '/cgv'
     | '/choix-du-profil'
@@ -503,6 +531,8 @@ export interface FileRouteTypes {
     | '/espace/messages'
     | '/espace/missions'
     | '/espace/precheckin'
+    | '/formations/se-former'
+    | '/formations/utiliser'
     | '/missions/$missionId'
     | '/outils/baux'
     | '/outils/debuter'
@@ -535,6 +565,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/assistance'
     | '/cgu'
     | '/cgv'
     | '/choix-du-profil'
@@ -556,6 +587,8 @@ export interface FileRouteTypes {
     | '/espace/messages'
     | '/espace/missions'
     | '/espace/precheckin'
+    | '/formations/se-former'
+    | '/formations/utiliser'
     | '/missions/$missionId'
     | '/outils/baux'
     | '/outils/debuter'
@@ -588,6 +621,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/assistance'
     | '/cgu'
     | '/cgv'
     | '/choix-du-profil'
@@ -609,6 +643,8 @@ export interface FileRouteTypes {
     | '/espace/messages'
     | '/espace/missions'
     | '/espace/precheckin'
+    | '/formations/se-former'
+    | '/formations/utiliser'
     | '/missions/$missionId'
     | '/outils/baux'
     | '/outils/debuter'
@@ -642,6 +678,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AssistanceRoute: typeof AssistanceRoute
   CguRoute: typeof CguRoute
   CgvRoute: typeof CgvRoute
   ChoixDuProfilRoute: typeof ChoixDuProfilRoute
@@ -663,6 +700,8 @@ export interface RootRouteChildren {
   EspaceMessagesRoute: typeof EspaceMessagesRoute
   EspaceMissionsRoute: typeof EspaceMissionsRoute
   EspacePrecheckinRoute: typeof EspacePrecheckinRoute
+  FormationsSeFormerRoute: typeof FormationsSeFormerRoute
+  FormationsUtiliserRoute: typeof FormationsUtiliserRoute
   MissionsMissionIdRoute: typeof MissionsMissionIdRoute
   OutilsBauxRoute: typeof OutilsBauxRoute
   OutilsDebuterRoute: typeof OutilsDebuterRoute
@@ -701,6 +740,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assistance': {
+      id: '/assistance'
+      path: '/assistance'
+      fullPath: '/assistance'
+      preLoaderRoute: typeof AssistanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cgu': {
@@ -869,6 +915,20 @@ declare module '@tanstack/react-router' {
       path: '/espace/precheckin'
       fullPath: '/espace/precheckin'
       preLoaderRoute: typeof EspacePrecheckinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/formations/se-former': {
+      id: '/formations/se-former'
+      path: '/formations/se-former'
+      fullPath: '/formations/se-former'
+      preLoaderRoute: typeof FormationsSeFormerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/formations/utiliser': {
+      id: '/formations/utiliser'
+      path: '/formations/utiliser'
+      fullPath: '/formations/utiliser'
+      preLoaderRoute: typeof FormationsUtiliserRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inventaire/': {
@@ -1058,6 +1118,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AssistanceRoute: AssistanceRoute,
   CguRoute: CguRoute,
   CgvRoute: CgvRoute,
   ChoixDuProfilRoute: ChoixDuProfilRoute,
@@ -1079,6 +1140,8 @@ const rootRouteChildren: RootRouteChildren = {
   EspaceMessagesRoute: EspaceMessagesRoute,
   EspaceMissionsRoute: EspaceMissionsRoute,
   EspacePrecheckinRoute: EspacePrecheckinRoute,
+  FormationsSeFormerRoute: FormationsSeFormerRoute,
+  FormationsUtiliserRoute: FormationsUtiliserRoute,
   MissionsMissionIdRoute: MissionsMissionIdRoute,
   OutilsBauxRoute: OutilsBauxRoute,
   OutilsDebuterRoute: OutilsDebuterRoute,

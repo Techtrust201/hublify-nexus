@@ -25,6 +25,8 @@ export type OccupationLieu = (typeof OCCUPATIONS_LIEU)[number];
 export type AttributionPrestation = "mandataire" | "proprietaire" | "locataire";
 export type PorteurPrestation = "prestataire" | "teammate" | "proprietaire";
 
+export type EnvoiPrestation = "envoyee" | "validee" | "refusee" | "en_attente";
+
 export type MetaPrestation = {
   plageDebut?: string;
   plageFin?: string;
@@ -37,6 +39,18 @@ export type MetaPrestation = {
   linge?: boolean;
   consommable?: boolean;
   porteur?: PorteurPrestation;
+  /** Cycle d'envoi affiché dans le panneau En détails. */
+  envoi?: EnvoiPrestation;
+  note?: string;
+  marketplace?: boolean;
+  signifiee?: boolean;
+};
+
+export const LIBELLES_ENVOI: Record<EnvoiPrestation, string> = {
+  envoyee: "Prestation envoyée",
+  validee: "Prestation validée",
+  refusee: "Prestation refusée",
+  en_attente: "Prestation en attente",
 };
 
 const SEP = "\u2063";

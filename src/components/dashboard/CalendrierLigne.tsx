@@ -136,10 +136,12 @@ export function BandeauPlanning({
   actif,
   onChoisir,
   extra,
+  apparence = "cartes",
 }: {
   actif: OngletPlanning;
   onChoisir: (v: OngletPlanning) => void;
   extra?: ReactNode;
+  apparence?: "cartes" | "pilules";
 }) {
   const items = [
     {
@@ -161,6 +163,36 @@ export function BandeauPlanning({
       icone: Tag,
     },
   ];
+  if (apparence === "pilules") {
+    return (
+      <div
+        role="tablist"
+        aria-label="Planning"
+        className="flex flex-wrap items-center justify-center gap-3"
+      >
+        {items.map((it) => {
+          const Icone = it.icone;
+          const sel = actif === it.id;
+          return (
+            <button
+              key={it.id}
+              type="button"
+              role="tab"
+              aria-selected={sel}
+              onClick={() => onChoisir(it.id)}
+              className={cn(
+                "inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-medium shadow-sm",
+                sel ? "bg-[#cacece] text-ink" : "border border-line bg-white text-ink-body",
+              )}
+            >
+              <Icone className="size-4" />
+              {it.label}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
   return (
     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 py-2">
       <div

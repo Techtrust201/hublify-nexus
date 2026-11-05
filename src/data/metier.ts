@@ -85,6 +85,7 @@ const CHAMPS: Record<CollectionMetier, Champs> = {
     ["methode", "methode"],
     ["reference", "reference"],
     ["paye_le", "payeLe"],
+    ["relance_auto", "relanceAuto"],
   ],
   evenements: [
     ["id", "id"],

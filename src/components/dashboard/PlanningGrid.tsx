@@ -61,6 +61,23 @@ import { idDossierPourCalendrier } from "@/data/v1-metier";
 import { cn } from "@/lib/utils";
 
 const JOURS_SEM = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"];
+const EMPTY_FILTRES = new Set<FiltreMaquette>();
+const MOIS_FR = [
+  "janvier",
+  "février",
+  "mars",
+  "avril",
+  "mai",
+  "juin",
+  "juillet",
+  "août",
+  "septembre",
+  "octobre",
+  "novembre",
+  "décembre",
+];
+
+export type FiltreMaquette = "checkin" | "checkout" | "taches";
 
 export function PlanningGrid({
   onglet,
@@ -70,6 +87,9 @@ export function PlanningGrid({
   onMission,
   selectedResaId = null,
   selectedMissionId = null,
+  maquetteAccueil = false,
+  filtres = EMPTY_FILTRES,
+  onFiltres,
 }: {
   onglet: OngletPlanning;
   onOnglet: (v: OngletPlanning) => void;
@@ -78,6 +98,10 @@ export function PlanningGrid({
   onMission?: (m: MissionMo1) => void;
   selectedResaId?: string | null | undefined;
   selectedMissionId?: string | null | undefined;
+  /** Chrome de la Vue générale (pilules, recherche, créer une mission). */
+  maquetteAccueil?: boolean;
+  filtres?: ReadonlySet<FiltreMaquette>;
+  onFiltres?: (next: Set<FiltreMaquette>) => void;
 }) {
   const session = useSession();
   const navigate = useNavigate();
@@ -170,8 +194,22 @@ export function PlanningGrid({
   const missionsFiltrees = useMemo(() => {
     if (affichage === "ouverture") return [] as MissionMo1[];
     let list = missions;
-    if (affichage === "checkin") list = list.filter((m) => m.type === "Check-in");
-    if (affichage === "checkout") list = list.filter((m) => m.type === "Check-out");
+    if (maquetteAccueil && filtres.size > 0) {
+      list = list.filter((m) => {
+        if (filtres.has("checkin") && m.type === "Check-in") return true;
+        if (filtres.has("checkout") && m.type === "Check-out") return true;
+        if (
+          filtres.has("taches") &&
+          (m.type === "Menage" || m.type === "Inventaire" || m.type === "Maintenance")
+        ) {
+          return true;
+        }
+        return false;
+      });
+    } else {
+      if (affichage === "checkin") list = list.filter((m) => m.type === "Check-in");
+      if (affichage === "checkout") list = list.filter((m) => m.type === "Check-out");
+    }
     // « Prestations seules » masque les séjours (voir montrerResas), pas les
     // missions — y compris les types custom stockés sous Maintenance + typeLibre.
     const q = rechercheCal.trim().toLowerCase();
@@ -185,7 +223,7 @@ export function PlanningGrid({
       );
     }
     return list;
-  }, [affichage, missions, rechercheCal, biensFiltres]);
+  }, [affichage, missions, rechercheCal, biensFiltres, maquetteAccueil, filtres]);
   const montrerResas =
     !prestationsSeules && (affichage === "missions" || affichage === "ouverture");
   const montrerMissions = affichage !== "ouverture";
@@ -241,452 +279,609 @@ export function PlanningGrid({
   const reglesActives = regles.filter((r) => ensembles.find((e) => e.id === r.ensembleId)?.actif);
   const ensemblesActifs = ensembles.filter((e) => e.actif).length;
 
+  const decaler = (sens: -1 | 1) =>
+    setAncre((d) =>
+      vue === "mois"
+        ? new Date(d.getFullYear(), d.getMonth() + sens, 1)
+        : ajouterJours(d, sens * (nbJours || 1)),
+    );
+  const basculerFiltre = (id: FiltreMaquette) => {
+    const next = new Set(filtres);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    onFiltres?.(next);
+  };
+  const annees = [ancre.getFullYear() - 1, ancre.getFullYear(), ancre.getFullYear() + 1];
+
   return (
-    <div className="overflow-hidden rounded-card border border-line bg-white">
-      <div className="flex items-center gap-2 border-b border-line bg-[#f7f6f3] px-3">
-        <BandeauPlanning
-          actif={onglet}
-          onChoisir={onOnglet}
-          extra={
-            <div className="flex items-center gap-2">
-              {onglet === "tarifs" ? (
-                <button
-                  type="button"
-                  onClick={() => setGererRegles(true)}
-                  aria-label="Gérer les ensembles de règles"
-                  className="inline-flex size-11 shrink-0 items-center justify-center gap-1.5 rounded border border-line bg-white text-xs font-medium text-ink-body md:h-[30px] md:w-auto md:px-3"
-                >
-                  <SlidersHorizontal className="size-3" />
-                  <span className="hidden md:inline">Gérer les ensembles de règles</span>
-                </button>
-              ) : null}
-              {peutReserver ? (
-                <Link
-                  to="/reservations/nouveau"
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-[14px] bg-accent-teal px-3 text-xs font-medium text-white md:h-[30px]"
-                >
-                  <Plus className="size-3.5" />
-                  <span className="sm:hidden">Créer</span>
-                  <span className="hidden sm:inline">Créer une réservation</span>
-                </Link>
-              ) : null}
+    <>
+      {maquetteAccueil ? (
+        <div className="space-y-3">
+          <BandeauPlanning apparence="pilules" actif={onglet} onChoisir={onOnglet} />
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="min-w-0 flex-1">
+              <ChampRechercheCalendrier
+                valeur={rechercheCal}
+                onChange={setRechercheCal}
+                placeholder="Rechercher par prestataire ou appartement..."
+              />
             </div>
-          }
-        />
-      </div>
-
-      <div className="border-b border-surface-soft px-4 py-2">
-        <ChampRechercheCalendrier valeur={rechercheCal} onChange={setRechercheCal} />
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3 border-b border-surface-soft bg-surface/50 px-4 py-2">
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            aria-label="Précédent"
-            className="flex size-11 items-center justify-center rounded border border-line text-ink-body"
-            onClick={() =>
-              setAncre((d) =>
-                vue === "mois"
-                  ? new Date(d.getFullYear(), d.getMonth() - 1, 1)
-                  : ajouterJours(d, -nbJours),
-              )
-            }
-          >
-            <ChevronLeft className="size-3.5" />
-          </button>
-          <span className="min-w-24 text-center text-xs capitalize text-ink-body">
-            {ancre.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
-          </span>
-          <button
-            type="button"
-            aria-label="Suivant"
-            className="flex size-11 items-center justify-center rounded border border-line text-ink-body"
-            onClick={() =>
-              setAncre((d) =>
-                vue === "mois"
-                  ? new Date(d.getFullYear(), d.getMonth() + 1, 1)
-                  : ajouterJours(d, nbJours),
-              )
-            }
-          >
-            <ChevronRight className="size-3.5" />
-          </button>
-        </div>
-
-        <div className="flex overflow-hidden rounded border border-line">
-          {(
-            [
-              ["3jours", "3 jours"],
-              ["5jours", "5 jours"],
-              ["mois", "Mois"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setVue(id)}
-              className={cn(
-                "h-11 min-h-11 border-r border-line px-3 text-xs font-medium last:border-r-0",
-                id === "5jours" && "hidden sm:block",
-                vue === id ? "bg-tab-active text-ink-body" : "bg-white text-ink-body",
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        <span className="hidden h-4 w-px bg-line sm:block" />
-
-        {onglet === "tarifs" ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="flex items-center gap-2 text-xs text-ink-muted">
-              <Tag className="size-3" />
-              {reglesActives.length} règles actives sur {ensemblesActifs} ensemble
-              {ensemblesActifs > 1 ? "s" : ""}
-            </p>
-            {vue === "mois" && (
-              <label className="flex items-center gap-2 text-xs text-ink-body">
-                Voir les tarifs de :
-                <select
-                  value={filtreBienTarif}
-                  onChange={(e) => setFiltreBienTarif(e.target.value)}
-                  className="h-11 rounded border border-line bg-white px-2 text-xs outline-none md:h-[26px]"
-                >
-                  <option value="tous">Tous les biens</option>
-                  {biens.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.nom}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-2 text-xs text-ink-muted">
-              Afficher :
-              <select
-                value={affichage}
-                onChange={(e) => setAffichage(e.target.value as VueAffichagePlanning)}
-                className="h-11 rounded border border-line bg-white px-2 text-xs text-ink-body outline-none md:h-[26px]"
-              >
-                <option value="missions">Missions</option>
-                <option value="taches">Tâches</option>
-                <option value="checkout">Check-out</option>
-                <option value="checkin">Check-in</option>
-                <option value="ouverture">Période d'ouverture du bail</option>
-              </select>
-            </label>
-            {onglet === "missions" ? (
+            {peutReserver ? (
               <button
                 type="button"
-                aria-pressed={prestationsSeules}
-                onClick={() => setPrestationsSeules((v) => !v)}
-                className={cn(
-                  "inline-flex h-11 min-h-11 items-center rounded border px-2.5 text-xs font-medium md:h-[26px] md:min-h-[26px]",
-                  prestationsSeules
-                    ? "border-ink bg-ink text-white"
-                    : "border-line bg-white text-ink-body",
-                )}
+                onClick={() => setPrestation({ bienId: biens[0]?.id ?? "", date: isoJour(ancre) })}
+                className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-accent-teal px-5 text-sm font-medium text-white"
               >
-                Prestations seules
-              </button>
-            ) : null}
-            {montrerOuverture ? (
-              <button
-                type="button"
-                onClick={() => {
-                  const bienId = biens[0]?.id ?? "";
-                  const debut = isoJour(ancre);
-                  setPeriode({ bienId, debut });
-                  setFinPeriode(debut);
-                }}
-                className="inline-flex h-11 min-h-11 items-center rounded border border-line bg-white px-2.5 text-xs font-medium text-ink-body md:h-[26px] md:min-h-[26px]"
-              >
-                Poser une période
+                <Plus className="size-4" />
+                Créer une Mission
               </button>
             ) : null}
           </div>
+        </div>
+      ) : null}
+      <div
+        className={cn(
+          "overflow-hidden rounded-2xl border border-line bg-white",
+          maquetteAccueil && "mt-3",
         )}
-      </div>
-
-      {onglet === "tarifs" ? (
-        vue === "mois" ? (
-          <TarifsMois
-            jours={joursMois}
-            ancre={ancre}
-            biens={biensTarif}
-            ensembles={ensembles}
-            regles={regles}
-            sejours={sejoursCal}
-            onCreerRegle={(bienId, date) => {
-              setCibleRegle({ bienId, date });
-              setCreerRegle(true);
-            }}
-          />
-        ) : (
-          <TarifsJours
-            jours={jours}
-            biens={biensFiltres}
-            ensembles={ensembles}
-            regles={regles}
-            sejours={sejoursCal}
-            onCreerRegle={(bienId, date) => {
-              setCibleRegle({ bienId, date });
-              setCreerRegle(true);
-            }}
-          />
-        )
-      ) : vue === "mois" ? (
-        <MoisMissions
-          jours={joursMois}
-          ancre={ancre}
-          missions={missionsFiltrees}
-          sejours={sejoursAffiches}
-          datesBloquees={datesBloquees}
-          onMission={choisirMission}
-          selectedMissionId={selectedMissionId}
-          selectedResaId={selectedResaId}
-          selectionActive={selectionActive}
-          {...(montrerMissions
-            ? {
-                onAjouter: (date: string) =>
-                  setActionDate({
-                    bienId: biensFiltres[0]?.id ?? biens[0]?.id ?? "",
-                    date,
-                  }),
-              }
-            : {})}
-        />
-      ) : (
-        <JoursMissions
-          jours={jours}
-          biens={biensFiltres}
-          missions={missionsFiltrees}
-          sejours={sejoursAffiches}
-          datesBloquees={datesBloquees}
-          onMission={choisirMission}
-          selectedMissionId={selectedMissionId}
-          selectedResaId={selectedResaId}
-          selectionActive={selectionActive}
-          onReservation={(sejour) => {
-            const id = idDossierPourCalendrier(sejour, session.reservationsDossier);
-            if (id) onReservation?.(id);
-          }}
-          {...(montrerMissions
-            ? {
-                onAjouterPrestation: (bienId: string, date: string) =>
-                  setActionDate({ bienId, date }),
-              }
-            : {})}
-        />
-      )}
-
-      {onglet === "tarifs" && (
-        <CartesEnsembles
-          ensembles={ensembles}
-          regles={regles}
-          onToggle={(id) =>
-            setEnsembles((list) => list.map((e) => (e.id === id ? { ...e, actif: !e.actif } : e)))
-          }
-        />
-      )}
-
-      <MissionInfoDialog
-        mission={onMission ? null : missionOuverte}
-        bienNom={biens.find((b) => b.id === missionOuverte?.bienId)?.nom ?? ""}
-        ouvert={!onMission && Boolean(missionOuverte)}
-        onFermer={() => setMissionOuverte(null)}
-        onStatut={(id, statut) => {
-          modifierSession((e) => ({
-            ...e,
-            missions: e.missions.map((m) => (m.id === id ? { ...m, statut } : m)),
-          }));
-          setMissionOuverte((m) => (m && m.id === id ? { ...m, statut } : m));
-        }}
-        onModifier={(m) => {
-          setMissionOuverte(null);
-          setPrestation({ bienId: m.bienId, date: m.date, mission: m });
-        }}
-        onSupprimer={async (m) => {
-          const ok = await confirmer({
-            titre: "Supprimer cette prestation ?",
-            description: `${m.titre} disparaît du calendrier.`,
-            libelleConfirmer: "Supprimer",
-            danger: true,
-          });
-          if (!ok) return;
-          retirerMission(m.id);
-          setMissionOuverte(null);
-          toastOk("Prestation supprimée.");
-        }}
-      />
-      <CreatePrestationDialog
-        ouvert={Boolean(prestation)}
-        onFermer={() => setPrestation(null)}
-        bienId={prestation?.bienId}
-        date={prestation?.date}
-        mission={prestation?.mission}
-      />
-      <DialogueActionDate
-        ouvert={Boolean(actionDate)}
-        bienNom={biens.find((b) => b.id === actionDate?.bienId)?.nom ?? ""}
-        dateLabel={
-          actionDate
-            ? new Date(`${actionDate.date}T12:00:00`).toLocaleDateString("fr-FR", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-              })
-            : ""
-        }
-        bloque={Boolean(
-          actionDate &&
-          session.datesBloquees.some(
-            (d) =>
-              d.bienId === actionDate.bienId &&
-              d.date === actionDate.date &&
-              d.motif !== "Ouverture" &&
-              d.motif !== "Ouverture BAIL",
-          ),
-        )}
-        onFermer={() => setActionDate(null)}
-        onChoisir={(action) => {
-          if (!actionDate) return;
-          choisirActionDate(action, actionDate.bienId, actionDate.date);
-          setActionDate(null);
-        }}
-      />
-      <CreateEventDialog
-        ouvert={creerEvent}
-        debutInitial={eventContexte?.debut}
-        bienInitial={biens.find((b) => b.id === eventContexte?.bienId)?.nom}
-        onFermer={() => {
-          setCreerEvent(false);
-          setEventContexte(null);
-        }}
-        onCreer={(e) => {
-          ajouterEvenement(e);
-          ajouterNotif({ titre: "Événement ajouté", detail: e.titre, href: "/" });
-          toastOk("Note ou événement ajouté au calendrier.");
-          setCreerEvent(false);
-          setEventContexte(null);
-        }}
-      />
-      <Dialog
-        open={Boolean(periode)}
-        onOpenChange={(o) => {
-          if (!o) setPeriode(null);
-        }}
       >
-        <DialogContent className="max-w-md rounded-card border border-line bg-white p-5">
-          <DialogTitle className="text-sm font-medium text-ink">
-            Période d'ouverture type bail
-          </DialogTitle>
-          <DialogDescription className="text-xs text-ink-muted">
-            Depuis le calendrier général : les jours s'alignent sur les deux plannings.
-          </DialogDescription>
-          <label className="mt-3 block text-xs text-ink-muted">
-            Logement
-            <select
-              value={periode?.bienId ?? ""}
-              onChange={(e) => setPeriode((p) => (p ? { ...p, bienId: e.target.value } : p))}
-              className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm"
+        {!maquetteAccueil && (
+          <div className="flex items-center gap-2 border-b border-line bg-[#f7f6f3] px-3">
+            <BandeauPlanning
+              actif={onglet}
+              onChoisir={onOnglet}
+              extra={
+                <div className="flex items-center gap-2">
+                  {onglet === "tarifs" ? (
+                    <button
+                      type="button"
+                      onClick={() => setGererRegles(true)}
+                      aria-label="Gérer les ensembles de règles"
+                      className="inline-flex size-11 shrink-0 items-center justify-center gap-1.5 rounded border border-line bg-white text-xs font-medium text-ink-body md:h-[30px] md:w-auto md:px-3"
+                    >
+                      <SlidersHorizontal className="size-3" />
+                      <span className="hidden md:inline">Gérer les ensembles de règles</span>
+                    </button>
+                  ) : null}
+                  {peutReserver ? (
+                    <Link
+                      to="/reservations/nouveau"
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-[14px] bg-accent-teal px-3 text-xs font-medium text-white md:h-[30px]"
+                    >
+                      <Plus className="size-3.5" />
+                      <span className="sm:hidden">Créer</span>
+                      <span className="hidden sm:inline">Créer une réservation</span>
+                    </Link>
+                  ) : null}
+                </div>
+              }
+            />
+          </div>
+        )}
+
+        {!maquetteAccueil && (
+          <div className="border-b border-surface-soft px-4 py-2">
+            <ChampRechercheCalendrier valeur={rechercheCal} onChange={setRechercheCal} />
+          </div>
+        )}
+
+        {maquetteAccueil ? (
+          <div className="flex flex-wrap items-center gap-2 border-b border-surface-soft px-3 py-2">
+            <button
+              type="button"
+              aria-label="Précédent"
+              className="flex size-8 items-center justify-center rounded-full text-ink-body hover:bg-surface"
+              onClick={() => decaler(-1)}
             >
-              {biens.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.nom}
+              <ChevronLeft className="size-4" />
+            </button>
+            <select
+              aria-label="Mois"
+              value={ancre.getMonth()}
+              onChange={(e) =>
+                setAncre((d) => new Date(d.getFullYear(), Number(e.target.value), d.getDate()))
+              }
+              className="h-8 rounded-full border border-line bg-white px-3 text-xs uppercase text-ink"
+            >
+              {MOIS_FR.map((nom, i) => (
+                <option key={nom} value={i}>
+                  {nom}
                 </option>
               ))}
             </select>
-          </label>
-          <label className="mt-3 block text-xs text-ink-muted">
-            Début
-            <input
-              type="date"
-              value={periode?.debut ?? ""}
-              onChange={(e) => setPeriode((p) => (p ? { ...p, debut: e.target.value } : p))}
-              className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm"
-            />
-          </label>
-          <label className="mt-3 block text-xs text-ink-muted">
-            Fin
-            <input
-              type="date"
-              value={finPeriode}
-              onChange={(e) => setFinPeriode(e.target.value)}
-              className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm"
-            />
-          </label>
-          <div className="mt-4 flex justify-end gap-2">
+            <select
+              aria-label="Année"
+              value={ancre.getFullYear()}
+              onChange={(e) =>
+                setAncre((d) => new Date(Number(e.target.value), d.getMonth(), d.getDate()))
+              }
+              className="h-8 rounded-full border border-line bg-white px-3 text-xs text-ink"
+            >
+              {annees.map((annee) => (
+                <option key={annee} value={annee}>
+                  {annee}
+                </option>
+              ))}
+            </select>
             <button
               type="button"
-              onClick={() => setPeriode(null)}
-              className="h-9 rounded-card border border-line px-3 text-xs"
+              aria-label="Suivant"
+              className="flex size-8 items-center justify-center rounded-full text-ink-body hover:bg-surface"
+              onClick={() => decaler(1)}
             >
-              Annuler
+              <ChevronRight className="size-4" />
+            </button>
+            <span className="ml-1 text-xs text-ink-muted">Filtrer :</span>
+            {(
+              [
+                ["checkin", "CheckIn"],
+                ["checkout", "CheckOut"],
+                ["taches", "Taches"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={filtres.has(id)}
+                onClick={() => basculerFiltre(id)}
+                className={cn(
+                  "inline-flex h-8 items-center rounded-full border px-3 text-xs",
+                  filtres.has(id)
+                    ? "border-ink bg-surface-soft text-ink"
+                    : "border-line bg-white text-ink-body",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setAncre(new Date())}
+              className="inline-flex h-8 items-center rounded-full border border-line bg-white px-3 text-xs text-ink"
+            >
+              Aujourd'hui
             </button>
             <button
               type="button"
-              onClick={() => {
-                if (!periode?.bienId || !periode.debut || !finPeriode) return;
-                const n = poserOuverturesBail(periode.bienId, periode.debut, finPeriode);
-                setPeriode(null);
-                toastOk(`Période d'ouverture type bail posée (${n} jour${n > 1 ? "s" : ""}).`);
-              }}
-              className="h-9 rounded-card bg-ink px-3 text-xs font-medium text-white"
+              aria-pressed={affichage === "ouverture"}
+              onClick={() => setAffichage((v) => (v === "ouverture" ? "missions" : "ouverture"))}
+              className="inline-flex h-8 items-center rounded-full border border-line bg-white px-3 text-xs text-ink-muted"
             >
-              Enregistrer
+              Ouverture
             </button>
+            <div className="ml-auto flex items-center gap-1">
+              {(
+                [
+                  ["3jours", "3 jours"],
+                  ["5jours", "5 jours"],
+                  ["mois", "Mois"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setVue(id)}
+                  className={cn(
+                    "h-8 rounded-full px-3 text-xs",
+                    vue === id ? "bg-surface-soft font-medium text-ink" : "text-ink-muted",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
-      <CreateRegleDialog
-        ouvert={creerRegle}
-        onFermer={() => {
-          setCreerRegle(false);
-          setCibleRegle({});
-        }}
-        ensembles={ensembles}
-        {...(cibleRegle.bienId ? { bienIdInitial: cibleRegle.bienId } : {})}
-        {...(cibleRegle.date ? { dateInitiale: cibleRegle.date } : {})}
-        onCreer={(r, nouvelEnsemble) => {
-          if (nouvelEnsemble) {
-            const id = `en-${Date.now()}`;
-            setEnsembles((list) => [
-              ...list,
-              { id, nom: nouvelEnsemble, description: "Ensemble créé", actif: true },
-            ]);
-            setRegles((list) => [...list, { ...r, ensembleId: id }]);
-            return;
+        ) : (
+          <div className="flex flex-wrap items-center gap-3 border-b border-surface-soft bg-surface/50 px-4 py-2">
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                aria-label="Précédent"
+                className="flex size-11 items-center justify-center rounded border border-line text-ink-body"
+                onClick={() =>
+                  setAncre((d) =>
+                    vue === "mois"
+                      ? new Date(d.getFullYear(), d.getMonth() - 1, 1)
+                      : ajouterJours(d, -nbJours),
+                  )
+                }
+              >
+                <ChevronLeft className="size-3.5" />
+              </button>
+              <span className="min-w-24 text-center text-xs capitalize text-ink-body">
+                {ancre.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
+              </span>
+              <button
+                type="button"
+                aria-label="Suivant"
+                className="flex size-11 items-center justify-center rounded border border-line text-ink-body"
+                onClick={() =>
+                  setAncre((d) =>
+                    vue === "mois"
+                      ? new Date(d.getFullYear(), d.getMonth() + 1, 1)
+                      : ajouterJours(d, nbJours),
+                  )
+                }
+              >
+                <ChevronRight className="size-3.5" />
+              </button>
+            </div>
+
+            <div className="flex overflow-hidden rounded border border-line">
+              {(
+                [
+                  ["3jours", "3 jours"],
+                  ["5jours", "5 jours"],
+                  ["mois", "Mois"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setVue(id)}
+                  className={cn(
+                    "h-11 min-h-11 border-r border-line px-3 text-xs font-medium last:border-r-0",
+                    id === "5jours" && "hidden sm:block",
+                    vue === id ? "bg-tab-active text-ink-body" : "bg-white text-ink-body",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <span className="hidden h-4 w-px bg-line sm:block" />
+
+            {onglet === "tarifs" ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="flex items-center gap-2 text-xs text-ink-muted">
+                  <Tag className="size-3" />
+                  {reglesActives.length} règles actives sur {ensemblesActifs} ensemble
+                  {ensemblesActifs > 1 ? "s" : ""}
+                </p>
+                {vue === "mois" && (
+                  <label className="flex items-center gap-2 text-xs text-ink-body">
+                    Voir les tarifs de :
+                    <select
+                      value={filtreBienTarif}
+                      onChange={(e) => setFiltreBienTarif(e.target.value)}
+                      className="h-11 rounded border border-line bg-white px-2 text-xs outline-none md:h-[26px]"
+                    >
+                      <option value="tous">Tous les biens</option>
+                      {biens.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.nom}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="flex items-center gap-2 text-xs text-ink-muted">
+                  Afficher :
+                  <select
+                    value={affichage}
+                    onChange={(e) => setAffichage(e.target.value as VueAffichagePlanning)}
+                    className="h-11 rounded border border-line bg-white px-2 text-xs text-ink-body outline-none md:h-[26px]"
+                  >
+                    <option value="missions">Missions</option>
+                    <option value="taches">Tâches</option>
+                    <option value="checkout">Check-out</option>
+                    <option value="checkin">Check-in</option>
+                    <option value="ouverture">Période d'ouverture du bail</option>
+                  </select>
+                </label>
+                {onglet === "missions" ? (
+                  <button
+                    type="button"
+                    aria-pressed={prestationsSeules}
+                    onClick={() => setPrestationsSeules((v) => !v)}
+                    className={cn(
+                      "inline-flex h-11 min-h-11 items-center rounded border px-2.5 text-xs font-medium md:h-[26px] md:min-h-[26px]",
+                      prestationsSeules
+                        ? "border-ink bg-ink text-white"
+                        : "border-line bg-white text-ink-body",
+                    )}
+                  >
+                    Prestations seules
+                  </button>
+                ) : null}
+                {montrerOuverture ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const bienId = biens[0]?.id ?? "";
+                      const debut = isoJour(ancre);
+                      setPeriode({ bienId, debut });
+                      setFinPeriode(debut);
+                    }}
+                    className="inline-flex h-11 min-h-11 items-center rounded border border-line bg-white px-2.5 text-xs font-medium text-ink-body md:h-[26px] md:min-h-[26px]"
+                  >
+                    Poser une période
+                  </button>
+                ) : null}
+              </div>
+            )}
+          </div>
+        )}
+
+        {onglet === "tarifs" ? (
+          vue === "mois" ? (
+            <TarifsMois
+              jours={joursMois}
+              ancre={ancre}
+              biens={biensTarif}
+              ensembles={ensembles}
+              regles={regles}
+              sejours={sejoursCal}
+              onCreerRegle={(bienId, date) => {
+                setCibleRegle({ bienId, date });
+                setCreerRegle(true);
+              }}
+            />
+          ) : (
+            <TarifsJours
+              jours={jours}
+              biens={biensFiltres}
+              ensembles={ensembles}
+              regles={regles}
+              sejours={sejoursCal}
+              onCreerRegle={(bienId, date) => {
+                setCibleRegle({ bienId, date });
+                setCreerRegle(true);
+              }}
+            />
+          )
+        ) : vue === "mois" ? (
+          <MoisMissions
+            jours={joursMois}
+            ancre={ancre}
+            missions={missionsFiltrees}
+            sejours={sejoursAffiches}
+            datesBloquees={datesBloquees}
+            onMission={choisirMission}
+            selectedMissionId={selectedMissionId}
+            selectedResaId={selectedResaId}
+            selectionActive={selectionActive}
+            {...(montrerMissions
+              ? {
+                  onAjouter: (date: string) =>
+                    setActionDate({
+                      bienId: biensFiltres[0]?.id ?? biens[0]?.id ?? "",
+                      date,
+                    }),
+                }
+              : {})}
+          />
+        ) : (
+          <JoursMissions
+            jours={jours}
+            biens={biensFiltres}
+            missions={missionsFiltrees}
+            sejours={sejoursAffiches}
+            datesBloquees={datesBloquees}
+            onMission={choisirMission}
+            selectedMissionId={selectedMissionId}
+            selectedResaId={selectedResaId}
+            selectionActive={selectionActive}
+            onReservation={(sejour) => {
+              const id = idDossierPourCalendrier(sejour, session.reservationsDossier);
+              if (id) onReservation?.(id);
+            }}
+            {...(montrerMissions
+              ? {
+                  onAjouterPrestation: (bienId: string, date: string) =>
+                    setActionDate({ bienId, date }),
+                }
+              : {})}
+          />
+        )}
+
+        {onglet === "tarifs" && (
+          <CartesEnsembles
+            ensembles={ensembles}
+            regles={regles}
+            onToggle={(id) =>
+              setEnsembles((list) => list.map((e) => (e.id === id ? { ...e, actif: !e.actif } : e)))
+            }
+          />
+        )}
+
+        <MissionInfoDialog
+          mission={onMission ? null : missionOuverte}
+          bienNom={biens.find((b) => b.id === missionOuverte?.bienId)?.nom ?? ""}
+          ouvert={!onMission && Boolean(missionOuverte)}
+          onFermer={() => setMissionOuverte(null)}
+          onStatut={(id, statut) => {
+            modifierSession((e) => ({
+              ...e,
+              missions: e.missions.map((m) => (m.id === id ? { ...m, statut } : m)),
+            }));
+            setMissionOuverte((m) => (m && m.id === id ? { ...m, statut } : m));
+          }}
+          onModifier={(m) => {
+            setMissionOuverte(null);
+            setPrestation({ bienId: m.bienId, date: m.date, mission: m });
+          }}
+          onSupprimer={async (m) => {
+            const ok = await confirmer({
+              titre: "Supprimer cette prestation ?",
+              description: `${m.titre} disparaît du calendrier.`,
+              libelleConfirmer: "Supprimer",
+              danger: true,
+            });
+            if (!ok) return;
+            retirerMission(m.id);
+            setMissionOuverte(null);
+            toastOk("Prestation supprimée.");
+          }}
+        />
+        <CreatePrestationDialog
+          ouvert={Boolean(prestation)}
+          onFermer={() => setPrestation(null)}
+          bienId={prestation?.bienId}
+          date={prestation?.date}
+          mission={prestation?.mission}
+        />
+        <DialogueActionDate
+          ouvert={Boolean(actionDate)}
+          bienNom={biens.find((b) => b.id === actionDate?.bienId)?.nom ?? ""}
+          dateLabel={
+            actionDate
+              ? new Date(`${actionDate.date}T12:00:00`).toLocaleDateString("fr-FR", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                })
+              : ""
           }
-          setRegles((list) => [...list, { ...r, ensembleId: ensembleCible || r.ensembleId }]);
-        }}
-      />
-      <GererReglesPanel
-        ouvert={gererRegles}
-        onFermer={() => setGererRegles(false)}
-        ensembles={ensembles}
-        regles={regles}
-        onToggleEnsemble={(id) =>
-          setEnsembles((list) => list.map((e) => (e.id === id ? { ...e, actif: !e.actif } : e)))
-        }
-        onSupprimerEnsemble={(id) => {
-          setEnsembles((list) => list.filter((e) => e.id !== id));
-          setRegles((list) => list.filter((r) => r.ensembleId !== id));
-        }}
-        onSupprimerRegle={(id) => setRegles((list) => list.filter((r) => r.id !== id))}
-        onAjouterRegle={(id) => {
-          setEnsembleCible(id);
-          setCibleRegle({});
-          setGererRegles(false);
-          setCreerRegle(true);
-        }}
-      />
-    </div>
+          bloque={Boolean(
+            actionDate &&
+            session.datesBloquees.some(
+              (d) =>
+                d.bienId === actionDate.bienId &&
+                d.date === actionDate.date &&
+                d.motif !== "Ouverture" &&
+                d.motif !== "Ouverture BAIL",
+            ),
+          )}
+          onFermer={() => setActionDate(null)}
+          onChoisir={(action) => {
+            if (!actionDate) return;
+            choisirActionDate(action, actionDate.bienId, actionDate.date);
+            setActionDate(null);
+          }}
+        />
+        <CreateEventDialog
+          ouvert={creerEvent}
+          debutInitial={eventContexte?.debut}
+          bienInitial={biens.find((b) => b.id === eventContexte?.bienId)?.nom}
+          onFermer={() => {
+            setCreerEvent(false);
+            setEventContexte(null);
+          }}
+          onCreer={(e) => {
+            ajouterEvenement(e);
+            ajouterNotif({ titre: "Événement ajouté", detail: e.titre, href: "/" });
+            toastOk("Note ou événement ajouté au calendrier.");
+            setCreerEvent(false);
+            setEventContexte(null);
+          }}
+        />
+        <Dialog
+          open={Boolean(periode)}
+          onOpenChange={(o) => {
+            if (!o) setPeriode(null);
+          }}
+        >
+          <DialogContent className="max-w-md rounded-card border border-line bg-white p-5">
+            <DialogTitle className="text-sm font-medium text-ink">
+              Période d'ouverture type bail
+            </DialogTitle>
+            <DialogDescription className="text-xs text-ink-muted">
+              Depuis le calendrier général : les jours s'alignent sur les deux plannings.
+            </DialogDescription>
+            <label className="mt-3 block text-xs text-ink-muted">
+              Logement
+              <select
+                value={periode?.bienId ?? ""}
+                onChange={(e) => setPeriode((p) => (p ? { ...p, bienId: e.target.value } : p))}
+                className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm"
+              >
+                {biens.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.nom}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="mt-3 block text-xs text-ink-muted">
+              Début
+              <input
+                type="date"
+                value={periode?.debut ?? ""}
+                onChange={(e) => setPeriode((p) => (p ? { ...p, debut: e.target.value } : p))}
+                className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm"
+              />
+            </label>
+            <label className="mt-3 block text-xs text-ink-muted">
+              Fin
+              <input
+                type="date"
+                value={finPeriode}
+                onChange={(e) => setFinPeriode(e.target.value)}
+                className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm"
+              />
+            </label>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setPeriode(null)}
+                className="h-9 rounded-card border border-line px-3 text-xs"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!periode?.bienId || !periode.debut || !finPeriode) return;
+                  const n = poserOuverturesBail(periode.bienId, periode.debut, finPeriode);
+                  setPeriode(null);
+                  toastOk(`Période d'ouverture type bail posée (${n} jour${n > 1 ? "s" : ""}).`);
+                }}
+                className="h-9 rounded-card bg-ink px-3 text-xs font-medium text-white"
+              >
+                Enregistrer
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+        <CreateRegleDialog
+          ouvert={creerRegle}
+          onFermer={() => {
+            setCreerRegle(false);
+            setCibleRegle({});
+          }}
+          ensembles={ensembles}
+          {...(cibleRegle.bienId ? { bienIdInitial: cibleRegle.bienId } : {})}
+          {...(cibleRegle.date ? { dateInitiale: cibleRegle.date } : {})}
+          onCreer={(r, nouvelEnsemble) => {
+            if (nouvelEnsemble) {
+              const id = `en-${Date.now()}`;
+              setEnsembles((list) => [
+                ...list,
+                { id, nom: nouvelEnsemble, description: "Ensemble créé", actif: true },
+              ]);
+              setRegles((list) => [...list, { ...r, ensembleId: id }]);
+              return;
+            }
+            setRegles((list) => [...list, { ...r, ensembleId: ensembleCible || r.ensembleId }]);
+          }}
+        />
+        <GererReglesPanel
+          ouvert={gererRegles}
+          onFermer={() => setGererRegles(false)}
+          ensembles={ensembles}
+          regles={regles}
+          onToggleEnsemble={(id) =>
+            setEnsembles((list) => list.map((e) => (e.id === id ? { ...e, actif: !e.actif } : e)))
+          }
+          onSupprimerEnsemble={(id) => {
+            setEnsembles((list) => list.filter((e) => e.id !== id));
+            setRegles((list) => list.filter((r) => r.ensembleId !== id));
+          }}
+          onSupprimerRegle={(id) => setRegles((list) => list.filter((r) => r.id !== id))}
+          onAjouterRegle={(id) => {
+            setEnsembleCible(id);
+            setCibleRegle({});
+            setGererRegles(false);
+            setCreerRegle(true);
+          }}
+        />
+      </div>
+    </>
   );
 }
 

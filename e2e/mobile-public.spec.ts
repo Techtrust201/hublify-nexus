@@ -198,7 +198,7 @@ test.describe("gestionnaire mobile", () => {
       await expect(async () => {
         await page.getByRole("button", { name: "Ouvrir la navigation" }).click();
         await expect(
-          page.getByRole("dialog").getByRole("link", { name: "Lieux", exact: true }),
+          page.getByRole("dialog").getByRole("link", { name: "Patrimoine", exact: true }),
         ).toBeVisible({ timeout: 2_000 });
       }).toPass({ timeout: 20_000 });
       await page.getByRole("button", { name: "Fermer la navigation" }).click();

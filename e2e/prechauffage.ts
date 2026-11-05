@@ -35,6 +35,12 @@ const ROUTES = [
   "/espace/logement",
   "/espace/messages",
   "/espace/missions",
+  "/formations/se-former",
+  "/formations/utiliser",
+  "/assistance",
+  "/patrimoines",
+  "/parrainage",
+  "/outils/debuter",
 ];
 
 export default async function prechauffer() {
