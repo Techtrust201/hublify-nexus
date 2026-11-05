@@ -116,17 +116,37 @@ export const INCLUS_TOUTES_OFFRES = [
   "Assistance téléphonique",
 ] as const;
 
-export const QUESTIONS_FAQ: readonly { question: string; reponse?: string }[] = [
+export const QUESTIONS_FAQ: readonly { question: string; reponse: string }[] = [
   {
     question: "Puis-je importer mes biens et locataires existants ?",
     reponse:
       "Oui. Un import guidé depuis Excel ou votre ancien logiciel reprend biens, baux, locataires et historiques. Notre équipe peut aussi s'en charger avec vous.",
   },
-  { question: "Hublify remplace-t-il mon expert-comptable ?" },
-  { question: "Les quittances et les documents sont-ils conformes à la réglementation ?" },
-  { question: "Comment mes données sont-elles protégées ?" },
-  { question: "Puis-je gérer plusieurs propriétaires ou SCI ?" },
-  { question: "Que se passe-t-il si je résilie ?" },
+  {
+    question: "Hublify remplace-t-il mon expert-comptable ?",
+    reponse:
+      "Non. Hublify suit les loyers, les quittances, les frais de gestion et les factures propriétaire, mais il ne tient pas la comptabilité légale ni les déclarations fiscales. Vous exportez les pièces pour votre expert-comptable.",
+  },
+  {
+    question: "Les quittances et les documents sont-ils conformes à la réglementation ?",
+    reponse:
+      "Les quittances et les avis d'échéance reprennent le bailleur, le locataire, la période et les montants. Les pièces d'identité se déposent en recto et en verso, en photo ou en fichier. Hublify ne se substitue pas à un conseil juridique : relisez chaque modèle avant signature.",
+  },
+  {
+    question: "Comment mes données sont-elles protégées ?",
+    reponse:
+      "Chaque accès est authentifié et limité par le profil : gestionnaire, propriétaire, locataire, voyageur, prestataire ou lecture. Les fichiers déposés sont enregistrés côté serveur, rattachés à votre organisation, et les codes d'accès des logements sont chiffrés.",
+  },
+  {
+    question: "Puis-je gérer plusieurs propriétaires ou SCI ?",
+    reponse:
+      "Oui. Chaque bien porte son propriétaire, son mandat de gestion et des accès distincts (financier, calendrier, messagerie, documents). Une même organisation peut suivre plusieurs immeubles, SCI ou propriétaires.",
+  },
+  {
+    question: "Que se passe-t-il si je résilie ?",
+    reponse:
+      "Vous exportez vos annonces, documents et historiques pendant la clôture du compte. Les accès du portail locataire et prestataire s'arrêtent avec l'organisation. La V1 ne déclenche aucun prélèvement Stripe.",
+  },
 ];
 
 const IDS: readonly IdOffre[] = ["freemium", "solo", "standard", "professionnel"];

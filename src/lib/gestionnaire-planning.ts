@@ -377,7 +377,8 @@ export const EXTRA_PRECHECKIN_DEFAUT: ExtraPrecheckin = {
   upsellsProposes: [],
 };
 
-const CLE_EXTRA = "hublify.precheckin.extra.v1";
+export const CLE_EXTRA_PRECHECKIN = "hublify.precheckin.extra.v1";
+const CLE_EXTRA = CLE_EXTRA_PRECHECKIN;
 
 export function normaliserExtra(partiel?: Partial<ExtraPrecheckin> | null): ExtraPrecheckin {
   return {
@@ -388,20 +389,44 @@ export function normaliserExtra(partiel?: Partial<ExtraPrecheckin> | null): Extr
   };
 }
 
-export function lireExtraPrecheckin(): ExtraPrecheckin {
-  if (typeof localStorage === "undefined") return EXTRA_PRECHECKIN_DEFAUT;
+/** Null s'il n'y a rien dans le navigateur — à distinguer du défaut métier. */
+export function lireExtraLegacy(): ExtraPrecheckin | null {
+  if (typeof localStorage === "undefined") return null;
   try {
     const brut = localStorage.getItem(CLE_EXTRA);
-    if (!brut) return EXTRA_PRECHECKIN_DEFAUT;
+    if (!brut) return null;
     return normaliserExtra(JSON.parse(brut) as Partial<ExtraPrecheckin>);
   } catch {
-    return EXTRA_PRECHECKIN_DEFAUT;
+    return null;
   }
 }
 
+export function lireExtraPrecheckin(): ExtraPrecheckin {
+  return lireExtraLegacy() ?? { ...EXTRA_PRECHECKIN_DEFAUT, upsellsProposes: [] };
+}
+
+/** @deprecated Les options extra vivent dans `org_precheckin_extra`. */
 export function ecrireExtraPrecheckin(extra: ExtraPrecheckin) {
   if (typeof localStorage === "undefined") return;
   localStorage.setItem(CLE_EXTRA, JSON.stringify(normaliserExtra(extra)));
+}
+
+export function purgerExtraLocal() {
+  if (typeof localStorage === "undefined") return;
+  localStorage.removeItem(CLE_EXTRA);
+}
+
+/**
+ * Une ligne déjà en base n'est jamais remplacée par le navigateur.
+ * Sans ligne, l'ancien localStorage est repris une fois puis purgé.
+ */
+export function fusionMigrationExtra(
+  distant: { extra: ExtraPrecheckin; enregistre: boolean },
+  legacy: ExtraPrecheckin | null,
+): { extra: ExtraPrecheckin; pousser: boolean } {
+  if (distant.enregistre) return { extra: normaliserExtra(distant.extra), pousser: false };
+  if (legacy) return { extra: normaliserExtra(legacy), pousser: true };
+  return { extra: normaliserExtra(null), pousser: false };
 }
 
 /** Même mécanisme pour un bail et un séjour voyageur : la caution n'est demandée

@@ -1,5 +1,7 @@
 /** Timeline des échanges : documents et réservations du portefeuille. */
 
+import { projeterDateDemo } from "@/lib/periode-demo";
+
 export type PeriodeTimeline = "tous" | "aujourdhui" | "hier" | "semaine";
 
 export type GroupeTimeline = "aujourdhui" | "hier" | "semaine" | "ancien";
@@ -99,8 +101,13 @@ export function construireTimeline(input: {
   documents: DocumentTimeline[];
   reservations: ReservationTimeline[];
   biens: ReadonlyArray<{ id: string; nom: string }>;
+  /** Rapproche les dates semées (mars 2026) de la période courante, sans toucher au seed. */
+  projeterDemo?: boolean;
+  maintenant?: Date;
 }): EvenementTimeline[] {
   const noms = new Map(input.biens.map((b) => [b.id, b.nom]));
+  const maintenant = input.maintenant ?? new Date();
+  const poser = (date: Date) => (input.projeterDemo ? projeterDateDemo(date, maintenant) : date);
   const evenements: EvenementTimeline[] = [];
 
   for (const doc of input.documents) {
@@ -108,7 +115,7 @@ export function construireTimeline(input: {
     if (!date) continue;
     evenements.push({
       id: `doc-${doc.id}`,
-      date,
+      date: poser(date),
       titre: `Document — ${doc.titre}`,
       type: doc.type || "Document",
       acteur: doc.modifiePar || "Gestionnaire",
@@ -124,7 +131,7 @@ export function construireTimeline(input: {
     const logement = noms.get(resa.bienId) ?? resa.bienId;
     evenements.push({
       id: `resa-${resa.id}`,
-      date,
+      date: poser(date),
       titre: `${annule ? "Réservation annulée" : "Nouvelle réservation"} — ${logement} — ${resa.occupant}`,
       type: annule ? "Réservation annulée" : resa.plateforme || "Réservation",
       acteur: "Gestionnaire",

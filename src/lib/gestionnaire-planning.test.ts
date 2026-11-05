@@ -3,6 +3,8 @@ import { DROITS_PAR_ROLE, droitsEffectifs } from "@/auth/permissions";
 import {
   actionsDate,
   cautionDemandee,
+  EXTRA_PRECHECKIN_DEFAUT,
+  fusionMigrationExtra,
   descriptionVisible,
   droitsPersonnalises,
   droitAutoriseParProfil,
@@ -128,6 +130,21 @@ describe("lieux et pré-checkin", () => {
     expect(cautionDemandee(extra, "voyageur").montant).toBe(500);
     expect(cautionDemandee({ ...extra, cautionVoyageurs: false }, "voyageur").demandee).toBe(false);
     expect(cautionDemandee({ ...extra, cautionActive: false }, "bail").demandee).toBe(false);
+  });
+
+  it("ne remplace pas un extra déjà enregistré en base", () => {
+    const distant = { ...EXTRA_PRECHECKIN_DEFAUT, cautionMontant: 200, cautionActive: true };
+    const legacy = { ...EXTRA_PRECHECKIN_DEFAUT, cautionMontant: 900 };
+    expect(fusionMigrationExtra({ extra: distant, enregistre: true }, legacy).pousser).toBe(false);
+    expect(
+      fusionMigrationExtra({ extra: distant, enregistre: true }, legacy).extra.cautionMontant,
+    ).toBe(200);
+    expect(
+      fusionMigrationExtra({ extra: EXTRA_PRECHECKIN_DEFAUT, enregistre: false }, legacy),
+    ).toMatchObject({
+      pousser: true,
+      extra: { cautionMontant: 900 },
+    });
   });
 });
 

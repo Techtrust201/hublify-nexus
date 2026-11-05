@@ -31,8 +31,10 @@ export function TimelineApp() {
         documents: session.documents,
         reservations: session.reservationsDossier,
         biens: session.biens,
+        projeterDemo: true,
+        maintenant,
       }),
-    [session.documents, session.reservationsDossier, session.biens],
+    [session.documents, session.reservationsDossier, session.biens, maintenant],
   );
   const types = useMemo(() => ["tous", ...new Set(tous.map((e) => e.type))], [tous]);
   const filtres = filtrerTimeline(tous, {

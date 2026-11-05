@@ -1,9 +1,18 @@
 // SOURCE: V2 Redris — fiche prestataire (« Mes prestataires » / détail)
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useDroit } from "@/auth/auth-context";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Mail, MapPin, Phone, Star } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { EcranAttente } from "@/components/layout/EcranAttente";
-import { useSession, useSessionChargee } from "@/data/session";
+import {
+  modifierPrestataire,
+  retirerPrestataire,
+  useSession,
+  useSessionChargee,
+} from "@/data/session";
+import type { CategoriePrestataire } from "@/data/types";
+import { confirmer, toastOk } from "@/lib/feedback";
 
 export const Route = createFileRoute("/prestataires/$prestataireId")({
   head: () => ({
@@ -24,18 +33,50 @@ export const Route = createFileRoute("/prestataires/$prestataireId")({
   component: FichePrestataire,
 });
 
+const CATEGORIES: CategoriePrestataire[] = [
+  "Ménage",
+  "Maintenance",
+  "Blanchisserie",
+  "Jardinage",
+  "Accueil",
+];
+
 function FichePrestataire() {
   const { prestataireId } = Route.useParams();
+  const navigate = useNavigate();
+  const peutMod = useDroit("mod-biens");
   const { prestataires, missions, biens } = useSession();
   const chargee = useSessionChargee();
   const presta = prestataires.find((p) => p.id === prestataireId);
+  const [form, setForm] = useState({
+    nom: "",
+    categorie: "Ménage" as CategoriePrestataire,
+    telephone: "",
+    email: "",
+    ville: "",
+    actif: true,
+  });
+  const vu = useRef("");
+  useEffect(() => {
+    if (!presta || vu.current === presta.id) return;
+    vu.current = presta.id;
+    setForm({
+      nom: presta.nom,
+      categorie: presta.categorie,
+      telephone: presta.telephone,
+      email: presta.email,
+      ville: presta.ville,
+      actif: presta.actif,
+    });
+  }, [presta]);
 
   // Avant le chargement de l'état, l'absence ne prouve rien : le prestataire
   // existe peut-être. On attend d'en être sûr avant de conclure.
-  if (!presta) {
-    if (!chargee) return <EcranAttente titre="Prestataire" />;
-    throw notFound();
-  }
+  useEffect(() => {
+    if (chargee && !presta) void navigate({ to: "/prestataires" });
+  }, [chargee, navigate, presta]);
+
+  if (!presta) return <EcranAttente titre="Prestataire" />;
 
   const siennes = missions
     .filter((m) => m.assigne === presta.nom)
@@ -80,6 +121,102 @@ function FichePrestataire() {
               <Star className="h-4 w-4" /> {presta.note.toFixed(1)} / 5
             </p>
           </div>
+          {peutMod && (
+            <form
+              className="mt-4 space-y-3 border-t border-border pt-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!form.nom.trim()) return;
+                modifierPrestataire(prestataireId, {
+                  nom: form.nom.trim(),
+                  categorie: form.categorie,
+                  telephone: form.telephone.trim(),
+                  email: form.email.trim(),
+                  ville: form.ville.trim(),
+                  actif: form.actif,
+                });
+                toastOk("Prestataire mis à jour.");
+              }}
+            >
+              <label className="block text-xs text-muted-foreground">
+                Nom
+                <input
+                  required
+                  aria-label="Nom du prestataire"
+                  value={form.nom}
+                  onChange={(e) => setForm((f) => ({ ...f, nom: e.target.value }))}
+                  className="mt-1 h-11 w-full rounded-md border border-border bg-background px-3 text-sm"
+                />
+              </label>
+              <label className="block text-xs text-muted-foreground">
+                Catégorie
+                <select
+                  aria-label="Catégorie"
+                  value={form.categorie}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, categorie: e.target.value as CategoriePrestataire }))
+                  }
+                  className="mt-1 h-11 w-full rounded-md border border-border bg-background px-3 text-sm"
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-xs text-muted-foreground">
+                Ville
+                <input
+                  aria-label="Ville"
+                  value={form.ville}
+                  onChange={(e) => setForm((f) => ({ ...f, ville: e.target.value }))}
+                  className="mt-1 h-11 w-full rounded-md border border-border bg-background px-3 text-sm"
+                />
+              </label>
+              <label className="block text-xs text-muted-foreground">
+                Téléphone
+                <input
+                  aria-label="Téléphone du prestataire"
+                  value={form.telephone}
+                  onChange={(e) => setForm((f) => ({ ...f, telephone: e.target.value }))}
+                  className="mt-1 h-11 w-full rounded-md border border-border bg-background px-3 text-sm"
+                />
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.actif}
+                  onChange={(e) => setForm((f) => ({ ...f, actif: e.target.checked }))}
+                />
+                Actif
+              </label>
+              <button
+                type="submit"
+                className="inline-flex h-11 w-full items-center justify-center rounded-md bg-brand text-sm font-medium text-brand-foreground"
+              >
+                Enregistrer
+              </button>
+              <button
+                type="button"
+                className="inline-flex h-11 w-full items-center justify-center rounded-md border border-danger text-sm text-danger"
+                onClick={() => {
+                  void (async () => {
+                    const ok = await confirmer({
+                      titre: `Supprimer ${presta.nom} ?`,
+                      description: "Le prestataire disparaît de l'annuaire.",
+                      libelleConfirmer: "Supprimer",
+                      danger: true,
+                    });
+                    if (!ok) return;
+                    retirerPrestataire(prestataireId);
+                    toastOk("Prestataire supprimé.");
+                    void navigate({ to: "/prestataires" });
+                  })();
+                }}
+              >
+                Supprimer
+              </button>
+            </form>
+          )}
         </section>
 
         <section className="rounded-xl border border-border bg-card lg:col-span-2">

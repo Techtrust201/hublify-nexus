@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { motDePasseDemoExpose, raccourcisDemoActifs } from "@/routes/connexion";
+import {
+  boutonGoogleVisible,
+  motDePasseDemoExpose,
+  raccourcisDemoActifs,
+} from "@/routes/connexion";
 
 describe("raccourcis démo connexion", () => {
+  it("masque le bouton Google tant que le fournisseur n'est pas branché", () => {
+    expect(boutonGoogleVisible()).toBe(false);
+  });
+
   it("n'expose pas le panneau ni le mot de passe hors mode démo DEV", () => {
     // En vitest, import.meta.env.DEV est true mais VITE_MODE_DEMO n'est pas posé
     // par défaut → le panneau reste off (flag off by default).

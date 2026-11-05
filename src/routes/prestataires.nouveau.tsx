@@ -1,7 +1,7 @@
 // SOURCE: V2 Redris — « AddPrestataireForm.tsx », « Enregistrer le prestataire »
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { ajouterPrestataire } from "@/data/session";
 import { toastOk } from "@/lib/feedback";
@@ -39,6 +39,8 @@ const champ =
 
 function AjoutPrestataire() {
   const navigate = useNavigate();
+  const [interactif, setInteractif] = useState(false);
+  useEffect(() => setInteractif(true), []);
   const [form, setForm] = useState({
     nom: "",
     categorie: "Ménage" as CategoriePrestataire,
@@ -48,8 +50,8 @@ function AjoutPrestataire() {
     actif: true,
   });
 
-  const soumettre = (e: React.FormEvent) => {
-    e.preventDefault();
+  const soumettre = (e?: { preventDefault: () => void }) => {
+    e?.preventDefault();
     const id = ajouterPrestataire({ ...form, note: 0 });
     toastOk("Prestataire ajouté.");
     navigate({ to: "/prestataires/$prestataireId", params: { prestataireId: id } });
@@ -154,7 +156,9 @@ function AjoutPrestataire() {
 
         <div className="flex gap-2 pt-2">
           <button
-            type="submit"
+            type="button"
+            data-pret={interactif ? "1" : "0"}
+            onClick={() => soumettre()}
             className="inline-flex min-h-11 items-center rounded-md bg-brand px-4 py-2 text-sm font-medium text-brand-foreground hover:opacity-90 md:min-h-0"
           >
             Enregistrer le prestataire

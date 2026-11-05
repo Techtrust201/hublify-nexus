@@ -3,8 +3,9 @@ import { useNavigate } from "@tanstack/react-router";
 import { Bouton, Carte, Champ, Ecran, Entete, champClasse } from "@/components/portail/chrome";
 import { modifierReservation, useSession } from "@/data/session";
 import { toastErreur, toastOk } from "@/lib/feedback";
+import { cautionDemandee, type ExtraPrecheckin } from "@/lib/gestionnaire-planning";
 
-export function PrecheckinPortail() {
+export function PrecheckinPortail({ extra }: { extra: ExtraPrecheckin }) {
   const navigate = useNavigate();
   const session = useSession();
   const resa = session.reservationsDossier[0];
@@ -13,6 +14,13 @@ export function PrecheckinPortail() {
   const [heure, setHeure] = useState(resa?.precheckinHeureArrivee || resa?.heureArrivee || "16:00");
   const [note, setNote] = useState(resa?.precheckinNote || "");
   const [envoye, setEnvoye] = useState(resa?.precheckinStatut === "fait");
+  const [piece, setPiece] = useState("");
+  const [choisis, setChoisis] = useState<string[]>([]);
+  const caution = cautionDemandee(extra, "voyageur");
+  const proposes = session.parametrage.upsells.filter(
+    (u) => u.actif && extra.upsellsProposes.includes(u.id),
+  );
+  const demandePiece = extra.photo || extra.fichier || extra.telephone || extra.rectoVerso;
 
   return (
     <Ecran>
@@ -62,19 +70,89 @@ export function PrecheckinPortail() {
             onChange={(e) => setNote(e.target.value)}
           />
         </Champ>
+        {demandePiece && (
+          <div className="space-y-2 text-sm text-[#344054]">
+            <p className="text-xs font-medium text-[#101828]">Pièce d'identité</p>
+            {extra.rectoVerso && <p className="text-xs text-[#667085]">Recto et verso requis.</p>}
+            {extra.photo && (
+              <label className="block text-xs text-[#667085]">
+                Photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="mt-1 block w-full text-sm"
+                  onChange={(e) => setPiece(e.target.files?.[0]?.name ?? "")}
+                />
+              </label>
+            )}
+            {extra.fichier && (
+              <label className="block text-xs text-[#667085]">
+                Fichier
+                <input
+                  type="file"
+                  className="mt-1 block w-full text-sm"
+                  onChange={(e) => setPiece(e.target.files?.[0]?.name ?? piece)}
+                />
+              </label>
+            )}
+            {extra.telephone && (
+              <p className="text-xs text-[#667085]">La recherche sur le téléphone est acceptée.</p>
+            )}
+          </div>
+        )}
+        {caution.demandee && (
+          <p className="text-sm text-[#101828]">Caution à prévoir : {caution.montant} €</p>
+        )}
+        {extra.codePorteJourArrivee && (
+          <p className="text-xs text-[#667085]">
+            Le code de la porte sera affiché le jour de l'arrivée.
+          </p>
+        )}
+        {proposes.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-[#101828]">Services proposés</p>
+            {proposes.map((u) => {
+              const actif = choisis.includes(u.id);
+              return (
+                <button
+                  key={u.id}
+                  type="button"
+                  aria-pressed={actif}
+                  onClick={() =>
+                    setChoisis((liste) =>
+                      actif ? liste.filter((id) => id !== u.id) : [...liste, u.id],
+                    )
+                  }
+                  className="flex w-full items-center justify-between rounded-xl border border-[#eaecf0] px-3 py-2 text-left text-sm"
+                >
+                  <span>{u.nom}</span>
+                  <span className="text-[#667085]">{u.prix.toLocaleString("fr-FR")} €</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
         <Bouton
           onClick={() => {
             if (!identite.trim()) {
               toastErreur("Indiquez l'identité.");
               return;
             }
+            const services = proposes.filter((u) => choisis.includes(u.id)).map((u) => u.nom);
+            const complements = [
+              note.trim(),
+              piece ? `Pièce : ${piece}` : "",
+              services.length > 0 ? `Services : ${services.join(", ")}` : "",
+              caution.demandee ? `Caution : ${caution.montant} €` : "",
+            ].filter(Boolean);
             if (resa) {
               modifierReservation(resa.id, {
                 precheckinStatut: "fait",
                 precheckinIdentite: identite.trim(),
                 precheckinNbPersonnes: Number(nb) || resa.voyageurs,
                 precheckinHeureArrivee: heure,
-                precheckinNote: note.trim(),
+                precheckinNote: complements.join(" · "),
               });
             }
             setEnvoye(true);

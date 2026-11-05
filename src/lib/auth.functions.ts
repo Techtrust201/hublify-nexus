@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { hashPassword } from "better-auth/crypto";
 import { createServerFn } from "@tanstack/react-start";
 import {
   ACCES_RESTREINT,
@@ -130,18 +132,29 @@ export const inviterMembre = createServerFn({ method: "POST" })
       throw new Error("Droits insuffisants");
     }
     const motDePasse = `Hublify-${crypto.randomUUID().slice(0, 8)}!aA1`;
-    const cree = await avecInscriptionInterne(() =>
-      auth.api.signUpEmail({
-        body: {
-          email: data.email,
-          password: motDePasse,
-          name: `${data.prenom} ${data.nom}`.trim(),
-        },
-      }),
-    );
-    const userId = cree.user.id;
     const sql = getSql();
     if (!sql) throw new Error("Base indisponible");
+    // Pas de signUpEmail ici : il poserait le cookie de session du nouveau
+    // compte sur la réponse en cours et déconnecterait l'administrateur.
+    const userId = randomUUID();
+    const nomComplet = `${data.prenom} ${data.nom}`.trim();
+    const hash = await hashPassword(motDePasse);
+    try {
+      await sql.query(
+        `insert into "user" (id, name, email, "emailVerified", "createdAt", "updatedAt")
+         values ($1::uuid, $2, $3, true, now(), now())`,
+        [userId, nomComplet, data.email],
+      );
+      await sql.query(
+        `insert into account (id, "accountId", "providerId", "userId", password, "createdAt", "updatedAt")
+         values ($1::uuid, $2, 'credential', $1::uuid, $3, now(), now())`,
+        [userId, userId, hash],
+      );
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "";
+      if (/duplicate|unique/i.test(message)) throw new Error("Cet e-mail a déjà un compte");
+      throw e;
+    }
     await rattacherUtilisateur({
       sql,
       userId,

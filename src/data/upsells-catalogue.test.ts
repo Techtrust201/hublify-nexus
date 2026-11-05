@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { csvUpsells, ficheEffective, filtrerUpsells } from "@/data/upsells-catalogue";
+import {
+  csvUpsells,
+  ficheEffective,
+  ficheStockee,
+  filtrerUpsells,
+  fusionMigrationFiches,
+} from "@/data/upsells-catalogue";
 
 describe("catalogue upsells", () => {
   const lignes = [
@@ -21,5 +27,12 @@ describe("catalogue upsells", () => {
     );
     expect(csv).toContain("12-01-S;Petit-déjeuner;Nourriture");
     expect(csv).toContain("15,00;oui");
+  });
+
+  it("garde la fiche en base dès qu'une organisation en a une", () => {
+    const stockee = ficheStockee({ code: "X", type: "Service", ville: "Nice" });
+    expect(stockee?.ville).toBe("Nice");
+    expect(fusionMigrationFiches({ "u-dej": stockee! }, { u1: stockee! }).pousser).toBe(false);
+    expect(fusionMigrationFiches({}, { u1: stockee! }).pousser).toBe(true);
   });
 });

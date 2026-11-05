@@ -30,10 +30,15 @@ function ListePrestataires() {
   const { prestataires, missions } = useSession();
   const peutMod = useDroit("mod-biens");
   const [categorie, setCategorie] = useState("toutes");
+  const [recherche, setRecherche] = useState("");
   const categories = ["toutes", ...new Set(prestataires.map((p) => p.categorie))];
+  const q = recherche.trim().toLowerCase();
 
-  const liste =
-    categorie === "toutes" ? prestataires : prestataires.filter((p) => p.categorie === categorie);
+  const liste = prestataires.filter((p) => {
+    if (categorie !== "toutes" && p.categorie !== categorie) return false;
+    if (!q) return true;
+    return `${p.nom} ${p.ville} ${p.categorie} ${p.email}`.toLowerCase().includes(q);
+  });
 
   return (
     <AppShell
@@ -51,6 +56,16 @@ function ListePrestataires() {
         ) : undefined
       }
     >
+      <label className="mb-4 block text-xs text-muted-foreground">
+        Rechercher
+        <input
+          value={recherche}
+          onChange={(e) => setRecherche(e.target.value)}
+          placeholder="Nom, ville, catégorie…"
+          aria-label="Rechercher un prestataire"
+          className="mt-1 h-11 w-full max-w-md rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none"
+        />
+      </label>
       <div className="mb-4 flex flex-wrap gap-2">
         {categories.map((c) => (
           <button

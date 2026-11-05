@@ -1,11 +1,10 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { deposerFichier } from "@/lib/documents.functions";
+import { preparerFichier } from "@/lib/fichiers-client";
 import { useAuth, useDroit } from "@/auth/auth-context";
 import { Bouton, Carte, Champ, Ecran, Entete, champClasse } from "@/components/portail/chrome";
-import {
-  ecrireBrouillonCandidature,
-  lireBrouillonCandidature,
-} from "@/components/portail/etat-local";
+import { usePortailDonnees } from "@/components/portail/etat-portail";
 import { useAncre } from "@/components/portail/use-ancre";
 import {
   ajouterCandidature,
@@ -97,31 +96,30 @@ function Profil() {
   );
 }
 
-function Capturer({ label, onFichier }: { label: string; onFichier: (nom: string) => void }) {
+function Capturer({ label, onFichier }: { label: string; onFichier: (fichier: File) => void }) {
   const photo = useRef<HTMLInputElement>(null);
   const fichier = useRef<HTMLInputElement>(null);
-  const prendre = (liste: FileList | null) => {
+  const prendre = (liste: FileList | null, input: HTMLInputElement) => {
     const item = liste?.[0];
-    if (!item) return;
-    onFichier(item.name);
-    toastOk(`${label} : ${item.name}`);
+    input.value = "";
+    if (item) onFichier(item);
   };
   return (
-    <span className="flex gap-2">
+    <span className="flex gap-2" aria-label={label}>
       <input
         ref={photo}
         type="file"
         accept="image/*"
         capture="environment"
         className="sr-only"
-        onChange={(e) => prendre(e.target.files)}
+        onChange={(e) => prendre(e.target.files, e.target)}
       />
       <input
         ref={fichier}
         type="file"
         accept="image/*,.pdf"
         className="sr-only"
-        onChange={(e) => prendre(e.target.files)}
+        onChange={(e) => prendre(e.target.files, e.target)}
       />
       <button
         type="button"
@@ -151,6 +149,14 @@ function PiecesDossier() {
   const [pieces, setPieces] = useState<PieceDossier[]>(() =>
     avecAvantDernier(existant?.pieces ?? PIECES_DOSSIER_DEFAUT),
   );
+  const piecesRef = useRef(pieces);
+  piecesRef.current = pieces;
+  const idRef = useRef(existant?.id ?? "");
+  if (existant?.id) idRef.current = existant.id;
+  const idDossier = () => {
+    if (!idRef.current) idRef.current = idNouveau("dos");
+    return idRef.current;
+  };
   const [garants, setGarants] = useState<GarantDossier[]>(existant?.garants ?? []);
   const [tuto, setTuto] = useState(false);
   const [revenusOuverts, setRevenusOuverts] = useState(false);
@@ -186,17 +192,23 @@ function PiecesDossier() {
   const patch = (id: string, partiel: Partial<PieceDossier>) =>
     setPieces((liste) => liste.map((p) => (p.id === id ? { ...p, ...partiel } : p)));
 
-  const enregistrer = (statut: "brouillon" | "complet") => {
-    const id = existant?.id ?? idNouveau("dos");
+  const persisterPieces = (suivantes: PieceDossier[], statut: "brouillon" | "complet") => {
+    const id = idDossier();
     const revenusN = Number(revenus.replace(",", ".")) || 0;
     const rfrN = Number(rfr.replace(",", ".")) || 0;
+    const statutGarde =
+      existant?.statut === "complet" ||
+      existant?.statut === "partage" ||
+      existant?.statut === "archive"
+        ? existant.statut
+        : statut;
     upsertDossierLocation({
       id,
       occupantId: session.occupants[0]?.id ?? id,
       occupantNom: `${auth?.prenom ?? ""} ${auth?.nom ?? ""}`.trim(),
       email: auth?.email ?? "",
-      statut,
-      pieces,
+      statut: statutGarde,
+      pieces: suivantes,
       garants,
       dureeAccesMois: 24,
       situationFamiliale: situationFam,
@@ -204,6 +216,60 @@ function PiecesDossier() {
       ...(revenusN ? { revenus: revenusN } : {}),
       ...(rfrN ? { rfr: rfrN } : {}),
     });
+    return id;
+  };
+
+  const recevoirFichier = (pieceId: string, cote: "" | "recto" | "verso", fichier: File) => {
+    void (async () => {
+      const prepare = await preparerFichier(fichier, "dossier");
+      if (!prepare.ok) {
+        toastErreur(prepare.erreur);
+        return;
+      }
+      const res = await deposerFichier({
+        data: {
+          contexte: "dossier",
+          refId: `${idDossier()}:${pieceId}`,
+          cote,
+          nom: prepare.fichier.nom,
+          mime: prepare.fichier.mime,
+          base64: prepare.fichier.base64,
+        },
+      });
+      if (!res.ok) {
+        toastErreur(res.erreur);
+        return;
+      }
+      const suivantes = piecesRef.current.map((p) => {
+        if (p.id !== pieceId) return p;
+        if (cote === "recto") {
+          return {
+            ...p,
+            rectoNom: res.fichier.nom,
+            rectoId: res.fichier.id,
+            present: Boolean(p.versoNom || p.versoId),
+          };
+        }
+        if (cote === "verso") {
+          return {
+            ...p,
+            versoNom: res.fichier.nom,
+            versoId: res.fichier.id,
+            photoNom: res.fichier.nom,
+            present: Boolean(p.rectoNom || p.rectoId),
+          };
+        }
+        return { ...p, photoNom: res.fichier.nom, fichierId: res.fichier.id, present: true };
+      });
+      piecesRef.current = suivantes;
+      setPieces(suivantes);
+      persisterPieces(suivantes, "brouillon");
+      toastOk(`${res.fichier.nom} enregistré.`);
+    })();
+  };
+
+  const enregistrer = (statut: "brouillon" | "complet") => {
+    const id = persisterPieces(pieces, statut);
     toastOk(statut === "complet" ? "Dossier enregistré." : "Brouillon enregistré.");
     return id;
   };
@@ -249,26 +315,18 @@ function PiecesDossier() {
                   <span className="text-[11px] text-[#667085]">Recto {p.rectoNom ?? "—"}</span>
                   <Capturer
                     label="Recto"
-                    onFichier={(nom) =>
-                      patch(p.id, { rectoNom: nom, present: Boolean(nom) && Boolean(p.versoNom) })
-                    }
+                    onFichier={(fichier) => recevoirFichier(p.id, "recto", fichier)}
                   />
                   <span className="text-[11px] text-[#667085]">Verso {p.versoNom ?? "—"}</span>
                   <Capturer
                     label="Verso"
-                    onFichier={(nom) =>
-                      patch(p.id, {
-                        versoNom: nom,
-                        present: Boolean(p.rectoNom) && Boolean(nom),
-                        photoNom: nom,
-                      })
-                    }
+                    onFichier={(fichier) => recevoirFichier(p.id, "verso", fichier)}
                   />
                 </span>
               ) : (
                 <Capturer
                   label={p.titre}
-                  onFichier={(nom) => patch(p.id, { photoNom: nom, present: true })}
+                  onFichier={(fichier) => recevoirFichier(p.id, "", fichier)}
                 />
               )}
             </div>
@@ -504,19 +562,32 @@ export function CandidaturePortail() {
   const session = useSession();
   const auth = useAuth();
   const peutValider = useDroit("mod-reservations");
-  const brouillon = lireBrouillonCandidature();
+  const { candidature: brouillon, pret, ecrireCandidature } = usePortailDonnees();
   const dossier =
     session.dossiersLocation.find(
       (d) => d.email.toLowerCase() === (auth?.email ?? "").toLowerCase(),
     ) ?? session.dossiersLocation[0];
-  const [bienId, setBienId] = useState(brouillon.bienId || session.biens[0]?.id || "ann-suzette");
-  const [arrivee, setArrivee] = useState(brouillon.arrivee ?? "");
-  const [depart, setDepart] = useState(brouillon.depart ?? "");
-  const [marie, setMarie] = useState(Boolean(brouillon.marie));
-  const [pacse, setPacse] = useState(Boolean(brouillon.pacse));
-  const [concubinage, setConcubinage] = useState(Boolean(brouillon.concubinage));
-  const [colocation, setColocation] = useState(Boolean(brouillon.colocation));
-  const [autoriser, setAutoriser] = useState(brouillon.autoriserDossier !== false);
+  const [bienId, setBienId] = useState(session.biens[0]?.id || "ann-suzette");
+  const [arrivee, setArrivee] = useState("");
+  const [depart, setDepart] = useState("");
+  const [marie, setMarie] = useState(false);
+  const [pacse, setPacse] = useState(false);
+  const [concubinage, setConcubinage] = useState(false);
+  const [colocation, setColocation] = useState(false);
+  const [autoriser, setAutoriser] = useState(true);
+  const brouillonPose = useRef(false);
+  useEffect(() => {
+    if (!pret || brouillonPose.current) return;
+    brouillonPose.current = true;
+    if (brouillon.bienId) setBienId(brouillon.bienId);
+    if (brouillon.arrivee) setArrivee(brouillon.arrivee);
+    if (brouillon.depart) setDepart(brouillon.depart);
+    setMarie(Boolean(brouillon.marie));
+    setPacse(Boolean(brouillon.pacse));
+    setConcubinage(Boolean(brouillon.concubinage));
+    setColocation(Boolean(brouillon.colocation));
+    if (brouillon.autoriserDossier === false) setAutoriser(false);
+  }, [brouillon, pret]);
   const bien = session.biens.find((b) => b.id === bienId);
   const estimation = useMemo(() => {
     if (!arrivee || !depart || depart <= arrivee) return { prorata: 0, commissions: 0, total: 0 };
@@ -529,7 +600,7 @@ export function CandidaturePortail() {
   }, [arrivee, bien, depart]);
 
   const memoriser = () =>
-    ecrireBrouillonCandidature({
+    ecrireCandidature({
       bienId,
       arrivee,
       depart,
