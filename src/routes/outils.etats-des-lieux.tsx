@@ -358,6 +358,7 @@ function PageEdl() {
             onPage={setPieceId}
             onAjouter={ajouterPiece}
             libelleAjouter="Ajouter une pièce"
+            mentionApercu="affichage par page"
             pied={
               <div className="mt-3 space-y-2 border-t border-surface-soft px-2 pt-3">
                 <label className="block text-[11px] text-ink-muted">

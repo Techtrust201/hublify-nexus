@@ -50,9 +50,9 @@ export function TimelineApp() {
   return (
     <div className="space-y-4">
       <section className="rounded-card border border-line bg-white p-4 sm:p-5">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-medium text-ink">Timeline des événements</h2>
+        <div className="flex flex-wrap items-end justify-between gap-3 text-center sm:text-left">
+          <div className="mx-auto sm:mx-0">
+            <h2 className="text-2xl font-medium text-ink">Timeline des événements</h2>
             <p className="mt-1 max-w-xl text-xs text-ink-muted">
               Documents envoyés ou reçus, nouvelles réservations et annulations. Le tri suit la date
               du mouvement.

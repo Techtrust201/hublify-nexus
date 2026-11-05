@@ -762,7 +762,7 @@ function Hub({
                 <button
                   type="button"
                   onClick={() => onOuvrirCarte(c)}
-                  className="inline-flex max-w-[78%] rounded-t-xl bg-[#e7eef8] px-3 pt-2 pb-1 text-left text-xs font-medium text-ink"
+                  className="inline-flex max-w-[78%] rounded-t-xl bg-[#e7eef8] px-3 pt-2 pb-1 text-left text-xs font-semibold text-ink"
                 >
                   {c.titre}
                 </button>
@@ -775,8 +775,8 @@ function Hub({
                     <span className="block bg-[#eef3f8] px-3 py-1.5 text-[11px] text-ink-muted">
                       {c.desc}
                     </span>
-                    <span className="flex h-28 items-center justify-center text-ink-subtle">
-                      <Icone className="size-10 stroke-[1.25]" />
+                    <span className="flex h-28 items-center justify-center text-ink">
+                      <Icone className="size-14 stroke-[1.75]" />
                     </span>
                     {c.badge ? (
                       <span className="block pb-3 text-center text-[11px] text-ink-muted">
