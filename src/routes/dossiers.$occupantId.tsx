@@ -65,6 +65,8 @@ function PageDossierLocataire() {
   const chargee = useSessionChargee();
   const occupant = session.occupants.find((o) => o.id === occupantId);
   const [apercu, setApercu] = useState<DocMo1 | null>(null);
+  const [analyseOuverte, setAnalyseOuverte] = useState(false);
+  const [lienEnvoi, setLienEnvoi] = useState<string | null>(null);
   const dossier = occupant
     ? (session.dossiersLocation.find((d) => d.occupantId === occupant.id) ??
       session.dossiersLocation.find((d) => d.email.toLowerCase() === occupant.email.toLowerCase()))
@@ -216,6 +218,51 @@ function PageDossierLocataire() {
       {dossier?.departValide && dossier.departDeclare && (
         <p className="mt-3 text-xs text-ink-muted">Départ validé le {dossier.departDeclare}.</p>
       )}
+
+      <section className="mt-4 rounded-card border border-line bg-white p-4 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg text-ink">Contact supplémentaire et Garants</h2>
+        </div>
+        {!dossier || dossier.garants.length === 0 ? (
+          <p className="mt-2 text-sm text-ink-muted">Aucun garant enregistré.</p>
+        ) : (
+          <ul className="mt-3 space-y-2 text-sm">
+            {dossier.garants.map((g) => (
+              <li key={g.id} className="rounded-card border border-line px-3 py-2">
+                <p className="font-medium text-ink">{g.nom}</p>
+                <p className="text-ink-muted">
+                  {g.email || "—"} · {g.telephone || "—"}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+        {dossier && (
+          <button
+            type="button"
+            className="mt-3 text-sm font-medium text-accent-teal"
+            onClick={() => {
+              const nom = `Garant ${occupant.nom}`;
+              upsertDossierLocation({
+                ...dossier,
+                garants: [
+                  ...dossier.garants,
+                  {
+                    id: idNouveau("garant"),
+                    type: "personne",
+                    nom,
+                    email: "",
+                    telephone: "",
+                  },
+                ],
+              });
+              toastOk("Garant ajouté au dossier.");
+            }}
+          >
+            Ajouter un garant
+          </button>
+        )}
+      </section>
 
       <section className="mt-4 rounded-card border border-line bg-white p-4 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -462,11 +509,11 @@ function PageDossierLocataire() {
               <table className="w-full min-w-[560px] text-left text-sm">
                 <thead className="text-xs text-ink-subtle">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Période</th>
-                    <th className="px-4 py-3 font-medium">Logement</th>
-                    <th className="px-4 py-3 font-medium">Ville</th>
-                    <th className="px-4 py-3 font-medium">Type</th>
-                    <th className="px-4 py-3 text-right font-medium">Montant</th>
+                    <th className="px-4 py-3 font-medium">Date Entrée</th>
+                    <th className="px-4 py-3 font-medium">Date Sortie</th>
+                    <th className="px-4 py-3 font-medium">Notation</th>
+                    <th className="px-4 py-3 font-medium">Ref location</th>
+                    <th className="px-4 py-3 font-medium">Statut loyer</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -474,13 +521,13 @@ function PageDossierLocataire() {
                     const bienResa = session.biens.find((b) => b.id === r.bienId);
                     return (
                       <tr key={r.id} className="border-t border-surface-soft">
-                        <td className="px-4 py-3 text-ink">
-                          {moisAnnee(r.arrivee)} – {moisAnnee(r.depart)}
+                        <td className="px-4 py-3 text-ink">{dateLisible(r.arrivee)}</td>
+                        <td className="px-4 py-3">{dateLisible(r.depart)}</td>
+                        <td className="px-4 py-3">{bienResa?.note?.toFixed(1) ?? "—"}</td>
+                        <td className="px-4 py-3">{r.id}</td>
+                        <td className="px-4 py-3">
+                          {r.paye >= r.montant ? "À jour" : "En attente"}
                         </td>
-                        <td className="px-4 py-3">{bienResa?.nom ?? occupant.logement}</td>
-                        <td className="px-4 py-3">{villeDe(bienResa?.adresse)}</td>
-                        <td className="px-4 py-3">{r.type ?? "Séjour"}</td>
-                        <td className="px-4 py-3 text-right">{formatMontant(r.montant)}</td>
                       </tr>
                     );
                   })}
@@ -512,27 +559,78 @@ function PageDossierLocataire() {
                   )}
                 </p>
               </div>
+              <BtnOutline
+                className="mt-4 h-11 w-full justify-center"
+                onClick={() => {
+                  const paye =
+                    loyers.filter((l) => l.valide).reduce((s, l) => s + l.montant, 0) +
+                    resas.reduce((s, r) => s + r.paye, 0);
+                  const attente = loyers
+                    .filter((l) => !l.valide)
+                    .reduce((s, l) => s + l.montant, 0);
+                  void telechargerPdf(`Rapport financier ${occupant.nom}`, [
+                    `Total payé : ${formatMontant(paye)}`,
+                    `En attente : ${formatMontant(attente)}`,
+                    occupant.logement,
+                  ]);
+                  toastOk("Rapport financier généré à partir des paiements du dossier.");
+                }}
+              >
+                Générer un rapport financier
+              </BtnOutline>
             </div>
           </section>
 
           <section className="rounded-card border border-line bg-white p-4 sm:p-6">
             <h3 className="text-lg text-ink">Actions rapides</h3>
             <div className="mt-4 flex flex-col gap-3">
-              <BtnNavy className="h-11 w-full justify-center" onClick={ouvrirMessage}>
-                <Mail className="size-4" /> Message
-              </BtnNavy>
-              <BtnOutline
+              <BtnNavy
                 className="h-11 w-full justify-center"
                 onClick={() => {
-                  void navigate({
-                    to: "/analyse",
-                    search: bien ? { logement: bien.id } : {},
+                  const date = new Date().toLocaleDateString("fr-FR");
+                  ajouterDocument({
+                    id: idNouveau("doc"),
+                    titre: `Envoi — ${occupant.nom}`,
+                    type: "Courrier",
+                    filtre: "Courriers",
+                    logement: occupant.logement,
+                    date,
+                    taille: "PDF",
+                    modifiePar: "Vous",
+                    photos: 0,
+                    vue: "residents",
+                    occupant: "locataires",
                   });
+                  setLienEnvoi(
+                    `mailto:${occupant.email}?subject=${encodeURIComponent(`Document — ${occupant.nom}`)}&body=${encodeURIComponent(`Logement ${occupant.logement}`)}`,
+                  );
+                  toastOk("Document enregistré. Le message est prêt à partir.");
                 }}
               >
-                <Percent className="size-4" /> Analyser le loyer
-              </BtnOutline>
+                <Mail className="size-4" /> Envoyer un document
+              </BtnNavy>
+              {lienEnvoi && (
+                <a href={lienEnvoi} className="text-center text-sm text-accent-teal">
+                  Ouvrir le message
+                </a>
+              )}
+              <BtnNavy
+                className="h-11 w-full justify-center"
+                onClick={() => setAnalyseOuverte(true)}
+              >
+                <Percent className="size-4" /> Analyse du dossier
+              </BtnNavy>
             </div>
+            {analyseOuverte && (
+              <div className="mt-4 rounded-card border border-line p-4" role="status">
+                <p className="text-sm font-medium text-ink">Analyse du dossier</p>
+                <p className="mt-2 text-sm text-ink-body">
+                  {tauxEffort == null
+                    ? "Revenus ou loyer manquants pour calculer le taux d'effort."
+                    : `Taux d'effort ${tauxEffort} % · loyer ${formatMontant(loyerRef)} · revenus ${formatMontant(dossier?.revenus ?? 0)}.`}
+                </p>
+              </div>
+            )}
             <div className="mt-4 rounded-card bg-surface p-4">
               <p className="text-xs text-ink-muted">Taux d'effort (seuil ~33 %)</p>
               {tauxEffort == null ? (

@@ -303,7 +303,7 @@ function PageEdl() {
                     type="button"
                     onClick={() => {
                       setDossierId(d.id);
-                      setPieceId(null);
+                      setPieceId("bail-type");
                     }}
                     className="flex min-w-0 flex-1 items-center justify-between gap-3 px-5 py-4 text-left hover:bg-surface"
                   >
@@ -345,16 +345,33 @@ function PageEdl() {
             <ChevronLeft className="size-4" /> Retour aux dossiers
           </button>
           <EspaceRedaction
-            titre={`${dossier.type} — ${dossier.logement}`}
-            sousTitre={`${dossier.occupant} · ${dateEdlAffichee(dossier.id, dossier.date)} · Rédigé dans la session`}
+            titre={`Bail ${dossier.occupant}`}
+            badge="Brouillon"
+            sousTitre={dossier.logement}
+            meta={
+              <span className="text-xs text-ink-muted">
+                Date de rédaction {dateEdlAffichee(dossier.id, dossier.date)}
+              </span>
+            }
             unite="pièces renseignées"
-            pages={dossier.pieces.map((p) => ({
-              id: p.id,
-              label: p.nom,
-              detail: `${p.photos.length} photo${p.photos.length > 1 ? "s" : ""}`,
-              fait: p.photos.length > 0 || !p.commentaire.startsWith("À renseigner"),
-            }))}
-            pageActive={piece?.id ?? dossier.pieces[0]?.id ?? ""}
+            pages={[
+              { id: "bail-type", label: "Type de Bail", fait: true },
+              { id: "bail-sous", label: "Soussignés", fait: Boolean(dossier.occupant.trim()) },
+              {
+                id: "bail-loyer",
+                label: "Loyer et charges",
+                fait: dossier.pieces.some(
+                  (p) => p.nom === "Loyer et charges" && p.commentaire.trim(),
+                ),
+              },
+              ...dossier.pieces.map((p) => ({
+                id: p.id,
+                label: p.nom,
+                detail: `${p.photos.length} photo${p.photos.length > 1 ? "s" : ""}`,
+                fait: p.photos.length > 0 || !p.commentaire.startsWith("À renseigner"),
+              })),
+            ]}
+            pageActive={pieceId ?? "bail-type"}
             onPage={setPieceId}
             onAjouter={ajouterPiece}
             libelleAjouter="Ajouter une pièce"
@@ -413,7 +430,109 @@ function PageEdl() {
               </div>
             }
             apercu={
-              (piece ?? dossier.pieces[0]) ? (
+              pieceId === "bail-type" || pieceId === "bail-sous" || pieceId === "bail-loyer" ? (
+                <div className="space-y-3 text-sm text-ink">
+                  {pieceId === "bail-type" && (
+                    <label className="block text-xs text-ink-muted">
+                      Type de bail
+                      <select
+                        aria-label="Type de bail"
+                        value={dossier.type}
+                        onChange={(e) =>
+                          setTousDossiers((liste) =>
+                            liste.map((d) =>
+                              d.id === dossier.id
+                                ? { ...d, type: e.target.value as DossierEdl["type"] }
+                                : d,
+                            ),
+                          )
+                        }
+                        className="mt-1 h-11 w-full rounded-card border border-line bg-white px-3 text-sm text-ink"
+                      >
+                        <option>Entrée</option>
+                        <option>Sortie</option>
+                      </select>
+                    </label>
+                  )}
+                  {pieceId === "bail-sous" && (
+                    <label className="block text-xs text-ink-muted">
+                      Soussignés
+                      <input
+                        aria-label="Soussignés"
+                        value={dossier.occupant}
+                        onChange={(e) =>
+                          setTousDossiers((liste) =>
+                            liste.map((d) =>
+                              d.id === dossier.id ? { ...d, occupant: e.target.value } : d,
+                            ),
+                          )
+                        }
+                        className="mt-1 h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
+                      />
+                    </label>
+                  )}
+                  {pieceId === "bail-loyer" && (
+                    <label className="block text-xs text-ink-muted">
+                      Loyer et charges
+                      <textarea
+                        aria-label="Loyer et charges"
+                        value={
+                          dossier.pieces.find((p) => p.nom === "Loyer et charges")?.commentaire ??
+                          ""
+                        }
+                        onChange={(e) => {
+                          const texte = e.target.value;
+                          setTousDossiers((liste) =>
+                            liste.map((d) => {
+                              if (d.id !== dossier.id) return d;
+                              const existe = d.pieces.some((p) => p.nom === "Loyer et charges");
+                              if (!existe) {
+                                return {
+                                  ...d,
+                                  pieces: [
+                                    ...d.pieces,
+                                    {
+                                      id: `loyer-${d.id}`,
+                                      nom: "Loyer et charges",
+                                      etat: "ok" as const,
+                                      commentaire: texte,
+                                      points: [],
+                                      photos: [],
+                                    },
+                                  ],
+                                };
+                              }
+                              return {
+                                ...d,
+                                pieces: d.pieces.map((p) =>
+                                  p.nom === "Loyer et charges" ? { ...p, commentaire: texte } : p,
+                                ),
+                              };
+                            }),
+                          );
+                        }}
+                        className="mt-1 h-24 w-full rounded-card border border-line px-3 py-2 text-sm text-ink outline-none"
+                      />
+                    </label>
+                  )}
+                  <label className="block text-xs text-ink-muted">
+                    Date de rédaction
+                    <input
+                      type="date"
+                      aria-label="Date de rédaction"
+                      value={dossier.date}
+                      onChange={(e) =>
+                        setTousDossiers((liste) =>
+                          liste.map((d) =>
+                            d.id === dossier.id ? { ...d, date: e.target.value } : d,
+                          ),
+                        )
+                      }
+                      className="mt-1 h-11 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
+                    />
+                  </label>
+                </div>
+              ) : (piece ?? dossier.pieces[0]) ? (
                 <FichePiece
                   piece={(piece ?? dossier.pieces[0])!}
                   logement={dossier.logement}

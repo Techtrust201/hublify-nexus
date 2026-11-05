@@ -682,6 +682,34 @@ function Hub({
 
   return (
     <div className="space-y-4">
+      <button
+        type="button"
+        onClick={() => onAcceder("logements")}
+        className="flex w-full items-center gap-4 rounded-2xl border border-line-strong bg-white px-5 py-4 text-left"
+      >
+        <span className="flex size-10 items-center justify-center rounded-[14px] bg-surface-soft">
+          <AlertTriangle className="size-[18px] text-gest-alerte" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-medium text-ink">{a.titre}</span>
+          <span className="block text-xs font-medium text-ink-muted">{a.detail}</span>
+        </span>
+        <span className="flex items-center gap-2">
+          {ALERTES_DOCS.map((_, i) => (
+            <span
+              key={i}
+              role="presentation"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAlerte(i);
+              }}
+              className={cn("size-2 rounded-full", i === alerte ? "bg-ink" : "bg-line-strong")}
+            />
+          ))}
+          <ChevronRight className="size-3.5 text-ink-muted" />
+        </span>
+      </button>
+
       <label className="flex h-[50px] items-center gap-3 rounded-card border border-line bg-white px-5">
         <Search className="size-4 text-ink-muted" />
         <input
@@ -724,34 +752,6 @@ function Hub({
           )}
         </section>
       )}
-
-      <button
-        type="button"
-        onClick={() => onAcceder("logements")}
-        className="flex w-full items-center gap-4 rounded-2xl border border-line-strong bg-white px-5 py-4 text-left"
-      >
-        <span className="flex size-10 items-center justify-center rounded-[14px] bg-surface-soft">
-          <AlertTriangle className="size-[18px] text-ink-body" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-medium text-ink">{a.titre}</span>
-          <span className="block text-xs font-medium text-ink-muted">{a.detail}</span>
-        </span>
-        <span className="flex items-center gap-2">
-          {ALERTES_DOCS.map((_, i) => (
-            <span
-              key={i}
-              role="presentation"
-              onClick={(e) => {
-                e.stopPropagation();
-                onAlerte(i);
-              }}
-              className={cn("size-2 rounded-full", i === alerte ? "bg-ink" : "bg-line-strong")}
-            />
-          ))}
-          <ChevronRight className="size-3.5 text-ink-muted" />
-        </span>
-      </button>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {cartesVisibles.map((c) => {
