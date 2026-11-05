@@ -15,6 +15,7 @@ import {
 import { useMemo, useState, useEffect } from "react";
 import { AlerteLieu } from "@/components/patrimoine/AlerteLieu";
 import { ContratGestionDialog } from "@/components/patrimoine/ContratGestionDialog";
+import { ConfigLieuDialog } from "@/components/patrimoine/ConfigLieuDialog";
 import { FicheLieuDialog } from "@/components/patrimoine/FicheLieuDialog";
 import { BtnNavy, BtnOutline } from "@/components/documents/ui";
 import { ScrollHint } from "@/components/layout/ScrollHint";
@@ -22,7 +23,6 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { type LogementPatrimoine } from "@/data/documents-mo1";
 import type { ImmeubleSession } from "@/data/etat-session";
 import {
-  GROUPES_TYPES,
   USAGES,
   accesVide,
   alertesLieu,
@@ -39,7 +39,6 @@ import { chargerAccesLieux, sauverAccesLieu } from "@/data/session-remote";
 import { ajouterBien, idNouveau, poserCollection, retirerBien, useSession } from "@/data/session";
 import { copierTexte, confirmer, telechargerDemo, toastErreur, toastOk } from "@/lib/feedback";
 import {
-  OCCUPATIONS_LIEU,
   exporterAnnonces,
   ficheDepuisOccupation,
   importerAnnonces,
@@ -114,12 +113,9 @@ export function PatrimoineApp({
   const [filtreStatut, setFiltreStatut] = useState<FiltreStatut>("tous");
   const [filtreUsage, setFiltreUsage] = useState<"tous" | UsageLieu>("tous");
   const [filtresOuverts, setFiltresOuverts] = useState(false);
-  const [ajouterOuvert, setAjouterOuvert] = useState(false);
+  const [creerConfig, setCreerConfig] = useState(false);
+  const [configId, setConfigId] = useState<string | null>(null);
   const [ajouterImm, setAjouterImm] = useState(false);
-  const [nomNouveau, setNomNouveau] = useState("");
-  const [adresseNouvelle, setAdresseNouvelle] = useState("");
-  const [typologie, setTypologie] = useState("Appartement (T1, T2, T3, T4, T5 et plus)");
-  const [occupation, setOccupation] = useState<OccupationLieu>("Meublé");
   const [nomImm, setNomImm] = useState("");
   const [adresseImm, setAdresseImm] = useState("");
   const [configs, setConfigs] = useState<Record<string, AccesSaisie>>({});
@@ -230,34 +226,43 @@ export function PatrimoineApp({
   const majImmeubles = (maj: (liste: ImmeubleSession[]) => ImmeubleSession[]) =>
     poserCollection("immeubles", maj);
 
-  const ajouterLieu = () => {
-    const nom = nomNouveau.trim();
-    if (!nom) {
+  const enregistrerConfig = (saisie: {
+    id: string | null;
+    nom: string;
+    adresse: string;
+    typologie: string;
+    proprietaire: string;
+    fiche: ReturnType<typeof ficheEffective>;
+  }) => {
+    if (!saisie.nom) {
       toastErreur("Donnez un nom au lieu.");
       return;
     }
-    if (logements.some((l) => l.nom.toLowerCase() === nom.toLowerCase())) {
+    const homonyme = logements.some(
+      (l) => l.nom.toLowerCase() === saisie.nom.toLowerCase() && l.id !== saisie.id,
+    );
+    if (homonyme) {
       toastErreur("Un lieu porte déjà ce nom.");
       return;
     }
+    if (saisie.id) {
+      const bien = session.biens.find((b) => b.id === saisie.id);
+      if (!bien) return;
+      const patch = patchBienDepuisFiche(bien, saisie);
+      sauver(saisie.id, saisie.fiche);
+      poserCollection("biens", (liste) =>
+        liste.map((b) => (b.id === saisie.id ? { ...b, ...patch, id: b.id } : b)),
+      );
+      setConfigId(null);
+      toastOk("Lieu enregistré.");
+      return;
+    }
     const id = idNouveau("bien");
-    const adresse = adresseNouvelle.trim();
-    const fiche = ficheDepuisOccupation(typologie, occupation);
-    ajouterBien({
-      id,
-      nom,
-      baseNuit: 100,
-      typologie: fiche.typologie,
-      statut: fiche.statut,
-      meuble: fiche.meuble,
-      initiales: initialesDe(nom) || "??",
-      ...(adresse ? { adresse } : {}),
-    });
-    setNomNouveau("");
-    setAdresseNouvelle("");
-    setAjouterOuvert(false);
-    ouvrirFiche(id);
-    toastOk(`${nom} ajouté au parc.`);
+    const patch = patchBienDepuisFiche({ statut: "libre", meuble: true }, saisie);
+    ajouterBien({ id, baseNuit: 100, ...patch });
+    sauver(id, saisie.fiche);
+    setCreerConfig(false);
+    toastOk(`${saisie.nom} ajouté au parc.`);
   };
 
   const supprimerLogements = async (ids: string[]) => {
@@ -363,7 +368,7 @@ export function PatrimoineApp({
         </p>
         {peutMod && (
           <div className="mt-4 flex flex-col items-stretch justify-center gap-2 sm:flex-row">
-            <BtnNavy className="h-11 px-5 text-sm md:h-10" onClick={() => setAjouterOuvert(true)}>
+            <BtnNavy className="h-11 px-5 text-sm md:h-10" onClick={() => setCreerConfig(true)}>
               <Plus className="size-3.5" /> Ajouter un lieu ou logement
             </BtnNavy>
             <BtnNavy className="h-11 px-5 text-sm md:h-10" onClick={() => setContratOuvert(true)}>
@@ -416,7 +421,7 @@ export function PatrimoineApp({
               </label>
             )}
             {peutMod && (
-              <BtnNavy onClick={() => setAjouterOuvert(true)}>
+              <BtnNavy onClick={() => setCreerConfig(true)}>
                 <Plus className="size-3" /> Ajouter
               </BtnNavy>
             )}
@@ -498,6 +503,13 @@ export function PatrimoineApp({
                   className="inline-flex h-11 items-center justify-center rounded-card border border-line text-xs font-medium text-ink-body"
                 >
                   Configurer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfigId(l.id)}
+                  className="inline-flex h-11 items-center justify-center rounded-card border border-line text-xs font-medium text-ink-body"
+                >
+                  Fiche config
                 </button>
                 <button
                   type="button"
@@ -621,6 +633,14 @@ export function PatrimoineApp({
                       </button>
                       <button
                         type="button"
+                        aria-label={`Fiche config ${l.nom}`}
+                        onClick={() => setConfigId(l.id)}
+                        className="flex size-6 items-center justify-center rounded hover:bg-surface-soft"
+                      >
+                        <SlidersHorizontal className="size-3.5" />
+                      </button>
+                      <button
+                        type="button"
                         aria-label={`Copier l'adresse de ${l.nom}`}
                         onClick={() => copierTexte(l.adresse, "Adresse copiée.")}
                         className="flex size-6 items-center justify-center rounded hover:bg-surface-soft"
@@ -659,6 +679,9 @@ export function PatrimoineApp({
           <p className="flex items-center gap-2 text-sm text-ink">
             <Building2 className="size-4" />
             Immeubles
+            <span className="rounded-full bg-surface-soft px-2 py-0.5 text-xs text-ink-subtle">
+              Bientôt disponible
+            </span>
             <span className="rounded bg-surface-soft px-1.5 text-xs text-ink-subtle">
               {immeubles.length}
             </span>
@@ -911,64 +934,17 @@ export function PatrimoineApp({
         }}
       />
 
-      <Dialog open={ajouterOuvert} onOpenChange={(o) => !o && setAjouterOuvert(false)}>
-        <DialogContent className="max-w-md">
-          <DialogTitle>Ajouter un lieu</DialogTitle>
-          <DialogDescription>Le logement apparaît ici et dans le planning.</DialogDescription>
-          <label className="mt-3 block text-xs text-ink-muted">
-            Nom
-            <input
-              value={nomNouveau}
-              onChange={(e) => setNomNouveau(e.target.value)}
-              className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
-            />
-          </label>
-          <label className="mt-3 block text-xs text-ink-muted">
-            Adresse
-            <input
-              value={adresseNouvelle}
-              onChange={(e) => setAdresseNouvelle(e.target.value)}
-              className="mt-1 h-9 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
-            />
-          </label>
-          <label className="mt-3 block text-xs text-ink-muted">
-            Typologie
-            <select
-              value={typologie}
-              onChange={(e) => setTypologie(e.target.value)}
-              className="mt-1 h-11 w-full rounded-card border border-line bg-white px-3 text-sm text-ink md:h-9"
-            >
-              {GROUPES_TYPES.map((g) => (
-                <optgroup key={g.id} label={g.label}>
-                  {g.items.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </label>
-          <label className="mt-3 block text-xs text-ink-muted">
-            Occupation
-            <select
-              value={occupation}
-              onChange={(e) => setOccupation(e.target.value as OccupationLieu)}
-              className="mt-1 h-9 w-full rounded-card border border-line bg-white px-3 text-sm text-ink"
-            >
-              {OCCUPATIONS_LIEU.map((o) => (
-                <option key={o}>{o}</option>
-              ))}
-            </select>
-          </label>
-          <p className="mt-2 text-[11px] text-ink-muted">
-            Import et export d'annonce en CSV. Aucune API OTA n'est branchée en V1.
-          </p>
-          <BtnNavy className="mt-4 w-full justify-center" onClick={ajouterLieu}>
-            Enregistrer
-          </BtnNavy>
-        </DialogContent>
-      </Dialog>
+      <ConfigLieuDialog
+        ouvert={creerConfig || Boolean(configId)}
+        bien={configId ? (session.biens.find((b) => b.id === configId) ?? null) : null}
+        fiches={fiches}
+        immeubles={session.immeubles}
+        onFermer={() => {
+          setCreerConfig(false);
+          setConfigId(null);
+        }}
+        onEnregistrer={enregistrerConfig}
+      />
 
       <Dialog open={ajouterImm} onOpenChange={(o) => !o && setAjouterImm(false)}>
         <DialogContent className="max-w-md">

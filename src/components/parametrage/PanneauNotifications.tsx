@@ -104,7 +104,7 @@ export function PanneauNotifications({
           </Ligne>
           <Relance
             label="Relance automatique d'appel de loyer"
-            detail="Envoi par mail. Une relance d'appel de loyer part après l'échéance, puis tous les quelques jours."
+            detail="Envoyer par mail, message et notification une relance d'appel de loyer, quelques jours après l'échéance puis tous les quelques jours."
             actif={reglages.relanceLoyer}
             message={reglages.messageRelanceLoyer}
             onActif={(relanceLoyer) => onReglages({ relanceLoyer })}
@@ -112,7 +112,7 @@ export function PanneauNotifications({
           />
           <Relance
             label="Relance automatique de facture"
-            detail="Envoi par mail. Concerne les factures prestataires, voyageurs et occupants."
+            detail="Envoyer par mail, message et notification une relance de paiement de facture. Concerne les factures prestataires, voyageurs et occupants."
             actif={reglages.relanceFacture}
             message={reglages.messageRelanceFacture}
             onActif={(relanceFacture) => onReglages({ relanceFacture })}
@@ -354,9 +354,34 @@ function Relance({
   onActif: (v: boolean) => void;
   onMessage: (v: string) => void;
 }) {
-  const [ouvert, setOuvert] = useState(false);
+  const [ouvert, setOuvert] = useState(true);
+  const delais = lireDelais(message);
+  const ecrire = (apres: string, tous: string, texte: string) =>
+    onMessage(ecrireDelais(apres, tous, texte));
   return (
     <Ligne label={label} detail={detail} actif={actif} onChange={onActif}>
+      <div className="mt-2 flex flex-wrap gap-3">
+        <label className="text-xs text-ink-muted">
+          Jours après l'échéance
+          <input
+            inputMode="numeric"
+            aria-label={`${label} — jours après l'échéance`}
+            value={delais.apres}
+            onChange={(e) => ecrire(e.target.value, delais.tous, delais.texte)}
+            className="mt-1 h-9 w-24 rounded-card border border-line px-3 text-sm text-ink outline-none"
+          />
+        </label>
+        <label className="text-xs text-ink-muted">
+          Puis tous les
+          <input
+            inputMode="numeric"
+            aria-label={`${label} — intervalle`}
+            value={delais.tous}
+            onChange={(e) => ecrire(delais.apres, e.target.value, delais.texte)}
+            className="mt-1 h-9 w-24 rounded-card border border-line px-3 text-sm text-ink outline-none"
+          />
+        </label>
+      </div>
       <button
         type="button"
         className="mt-2 text-xs font-medium text-ink underline decoration-line underline-offset-2"
@@ -366,14 +391,32 @@ function Relance({
       </button>
       {ouvert && (
         <textarea
-          value={message}
-          onChange={(e) => onMessage(e.target.value)}
+          value={delais.texte}
+          onChange={(e) => ecrire(delais.apres, delais.tous, e.target.value)}
           aria-label={label}
           className="mt-2 h-20 w-full rounded-card border border-line px-3 py-2 text-sm text-ink outline-none"
         />
       )}
     </Ligne>
   );
+}
+
+const MARQUE_DELAI = /^\[\[relance:(\d*):(\d*)\]\]/;
+
+function lireDelais(message: string) {
+  const marque = MARQUE_DELAI.exec(message);
+  if (!marque) return { apres: "3", tous: "7", texte: message };
+  return {
+    apres: marque[1] || "3",
+    tous: marque[2] || "7",
+    texte: message.slice(marque[0].length),
+  };
+}
+
+function ecrireDelais(apres: string, tous: string, texte: string) {
+  const a = apres.replace(/\D/g, "").slice(0, 3);
+  const t = tous.replace(/\D/g, "").slice(0, 3);
+  return `[[relance:${a}:${t}]]${texte}`;
 }
 
 function Interrupteur({

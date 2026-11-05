@@ -120,6 +120,18 @@ export type FicheLieu = {
   welcomeBookTexte: string;
   notationExtraite: number | null;
   immeubleId: string | null;
+  /** Champs de la fiche CONFIG (frame 2-43521), stockés dans le JSON de fiche. */
+  placesParking: number;
+  nombreAscenseurs: number;
+  typeChauffage: string;
+  etatGeneral: string;
+  classementEnergetique: string;
+  proprietaireEmail: string;
+  proprietaireTel: string;
+  appelLoyerAuto: boolean;
+  revisionAnnuelle: boolean;
+  indiceRevision: string;
+  commentaireCharges: string;
 };
 
 export type GroupeCatalogue = { id: string; label: string; items: readonly string[] };
@@ -394,6 +406,17 @@ export function ficheVierge(): FicheLieu {
     welcomeBookTexte: "",
     notationExtraite: null,
     immeubleId: null,
+    placesParking: 0,
+    nombreAscenseurs: 0,
+    typeChauffage: "",
+    etatGeneral: "",
+    classementEnergetique: "",
+    proprietaireEmail: "",
+    proprietaireTel: "",
+    appelLoyerAuto: false,
+    revisionAnnuelle: false,
+    indiceRevision: "",
+    commentaireCharges: "",
   };
 }
 
@@ -443,6 +466,17 @@ export function normaliserFiche(partiel: unknown): FicheLieu {
     chambres: Number(brut["chambres"] ?? 1) || 1,
     sallesDeBain: Number(brut["sallesDeBain"] ?? 1) || 1,
     parkingExterieur: Number(brut["parkingExterieur"] ?? 0) || 0,
+    placesParking: Number(brut["placesParking"] ?? 0) || 0,
+    nombreAscenseurs: Number(brut["nombreAscenseurs"] ?? 0) || 0,
+    typeChauffage: String(brut["typeChauffage"] ?? ""),
+    etatGeneral: String(brut["etatGeneral"] ?? ""),
+    classementEnergetique: String(brut["classementEnergetique"] ?? ""),
+    proprietaireEmail: String(brut["proprietaireEmail"] ?? ""),
+    proprietaireTel: String(brut["proprietaireTel"] ?? ""),
+    appelLoyerAuto: Boolean(brut["appelLoyerAuto"]),
+    revisionAnnuelle: Boolean(brut["revisionAnnuelle"]),
+    indiceRevision: String(brut["indiceRevision"] ?? ""),
+    commentaireCharges: String(brut["commentaireCharges"] ?? ""),
   };
 }
 
