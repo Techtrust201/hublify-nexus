@@ -69,9 +69,9 @@ function Hero() {
       <div className="relative mx-auto grid max-w-[1440px] items-center gap-12 px-5 py-14 lg:grid-cols-[minmax(0,535px)_minmax(0,1fr)] lg:px-[72px] lg:py-20">
         <div>
           <Sourcil>Gestionnaire, enfin serein</Sourcil>
-          <h1 className="mt-6 font-display text-4xl leading-[1.08] tracking-[-1.5px] text-v1-ink sm:text-5xl">
+          <h1 className="mt-6 font-display text-[32px] font-normal leading-[36px] tracking-[-1.5px] text-v1-ink sm:text-[48px] sm:leading-[52px]">
             Tous vos biens.
-            <span className="mt-1 block text-v1-brand">Un seul tableau de bord.</span>
+            <span className="block tracking-[-2.6px] text-v1-brand">Un seul tableau de bord.</span>
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-v1-ink-body">
             Location saisonnière, étudiante, courte durée ou classique : Hublify centralise vos
@@ -533,7 +533,9 @@ function Comparaison() {
                     <dt className={accent ? "font-medium text-v1-green-ink" : "text-v1-ink-muted"}>
                       {nom}
                     </dt>
-                    <dd className={accent ? "mt-1 font-medium text-v1-green-ink" : "mt-1 text-v1-ink"}>
+                    <dd
+                      className={accent ? "mt-1 font-medium text-v1-green-ink" : "mt-1 text-v1-ink"}
+                    >
                       {valeur}
                     </dd>
                   </div>
