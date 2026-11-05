@@ -15,19 +15,19 @@ export const Route = createFileRoute("/cgu")({
 function Page() {
   return (
     <SitePublic>
-      <PageLegale titre="Conditions d'utilisation" kicker="CGU · frame 327:26088">
+      <PageLegale titre="Conditions d'utilisation" kicker="CGU">
         <p>
-          Le cadre « CGU » de la maquette Hublify V1.0 est vide : aucun article n'y est rédigé.
-          Cette page ne publie donc pas de clauses inventées.
+          Hublify est édité par TECHTRUST AGENCY. Le compte que vous créez sert à suivre des biens,
+          des réservations, des documents et des échanges.
         </p>
         <p>
-          En créant un espace, vous utilisez un outil de gestion locative. Vous restez responsable
-          des informations saisies, des baux émis et des décisions prises à partir des documents.
+          Vous restez responsable des informations saisies, des baux émis et des décisions prises à
+          partir des documents. Hublify ne se substitue pas à un conseil juridique, comptable ou
+          fiscal.
         </p>
         <p>
-          Les conditions commerciales figurant dans la maquette sont portées par les conditions de
-          vente : l'abonnement est sans engagement, et les sommes encaissées ne sont pas
-          remboursables.
+          Les prix, l'absence d'engagement et l'absence de remboursement sont décrits dans les
+          conditions de vente. La création d'un compte ne déclenche aucun prélèvement.
         </p>
       </PageLegale>
     </SitePublic>

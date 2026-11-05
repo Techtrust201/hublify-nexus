@@ -331,7 +331,7 @@ export const TEXTE_LEGAL_MEUBLE = {
 
 export const LIBELLES_ALERTES: Record<AlertePatrimoine, string> = {
   "etat-des-lieux": "État des lieux manquant",
-  "welcome-book": "Welcome book manquant",
+  "welcome-book": "Livret d'accueil manquant",
   "gestion-cles": "Gestion des clés manquant",
 };
 

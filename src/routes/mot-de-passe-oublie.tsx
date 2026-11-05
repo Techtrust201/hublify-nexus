@@ -40,7 +40,7 @@ function PageOublie() {
     >
       <form className="space-y-3" onSubmit={(ev) => void envoyer(ev)}>
         <label className="block">
-          <span className="mb-1.5 block text-xs text-v1-ink-body">Email</span>
+          <span className="mb-1.5 block text-xs text-v1-ink-body">Adresse e-mail</span>
           <input
             name="email"
             type="email"

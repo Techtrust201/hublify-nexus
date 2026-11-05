@@ -28,6 +28,7 @@ import { toastErreur, toastOk } from "@/lib/feedback";
 function tachesAffichees(params: {
   vide: boolean;
   prestataire: boolean;
+  proprietaire: boolean;
   missions: { id: string; titre: string; date: string; heure: string }[];
   loyers: { id: string; echeance: string; bienNom: string; valide: boolean }[];
   reservations: { id: string; occupant: string; arrivee: string; precheckinStatut?: string }[];
@@ -45,6 +46,42 @@ function tachesAffichees(params: {
         hash: "",
       })),
     );
+  }
+  if (params.proprietaire) {
+    const finance: TachePortail[] = params.loyers
+      .filter((l) => !l.valide)
+      .map((l) => ({
+        id: l.id,
+        categorie: "Finance" as const,
+        titre: `Loyer à suivre — ${l.echeance} — ${l.bienNom}`,
+        quand: `${l.echeance}T10:00:00`,
+        heureLabel: l.echeance,
+        route: "/espace/documents" as const,
+        hash: "quittances",
+      }));
+    const sejours: TachePortail[] = params.reservations.map((r) => ({
+      id: `sej-${r.id}`,
+      categorie: "Action" as const,
+      titre: `Séjour — ${r.occupant}`,
+      quand: `${r.arrivee}T10:00:00`,
+      heureLabel: r.arrivee,
+      route: "/espace/calendrier" as const,
+      hash: "",
+    }));
+    const taches = trierTaches([...finance, ...sejours]);
+    return taches.length > 0
+      ? taches
+      : [
+          {
+            id: "proprio-vide",
+            categorie: "Action" as const,
+            titre: "Aucun séjour à signaler sur vos biens",
+            quand: new Date().toISOString(),
+            heureLabel: "Aujourd'hui",
+            route: "/espace/documents" as const,
+            hash: "",
+          },
+        ];
   }
   if (params.vide) return TACHES_DEMO_RESIDENT;
   const finance: TachePortail[] = params.loyers
@@ -98,6 +135,7 @@ export function AccueilPortail() {
   const taches = tachesAffichees({
     vide,
     prestataire: ui.mode === "prestataire",
+    proprietaire: auth?.roleId === "proprietaire",
     missions: session.missions,
     loyers: session.loyers,
     reservations: session.reservationsDossier,
@@ -137,7 +175,7 @@ function SelecteurMode() {
             type="button"
             aria-pressed={on}
             onClick={() => ui.definirMode(c.id)}
-            className={`h-9 rounded-full text-xs font-semibold ${on ? "bg-[#5090A8] text-white" : "text-[#667085]"}`}
+            className={`h-11 rounded-full text-xs font-semibold ${on ? "bg-[#5090A8] text-white" : "text-[#667085]"}`}
           >
             {c.label}
           </button>
@@ -157,13 +195,21 @@ function Demarrage() {
   const ui = usePortailUi();
   const auth = useAuth();
   const proprietaire = auth?.roleId === "proprietaire";
+  const voyageur = auth?.roleId === "voyageur";
+  const titre = proprietaire ? "Vos biens" : voyageur ? "Votre séjour" : "Pilotage et gestion";
+  const texte = proprietaire
+    ? "Suivez les loyers, les séjours et les documents de vos biens."
+    : voyageur
+      ? "Préparez votre arrivée, vos documents et vos messages avec le gestionnaire."
+      : "Cet outil est conçu pour vous aider à gérer vos locations et vos missions.";
   return (
     <Ecran className="items-center pt-8 text-center">
-      <SelecteurMode />
-      {proprietaire && (
-        <p className="max-w-[16rem] text-xs text-[#98a2b3]">
-          Mode propriétaire : plus tard, même architecture.
+      {proprietaire ? (
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#5090A8]">
+          Espace propriétaire
         </p>
+      ) : (
+        <SelecteurMode />
       )}
       <Marque className="mt-6" />
       <div className="relative mt-4 h-24 w-full" aria-hidden>
@@ -174,18 +220,19 @@ function Demarrage() {
           🔑
         </span>
       </div>
-      <h1 className="text-[26px] font-semibold leading-tight text-[#1d2939]">
-        Management
-        <br />& gestion
-      </h1>
-      <p className="max-w-[18rem] text-sm leading-relaxed text-[#667085]">
-        Cet outil est conçu pour vous aider à gérer vos locations et vos missions.
-      </p>
+      <h1 className="text-[26px] font-semibold leading-tight text-[#1d2939]">{titre}</h1>
+      <p className="max-w-[18rem] text-sm leading-relaxed text-[#667085]">{texte}</p>
       <div className="mt-4 w-full">
-        <Bouton onClick={() => ui.demarrer()}>Let's Start</Bouton>
+        <Bouton onClick={() => ui.demarrer()}>Commencer</Bouton>
       </div>
       <p className="text-[11px] text-[#98a2b3]">
-        {ui.mode === "prestataire" ? "Mode Prestataire" : "Mode Résident"} · même architecture
+        {proprietaire
+          ? "Biens, loyers et séjours"
+          : ui.mode === "prestataire"
+            ? "Mode Prestataire"
+            : voyageur
+              ? "Mode voyageur"
+              : "Mode Résident"}
       </p>
     </Ecran>
   );
@@ -210,6 +257,8 @@ function Journee({
 }) {
   const navigate = useNavigate();
   const ui = usePortailUi();
+  const auth = useAuth();
+  const proprietaire = auth?.roleId === "proprietaire";
   const [selection, setSelection] = useState(jour.toISOString().slice(0, 10));
   const bandeau = joursAutour(jour);
   const visibles = taches.filter((t) => t.quand.slice(0, 10) === selection || taches.length <= 4);
@@ -234,7 +283,7 @@ function Journee({
           type="button"
           aria-label="Notifications"
           onClick={ui.ouvrirNotifs}
-          className="text-[#344054]"
+          className="grid size-11 place-items-center text-[#344054]"
         >
           <Shield className="sr-only" />
           <span className="text-lg" aria-hidden>
@@ -242,7 +291,13 @@ function Journee({
           </span>
         </button>
       </div>
-      <SelecteurMode />
+      {proprietaire ? (
+        <p className="text-center text-xs font-semibold uppercase tracking-[0.14em] text-[#5090A8]">
+          Espace propriétaire
+        </p>
+      ) : (
+        <SelecteurMode />
+      )}
       <h1 className="text-center text-lg font-semibold text-[#1d2939]">
         {prestataire ? "Ma journée" : "Tâches du jour"}
       </h1>
@@ -330,10 +385,12 @@ function Journee({
 function ToutesLesTaches({ vide }: { vide: boolean }) {
   const navigate = useNavigate();
   const ui = usePortailUi();
+  const auth = useAuth();
   const session = useSession();
   const taches = tachesAffichees({
     vide,
     prestataire: ui.mode === "prestataire",
+    proprietaire: auth?.roleId === "proprietaire",
     missions: session.missions,
     loyers: session.loyers,
     reservations: session.reservationsDossier,

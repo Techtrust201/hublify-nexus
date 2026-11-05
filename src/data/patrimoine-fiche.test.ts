@@ -108,7 +108,7 @@ describe("fiche et alertes", () => {
     expect(
       alertesLieu({ nom: "Studio Raclette", fiche: studio, codeCles: "", edl, documents: [] }),
     ).toEqual(["etat-des-lieux"]);
-    expect(LIBELLES_ALERTES["welcome-book"]).toBe("Welcome book manquant");
+    expect(LIBELLES_ALERTES["welcome-book"]).toBe("Livret d'accueil manquant");
   });
 
   it("efface l'alerte clés dès qu'un code ou un nombre de clés est connu", () => {

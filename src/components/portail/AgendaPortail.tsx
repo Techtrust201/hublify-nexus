@@ -74,7 +74,7 @@ export function CalendrierPortail() {
         <button
           type="button"
           aria-label="Mois précédent"
-          className="size-9 text-lg"
+          className="grid size-11 place-items-center text-lg"
           onClick={() => setCursor(new Date(annee, mois - 1, 1))}
         >
           ‹
@@ -83,7 +83,7 @@ export function CalendrierPortail() {
         <button
           type="button"
           aria-label="Mois suivant"
-          className="size-9 text-lg"
+          className="grid size-11 place-items-center text-lg"
           onClick={() => setCursor(new Date(annee, mois + 1, 1))}
         >
           ›
@@ -91,7 +91,7 @@ export function CalendrierPortail() {
       </div>
       <button
         type="button"
-        className="text-xs text-[#5090A8]"
+        className="inline-flex min-h-11 items-center text-xs text-[#5090A8]"
         onClick={() => setCursor(new Date())}
       >
         Aujourd'hui
@@ -101,7 +101,7 @@ export function CalendrierPortail() {
           <span key={j}>{j}</span>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-px">
         {cases.map((jour, i) => {
           const date = jour ? iso(jour) : "";
           const marque =
@@ -113,7 +113,7 @@ export function CalendrierPortail() {
               type="button"
               disabled={!jour}
               onClick={() => jour && setJourChoisi(date)}
-              className={`grid h-9 place-items-center rounded-xl text-sm ${
+              className={`grid h-11 place-items-center rounded-xl text-sm ${
                 choisi
                   ? "bg-[#1d2939] text-white"
                   : marque
@@ -184,7 +184,7 @@ export function CalendrierPortail() {
               <span className="flex shrink-0 gap-2">
                 <button
                   type="button"
-                  className="text-[#5090A8]"
+                  className="inline-flex min-h-11 items-center px-1 text-[#5090A8]"
                   onClick={() => {
                     setEdition(n.id);
                     setJourChoisi(n.jour);
@@ -195,7 +195,7 @@ export function CalendrierPortail() {
                 </button>
                 <button
                   type="button"
-                  className="text-[#b42318]"
+                  className="inline-flex min-h-11 items-center px-1 text-[#b42318]"
                   onClick={() => {
                     supprimerNote(n.id);
                     if (edition === n.id) {
@@ -215,7 +215,7 @@ export function CalendrierPortail() {
       {ui.mode === "prestataire" && (
         <button
           type="button"
-          className="text-xs text-[#5090A8]"
+          className="inline-flex min-h-11 items-center text-xs text-[#5090A8]"
           onClick={() => void navigate({ to: "/espace/missions" })}
         >
           Ouvrir les missions

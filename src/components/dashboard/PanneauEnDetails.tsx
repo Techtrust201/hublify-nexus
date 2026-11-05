@@ -460,7 +460,7 @@ function PanneauReservation({
 
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             <MiniCarte
-              label="Email"
+              label="E-mail"
               extra={reservation.email}
               href={`mailto:${reservation.email}`}
             />

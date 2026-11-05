@@ -109,7 +109,7 @@ export const inviterMembre = createServerFn({ method: "POST" })
       droits: string[];
     }) => {
       const email = input.email.trim().toLowerCase();
-      if (!email.includes("@")) throw new Error("Email invalide");
+      if (!email.includes("@")) throw new Error("Adresse e-mail invalide.");
       const prenom = input.prenom.trim();
       if (!prenom) throw new Error("Prénom requis");
       const roleId = roleParLabel(input.role);
@@ -213,7 +213,7 @@ export const inscrireAdherent = createServerFn({ method: "POST" })
       const prenom = input.prenom.trim();
       const nomOrg = input.nomOrg.trim();
       if (!prenom) throw new Error("Prénom requis");
-      if (!email.includes("@")) throw new Error("Email invalide");
+      if (!email.includes("@")) throw new Error("Adresse e-mail invalide.");
       if (nomOrg.length < 2) throw new Error("Nom de l'organisation requis");
       if (input.password.length < 10) throw new Error("Mot de passe trop court");
       return {

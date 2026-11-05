@@ -9,6 +9,7 @@ import { useAncre } from "@/components/portail/use-ancre";
 import {
   ajouterCandidature,
   idNouveau,
+  oublierEtatsLocaux,
   ouvrirConversationProspect,
   upsertDossierLocation,
   upsertPartageDossier,
@@ -24,6 +25,7 @@ import {
   type PieceDossier,
 } from "@/data/v1-metier";
 import { GESTIONNAIRE_PORTAIL, JUSTIFICATIFS_REVENUS, resumeFamille } from "@/lib/portail-mobile";
+import { oublierEtatMetierLocal } from "@/components/portail/etat-local";
 import { authClient } from "@/lib/auth-client";
 import { toastErreur, toastOk } from "@/lib/feedback";
 
@@ -88,7 +90,14 @@ function Profil() {
       </Bouton>
       <Bouton
         variante="ligne"
-        onClick={() => void authClient.signOut().then(() => (window.location.href = "/connexion"))}
+        onClick={() =>
+          void authClient.signOut().then(() => {
+            oublierEtatsLocaux(null);
+            oublierEtatMetierLocal();
+            toastOk("Vous êtes déconnecté.");
+            window.location.href = "/connexion";
+          })
+        }
       >
         Se déconnecter
       </Bouton>
@@ -123,14 +132,14 @@ function Capturer({ label, onFichier }: { label: string; onFichier: (fichier: Fi
       />
       <button
         type="button"
-        className="text-xs text-[#5090A8]"
+        className="inline-flex min-h-11 items-center px-2 text-xs text-[#5090A8]"
         onClick={() => photo.current?.click()}
       >
         Photo
       </button>
       <button
         type="button"
-        className="text-xs text-[#667085]"
+        className="inline-flex min-h-11 items-center px-2 text-xs text-[#667085]"
         onClick={() => fichier.current?.click()}
       >
         Fichier

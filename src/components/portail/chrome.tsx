@@ -52,12 +52,12 @@ export function Entete({
           type="button"
           onClick={surRetour}
           aria-label="Retour"
-          className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full text-[#344054]"
+          className="mt-0.5 grid size-11 shrink-0 place-items-center rounded-full text-[#344054]"
         >
           <ChevronLeft className="size-5" />
         </button>
       ) : (
-        <span className="size-9 shrink-0" />
+        <span className="size-11 shrink-0" />
       )}
       <div className="min-w-0 flex-1 pt-1 text-center">
         {titre && (
@@ -69,7 +69,7 @@ export function Entete({
         type="button"
         onClick={ui.ouvrirNotifs}
         aria-label="Notifications"
-        className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full text-[#344054]"
+        className="mt-0.5 grid size-11 shrink-0 place-items-center rounded-full text-[#344054]"
       >
         <Bell className="size-5" />
       </button>
@@ -130,7 +130,7 @@ export function Champ({ label, children }: { label: string; children: ReactNode 
 }
 
 export const champClasse =
-  "h-11 w-full rounded-2xl border border-transparent bg-[#f4f6f5] px-3 text-sm text-[#1d2939] outline-none focus:border-[#5090A8]";
+  "h-11 w-full scroll-mb-[45vh] scroll-mt-24 rounded-2xl border border-transparent bg-[#f4f6f5] px-3 text-sm text-[#1d2939] outline-none focus:border-[#5090A8]";
 
 export function Marque({ className }: { className?: string }) {
   return (

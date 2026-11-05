@@ -583,7 +583,7 @@ export function FicheLieuDialog({
                     />
                   </label>
                   <label className="block text-xs text-ink-muted">
-                    Welcome book
+                    Livret d'accueil
                     <textarea
                       value={brouillon.fiche.welcomeBookTexte}
                       onChange={(e) =>
