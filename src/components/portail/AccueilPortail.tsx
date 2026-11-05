@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Briefcase, Clock, FileText, Home, UserRound } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/auth/auth-context";
+import { EcranFrame, EtapesSejour } from "@/components/portail/EcransHd";
 import { AutourDeMoi, OffreDetail, RechercheBail } from "@/components/portail/RecherchePortail";
 import { Bouton, Carte, Cloche, Ecran, Entete, usePortailUi } from "@/components/portail/chrome";
 import {
@@ -153,6 +154,8 @@ export function AccueilPortail() {
   if (ancre === "autour-resultats") return <AutourDeMoi resultats />;
   if (ancre === "recherche") return <RechercheBail />;
   if (ancre.startsWith("offre-")) return <OffreDetail id={ancre.slice("offre-".length)} />;
+  if (ancre === "etapes") return <EtapesSejour />;
+  if (ancre.startsWith("f-")) return <EcranFrame id={ancre.slice(2)} />;
 
   const prestataire = auth?.roleId === "prestataire";
   const taches = tachesAffichees({
@@ -204,7 +207,9 @@ function Journee({
             <h1 className="font-display text-[32px] font-normal leading-none text-[var(--portail-encre)]">
               Ma Journée
             </h1>
-            <p className="mt-1 text-[12px] font-semibold text-black">Mode Prestataire</p>
+            <span data-testid="role-portail" data-role="prestataire" className="sr-only">
+              Prestataire
+            </span>
           </div>
           <Cloche />
         </div>
@@ -339,6 +344,13 @@ function Journee({
           );
         })}
       </ul>
+      <button
+        type="button"
+        className="text-[14px] font-semibold text-black"
+        onClick={() => void navigate({ to: "/espace", hash: "etapes" })}
+      >
+        Étapes du séjour
+      </button>
       <Bouton onClick={() => void navigate({ to: "/espace", hash: "taches" })}>
         Tâches en cours
         <span className="ml-2 grid size-6 place-items-center rounded-full bg-white/25 text-xs">

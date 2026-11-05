@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { IntroDossier } from "@/components/portail/EcransHd";
 import { Bouton, Carte, Champ, Ecran, Entete, champClasse } from "@/components/portail/chrome";
+import { useAncre } from "@/components/portail/use-ancre";
 import { modifierReservation, useSession } from "@/data/session";
 import { deposerFichier, listerFichiers } from "@/lib/documents.functions";
 import { preparerFichier } from "@/lib/fichiers-client";
@@ -9,7 +11,13 @@ import { cautionDemandee, type ExtraPrecheckin } from "@/lib/gestionnaire-planni
 
 export function PrecheckinPortail({ extra }: { extra: ExtraPrecheckin }) {
   const navigate = useNavigate();
+  const ancre = useAncre();
   const session = useSession();
+  const [introVue, setIntroVue] = useState(() => {
+    if (ancre === "formulaire") return true;
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem("hublify.precheckin.intro") === "1";
+  });
   const resa = session.reservationsDossier[0];
   const [identite, setIdentite] = useState(resa?.precheckinIdentite || resa?.occupant || "");
   const [nb, setNb] = useState(String(resa?.precheckinNbPersonnes || resa?.voyageurs || 1));
@@ -66,6 +74,17 @@ export function PrecheckinPortail({ extra }: { extra: ExtraPrecheckin }) {
     (u) => u.actif && extra.upsellsProposes.includes(u.id),
   );
   const demandePiece = extra.photo || extra.fichier || extra.telephone || extra.rectoVerso;
+
+  if (!introVue) {
+    return (
+      <IntroDossier
+        onContinuer={() => {
+          sessionStorage.setItem("hublify.precheckin.intro", "1");
+          setIntroVue(true);
+        }}
+      />
+    );
+  }
 
   return (
     <Ecran>

@@ -107,6 +107,7 @@ function Coque({ children }: { children: ReactNode }) {
     hash?: string;
   };
   const actionsResident: ActionPlus[] = [
+    { label: "Étapes du séjour", to: "/espace", hash: "etapes" },
     { label: "Rechercher une prestation", to: "/espace", hash: "autour" },
     { label: "Rechercher une location", to: "/espace", hash: "recherche" },
     { label: "Ajouter une note dans le calendrier", to: "/espace/calendrier", hash: "note" },
@@ -203,7 +204,7 @@ function Coque({ children }: { children: ReactNode }) {
           )}
 
           {plus && (
-            <div className="absolute inset-x-4 bottom-24 z-40 space-y-2">
+            <div className="absolute inset-x-4 bottom-24 z-40 max-h-[70dvh] space-y-2 overflow-y-auto">
               <ul className="space-y-2">
                 {actionsPlus.map((a) => (
                   <li key={a.label}>

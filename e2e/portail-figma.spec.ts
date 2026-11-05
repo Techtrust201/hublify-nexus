@@ -108,6 +108,7 @@ test.describe("portail maquette", () => {
       await expect(page.getByLabel("Rechercher dans la FAQ")).toBeVisible();
 
       await page.goto("/espace/precheckin");
+      await page.getByRole("button", { name: "Continuer" }).click();
       await expect(page.getByRole("heading", { name: "Formulaire de check-in" })).toBeVisible();
       await page.screenshot({ path: `${CAPTURES}/apres-precheckin-${viewport.nom}.png` });
 

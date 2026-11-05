@@ -162,7 +162,7 @@ function Fil({ id }: { id: string }) {
         {messages.map((m) => (
           <li
             key={m.id}
-            className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${m.kind === "envoye" ? "ml-auto bg-[#1e2939] text-white" : "bg-white text-[#1d2939]"}`}
+            className={`max-w-[85%] rounded-[12px] px-3 py-2 text-[14px] shadow-sm ${m.kind === "envoye" ? "ml-auto bg-[#d9fdd3] text-black" : "bg-white text-black"}`}
           >
             <p>{m.texte}</p>
             {m.heure && <p className="mt-1 text-[10px] opacity-70">{m.heure}</p>}

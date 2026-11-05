@@ -230,7 +230,11 @@ test("pré-check-in : options extra conservées et lues par le voyageur", async 
   const voyageur = await contexteConnecte(browser, VOYAGEUR);
   try {
     await voyageur.page.goto("/espace/precheckin");
-    await expect(voyageur.page.getByText("Caution à prévoir : 321 €")).toBeVisible();
+    const continuer = voyageur.page.getByRole("button", { name: "Continuer" });
+    const caution = voyageur.page.getByText("Caution à prévoir : 321 €");
+    await expect(continuer.or(caution)).toBeVisible();
+    if (await continuer.isVisible()) await continuer.click();
+    await expect(caution).toBeVisible();
     await expect(voyageur.page.getByText("9999")).toHaveCount(0);
     await expect(
       voyageur.page.getByText("Le code de la porte sera affiché le jour de l'arrivée."),
