@@ -198,6 +198,7 @@ export const CONVERSATIONS_MO1: Conversation[] = [
     ilYa: "Il y a 1 min",
     nonLu: true,
     archivee: false,
+    assigne: "lucas.menage@hublify.app",
   },
   {
     id: "c-silver",

@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { etatCanon } from "@/data/etat-canon";
+import { ACCES_RESTREINT, DROITS_PAR_ROLE } from "@/auth/permissions";
 import {
   decisionRetrait,
   filtrerConversationsPrestataire,
+  filtrerDocumentsPrestataire,
   filtrerEtatPourRole,
   peutEcrireCollection,
+  peutLireCollection,
+  peutRemplacerCollections,
   roleInvitable,
   validerInsertion,
   type ActeurPortee,
@@ -75,6 +79,9 @@ describe("filtrerEtatPourRole", () => {
     );
     expect(sophie.conversations.map((c) => c.id)).not.toContain("c-contact");
     expect(vue.dossiersLocation.map((d) => d.id)).toContain("dos-jean");
+    expect(vue.documents.map((d) => d.id)).toContain("d-bail-jean");
+    expect(vue.documents.some((d) => d.vue === "proprio" || d.titre.startsWith("CNI"))).toBe(false);
+    expect(vue.documents.some((d) => d.logement.includes("Lavandrix"))).toBe(false);
     expect(JSON.stringify(vue)).not.toMatch(/sophie\.martin@hublify\.app/i);
   });
 
@@ -120,6 +127,7 @@ describe("filtrerEtatPourRole", () => {
     expect(vue.dossiersLocation).toEqual([]);
     expect(vue.conversations.every((c) => c.type !== "team")).toBe(true);
     expect(vue.biens.every((b) => b.id === "suzette")).toBe(true);
+    expect(vue.documents.some((d) => d.id === "d-bail-jean" || d.vue === "proprio")).toBe(false);
   });
 
   it("limite le propriétaire à ses biens, sans la messagerie d'équipe", () => {
@@ -132,6 +140,9 @@ describe("filtrerEtatPourRole", () => {
     expect(vue.conversations.every((c) => c.type !== "team")).toBe(true);
     expect(vue.dossiersLocation).toEqual([]);
     expect(vue.biens.some((b) => b.id === "suzette")).toBe(false);
+    expect(vue.documents.some((d) => d.titre.includes("Attestation"))).toBe(false);
+    expect(vue.documents.some((d) => d.id === "d-bail-jean")).toBe(false);
+    expect(vue.documents.map((d) => d.id)).toContain("d4");
   });
 
   it("retire les finances et la messagerie au rôle lecture", () => {
@@ -143,11 +154,68 @@ describe("filtrerEtatPourRole", () => {
     expect(vue.biens.length).toBeGreaterThan(0);
   });
 
-  it("restreint un prestataire nommé, et garde les fils prestataire sinon", () => {
-    const lucas = filtrerConversationsPrestataire(etat.conversations, "Lucas Ménage");
-    expect(lucas.length).toBeGreaterThan(0);
-    expect(lucas.every((c) => c.type === "prestataire")).toBe(true);
-    expect(filtrerConversationsPrestataire(etat.conversations, "Linge & Entretien")).toHaveLength(1);
+  it("ne donne à un prestataire que le fil qui le désigne", () => {
+    expect(
+      filtrerConversationsPrestataire(etat.conversations, "Linge & Entretien").map((c) => c.id),
+    ).toEqual(["c-lentil"]);
+    expect(
+      filtrerConversationsPrestataire(
+        etat.conversations,
+        "Lucas Ménage",
+        "lucas.menage@hublify.app",
+      ).map((c) => c.id),
+    ).toEqual(["c-lentil"]);
+    const autre = filtrerConversationsPrestataire(etat.conversations, "Studio Sérénité");
+    expect(autre.map((c) => c.id)).toEqual(["c-silver"]);
+    expect(autre.some((c) => c.id === "c-lentil")).toBe(false);
+    expect(filtrerConversationsPrestataire(etat.conversations, "Inconnu Total")).toEqual([]);
+  });
+
+  it("retire au gestionnaire restreint les collections hors de ses droits", () => {
+    const vue = filtrerEtatPourRole(
+      etat,
+      acteur({
+        roleId: "gestionnaire",
+        droits: [ACCES_RESTREINT, "messagerie"],
+        email: "invite@exemple.test",
+        prenom: "Yann",
+        nom: "Invite",
+      }),
+    );
+    expect(vue.conversations.length).toBeGreaterThan(0);
+    expect(vue.loyers).toEqual([]);
+    expect(vue.documents).toEqual([]);
+    expect(vue.biens).toEqual([]);
+    expect(vue.occupants).toEqual([]);
+    expect(vue.dossiersLocation).toEqual([]);
+    expect(
+      peutRemplacerCollections(
+        acteur({ roleId: "gestionnaire", droits: [ACCES_RESTREINT, "messagerie"] }),
+      ),
+    ).toBe(false);
+    expect(
+      peutRemplacerCollections(
+        acteur({ roleId: "gestionnaire", droits: [...DROITS_PAR_ROLE.gestionnaire] }),
+      ),
+    ).toBe(true);
+    expect(
+      peutLireCollection(
+        acteur({ roleId: "gestionnaire", droits: [ACCES_RESTREINT, "messagerie"] }),
+        "documents",
+      ),
+    ).toBe(false);
+  });
+
+  it("limite les rapports prestataire aux biens de ses missions", () => {
+    const docs = filtrerDocumentsPrestataire(
+      [
+        { id: "a", vue: "inventaire-presta", logement: "Appartement Colette" },
+        { id: "b", vue: "inventaire-presta", logement: "Villa Lavandrix" },
+        { id: "c", vue: "proprio", logement: "Appartement Colette" },
+      ],
+      [{ nom: "Appartement Colette" }],
+    );
+    expect(docs.map((d) => d.id)).toEqual(["a"]);
   });
 });
 

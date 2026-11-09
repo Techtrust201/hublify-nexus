@@ -4,7 +4,14 @@ export type Mail = {
   a: string;
   sujet: string;
   html: string;
+  /** Lien ou mot de passe : en production l'archive ne garde pas le corps. */
+  sensible?: boolean;
 };
+
+export function htmlPourArchive(mail: Mail, production: boolean) {
+  if (!production || !mail.sensible) return mail.html;
+  return "<p>Message d'authentification. Le contenu n'est pas conservé.</p>";
+}
 
 async function capturer(sql: Sql, mail: Mail) {
   await sql`
@@ -37,7 +44,12 @@ async function viaResend(mail: Mail) {
 // doit pouvoir le dire à l'utilisateur au lieu d'annoncer un envoi qui n'a pas eu lieu.
 export async function envoyerMail(mail: Mail) {
   const sql = getSql();
-  if (sql) await capturer(sql, mail);
+  if (sql) {
+    await capturer(sql, {
+      ...mail,
+      html: htmlPourArchive(mail, process.env["NODE_ENV"] === "production"),
+    });
+  }
   const envoye = await viaResend(mail).catch(() => false);
   if (!envoye && process.env["NODE_ENV"] !== "production") {
     console.info(`[mail] ${mail.a} — ${mail.sujet}`);

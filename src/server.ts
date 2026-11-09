@@ -1,4 +1,5 @@
 import { consumeLastCapturedError } from "./lib/error-capture";
+import { poserEntetesSecurite } from "./lib/entetes-securite";
 import { captureException, wrapFetchWithSentry } from "@sentry/tanstackstart-react";
 
 import { initSentryServer } from "./instrument.server";
@@ -57,13 +58,19 @@ const serverEntry = wrapFetchWithSentry({
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      return poserEntetesSecurite(
+        await normalizeCatastrophicSsrResponse(response),
+        process.env["NODE_ENV"] === "production",
+      );
     } catch (error) {
       reportServerError(error);
-      return new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
-      });
+      return poserEntetesSecurite(
+        new Response(renderErrorPage(), {
+          status: 500,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+        process.env["NODE_ENV"] === "production",
+      );
     }
   },
 });

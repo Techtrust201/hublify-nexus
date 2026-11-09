@@ -8,6 +8,7 @@ import {
   type DepsEtat,
 } from "@/data/etat-distant";
 import { etatVide, type EtatSession } from "@/data/etat-session";
+import { DROITS_PAR_ROLE, type DroitId, type RoleId } from "@/auth/permissions";
 import type { Sql } from "@/lib/sql";
 
 const ORG_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1";
@@ -30,28 +31,23 @@ function deps(
   options: Partial<{
     orgId: string | null;
     orgType: "gestionnaire" | "prestataire";
-    roleId: "administrateur" | "lecteur" | "prestataire" | "locataire" | "voyageur" | "proprietaire";
+    roleId: RoleId;
     lignes: unknown[];
     sansSql: boolean;
+    droits: readonly DroitId[];
   }> = {},
 ) {
   const espion = sqlEspion(options.lignes ?? []);
   const orgId = "orgId" in options ? (options.orgId ?? null) : ORG_A;
+  const roleId = options.roleId ?? "administrateur";
   const d: DepsEtat = {
     sessionOrg: async () =>
       orgId
         ? {
             orgId,
             orgType: options.orgType ?? "gestionnaire",
-            roleId: options.roleId ?? "administrateur",
-            droits: [
-              "mod-reservations",
-              "mod-finances",
-              "gerer-equipe",
-              "mod-missions",
-              "messagerie",
-              "mod-biens",
-            ],
+            roleId,
+            droits: options.droits ? [...options.droits] : [...DROITS_PAR_ROLE[roleId]],
           }
         : null,
     sql: () => (options.sansSql ? null : espion.tag),
@@ -159,6 +155,18 @@ describe("insererEntite / chargerEntite", () => {
     const { d, espion } = deps();
     expect(await insererEntite(d, "evenements", { id: "e-x" })).toEqual({ ok: true });
     expect(espion.appels[0]?.valeurs[0]).toBe(ORG_A);
+  });
+
+  it("refuse à un gestionnaire restreint la lecture d'un document par identifiant", async () => {
+    const { d, espion } = deps({
+      roleId: "gestionnaire",
+      droits: ["messagerie"],
+    });
+    expect(await chargerEntite(d, "documents", "o1")).toEqual({
+      ok: false,
+      raison: "interdit",
+    });
+    expect(espion.appels).toHaveLength(0);
   });
 
   it("ne trouve pas une ligne d'une autre org", async () => {

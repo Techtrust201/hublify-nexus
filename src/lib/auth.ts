@@ -1,7 +1,9 @@
 import { APIError, betterAuth } from "better-auth";
 import { createAuthMiddleware } from "better-auth/api";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
+import { CADENCE_AUTH } from "@/lib/cadence-auth";
 import { envoyerMail } from "@/lib/mail";
+import { resoudreSecretAuth } from "@/lib/secret-auth";
 import { obtenirPool } from "@/lib/sql";
 
 let inscriptionsInternes = 0;
@@ -37,7 +39,10 @@ export const auth = betterAuth({
     urlPublique(process.env["VERCEL_PROJECT_PRODUCTION_URL"]) ??
     urlPublique(process.env["VERCEL_URL"]) ??
     "http://localhost:8080",
-  secret: process.env["BETTER_AUTH_SECRET"] ?? "dev-uniquement-32-caracteres-min",
+  secret: resoudreSecretAuth({
+    secret: process.env["BETTER_AUTH_SECRET"],
+    nodeEnv: process.env["NODE_ENV"],
+  }),
   database: obtenirPool(),
   trustedOrigins: origines,
   emailAndPassword: {
@@ -49,6 +54,7 @@ export const auth = betterAuth({
         a: user.email,
         sujet: "Réinitialiser votre mot de passe Hublify",
         html: `<p>Réinitialisez votre mot de passe :</p><p><a href="${url}">Choisir un nouveau mot de passe</a></p>`,
+        sensible: true,
       });
     },
   },
@@ -58,6 +64,7 @@ export const auth = betterAuth({
         a: user.email,
         sujet: "Vérifiez votre e-mail Hublify",
         html: `<p>Confirmez votre adresse :</p><p><a href="${url}">Vérifier mon e-mail</a></p>`,
+        sensible: true,
       });
     },
   },
@@ -77,11 +84,15 @@ export const auth = betterAuth({
     },
   },
   rateLimit: {
-    // En CI le seed + les e2e enchaînent des connexions : le plafond 40/60 s
+    // En CI le seed + les e2e enchaînent des connexions : le plafond
     // ferait échouer la suite pour une raison sans rapport avec le produit.
     enabled: process.env["CI"] !== "true",
-    window: 60,
-    max: 40,
+    window: CADENCE_AUTH.fenetreSecondes,
+    max: CADENCE_AUTH.plafond,
+    customRules: {
+      "/sign-in/email": CADENCE_AUTH.regles["/sign-in/email"],
+      "/request-password-reset": CADENCE_AUTH.regles["/request-password-reset"],
+    },
   },
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
