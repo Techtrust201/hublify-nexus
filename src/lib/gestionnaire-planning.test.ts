@@ -9,7 +9,9 @@ import {
   descriptionVisible,
   droitsPersonnalises,
   droitAutoriseParProfil,
+  conserverReglementPrestation,
   ecrireDescription,
+  syntheseBlocagesJour,
   estImportOta,
   exporterAnnonces,
   facturationPrestation,
@@ -90,6 +92,33 @@ describe("prestations", () => {
       finances: true,
     }).map((a) => a.id);
     expect(finances).toEqual(["evenement"]);
+  });
+
+  it("garde le règlement prestataire quand le formulaire réécrit la méta", () => {
+    const sauve = conserverReglementPrestation(
+      { payePrestataire: 45, attribution: "proprietaire", tarif: 45 },
+      { attribution: "proprietaire", tarif: 50, porteur: "prestataire" },
+    );
+    expect(sauve.payePrestataire).toBe(45);
+    expect(sauve.tarif).toBe(50);
+    expect(conserverReglementPrestation({}, { tarif: 20 }).payePrestataire).toBeUndefined();
+  });
+
+  it("ne ferme la case du mois que si chaque logement est bloqué", () => {
+    const dates = [{ bienId: "suzette", date: "2026-03-05", motif: "Bloqué" }];
+    expect(syntheseBlocagesJour(dates, ["suzette", "colette"], "2026-03-05")).toEqual({
+      fermes: 1,
+      ouvertures: 0,
+      toutFerme: false,
+      toutOuvert: false,
+    });
+    expect(
+      syntheseBlocagesJour(
+        [...dates, { bienId: "colette", date: "2026-03-05", motif: "Bloqué" }],
+        ["suzette", "colette"],
+        "2026-03-05",
+      ).toutFerme,
+    ).toBe(true);
   });
 
   it("solde une facture prestataire sans dépasser le tarif", () => {

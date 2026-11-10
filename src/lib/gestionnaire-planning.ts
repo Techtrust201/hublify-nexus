@@ -86,6 +86,35 @@ export function lireMetaPrestation(description: string): MetaPrestation {
   }
 }
 
+/** L'édition reconstruisait la méta depuis le formulaire et effaçait le règlement. */
+export function conserverReglementPrestation(
+  precedente: MetaPrestation,
+  saisie: MetaPrestation,
+): MetaPrestation {
+  if (precedente.payePrestataire == null) return saisie;
+  return { ...saisie, payePrestataire: precedente.payePrestataire };
+}
+
+const MOTIFS_OUVERTURE = new Set(["Ouverture", "Ouverture BAIL"]);
+
+/** La vue mois n'a pas une colonne par logement : un blocage partiel ne ferme pas la case. */
+export function syntheseBlocagesJour(
+  dates: ReadonlyArray<{ bienId: string; date: string; motif: string }>,
+  bienIds: ReadonlyArray<string>,
+  jour: string,
+) {
+  const duJour = dates.filter((date) => date.date === jour);
+  const fermes = new Set(
+    duJour.filter((date) => !MOTIFS_OUVERTURE.has(date.motif)).map((date) => date.bienId),
+  );
+  const ouvertures = new Set(
+    duJour.filter((date) => MOTIFS_OUVERTURE.has(date.motif)).map((date) => date.bienId),
+  );
+  const toutFerme = bienIds.length > 0 && bienIds.every((id) => fermes.has(id));
+  const toutOuvert = bienIds.length > 0 && bienIds.every((id) => ouvertures.has(id));
+  return { fermes: fermes.size, ouvertures: ouvertures.size, toutFerme, toutOuvert };
+}
+
 export function ecrireDescription(texte: string, meta: MetaPrestation) {
   const propre = descriptionVisible(texte);
   const utile = Object.fromEntries(

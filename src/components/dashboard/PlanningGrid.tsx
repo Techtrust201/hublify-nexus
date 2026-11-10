@@ -56,7 +56,11 @@ import {
   retirerMission,
   useSession,
 } from "@/data/session";
-import { actionsDateAutorisees, type ActionDate } from "@/lib/gestionnaire-planning";
+import {
+  actionsDateAutorisees,
+  syntheseBlocagesJour,
+  type ActionDate,
+} from "@/lib/gestionnaire-planning";
 import { confirmer, toastOk } from "@/lib/feedback";
 import { evenementCouvreJour } from "@/lib/periode-demo";
 import { idDossierPourCalendrier } from "@/data/v1-metier";
@@ -673,6 +677,7 @@ export function PlanningGrid({
           <MoisMissions
             jours={joursMois}
             ancre={ancre}
+            biens={biensFiltres}
             missions={missionsFiltrees}
             sejours={sejoursAffiches}
             datesBloquees={datesBloquees}
@@ -1157,6 +1162,7 @@ function LigneBien({
 function MoisMissions({
   jours,
   ancre,
+  biens,
   missions,
   sejours,
   datesBloquees,
@@ -1168,6 +1174,7 @@ function MoisMissions({
 }: {
   jours: Date[];
   ancre: Date;
+  biens: BienMo1[];
   missions: MissionMo1[];
   sejours: ReservationMo1[];
   datesBloquees: DateBloqueeMo1[];
@@ -1194,9 +1201,21 @@ function MoisMissions({
           const key = isoJour(d);
           const list = missions.filter((m) => m.date === key);
           const hors = d.getMonth() !== ancre.getMonth();
-          const bloc = datesBloquees.find((b) => b.date === key);
-          const ouverture = bloc?.motif === "Ouverture" || bloc?.motif === "Ouverture BAIL";
+          const synthese = syntheseBlocagesJour(
+            datesBloquees,
+            biens.map((bien) => bien.id),
+            key,
+          );
           const sejoursJour = sejours.filter((r) => reservationCouvre(r, key));
+          const mention = synthese.toutFerme
+            ? "Bloqué"
+            : synthese.fermes > 0
+              ? `${synthese.fermes} bloqué${synthese.fermes > 1 ? "s" : ""}`
+              : synthese.toutOuvert
+                ? "Ouverture"
+                : synthese.ouvertures > 0
+                  ? `${synthese.ouvertures} ouverture${synthese.ouvertures > 1 ? "s" : ""}`
+                  : "";
           return (
             <div
               key={key}
@@ -1205,20 +1224,17 @@ function MoisMissions({
                 onAjouter && "cursor-pointer",
                 hors && "bg-surface",
                 key === AUJOURD_HUI_MO1 && "bg-surface",
-                bloc &&
-                  (ouverture
-                    ? "bg-[color-mix(in_srgb,var(--accent-teal)_12%,white)]"
-                    : "bg-[repeating-linear-gradient(-45deg,var(--surface-soft),var(--surface-soft)_4px,var(--surface-elevated)_4px,var(--surface-elevated)_8px)]"),
+                synthese.toutFerme &&
+                  "bg-[repeating-linear-gradient(-45deg,var(--surface-soft),var(--surface-soft)_4px,var(--surface-elevated)_4px,var(--surface-elevated)_8px)]",
+                synthese.toutOuvert &&
+                  !synthese.toutFerme &&
+                  "bg-[color-mix(in_srgb,var(--accent-teal)_12%,white)]",
               )}
               onClick={onAjouter ? () => onAjouter(key) : undefined}
             >
               <div className="mb-1 flex items-center justify-between">
                 <p className="text-center text-xs text-ink-body">{d.getDate()}</p>
-                {bloc ? (
-                  <span className="text-[9px] text-ink-muted">
-                    {ouverture ? "Ouverture" : "Bloqué"}
-                  </span>
-                ) : null}
+                {mention ? <span className="text-[9px] text-ink-muted">{mention}</span> : null}
               </div>
               <div className="space-y-1">
                 {sejoursJour.slice(0, 1).map((r) => (
