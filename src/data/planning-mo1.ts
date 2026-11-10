@@ -165,6 +165,17 @@ export const RESERVATIONS_MO1: ReservationMo1[] = [
   },
 ];
 
+function descriptionFacturee(
+  texte: string,
+  meta: {
+    attribution: "mandataire" | "proprietaire" | "locataire";
+    tarif: number;
+    payePrestataire?: number;
+  },
+) {
+  return `${texte}\u2063${JSON.stringify({ ...meta, porteur: "prestataire" })}`;
+}
+
 export const MISSIONS_MO1: MissionMo1[] = [
   {
     id: "ms1",
@@ -176,7 +187,11 @@ export const MISSIONS_MO1: MissionMo1[] = [
     heure: "13:00",
     assigne: "Amélie Dubois",
     statut: "terminee",
-    description: "Ménage de fin de séjour, linge changé, photos déposées.",
+    description: descriptionFacturee("Ménage de fin de séjour, linge changé, photos déposées.", {
+      attribution: "proprietaire",
+      tarif: 45,
+      payePrestataire: 45,
+    }),
   },
   {
     id: "ms2",
@@ -200,7 +215,10 @@ export const MISSIONS_MO1: MissionMo1[] = [
     heure: "09:00",
     assigne: "Électricité Pro",
     statut: "en_cours",
-    description: "Contrôle annuel de la chaudière avant le week-end.",
+    description: descriptionFacturee("Contrôle annuel de la chaudière avant le week-end.", {
+      attribution: "proprietaire",
+      tarif: 80,
+    }),
   },
   {
     id: "ms4",
@@ -236,7 +254,11 @@ export const MISSIONS_MO1: MissionMo1[] = [
     heure: "09:00",
     assigne: "Karim Benali",
     statut: "a_faire",
-    description: "Volet de la chambre 2 bloqué. Prévoir pièce de rechange.",
+    description: descriptionFacturee("Volet de la chambre 2 bloqué. Prévoir pièce de rechange.", {
+      attribution: "proprietaire",
+      tarif: 120,
+      payePrestataire: 40,
+    }),
   },
   {
     id: "ms7",
@@ -248,7 +270,10 @@ export const MISSIONS_MO1: MissionMo1[] = [
     heure: "09:00",
     assigne: "Émilie Moreau",
     statut: "en_cours",
-    description: "Ménage rapide cuisine et salle de bain. Réapprovisionnement produits.",
+    description: descriptionFacturee(
+      "Ménage rapide cuisine et salle de bain. Réapprovisionnement produits.",
+      { attribution: "locataire", tarif: 35 },
+    ),
     pastilleAccentuee: true,
   },
   {

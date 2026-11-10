@@ -37,6 +37,8 @@ function jourLocalIso() {
 }
 import { useSession } from "@/data/session";
 import { nuitsEntre } from "@/data/reservations-mo1";
+import { telechargerQuittanceLoyer } from "@/lib/exports-docs";
+import { toastOk } from "@/lib/feedback";
 import {
   descriptionVisible,
   facturationPrestation,
@@ -238,14 +240,23 @@ export function MissionInfoDialog({
               </div>
             </div>
             <div className="flex items-center justify-between border-t border-surface-soft px-5 py-3">
-              <Link
-                to="/missions/$missionId"
-                params={{ missionId: mission.id }}
-                onClick={onFermer}
-                className="inline-flex h-11 items-center rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[30px]"
-              >
-                Plus de détails
-              </Link>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDetails(true)}
+                  className="inline-flex h-11 items-center rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[30px]"
+                >
+                  Prestations et montants
+                </button>
+                <Link
+                  to="/missions/$missionId"
+                  params={{ missionId: mission.id }}
+                  onClick={onFermer}
+                  className="inline-flex h-11 items-center rounded border border-line-strong bg-white px-3 text-xs font-medium text-ink-body md:h-[30px]"
+                >
+                  Plus de détails
+                </Link>
+              </div>
               <div className="flex flex-wrap justify-end gap-2">
                 {onModifier && (
                   <button
@@ -294,108 +305,96 @@ export function MissionInfoDialog({
 
 function DetailsMissionPanel({ mission, onFermer }: { mission: MissionMo1; onFermer: () => void }) {
   const [ouvert, setOuvert] = useState({ desc: true, periode: true });
+  const meta = lireMetaPrestation(mission.description);
+  const facture = facturationPrestation(meta);
+  const consigne = descriptionVisible(mission.description) || "Aucune consigne.";
+  const inclus = [
+    meta.menage ? "Ménage" : null,
+    meta.linge ? "Linge" : null,
+    meta.consommable ? "Consommables" : null,
+  ].filter(Boolean);
+  const date = new Date(`${mission.date}T12:00:00`).toLocaleDateString("fr-FR");
   return (
     <div>
       <div className="flex items-start justify-between px-4 pt-4">
-        <div className="flex items-center gap-3">
-          <span className="flex size-12 items-center justify-center rounded-card bg-line text-lg text-ink-body">
-            J
-          </span>
-          <div>
-            <DialogTitle className="text-lg font-medium text-ink">Clean Up</DialogTitle>
-            <p className="text-sm text-ink-muted">ID #12345</p>
-          </div>
+        <div>
+          <DialogTitle className="text-lg font-medium text-ink">{mission.titre}</DialogTitle>
+          <p className="text-sm text-ink-muted">{mission.id}</p>
         </div>
         <button type="button" onClick={onFermer} aria-label="Fermer" className="text-ink-muted">
           <X className="size-4" />
         </button>
       </div>
       <DialogDescription className="px-4 pt-2 text-sm text-ink-subtle">
-        Détails de la réservation et informations du locataire
+        Prestations, tarif et période de cette mission
       </DialogDescription>
       <div className="mx-auto mt-3 flex h-[29px] w-[305px] items-center justify-center rounded-full bg-surface-soft text-xs text-ink-body">
-        Validé
+        {libelleStatut(mission.statut)}
       </div>
       <button
         type="button"
         className="mt-4 flex w-full items-center justify-between border-t border-surface-soft px-4 py-4 text-left"
         onClick={() => setOuvert((o) => ({ ...o, desc: !o.desc }))}
+        aria-expanded={ouvert.desc}
       >
         <span className="text-base text-ink">Descriptions</span>
-        <span className="text-ink-muted">▼</span>
+        <span className="text-ink-muted">{ouvert.desc ? "▲" : "▼"}</span>
       </button>
       {ouvert.desc && (
         <div className="space-y-3 px-4 pb-4 text-sm">
-          <p className="text-ink">★ Prestations et services</p>
-          <div className="grid grid-cols-3 gap-3 text-xs">
+          <p className="text-ink">Prestations et services</p>
+          <p className="text-xs text-ink-body">{consigne}</p>
+          <div className="grid grid-cols-2 gap-3 text-xs">
             <div>
-              <p className="text-ink-muted">Type appartement</p>
-              <p className="text-ink">2 pièces</p>
+              <p className="text-ink-muted">Type</p>
+              <p className="text-ink">{meta.typeLibre || mission.type}</p>
             </div>
             <div>
-              <p className="text-ink-muted">Montant</p>
-              <p className="text-ink">30 euros</p>
+              <p className="text-ink-muted">Tarif facturé</p>
+              <p className="text-ink">
+                {facture.montant != null ? `${facture.montant.toLocaleString("fr-FR")} €` : "—"}
+              </p>
             </div>
             <div>
-              <p className="text-ink-muted">Lavage du linge</p>
-              <p className="text-ink">20 euros</p>
+              <p className="text-ink-muted">Déjà réglé au prestataire</p>
+              <p className="text-ink">{(meta.payePrestataire ?? 0).toLocaleString("fr-FR")} €</p>
             </div>
             <div>
-              <p className="text-ink-muted">Installation du linge</p>
-              <p className="text-ink">Inclus</p>
-            </div>
-            <div>
-              <p className="text-ink-muted">Consommables</p>
-              <p className="text-ink">Inclus</p>
-            </div>
-            <div>
-              <p className="text-ink-muted">Autres</p>
-              <p className="text-ink">Lit bébé</p>
-              <p className="text-ink">Installation</p>
-            </div>
-            <div>
-              <p className="text-ink-muted">Montant</p>
-              <p className="text-ink">10 euros</p>
-              <p className="text-ink">10 euros</p>
-            </div>
-            <div>
-              <p className="text-ink-muted">Comissions</p>
-              <p className="text-ink">10%</p>
-            </div>
-            <div>
-              <p className="text-ink-muted">Montant</p>
-              <p className="text-ink">200 euros</p>
+              <p className="text-ink-muted">Inclus</p>
+              <p className="text-ink">{inclus.length > 0 ? inclus.join(", ") : "Non précisé"}</p>
             </div>
           </div>
+          <p className="text-xs text-ink-muted">{facture.libelle}</p>
         </div>
       )}
       <button
         type="button"
         className="flex w-full items-center justify-between border-t border-surface-soft px-4 py-4 text-left"
         onClick={() => setOuvert((o) => ({ ...o, periode: !o.periode }))}
+        aria-expanded={ouvert.periode}
       >
         <span className="text-base text-ink">Période de la prestation</span>
-        <span className="text-ink-muted">▼</span>
+        <span className="text-ink-muted">{ouvert.periode ? "▲" : "▼"}</span>
       </button>
       {ouvert.periode && (
-        <div className="grid grid-cols-3 gap-3 px-4 pb-6 text-xs">
+        <div className="grid grid-cols-2 gap-3 px-4 pb-6 text-xs">
           <div>
-            <p className="text-ink-muted">Prestatation réalisée par:</p>
-            <p className="mt-1 text-ink">Clean Up</p>
+            <p className="text-ink-muted">Réalisée par</p>
+            <p className="mt-1 text-ink">{mission.assigne || "Non assigné"}</p>
           </div>
           <div>
-            <p className="text-ink-muted">Date de début:</p>
-            <p className="mt-1 text-ink">05/03/2026</p>
+            <p className="text-ink-muted">Date</p>
+            <p className="mt-1 text-ink">{date}</p>
           </div>
           <div>
-            <p className="text-ink-muted">Date de fin:</p>
-            <p className="mt-1 text-ink">05/03/2026</p>
+            <p className="text-ink-muted">Horaire</p>
+            <p className="mt-1 text-ink">
+              {meta.plageDebut && meta.plageFin
+                ? `${meta.plageDebut} – ${meta.plageFin}`
+                : mission.heure}
+            </p>
           </div>
           <div>
-            <p className="text-ink-muted">Récurrence</p>
-            <p className="mt-1 text-ink">Hebdomadaire</p>
-          </div>
-          <div className="col-span-2">
             <p className="text-ink-muted">Mission</p>
             <p className="mt-1 text-ink">{mission.titre}</p>
           </div>
@@ -520,7 +519,12 @@ export function QuittanceDialog({
         <div className="flex flex-wrap justify-between gap-2 px-6 py-4">
           <button
             type="button"
-            onClick={() => onConfirmer(Number(montant.replace(",", ".")) || loyer.montant)}
+            onClick={() => {
+              const valeur = Number(montant.replace(",", ".")) || loyer.montant;
+              void telechargerQuittanceLoyer({ ...loyer, montant: valeur }).then(() =>
+                toastOk("Aperçu PDF téléchargé. La quittance n'est pas encore enregistrée."),
+              );
+            }}
             className="inline-flex h-11 items-center gap-2 rounded-full border border-line px-4 text-sm"
           >
             Aperçu PDF

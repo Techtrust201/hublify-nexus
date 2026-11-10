@@ -168,6 +168,7 @@ const CHAMPS: Record<CollectionMetier, Champs> = {
     ["precheckin_note", "precheckinNote"],
     ["remboursements", "remboursements"],
     ["paiements", "paiements"],
+    ["demande_paiement_le", "demandePaiementLe"],
   ],
   datesBloquees: [
     ["id", "id"],

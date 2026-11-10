@@ -3,7 +3,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Plus, SlidersHorizontal, Tag } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useDroit } from "@/auth/auth-context";
+import { useAuth, useDroit } from "@/auth/auth-context";
 import {
   BandMissionsJour,
   BandeauPlanning,
@@ -56,7 +56,7 @@ import {
   retirerMission,
   useSession,
 } from "@/data/session";
-import type { ActionDate } from "@/lib/gestionnaire-planning";
+import { actionsDateAutorisees, type ActionDate } from "@/lib/gestionnaire-planning";
 import { confirmer, toastOk } from "@/lib/feedback";
 import { evenementCouvreJour } from "@/lib/periode-demo";
 import { idDossierPourCalendrier } from "@/data/v1-metier";
@@ -107,7 +107,16 @@ export function PlanningGrid({
 }) {
   const session = useSession();
   const navigate = useNavigate();
+  const auth = useAuth();
   const peutReserver = useDroit("mod-reservations");
+  const peutMissions = useDroit("mod-missions") && auth?.roleId !== "prestataire";
+  const peutFinances = useDroit("mod-finances");
+  const droitsDate = {
+    reservations: peutReserver,
+    missions: peutMissions,
+    finances: peutFinances,
+  };
+  const peutAgirDate = actionsDateAutorisees(false, droitsDate).length > 0;
   const missions = session.missions;
   const sejoursCal = useMemo(() => {
     const dossiers = session.reservationsDossier;
@@ -232,7 +241,7 @@ export function PlanningGrid({
   const montrerOuverture = affichage === "ouverture";
   const selectionActive = Boolean(selectedResaId || selectedMissionId);
   const sejoursAffiches = montrerResas ? sejoursCal : [];
-  const datesBloquees = montrerOuverture ? session.datesBloquees : [];
+  const datesBloquees = session.datesBloquees;
 
   const choisirMission = (m: MissionMo1) => {
     if (onMission) onMission(m);
@@ -308,7 +317,7 @@ export function PlanningGrid({
                 placeholder="Rechercher par prestataire ou appartement..."
               />
             </div>
-            {peutReserver ? (
+            {peutMissions ? (
               <button
                 type="button"
                 onClick={() => setPrestation({ bienId: biens[0]?.id ?? "", date: isoJour(ancre) })}
@@ -327,6 +336,11 @@ export function PlanningGrid({
           maquetteAccueil && "mt-3",
         )}
       >
+        {biens.length === 0 && (
+          <p className="px-4 py-6 text-sm text-ink-muted">
+            Aucun logement pour le moment. Le calendrier se remplira dès qu'un bien sera enregistré.
+          </p>
+        )}
         {!maquetteAccueil && (
           <div className="flex items-center gap-2 border-b border-line bg-[#f7f6f3] px-3">
             <BandeauPlanning
@@ -334,7 +348,7 @@ export function PlanningGrid({
               onChoisir={onOnglet}
               extra={
                 <div className="flex items-center gap-2">
-                  {onglet === "tarifs" ? (
+                  {onglet === "tarifs" && peutFinances ? (
                     <button
                       type="button"
                       onClick={() => setGererRegles(true)}
@@ -604,7 +618,7 @@ export function PlanningGrid({
                     Prestations seules
                   </button>
                 ) : null}
-                {montrerOuverture ? (
+                {montrerOuverture && peutReserver ? (
                   <button
                     type="button"
                     onClick={() => {
@@ -632,7 +646,9 @@ export function PlanningGrid({
               ensembles={ensembles}
               regles={regles}
               sejours={sejoursCal}
+              edition={peutFinances}
               onCreerRegle={(bienId, date) => {
+                if (!peutFinances) return;
                 setCibleRegle({ bienId, date });
                 setCreerRegle(true);
               }}
@@ -645,7 +661,9 @@ export function PlanningGrid({
               regles={regles}
               sejours={sejoursCal}
               evenements={session.evenements}
+              edition={peutFinances}
               onCreerRegle={(bienId, date) => {
+                if (!peutFinances) return;
                 setCibleRegle({ bienId, date });
                 setCreerRegle(true);
               }}
@@ -662,7 +680,7 @@ export function PlanningGrid({
             selectedMissionId={selectedMissionId}
             selectedResaId={selectedResaId}
             selectionActive={selectionActive}
-            {...(montrerMissions
+            {...(montrerMissions && peutAgirDate
               ? {
                   onAjouter: (date: string) =>
                     setActionDate({
@@ -688,7 +706,7 @@ export function PlanningGrid({
               const id = idDossierPourCalendrier(sejour, session.reservationsDossier);
               if (id) onReservation?.(id);
             }}
-            {...(montrerMissions
+            {...(montrerMissions && peutAgirDate
               ? {
                   onAjouterPrestation: (bienId: string, date: string) =>
                     setActionDate({ bienId, date }),
@@ -701,9 +719,13 @@ export function PlanningGrid({
           <CartesEnsembles
             ensembles={ensembles}
             regles={regles}
-            onToggle={(id) =>
-              setEnsembles((list) => list.map((e) => (e.id === id ? { ...e, actif: !e.actif } : e)))
-            }
+            edition={peutFinances}
+            onToggle={(id) => {
+              if (!peutFinances) return;
+              setEnsembles((list) =>
+                list.map((e) => (e.id === id ? { ...e, actif: !e.actif } : e)),
+              );
+            }}
           />
         )}
 
@@ -712,29 +734,37 @@ export function PlanningGrid({
           bienNom={biens.find((b) => b.id === missionOuverte?.bienId)?.nom ?? ""}
           ouvert={!onMission && Boolean(missionOuverte)}
           onFermer={() => setMissionOuverte(null)}
-          onStatut={(id, statut) => {
-            modifierSession((e) => ({
-              ...e,
-              missions: e.missions.map((m) => (m.id === id ? { ...m, statut } : m)),
-            }));
-            setMissionOuverte((m) => (m && m.id === id ? { ...m, statut } : m));
-          }}
-          onModifier={(m) => {
-            setMissionOuverte(null);
-            setPrestation({ bienId: m.bienId, date: m.date, mission: m });
-          }}
-          onSupprimer={async (m) => {
-            const ok = await confirmer({
-              titre: "Supprimer cette prestation ?",
-              description: `${m.titre} disparaît du calendrier.`,
-              libelleConfirmer: "Supprimer",
-              danger: true,
-            });
-            if (!ok) return;
-            retirerMission(m.id);
-            setMissionOuverte(null);
-            toastOk("Prestation supprimée.");
-          }}
+          {...(peutMissions
+            ? {
+                onStatut: (id: string, statut: MissionMo1["statut"]) => {
+                  modifierSession((e) => ({
+                    ...e,
+                    missions: e.missions.map((m) => (m.id === id ? { ...m, statut } : m)),
+                  }));
+                  setMissionOuverte((m) => (m && m.id === id ? { ...m, statut } : m));
+                },
+                onModifier: (m: MissionMo1) => {
+                  setMissionOuverte(null);
+                  setPrestation({ bienId: m.bienId, date: m.date, mission: m });
+                },
+              }
+            : {})}
+          {...(peutMissions
+            ? {
+                onSupprimer: async (m: MissionMo1) => {
+                  const ok = await confirmer({
+                    titre: "Supprimer cette prestation ?",
+                    description: `${m.titre} disparaît du calendrier.`,
+                    libelleConfirmer: "Supprimer",
+                    danger: true,
+                  });
+                  if (!ok) return;
+                  retirerMission(m.id);
+                  setMissionOuverte(null);
+                  toastOk("Prestation supprimée.");
+                },
+              }
+            : {})}
         />
         <CreatePrestationDialog
           ouvert={Boolean(prestation)}
@@ -764,6 +794,19 @@ export function PlanningGrid({
                 d.motif !== "Ouverture" &&
                 d.motif !== "Ouverture BAIL",
             ),
+          )}
+          actions={actionsDateAutorisees(
+            Boolean(
+              actionDate &&
+              session.datesBloquees.some(
+                (d) =>
+                  d.bienId === actionDate.bienId &&
+                  d.date === actionDate.date &&
+                  d.motif !== "Ouverture" &&
+                  d.motif !== "Ouverture BAIL",
+              ),
+            ),
+            droitsDate,
           )}
           onFermer={() => setActionDate(null)}
           onChoisir={(action) => {
@@ -1244,6 +1287,7 @@ function TarifsJours({
   sejours,
   onCreerRegle,
   evenements = [],
+  edition = true,
 }: {
   jours: Date[];
   biens: BienMo1[];
@@ -1251,6 +1295,7 @@ function TarifsJours({
   regles: RegleTarif[];
   sejours: ReservationMo1[];
   evenements?: EvenementMo1[];
+  edition?: boolean;
   onCreerRegle: (bienId: string, date: string) => void;
 }) {
   return (
@@ -1292,7 +1337,8 @@ function TarifsJours({
                 <button
                   key={key}
                   type="button"
-                  onClick={() => onCreerRegle(bien.id, key)}
+                  disabled={!edition}
+                  onClick={() => edition && onCreerRegle(bien.id, key)}
                   aria-label={`${bien.nom} le ${key}, ${prix} euros${reserve ? ", réservé" : ""}`}
                   className="relative min-h-[71px] border-b border-r border-surface-soft px-1 py-2 text-center"
                 >
@@ -1333,7 +1379,9 @@ function TarifsJours({
           <span className="h-0.5 w-4 bg-line-strong" /> Réservé
         </span>
         <span className="ml-auto">
-          Cliquez une cellule pour créer une règle sur ce bien et ce jour
+          {edition
+            ? "Cliquez une cellule pour créer une règle sur ce bien et ce jour"
+            : "Consultation des prix. La modification des règles demande le droit finances."}
         </span>
       </div>
     </CadreGrilleCalendrier>
@@ -1347,6 +1395,7 @@ function TarifsMois({
   ensembles,
   regles,
   sejours,
+  edition = true,
   onCreerRegle,
 }: {
   jours: Date[];
@@ -1355,6 +1404,7 @@ function TarifsMois({
   ensembles: EnsembleRegles[];
   regles: RegleTarif[];
   sejours: ReservationMo1[];
+  edition?: boolean;
   onCreerRegle: (bienId: string, date: string) => void;
 }) {
   const bien = biens[0];
@@ -1364,7 +1414,8 @@ function TarifsMois({
   return (
     <CadreGrilleCalendrier>
       <p className="border-b border-surface-soft px-4 py-2 text-xs text-ink-muted">
-        Tarifs affichés : {bien.nom}. Cliquez un jour pour créer une règle.
+        Tarifs affichés : {bien.nom}.
+        {edition ? " Cliquez un jour pour créer une règle." : " Consultation seule."}
       </p>
       <div className="grid grid-cols-7 border-b border-line">
         {JOURS_SEM.map((j) => (
@@ -1386,9 +1437,9 @@ function TarifsMois({
             <button
               key={key}
               type="button"
-              disabled={hors}
+              disabled={hors || !edition}
               onClick={() => {
-                if (hors) return;
+                if (hors || !edition) return;
                 onCreerRegle(bien.id, key);
               }}
               className={cn(
@@ -1431,10 +1482,12 @@ function TarifsMois({
 function CartesEnsembles({
   ensembles,
   regles,
+  edition = true,
   onToggle,
 }: {
   ensembles: EnsembleRegles[];
   regles: RegleTarif[];
+  edition?: boolean;
   onToggle: (id: string) => void;
 }) {
   return (
@@ -1447,8 +1500,9 @@ function CartesEnsembles({
               <p className="text-xs text-ink">{e.nom}</p>
               <button
                 type="button"
-                onClick={() => onToggle(e.id)}
-                className="-mx-2 -my-3.5 flex size-11 shrink-0 items-center justify-center md:m-0 md:h-4 md:w-7"
+                disabled={!edition}
+                onClick={() => edition && onToggle(e.id)}
+                className="-mx-2 -my-3.5 flex size-11 shrink-0 items-center justify-center disabled:cursor-default md:m-0 md:h-4 md:w-7"
                 aria-label={e.actif ? `Désactiver ${e.nom}` : `Activer ${e.nom}`}
               >
                 <span

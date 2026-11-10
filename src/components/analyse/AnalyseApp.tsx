@@ -4,6 +4,7 @@
 
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useDroit } from "@/auth/auth-context";
 import { Calendar, ChevronDown, ChevronRight, Download } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import {
@@ -30,10 +31,27 @@ import {
 } from "@/components/analyse/periode-mois";
 import { cn } from "@/lib/utils";
 import { AUJOURD_HUI_MO1 } from "@/data/planning-mo1";
-import { useSession } from "@/data/session";
+import {
+  ajouterMessageDash,
+  ajouterNotif,
+  definirRelanceLoyer,
+  idNouveau,
+  modifierMission,
+  modifierReservation,
+  useSession,
+} from "@/data/session";
+import { copierTexte, telechargerDemo, telechargerPdf, toastErreur, toastOk } from "@/lib/feedback";
+import {
+  descriptionVisible,
+  ecrireDescription,
+  facturationPrestation,
+  facturesPrestataires,
+  lireMetaPrestation,
+  messageRelancePaiement,
+  solderPrestation,
+} from "@/lib/gestionnaire-planning";
 import { formatTaux, totauxFacture } from "@/lib/analyse-finance";
 import { construireAnalyse, exerciceParDefaut, exporterEncaissementsCsv } from "@/lib/analyse-vue";
-import { telechargerDemo } from "@/lib/feedback";
 
 export type VueAnalyse =
   "synthese" | "encaissements" | "cautions" | "facture" | "analyse-2" | "analyse-3";
@@ -60,6 +78,20 @@ const ONGLETS: Array<{ id: OngletSynthese; label: string }> = [
   { id: "gestionnaires", label: "Gestionnaires" },
 ];
 
+function situationImpaye(checkIn: string, encaisse: number, aujourdhui: string) {
+  if (encaisse > 0) return "Paiement partiel";
+  if (checkIn < aujourdhui) {
+    const jours = Math.max(
+      1,
+      Math.round(
+        (Date.parse(`${aujourdhui}T12:00:00Z`) - Date.parse(`${checkIn}T12:00:00Z`)) / 86400000,
+      ),
+    );
+    return `${jours} jour${jours > 1 ? "s" : ""} de retard`;
+  }
+  return "À encaisser";
+}
+
 function dateValide(valeur: string | undefined) {
   return Boolean(valeur && /^\d{4}-\d{2}-\d{2}$/.test(valeur));
 }
@@ -73,6 +105,11 @@ export function AnalyseApp({
 }) {
   const navigate = useNavigate();
   const session = useSession();
+  const peutFinances = useDroit("mod-finances");
+  const peutReserver = useDroit("mod-reservations");
+  const peutMissions = useDroit("mod-missions");
+  const peutMessages = useDroit("messagerie");
+  const peutDossier = useDroit("voir-reservations");
   const defaut = exerciceParDefaut(AUJOURD_HUI_MO1);
   const debut = dateValide(recherche.debut) ? recherche.debut! : defaut.debut;
   const fin = dateValide(recherche.fin) ? recherche.fin! : defaut.fin;
@@ -95,6 +132,119 @@ export function AnalyseApp({
   const factureVoyageur = analyse.facturesVoyageurs.find((f) => f.id === voyageur) ?? null;
   const ligneResa = analyse.historique.find((h) => h.id === resa) ?? null;
   const periodeInvalide = fin < debut;
+  const factures = useMemo(
+    () =>
+      facturesPrestataires(session.missions, session.biens, {
+        debut,
+        fin,
+        bienId: logement,
+      }),
+    [session.missions, session.biens, debut, fin, logement],
+  );
+  const impayes = analyse.lignes
+    .filter((ligne) => ligne.restant > 0 && ligne.statut !== "Annulé")
+    .map((ligne) => ({
+      id: ligne.id,
+      occupant: ligne.occupant,
+      logement: ligne.logement,
+      du: ligne.encaisse + ligne.restant,
+      encaisse: ligne.encaisse,
+      restant: ligne.restant,
+      situation: situationImpaye(ligne.checkIn, ligne.encaisse, analyse.filtre.aujourdhui),
+      relance: session.loyers.some(
+        (loyer) =>
+          loyer.locataire.toLowerCase() === ligne.occupant.toLowerCase() &&
+          !loyer.valide &&
+          loyer.relanceAuto,
+      ),
+    }));
+
+  const relancer = (id: string) => {
+    const ligne = analyse.lignes.find((item) => item.id === id);
+    if (!ligne) return;
+    const jour = new Date().toISOString().slice(0, 10);
+    const lien = `${window.location.origin}/reservations?vue=liste&resa=${ligne.id}`;
+    const texte = messageRelancePaiement({
+      locataire: ligne.occupant,
+      montant: ligne.restant / 100,
+      bienNom: ligne.logement,
+      echeance: ligne.checkIn,
+      lien,
+    });
+    if (peutReserver) modifierReservation(ligne.id, { demandePaiementLe: jour });
+    const loyer = session.loyers.find(
+      (item) => item.locataire.toLowerCase() === ligne.occupant.toLowerCase() && !item.valide,
+    );
+    if (peutFinances && loyer) definirRelanceLoyer(loyer.id, true);
+    if (peutMessages) {
+      ajouterMessageDash({
+        id: idNouveau("msg"),
+        canal: "occupants",
+        auteur: "Relance",
+        initiales: "RL",
+        bienNom: ligne.logement,
+        texte,
+        ilYa: "à l'instant",
+      });
+      ajouterNotif({
+        titre: "Relance de paiement",
+        detail: `${ligne.occupant} · ${ligne.logement}`,
+        href: `/reservations?vue=liste&resa=${ligne.id}`,
+      });
+    }
+    toastOk("Relance enregistrée.");
+    void copierTexte(texte, "Message copié pour le mail ou le SMS.");
+  };
+
+  const payerPrestation = (id: string, ajout?: number) => {
+    const mission = session.missions.find((item) => item.id === id);
+    if (!mission || !peutMissions) return;
+    const meta = lireMetaPrestation(mission.description);
+    const facture = facturationPrestation(meta);
+    const du = facture.montant ?? 0;
+    const resultat = solderPrestation(
+      du,
+      meta.payePrestataire ?? 0,
+      ajout ?? du - (meta.payePrestataire ?? 0),
+    );
+    if (!resultat.ok) {
+      toastErreur(
+        resultat.raison === "depasse"
+          ? "Le montant dépasse le restant dû."
+          : "Indiquez un montant supérieur à zéro.",
+      );
+      return;
+    }
+    modifierMission(id, {
+      description: ecrireDescription(descriptionVisible(mission.description), {
+        ...meta,
+        payePrestataire: resultat.paye,
+      }),
+    });
+    if (peutMessages) {
+      ajouterNotif({
+        titre: "Paiement prestataire",
+        detail: `${mission.assigne || "Prestataire"} · ${resultat.paye.toLocaleString("fr-FR")} €`,
+        href: "/analyse?onglet=revenus",
+      });
+    }
+    toastOk(
+      resultat.restant === 0 ? "Facture prestataire soldée." : "Paiement prestataire enregistré.",
+    );
+  };
+
+  const telechargerFacturePresta = (id: string) => {
+    const ligne = factures.find((item) => item.id === id);
+    if (!ligne) return;
+    void telechargerPdf(`Facture ${ligne.prestataire}`, [
+      `Prestataire : ${ligne.prestataire}`,
+      `Logement : ${ligne.logement}`,
+      `Date : ${ligne.date}`,
+      `Montant facture : ${ligne.du} EUR`,
+      `Deja regle : ${ligne.paye} EUR`,
+      `Restant du : ${ligne.restant} EUR`,
+    ]);
+  };
 
   const sousTitre =
     vue === "encaissements"
@@ -176,6 +326,18 @@ export function AnalyseApp({
             passerelle={session.parametrage.passerellePaiement}
             onOuvrir={(cible) => onRecherche({ vue: cible })}
             onNotes={() => setNotes(true)}
+            impayes={impayes}
+            factures={factures}
+            peutRelancer={peutFinances || peutReserver || peutMessages}
+            peutPayer={peutMissions}
+            peutDossier={peutDossier}
+            onRelancer={relancer}
+            onDossier={(id) => {
+              void navigate({ to: "/reservations", search: { vue: "liste", resa: id } });
+            }}
+            onPayer={(id) => payerPrestation(id)}
+            onAjouterPaiement={(id, montant) => payerPrestation(id, montant)}
+            onFacture={telechargerFacturePresta}
           />
         )}
         {vue === "synthese" && onglet === "gestionnaires" && <EcranGestionnaires vue={analyse} />}

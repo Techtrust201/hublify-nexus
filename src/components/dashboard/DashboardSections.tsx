@@ -169,7 +169,7 @@ function CarteKpi({
 
 export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
   const session = useSession();
-  const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.messages", false);
+  const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.messages", true);
   const [canal, setCanal] = useState<CanalMo1 | "prospect" | "nouveaux" | "tous">("occupants");
   const prospects = session.conversations.filter((c) => c.section === "prospections");
   const nonLusAuteurs = new Set(
@@ -325,6 +325,9 @@ export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
                 ))}
             {canal === "prospect" && prospects.length === 0 && (
               <li className="px-4 py-3 text-xs text-ink-muted">Aucune demande prospect.</li>
+            )}
+            {canal !== "prospect" && filtres.length === 0 && (
+              <li className="px-4 py-6 text-sm text-ink-muted">Aucun message dans cette vue.</li>
             )}
           </ul>
         </>
@@ -700,6 +703,11 @@ export function EvenementsSection({
             Événements détectés automatiquement selon vos propriétés
           </p>
           <ul>
+            {evenements.length === 0 && (
+              <li className="px-4 py-6 text-sm text-ink-muted">
+                Aucun événement pour le moment. Ajoutez-en un : il reste après rechargement.
+              </li>
+            )}
             {evenements.map((e) => (
               <li key={e.id} className="border-b border-surface-soft px-4 py-3 last:border-b-0">
                 <div className="flex items-start justify-between gap-3">

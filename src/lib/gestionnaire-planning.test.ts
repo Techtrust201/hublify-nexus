@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DROITS_PAR_ROLE, droitsEffectifs } from "@/auth/permissions";
 import {
   actionsDate,
+  actionsDateAutorisees,
   cautionDemandee,
   EXTRA_PRECHECKIN_DEFAUT,
   fusionMigrationExtra,
@@ -12,6 +13,8 @@ import {
   estImportOta,
   exporterAnnonces,
   facturationPrestation,
+  facturesPrestataires,
+  solderPrestation,
   ficheDepuisOccupation,
   horaireDansPlage,
   importerAnnonces,
@@ -72,6 +75,59 @@ describe("prestations", () => {
     expect(actionsDate(false).some((a) => a.id === "bloquer")).toBe(true);
     expect(actionsDate(true).some((a) => a.id === "debloquer")).toBe(true);
     expect(actionsDate(false).some((a) => a.label.includes("note"))).toBe(true);
+  });
+
+  it("masque les actions de case que le rôle ne peut pas écrire", () => {
+    const lecture = actionsDateAutorisees(false, {
+      reservations: false,
+      missions: false,
+      finances: false,
+    });
+    expect(lecture).toEqual([]);
+    const finances = actionsDateAutorisees(false, {
+      reservations: false,
+      missions: false,
+      finances: true,
+    }).map((a) => a.id);
+    expect(finances).toEqual(["evenement"]);
+  });
+
+  it("solde une facture prestataire sans dépasser le tarif", () => {
+    expect(solderPrestation(80, 0, 30)).toEqual({ ok: true, paye: 30, restant: 50 });
+    expect(solderPrestation(80, 30, 50)).toEqual({ ok: true, paye: 80, restant: 0 });
+    expect(solderPrestation(80, 30, 60).ok).toBe(false);
+    expect(solderPrestation(80, 0, 0).ok).toBe(false);
+    const lignes = facturesPrestataires(
+      [
+        {
+          id: "ms",
+          bienId: "suzette",
+          date: "2026-03-05",
+          titre: "Ménage",
+          assigne: "Lucas Ménage",
+          description: ecrireDescription("Ménage", {
+            attribution: "proprietaire",
+            porteur: "prestataire",
+            tarif: 45,
+            payePrestataire: 15,
+          }),
+        },
+      ],
+      [{ id: "suzette", nom: "Suzette" }],
+      { debut: "2026-01-01", fin: "2026-12-31", bienId: "tous" },
+    );
+    expect(lignes).toEqual([
+      {
+        id: "ms",
+        titre: "Ménage",
+        prestataire: "Lucas Ménage",
+        logement: "Suzette",
+        date: "2026-03-05",
+        du: 45,
+        paye: 15,
+        restant: 30,
+      },
+    ]);
   });
 });
 

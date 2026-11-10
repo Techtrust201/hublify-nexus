@@ -272,13 +272,37 @@ export function DetailsMission({
                   </p>
                 </div>
                 <div className="flex items-end">
-                  <button
-                    type="button"
-                    className="h-10 w-full rounded-gest-primaire bg-gest-primaire text-sm font-medium text-white"
-                    onClick={() => toastOk("Demande de paiement enregistrée sur le séjour.")}
-                  >
-                    Demander un paiement
-                  </button>
+                  {peutResa ? (
+                    <button
+                      type="button"
+                      className="h-10 w-full rounded-gest-primaire bg-gest-primaire text-sm font-medium text-white"
+                      onClick={() => {
+                        const jour = new Date().toISOString().slice(0, 10);
+                        const reste = Math.max(0, du - paye);
+                        modifierReservation(resa.id, { demandePaiementLe: jour });
+                        ajouterNotif({
+                          titre: "Demande de paiement",
+                          detail: `${resa.occupant} · ${formatMontant(reste)} · ${bienNom}`,
+                          href: `/reservations?vue=liste&resa=${resa.id}`,
+                        });
+                        toastOk(
+                          resa.demandePaiementLe
+                            ? "Demande de paiement renvoyée."
+                            : "Demande de paiement enregistrée sur le séjour.",
+                        );
+                      }}
+                    >
+                      {resa.demandePaiementLe
+                        ? `Demande envoyée le ${jourFr(resa.demandePaiementLe)}`
+                        : "Demander un paiement"}
+                    </button>
+                  ) : (
+                    <p className="text-xs text-ink-muted">
+                      {resa.demandePaiementLe
+                        ? `Demande envoyée le ${jourFr(resa.demandePaiementLe)}`
+                        : "La demande de paiement se fait avec le droit de modifier les réservations."}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -456,46 +480,58 @@ export function DetailsMission({
             </div>
           )}
 
-          <div className="mt-4 flex flex-wrap justify-end gap-2">
-            <button
-              type="button"
-              className="h-9 rounded-full bg-accent-teal px-4 text-xs font-medium text-white"
-              onClick={() => {
-                poserMeta({ marketplace: true });
-                ajouterNotif({
-                  titre: "Mission proposée sur la marketplace",
-                  detail: live.titre,
-                  href: `/missions/${live.id}`,
-                });
-                toastOk("Mission proposée sur la marketplace.");
-              }}
-            >
-              {meta.marketplace ? "Déjà sur la marketplace" : "Proposer sur le marketplace"}
-            </button>
-            <button
-              type="button"
-              className="h-9 rounded-full bg-accent-teal px-4 text-xs font-medium text-white"
-              onClick={() => {
-                if (presta) affecterMission(live.id, presta.nom);
-                poserMeta({ signifiee: true, envoi: "envoyee" }, "en_cours");
-                ajouterNotif({
-                  titre: "Mission signifiée au prestataire",
-                  detail: `${live.titre} · ${live.assigne || "non assigné"}`,
-                  href: `/missions/${live.id}`,
-                });
-                toastOk("Le prestataire est prévenu.");
-              }}
-            >
-              Signifier la mission au prestataire
-            </button>
-            <button
-              type="button"
-              onClick={() => setEdition(true)}
-              className="h-9 rounded-full bg-accent-teal px-4 text-xs font-medium text-white"
-            >
-              Éditer la mission
-            </button>
-          </div>
+          {peutMod && (
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className="h-9 rounded-full bg-accent-teal px-4 text-xs font-medium text-white"
+                onClick={() => {
+                  poserMeta({ marketplace: true });
+                  ajouterNotif({
+                    titre: "Mission proposée sur la marketplace",
+                    detail: live.titre,
+                    href: `/missions/${live.id}`,
+                  });
+                  toastOk(
+                    meta.marketplace
+                      ? "La mission est déjà proposée sur la marketplace."
+                      : "Mission proposée sur la marketplace.",
+                  );
+                }}
+              >
+                {meta.marketplace ? "Déjà sur la marketplace" : "Proposer sur le marketplace"}
+              </button>
+              <button
+                type="button"
+                className="h-9 rounded-full bg-accent-teal px-4 text-xs font-medium text-white"
+                onClick={() => {
+                  if (presta) affecterMission(live.id, presta.nom);
+                  poserMeta({ signifiee: true, envoi: "envoyee" }, "en_cours");
+                  ajouterNotif({
+                    titre: "Mission signifiée au prestataire",
+                    detail: `${live.titre} · ${live.assigne || "non assigné"}`,
+                    href: `/missions/${live.id}`,
+                  });
+                  toastOk(
+                    meta.signifiee
+                      ? "Le prestataire a déjà été prévenu."
+                      : "Le prestataire est prévenu.",
+                  );
+                }}
+              >
+                {meta.signifiee
+                  ? "Prestataire déjà prévenu"
+                  : "Signifier la mission au prestataire"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEdition(true)}
+                className="h-9 rounded-full bg-accent-teal px-4 text-xs font-medium text-white"
+              >
+                Éditer la mission
+              </button>
+            </div>
+          )}
         </div>
       )}
       <CreatePrestationDialog

@@ -46,6 +46,8 @@ export type MetaPrestation = {
   noteInterne?: string;
   marketplace?: boolean;
   signifiee?: boolean;
+  /** Euros déjà versés au prestataire pour cette prestation. */
+  payePrestataire?: number;
 };
 
 export const LIBELLES_ENVOI: Record<EnvoiPrestation, string> = {
@@ -268,6 +270,80 @@ export function actionsDate(bloque: boolean): Array<{ id: ActionDate; label: str
       ? { id: "debloquer", label: "Retirer le blocage" }
       : { id: "bloquer", label: "Bloquer cette date" },
   ];
+}
+
+export function actionsDateAutorisees(
+  bloque: boolean,
+  droits: { reservations: boolean; missions: boolean; finances: boolean },
+) {
+  return actionsDate(bloque).filter((action) => {
+    if (action.id === "prestation") return droits.missions;
+    if (action.id === "evenement") return droits.reservations || droits.finances;
+    return droits.reservations;
+  });
+}
+
+/** Ajoute un versement au prestataire sans dépasser le tarif facturé. Montants en euros. */
+export function solderPrestation(du: number, deja: number, ajout: number) {
+  const plafond = Math.round(Math.max(0, du) * 100) / 100;
+  const base = Math.round(Math.max(0, deja) * 100) / 100;
+  const verse = Math.round(ajout * 100) / 100;
+  if (!Number.isFinite(verse) || verse <= 0)
+    return { ok: false as const, raison: "montant" as const };
+  const suivant = Math.round((base + verse) * 100) / 100;
+  if (suivant - plafond > 0.001) return { ok: false as const, raison: "depasse" as const };
+  const paye = Math.min(plafond, suivant);
+  return {
+    ok: true as const,
+    paye,
+    restant: Math.round((plafond - paye) * 100) / 100,
+  };
+}
+
+export type LigneFacturePrestation = {
+  id: string;
+  titre: string;
+  prestataire: string;
+  logement: string;
+  date: string;
+  du: number;
+  paye: number;
+  restant: number;
+};
+
+export function facturesPrestataires(
+  missions: ReadonlyArray<{
+    id: string;
+    bienId: string;
+    date: string;
+    titre: string;
+    assigne: string;
+    description: string;
+  }>,
+  biens: ReadonlyArray<{ id: string; nom: string }>,
+  filtre: { debut: string; fin: string; bienId: string },
+): LigneFacturePrestation[] {
+  return missions.flatMap((mission) => {
+    if (mission.date < filtre.debut || mission.date > filtre.fin) return [];
+    if (filtre.bienId !== "tous" && mission.bienId !== filtre.bienId) return [];
+    const meta = lireMetaPrestation(mission.description);
+    const facture = facturationPrestation(meta);
+    if (!facture.facture || facture.montant == null || facture.montant <= 0) return [];
+    const du = Math.round(facture.montant * 100) / 100;
+    const paye = Math.min(du, Math.round(Math.max(0, meta.payePrestataire ?? 0) * 100) / 100);
+    return [
+      {
+        id: mission.id,
+        titre: mission.titre,
+        prestataire: mission.assigne.trim() || "Non assigné",
+        logement: biens.find((bien) => bien.id === mission.bienId)?.nom ?? mission.bienId,
+        date: mission.date,
+        du,
+        paye,
+        restant: Math.round((du - paye) * 100) / 100,
+      },
+    ];
+  });
 }
 
 export const CATEGORIES_DROITS: Array<{ id: string; titre: string; droits: DroitId[] }> = [
