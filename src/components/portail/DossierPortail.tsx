@@ -132,7 +132,7 @@ function Capturer({ label, onFichier }: { label: string; onFichier: (fichier: Fi
     if (item) onFichier(item);
   };
   return (
-    <span className="flex gap-2" aria-label={label}>
+    <span className="flex flex-wrap justify-center gap-1" aria-label={label}>
       <input
         ref={photo}
         type="file"
@@ -333,28 +333,48 @@ function PiecesDossier() {
           </ol>
         </Carte>
       )}
-      <ul className="space-y-3">
+      <ul className="grid grid-cols-2 gap-3">
         {pieces.map((p) => (
           <li key={p.id} className="rounded-[22px] bg-white p-3 text-sm">
-            <div className="flex items-start justify-between gap-2">
-              <span>
-                <span className="font-medium text-[#1d2939]">{p.titre}</span>
-                {p.aide && (
-                  <span className="mt-0.5 block text-[11px] text-[#98a2b3]">{p.aide}</span>
-                )}
-              </span>
+            <p className="text-center text-[13px] font-medium text-[#1d2939]">
+              {p.id === "piece-id" ? "*Identité" : p.titre}
+              {p.id === "piece-revenus" && (
+                <button
+                  type="button"
+                  aria-label="Justificatif de revenus"
+                  className="ml-1 inline-grid size-4 place-items-center rounded-full border border-[#98a2b3] text-[10px]"
+                  onClick={() => setRevenusOuverts((v) => !v)}
+                >
+                  i
+                </button>
+              )}
+            </p>
+            <div className="mt-2 rounded-2xl bg-[#f6f1ea] p-2">
+              {p.present || p.rectoNom ? (
+                <span className="mx-auto mb-1 grid size-10 place-items-center rounded-full border-2 border-[#12b76a] text-lg text-[#12b76a]">
+                  ✓
+                </span>
+              ) : (
+                <span className="mx-auto mb-1 grid size-10 place-items-center text-2xl text-[#98a2b3]">
+                  +
+                </span>
+              )}
               {p.id === "piece-id" ? (
-                <span className="flex flex-col items-end gap-1">
-                  <span className="text-[11px] text-[#667085]">Recto {p.rectoNom ?? "—"}</span>
-                  <Capturer
-                    label="Recto"
-                    onFichier={(fichier) => recevoirFichier(p.id, "recto", fichier)}
-                  />
-                  <span className="text-[11px] text-[#667085]">Verso {p.versoNom ?? "—"}</span>
-                  <Capturer
-                    label="Verso"
-                    onFichier={(fichier) => recevoirFichier(p.id, "verso", fichier)}
-                  />
+                <span className="grid gap-1 text-[10px]">
+                  <span>
+                    <span className="block text-center font-medium">Recto</span>
+                    <Capturer
+                      label="Recto"
+                      onFichier={(fichier) => recevoirFichier(p.id, "recto", fichier)}
+                    />
+                  </span>
+                  <span>
+                    <span className="block text-center font-medium">Verso</span>
+                    <Capturer
+                      label="Verso"
+                      onFichier={(fichier) => recevoirFichier(p.id, "verso", fichier)}
+                    />
+                  </span>
                 </span>
               ) : (
                 <Capturer
@@ -363,15 +383,7 @@ function PiecesDossier() {
                 />
               )}
             </div>
-            {p.id === "piece-revenus" && (
-              <button
-                type="button"
-                className="mt-2 text-xs text-[#5090A8]"
-                onClick={() => setRevenusOuverts((v) => !v)}
-              >
-                Justificatif de revenus
-              </button>
-            )}
+            {p.aide && <p className="mt-1 text-center text-[10px] text-[#98a2b3]">{p.aide}</p>}
             {p.id === "piece-revenus" && revenusOuverts && (
               <p className="mt-1 text-[11px] leading-relaxed text-[#667085]">
                 {JUSTIFICATIFS_REVENUS}

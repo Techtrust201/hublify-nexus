@@ -434,9 +434,22 @@ function PageDebuter() {
               Le gestionnaire du logement vous envoie une proposition de bail
             </li>
             <li>
-              <Link to="/messagerie" className="text-xs font-medium text-ink underline">
+              <Link
+                to="/messagerie"
+                className="block rounded-card border border-line px-3 py-2 text-xs font-medium text-ink"
+              >
                 Message avec le gestionnaire
               </Link>
+            </li>
+            <li className="flex items-start gap-2 rounded-card border border-line px-3 py-2 text-xs text-ink-body">
+              <span aria-hidden>⚠</span>
+              <span>
+                Vous êtes arrivé au terme de votre bail, vous pouvez consulter{" "}
+                <Link to="/documents" className="font-medium text-ink underline">
+                  l&apos;attestation
+                </Link>
+                .
+              </span>
             </li>
           </ul>
         </section>
