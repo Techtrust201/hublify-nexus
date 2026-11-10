@@ -118,9 +118,18 @@ export const auth = betterAuth({
       create: {
         after: async (user) => {
           // Le formulaire et le seed rattachent eux-mêmes l'organisation.
-          // Sans ce garde, un compte Google aurait une session et aucun espace.
           if (inscriptionsInternes > 0) return;
           await assurerEspaceSiOrphelin(user.id);
+        },
+      },
+    },
+    session: {
+      create: {
+        after: async (session) => {
+          // Si la création du compte a échoué après l'écriture de l'utilisateur,
+          // la connexion suivante ouvre l'espace. Le formulaire interne est exclu.
+          if (inscriptionsInternes > 0) return;
+          await assurerEspaceSiOrphelin(session.userId);
         },
       },
     },

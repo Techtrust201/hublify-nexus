@@ -1,6 +1,19 @@
 // SOURCE: Maquette MO1 — Dashboard/Messagerie (+ variantes presta, teammate, archivés, panneaux)
 
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+
+function jetonProposition(conversationId: string) {
+  const cle = `hublify.proposition.${conversationId}`;
+  const existant = sessionStorage.getItem(cle);
+  if (existant) return existant;
+  const frais = `bail-${conversationId}-${Date.now().toString(36)}`;
+  sessionStorage.setItem(cle, frais);
+  return frais;
+}
+
+function oublierJetonProposition(conversationId: string) {
+  sessionStorage.removeItem(`hublify.proposition.${conversationId}`);
+}
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/auth/auth-context";
 import { AppShell } from "@/components/layout/AppShell";
@@ -276,32 +289,37 @@ function PageMessagerie() {
     );
     const piece = `Proposition de bail - ${actif.nom}${actif.bienNom ? ` - ${actif.bienNom}` : ""}`;
     const conversationId = actif.id;
-    const envois = [
-      ...textes.map((texte, index) =>
-        ajouterMessageFil({
-          id: idNouveau(`m-auto-${index}`),
-          conversationId,
-          kind: "systeme",
-          iconeSysteme: "key",
-          texte,
-        }),
-      ),
-      ajouterMessageFil({
-        id: idNouveau("m-bail"),
+    const jeton = jetonProposition(conversationId);
+    const messages: MessageFil[] = [
+      ...textes.map((texte, index): MessageFil => ({
+        id: `${jeton}-auto-${index}`,
         conversationId,
-        kind: "envoye",
+        kind: "systeme",
+        iconeSysteme: "key",
+        texte,
+      })),
+      {
+        id: `${jeton}-principal`,
+        conversationId,
+        kind: "envoye" as const,
         heure,
         texte: signature
           ? `Bonjour,\nLa proposition de bail est prête pour signature. Merci de suivre le parcours indiqué.\nBien à vous,\n${redacteur}`
           : `Bonjour,\nVous trouverez ci-joint la proposition de bail.\nBien à vous,\n${redacteur}`,
         pieces: [{ nom: piece, taille: "186 Ko" }],
-      }),
+      },
     ];
-    void Promise.all(envois).then((resultats) => {
-      if (resultats.some((ok) => !ok)) {
-        toastErreur("La proposition n'a pas été enregistrée.");
-        return;
+    void (async () => {
+      for (const message of messages) {
+        const ok = await ajouterMessageFil(message);
+        if (!ok) {
+          toastErreur(
+            "La proposition n'a pas été enregistrée. Vous pouvez réessayer : les messages déjà partis ne seront pas doublés.",
+          );
+          return;
+        }
       }
+      oublierJetonProposition(conversationId);
       setConversations((liste) =>
         liste.map((c) =>
           c.id === conversationId
@@ -310,8 +328,8 @@ function PageMessagerie() {
         ),
       );
       toastOk(signature ? "Parcours de signature préparé." : "Proposition envoyée dans le fil.");
-    });
-    definirVue();
+      definirVue();
+    })();
   };
 
   const apercuBail = () => {
