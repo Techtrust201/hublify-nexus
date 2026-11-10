@@ -210,13 +210,13 @@ export function MenuAssigner({
               key={a.id}
               type="button"
               onClick={() => {
-                onChoisir(a.nom);
+                onChoisir(a.identifiant ?? a.nom);
                 toastOk(`Assigné à ${a.nom}.`);
                 onFermer();
               }}
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-ink-body hover:bg-surface"
             >
-              {actuel === a.nom ? (
+              {actuel === a.nom || actuel === a.identifiant ? (
                 <Check className="size-2.5 shrink-0" />
               ) : (
                 <span className="size-2.5 shrink-0" />

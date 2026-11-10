@@ -21,6 +21,7 @@ import {
   peutEcrireCollection,
   peutEcrireParametrage,
   peutInsererCollection,
+  peutLireCollection,
   peutModifierCollection,
   peutRemplacerCollections,
   reduirePatch,
@@ -36,11 +37,7 @@ export type DepsEtat = {
 };
 
 export type RaisonEchec =
-  | "non_authentifie"
-  | "non_configure"
-  | "interdit"
-  | "introuvable"
-  | "invalide";
+  "non_authentifie" | "non_configure" | "interdit" | "introuvable" | "invalide";
 
 export type Lecture = { ok: true; payload: EtatSession } | { ok: false; raison: RaisonEchec };
 
@@ -114,12 +111,16 @@ async function controlerInsertion(
 
   if (
     (org.roleId === "locataire" || org.roleId === "voyageur") &&
-    (collection === "dossiersLocation" || collection === "partagesDossier" || collection === "candidatures")
+    (collection === "dossiersLocation" ||
+      collection === "partagesDossier" ||
+      collection === "candidatures")
   ) {
-    const dossierId =
-      collection === "dossiersLocation" ? item.id : String(item["dossierId"] ?? "");
+    const dossierId = collection === "dossiersLocation" ? item.id : String(item["dossierId"] ?? "");
     const existant = commeLigne(await lireLigne(sql, org.orgId, "dossiersLocation", dossierId));
-    if (collection !== "dossiersLocation" && (!existant || !ligneAppartient(org, "dossiersLocation", existant))) {
+    if (
+      collection !== "dossiersLocation" &&
+      (!existant || !ligneAppartient(org, "dossiersLocation", existant))
+    ) {
       return { ok: false, raison: "interdit" };
     }
     if (collection === "dossiersLocation") {
@@ -256,7 +257,12 @@ export async function modifierEntite(
     const ligne = commeLigne(await lireLigne(sql, orgMaj.orgId, collection, id));
     const conv = ligne
       ? commeLigne(
-          await lireLigne(sql, orgMaj.orgId, "conversations", String(ligne["conversationId"] ?? "")),
+          await lireLigne(
+            sql,
+            orgMaj.orgId,
+            "conversations",
+            String(ligne["conversationId"] ?? ""),
+          ),
         )
       : null;
     if (!conv || !ligneAppartient(org, "conversations", conv)) {
@@ -278,6 +284,13 @@ export async function chargerEntite(
   if (!org) return { ok: false, raison: "non_authentifie" };
   const sql = deps.sql();
   if (!sql) return { ok: false, raison: "non_configure" };
+  if (
+    !estRolePortail(org.roleId) &&
+    org.roleId !== "lecteur" &&
+    !peutLireCollection(org, collection)
+  ) {
+    return { ok: false, raison: "interdit" };
+  }
   if (org.roleId === "lecteur" || estRolePortail(org.roleId)) {
     const etat = await assemblerEtat(sql, org);
     if (!presentDansEtat(etat, collection, id)) return { ok: false, raison: "introuvable" };

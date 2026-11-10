@@ -1,4 +1,11 @@
-import { aLeDroit, estRolePortail, type DroitId, type RoleId } from "@/auth/permissions";
+import {
+  aLeDroit,
+  droitsEffectifs,
+  estRolePortail,
+  DROITS_PAR_ROLE,
+  type DroitId,
+  type RoleId,
+} from "@/auth/permissions";
 import { etatVide, type CollectionMetier, type EtatSession } from "@/data/etat-session";
 
 /**
@@ -84,12 +91,55 @@ function conversationPourPersonne(
   return Boolean(nom) && !assigne && meme(conversation.nom, nom);
 }
 
-function logementDuBien(logement: string, biens: { nom: string }[]) {
-  const cible = logement.toLowerCase();
-  return biens.some((b) => {
-    const nom = (b.nom ?? "").toLowerCase();
-    return nom.length >= 4 && (cible.includes(nom) || nom.includes(cible));
-  });
+function libelleLogement(valeur: string) {
+  return valeur.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/**
+ * Égalité stricte, ou le même nom suivi d'un séparateur (« Nom — adresse »).
+ * Une chaîne vide ne correspond à rien : `includes("")` est toujours vrai.
+ * Un préfixe nu non plus : « Appartement Colette » n'est pas « Appartement Colette Annexe ».
+ */
+function memeLogement(a: string, b: string) {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const [court, long] = a.length <= b.length ? [a, b] : [b, a];
+  if (court.length < 4 || !long.startsWith(court)) return false;
+  return /^(?:\s+[—–]| - |, |\s+\(| \/ )/.test(long.slice(court.length));
+}
+
+function logementDuBien(logement: string, biens: readonly { nom: string }[]) {
+  const cible = libelleLogement(logement);
+  if (!cible) return false;
+  return biens.some((b) => memeLogement(cible, libelleLogement(b.nom ?? "")));
+}
+
+/**
+ * Un occupant ne reçoit que les pièces marquées « résidents » de son logement.
+ * Un propriétaire ne reçoit que le dossier de ses biens (vue proprio ou
+ * logements), jamais la vue « proprio » de tout le parc.
+ */
+export function documentPourRole(
+  doc: { vue: string; logement: string; occupant?: string },
+  roleId: "locataire" | "voyageur" | "proprietaire",
+  biens: readonly { nom: string }[],
+) {
+  if (!logementDuBien(doc.logement, biens)) return false;
+  if (roleId === "proprietaire") return doc.vue === "proprio" || doc.vue === "logements";
+  if (doc.vue !== "residents") return false;
+  if (doc.occupant === "prestataires") return false;
+  if (roleId === "locataire") return doc.occupant !== "voyageurs";
+  return doc.occupant !== "locataires";
+}
+
+/** Rapports d'intervention du prestataire : seulement les biens de ses missions. */
+export function filtrerDocumentsPrestataire<T extends { vue: string; logement: string }>(
+  documents: readonly T[],
+  biens: readonly { nom: string }[],
+) {
+  return documents.filter(
+    (d) => d.vue === "inventaire-presta" && logementDuBien(d.logement, biens),
+  );
 }
 
 function notifsDuNom(etat: EtatSession, nom: string) {
@@ -138,7 +188,19 @@ function ancragePersonne(etat: EtatSession, acteur: ActeurPortee) {
   const dossierIds = new Set(dossiers.map((d) => d.id));
   const conversations = etat.conversations.filter((c) => conversationPourPersonne(c, email, nom));
   const convIds = new Set(conversations.map((c) => c.id));
-  return { email, nom, noms, biens, bienIds, resas, occupants, dossiers, dossierIds, conversations, convIds };
+  return {
+    email,
+    nom,
+    noms,
+    biens,
+    bienIds,
+    resas,
+    occupants,
+    dossiers,
+    dossierIds,
+    conversations,
+    convIds,
+  };
 }
 
 function filtrerLecteur(etat: EtatSession): EtatSession {
@@ -162,7 +224,7 @@ function filtrerLocataire(etat: EtatSession, acteur: ActeurPortee): EtatSession 
     biens: a.biens,
     reservationsDossier: a.resas,
     reservationsCalendrier: calendrierLie(a.resas, etat.reservationsCalendrier),
-    documents: etat.documents.filter((d) => logementDuBien(d.logement, a.biens)),
+    documents: etat.documents.filter((d) => documentPourRole(d, "locataire", a.biens)),
     loyers: etat.loyers.filter((l) => a.noms.has(l.locataire.toLowerCase())),
     conversations: a.conversations,
     messagesFil: etat.messagesFil.filter((m) => a.convIds.has(m.conversationId)),
@@ -182,7 +244,7 @@ function filtrerVoyageur(etat: EtatSession, acteur: ActeurPortee): EtatSession {
     biens: a.biens,
     reservationsDossier: a.resas,
     reservationsCalendrier: calendrierLie(a.resas, etat.reservationsCalendrier),
-    documents: etat.documents.filter((d) => logementDuBien(d.logement, a.biens)),
+    documents: etat.documents.filter((d) => documentPourRole(d, "voyageur", a.biens)),
     loyers: etat.loyers.filter((l) => a.noms.has(l.locataire.toLowerCase())),
     conversations: a.conversations,
     messagesFil: etat.messagesFil.filter((m) => a.convIds.has(m.conversationId)),
@@ -208,9 +270,7 @@ function filtrerProprietaire(etat: EtatSession, acteur: ActeurPortee): EtatSessi
     reservationsDossier: resas,
     reservationsCalendrier: etat.reservationsCalendrier.filter((r) => bienIds.has(r.bienId)),
     loyers: etat.loyers.filter((l) => logementDuBien(l.bienNom, biens)),
-    documents: etat.documents.filter(
-      (d) => d.vue === "proprio" || logementDuBien(d.logement, biens),
-    ),
+    documents: etat.documents.filter((d) => documentPourRole(d, "proprietaire", biens)),
     occupants: etat.occupants.filter((o) => logementDuBien(o.logement, biens)),
     conversations,
     messagesFil: etat.messagesFil.filter((m) => convIds.has(m.conversationId)),
@@ -219,29 +279,99 @@ function filtrerProprietaire(etat: EtatSession, acteur: ActeurPortee): EtatSessi
   });
 }
 
+function aUnDroit(acteur: ActeurPortee, ids: readonly DroitId[]) {
+  const effectifs = droitsEffectifs(acteur.roleId, acteur.droits);
+  return ids.some((id) => effectifs.includes(id));
+}
+
+/** Retire les collections qu'un membre d'équipe n'a pas le droit de lire. */
+function filtrerSelonDroits(etat: EtatSession, acteur: ActeurPortee): EtatSession {
+  const prochain: EtatSession = { ...etat };
+  if (!aUnDroit(acteur, ["voir-finances", "mod-finances"])) {
+    prochain.loyers = [];
+    prochain.ensembles = [];
+    prochain.regles = [];
+  }
+  if (!aUnDroit(acteur, ["messagerie"])) {
+    prochain.conversations = [];
+    prochain.messagesFil = [];
+    prochain.messagesDash = [];
+  }
+  if (!aUnDroit(acteur, ["voir-documents"])) {
+    prochain.documents = [];
+    prochain.modeles = [];
+    prochain.edl = [];
+  }
+  if (!aUnDroit(acteur, ["voir-reservations", "mod-reservations"])) {
+    prochain.reservationsCalendrier = [];
+    prochain.reservationsDossier = [];
+    prochain.occupants = [];
+    prochain.dossiersLocation = [];
+    prochain.partagesDossier = [];
+    prochain.candidatures = [];
+    prochain.datesBloquees = [];
+    prochain.datesBloqueesAnnuelles = [];
+    prochain.actions = [];
+    prochain.notifications = [];
+  }
+  if (!aUnDroit(acteur, ["voir-reservations", "mod-reservations", "mod-finances"])) {
+    prochain.evenements = [];
+  }
+  if (!aUnDroit(acteur, ["voir-biens", "mod-biens"])) {
+    prochain.biens = [];
+    prochain.immeubles = [];
+    prochain.inventaire = [];
+    prochain.prestataires = [];
+    prochain.contactsCopro = [];
+  }
+  if (!aUnDroit(acteur, ["voir-calendrier", "mod-missions"])) {
+    prochain.missions = [];
+    prochain.rapportsIntervention = [];
+  }
+  if (!aUnDroit(acteur, ["gerer-equipe"])) {
+    prochain.droitsPersonnalises = [];
+  }
+  return prochain;
+}
+
 /** Réduit l'état à ce que le rôle a le droit de recevoir. L'équipe opérationnelle garde le parc. */
 export function filtrerEtatPourRole(etat: EtatSession, acteur: ActeurPortee): EtatSession {
-  if (acteur.roleId === "lecteur") return filtrerLecteur(etat);
+  if (acteur.roleId === "lecteur") return filtrerSelonDroits(filtrerLecteur(etat), acteur);
   if (acteur.roleId === "locataire") return filtrerLocataire(etat, acteur);
   if (acteur.roleId === "voyageur") return filtrerVoyageur(etat, acteur);
   if (acteur.roleId === "proprietaire") return filtrerProprietaire(etat, acteur);
-  return etat;
+  return filtrerSelonDroits(etat, acteur);
 }
 
-export function filtrerConversationsPrestataire<T extends { type: string; nom: string }>(
+/** L'identifiant d'un compte est son e-mail. Un nom affiché n'en est pas un. */
+function identifiantCompte(email: string) {
+  const mail = email.trim().toLowerCase();
+  return mail.includes("@") ? mail : "";
+}
+
+/**
+ * Un fil prestataire n'est visible que s'il est rattaché à l'identifiant du
+ * compte (`assigne` = e-mail de session). Le titre, même identique au nom
+ * du prestataire, ne suffit jamais — y compris quand le fil n'a pas encore
+ * d'affectation.
+ */
+export function conversationPrestataireRattachee(
+  conversation: { type?: string; assigne?: string },
+  email: string,
+) {
+  if (conversation.type !== "prestataire") return false;
+  const mail = identifiantCompte(email);
+  if (!mail) return false;
+  return (conversation.assigne ?? "").trim().toLowerCase() === mail;
+}
+
+export function filtrerConversationsPrestataire<T extends { type: string; assigne?: string }>(
   conversations: readonly T[],
-  nom: string,
+  email: string,
 ): T[] {
-  const presta = conversations.filter((c) => c.type === "prestataire");
-  const cible = nom.trim().toLowerCase();
-  if (!cible) return presta;
-  const precis = presta.filter((c) => {
-    const titre = c.nom.toLowerCase();
-    return titre === cible || titre.includes(cible) || cible.includes(titre);
-  });
-  // Pas de clé entre un fil et un prestataire : si le nom ne correspond à
-  // aucun fil, on garde les fils prestataire (cas Lucas / « Linge & Entretien »).
-  return precis.length > 0 ? precis : presta;
+  return conversations.filter(
+    (c) => c.type === "prestataire" && conversationPrestataireRattachee(c, email),
+  );
 }
 
 export function peutEcrireCollection(acteur: ActeurPortee, collection: CollectionMetier) {
@@ -293,9 +423,53 @@ export function peutModifierCollection(acteur: ActeurPortee, collection: Collect
   return peutEcrireCollection(acteur, collection);
 }
 
-/** Un remplacement de collection entière n'est sûr que pour l'équipe qui voit tout le parc. */
+/**
+ * Un remplacement de collection entière n'est sûr que pour un membre d'équipe
+ * qui reçoit le parc complet. Une vue partielle effacerait les lignes absentes.
+ */
 export function peutRemplacerCollections(acteur: ActeurPortee) {
-  return acteur.roleId !== "lecteur" && !estRolePortail(acteur.roleId);
+  if (acteur.roleId === "lecteur" || estRolePortail(acteur.roleId)) return false;
+  const effectifs = new Set(droitsEffectifs(acteur.roleId, acteur.droits));
+  return DROITS_PAR_ROLE[acteur.roleId].every((id) => effectifs.has(id));
+}
+
+const LECTURE_COLLECTION: Record<CollectionMetier, readonly DroitId[]> = {
+  reservationsCalendrier: ["voir-reservations", "mod-reservations"],
+  reservationsDossier: ["voir-reservations", "mod-reservations"],
+  datesBloquees: ["voir-reservations", "mod-reservations"],
+  datesBloqueesAnnuelles: ["voir-reservations", "mod-reservations"],
+  occupants: ["voir-reservations", "mod-reservations"],
+  dossiersLocation: ["voir-reservations", "mod-reservations"],
+  partagesDossier: ["voir-reservations", "mod-reservations"],
+  candidatures: ["voir-reservations", "mod-reservations"],
+  actions: ["voir-reservations", "mod-reservations"],
+  // Même règle que filtrerSelonDroits : une notification porte des réservations.
+  // « messagerie » seul ne doit pas permettre de les relire par identifiant.
+  notifications: ["voir-reservations", "mod-reservations"],
+  evenements: ["voir-reservations", "mod-reservations", "mod-finances"],
+  loyers: ["voir-finances", "mod-finances"],
+  ensembles: ["voir-finances", "mod-finances"],
+  regles: ["voir-finances", "mod-finances"],
+  biens: ["voir-biens", "mod-biens"],
+  immeubles: ["voir-biens", "mod-biens"],
+  inventaire: ["voir-biens", "mod-biens"],
+  prestataires: ["voir-biens", "mod-biens"],
+  contactsCopro: ["voir-biens", "mod-biens"],
+  missions: ["voir-calendrier", "mod-missions"],
+  rapportsIntervention: ["voir-calendrier", "mod-missions"],
+  conversations: ["messagerie"],
+  messagesFil: ["messagerie"],
+  messagesDash: ["messagerie"],
+  documents: ["voir-documents"],
+  modeles: ["voir-documents"],
+  edl: ["voir-documents"],
+  droitsPersonnalises: ["gerer-equipe"],
+};
+
+/** Lecture directe d'une ligne par l'équipe. Le portail passe par l'état filtré. */
+export function peutLireCollection(acteur: ActeurPortee, collection: CollectionMetier) {
+  if (acteur.roleId === "lecteur" || estRolePortail(acteur.roleId)) return true;
+  return aUnDroit(acteur, LECTURE_COLLECTION[collection]);
 }
 
 export function peutEcrireParametrage(acteur: ActeurPortee) {
@@ -316,8 +490,7 @@ export function chaineExcessive(valeur: unknown, max = 8000, profondeur = 0): bo
 }
 
 export type PatchReduit =
-  | { ok: true; patch: Record<string, unknown> }
-  | { ok: false; raison: "interdit" | "invalide" };
+  { ok: true; patch: Record<string, unknown> } | { ok: false; raison: "interdit" | "invalide" };
 
 export function reduirePatch(
   acteur: ActeurPortee,
@@ -336,8 +509,7 @@ export function reduirePatch(
     }
     if (
       typeof reste["precheckinIdentite"] === "string" &&
-      (reste["precheckinIdentite"].trim().length === 0 ||
-        reste["precheckinIdentite"].length > 200)
+      (reste["precheckinIdentite"].trim().length === 0 || reste["precheckinIdentite"].length > 200)
     ) {
       return { ok: false, raison: "invalide" };
     }
@@ -381,7 +553,8 @@ export function validerInsertion(
   if (chaineExcessive(item)) return "invalide";
   if (collection === "reservationsDossier" || collection === "candidatures") {
     const montant = item["montant"];
-    if (typeof montant === "number" && (!Number.isFinite(montant) || montant < 0)) return "invalide";
+    if (typeof montant === "number" && (!Number.isFinite(montant) || montant < 0))
+      return "invalide";
     const arrivee = typeof item["arrivee"] === "string" ? item["arrivee"] : "";
     const depart = typeof item["depart"] === "string" ? item["depart"] : "";
     if (arrivee && depart && depart <= arrivee) return "invalide";
@@ -393,7 +566,8 @@ export function validerInsertion(
   }
   if (collection === "loyers") {
     const montant = item["montant"];
-    if (typeof montant === "number" && (!Number.isFinite(montant) || montant < 0)) return "invalide";
+    if (typeof montant === "number" && (!Number.isFinite(montant) || montant < 0))
+      return "invalide";
   }
   return "ok";
 }
@@ -419,7 +593,13 @@ export function ligneAppartient(
   }
   if (collection === "conversations") {
     if (acteur.roleId === "prestataire") {
-      return String(ligne["type"] ?? "") === "prestataire" && meme(String(ligne["nom"] ?? ""), nom);
+      return conversationPrestataireRattachee(
+        {
+          type: String(ligne["type"] ?? ""),
+          assigne: typeof ligne["assigne"] === "string" ? ligne["assigne"] : "",
+        },
+        email,
+      );
     }
     return conversationPourPersonne(
       {

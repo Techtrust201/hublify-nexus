@@ -1,5 +1,6 @@
 import { ChevronLeft, FileText, Home, Mail, Phone, UserRound } from "lucide-react";
 import type { ProfilInterlocuteur as ProfilVue } from "@/data/profil-interlocuteur";
+import { libelleAssigne } from "@/data/messagerie-mo1";
 import { SITUATIONS_LOCATAIRE } from "@/data/proposition-bail";
 
 export function ProfilInterlocuteur({
@@ -67,7 +68,7 @@ export function ProfilInterlocuteur({
             <Ligne
               icon={UserRound}
               libelle="Assigné à"
-              valeur={profil.assigne ?? "Personne pour le moment"}
+              valeur={profil.assigne ? libelleAssigne(profil.assigne) : "Personne pour le moment"}
             />
           </dl>
         </article>

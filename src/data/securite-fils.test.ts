@@ -5,7 +5,7 @@ import {
   modifierEntite,
   type DepsEtat,
 } from "@/data/etat-distant";
-import type { RoleId } from "@/auth/permissions";
+import { DROITS_PAR_ROLE, type DroitId, type RoleId } from "@/auth/permissions";
 import type { Sql } from "@/lib/sql";
 
 const ORG_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1";
@@ -37,14 +37,22 @@ function sqlMessagerie() {
   return { tag, appels };
 }
 
-function deps(roleId: RoleId, email: string, prenom: string, nom: string) {
+function deps(
+  roleId: RoleId,
+  email: string,
+  prenom: string,
+  nom: string,
+  droits: readonly DroitId[] = roleId === "gestionnaire"
+    ? DROITS_PAR_ROLE.gestionnaire
+    : ["messagerie"],
+) {
   const espion = sqlMessagerie();
   const d: DepsEtat = {
     sessionOrg: async () => ({
       orgId: ORG_A,
       orgType: "gestionnaire",
       roleId,
-      droits: ["messagerie", "voir-documents"],
+      droits: [...droits],
       email,
       prenom,
       nom,
@@ -175,6 +183,17 @@ describe("affectation d'une conversation", () => {
       }),
     ).toEqual({ ok: false, raison: "introuvable" });
     expect(vol.espion.appels.some((appel) => appel.texte.startsWith("update "))).toBe(false);
+  });
+
+  it("refuse à un gestionnaire aux droits partiels d'effacer les autres fils", async () => {
+    const { d, espion } = deps("gestionnaire", "invite@exemple.test", "Yann", "Invite", [
+      "messagerie",
+    ]);
+    expect(await ecrireCollections(d, { messagesFil: [] })).toEqual({
+      ok: false,
+      raison: "interdit",
+    });
+    expect(espion.appels).toHaveLength(0);
   });
 
   it("refuse au lecteur toute écriture de fil", async () => {

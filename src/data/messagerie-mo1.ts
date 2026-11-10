@@ -198,6 +198,7 @@ export const CONVERSATIONS_MO1: Conversation[] = [
     ilYa: "Il y a 1 min",
     nonLu: true,
     archivee: false,
+    assigne: "lucas.menage@hublify.app",
   },
   {
     id: "c-silver",
@@ -469,6 +470,8 @@ export type AssigneConversation = {
   nom: string;
   initiales: string;
   groupe: GroupeAssigne;
+  /** E-mail du compte. Seul cet identifiant rattache un fil prestataire. */
+  identifiant?: string;
 };
 
 export const ASSIGNEES_CONVERSATION: AssigneConversation[] = [
@@ -476,9 +479,23 @@ export const ASSIGNEES_CONVERSATION: AssigneConversation[] = [
   { id: "a-ta", nom: "Team Arborio", initiales: "TA", groupe: "equipe" },
   { id: "a-cg", nom: "Clément G.", initiales: "CG", groupe: "equipe" },
   { id: "a-em", nom: "Émilie Moreau", initiales: "EM", groupe: "equipe" },
-  { id: "a-le", nom: "Linge & Entretien", initiales: "LE", groupe: "prestataire" },
+  {
+    id: "a-le",
+    nom: "Linge & Entretien",
+    initiales: "LE",
+    groupe: "prestataire",
+    identifiant: "lucas.menage@hublify.app",
+  },
   { id: "a-ss", nom: "Studio Sérénité", initiales: "SS", groupe: "prestataire" },
 ];
+
+export function libelleAssigne(assigne: string) {
+  const cible = assigne.trim().toLowerCase();
+  const trouve = ASSIGNEES_CONVERSATION.find(
+    (a) => a.identifiant?.toLowerCase() === cible || a.nom === assigne,
+  );
+  return trouve?.nom ?? assigne;
+}
 
 export const SECTIONS_DEPLACEMENT: { id: SectionConversation; label: string }[] = [
   { id: "inbox", label: "Nouveaux messages" },

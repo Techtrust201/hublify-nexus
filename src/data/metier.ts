@@ -1,5 +1,10 @@
 import type { DroitId, RoleId } from "@/auth/permissions";
-import { filtrerConversationsPrestataire, filtrerEtatPourRole, nomActeur } from "@/data/portee-role";
+import {
+  emailActeur,
+  filtrerConversationsPrestataire,
+  filtrerDocumentsPrestataire,
+  filtrerEtatPourRole,
+} from "@/data/portee-role";
 import {
   COLLECTIONS_METIER,
   TABLE_COLLECTION,
@@ -664,7 +669,7 @@ export async function assemblerEtat(sql: Sql, org: OrgSession): Promise<EtatSess
         "conversations",
         gestId,
       )) as EtatSession["conversations"];
-      etat.conversations = filtrerConversationsPrestataire(conv, nomActeur(org));
+      etat.conversations = filtrerConversationsPrestataire(conv, emailActeur(org));
       const convIds = new Set(etat.conversations.map((c) => c.id));
       const fils = (await listerCollection(
         sql,
@@ -673,7 +678,7 @@ export async function assemblerEtat(sql: Sql, org: OrgSession): Promise<EtatSess
       )) as EtatSession["messagesFil"];
       etat.messagesFil = fils.filter((m) => convIds.has(m.conversationId));
       const docs = (await listerCollection(sql, "documents", gestId)) as EtatSession["documents"];
-      etat.documents = docs.filter((d) => d.vue === "inventaire-presta");
+      etat.documents = filtrerDocumentsPrestataire(docs, etat.biens);
     }
     etat.parametrage = await lireParametrage(sql, org.orgId);
     return etat;
