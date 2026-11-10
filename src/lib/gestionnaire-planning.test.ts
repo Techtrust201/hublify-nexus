@@ -119,6 +119,13 @@ describe("prestations", () => {
         "2026-03-05",
       ).toutFerme,
     ).toBe(true);
+    expect(
+      syntheseBlocagesJour(
+        [{ bienId: "raclette", date: "2026-03-05", motif: "Bloqué" }],
+        ["suzette"],
+        "2026-03-05",
+      ),
+    ).toEqual({ fermes: 0, ouvertures: 0, toutFerme: false, toutOuvert: false });
   });
 
   it("solde une facture prestataire sans dépasser le tarif", () => {

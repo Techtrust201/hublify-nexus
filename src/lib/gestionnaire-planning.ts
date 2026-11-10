@@ -103,7 +103,8 @@ export function syntheseBlocagesJour(
   bienIds: ReadonlyArray<string>,
   jour: string,
 ) {
-  const duJour = dates.filter((date) => date.date === jour);
+  const visibles = new Set(bienIds);
+  const duJour = dates.filter((date) => date.date === jour && visibles.has(date.bienId));
   const fermes = new Set(
     duJour.filter((date) => !MOTIFS_OUVERTURE.has(date.motif)).map((date) => date.bienId),
   );
