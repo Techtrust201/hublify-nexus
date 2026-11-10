@@ -14,7 +14,7 @@ function jetonProposition(conversationId: string) {
 function oublierJetonProposition(conversationId: string) {
   sessionStorage.removeItem(`hublify.proposition.${conversationId}`);
 }
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/auth/auth-context";
 import { AppShell } from "@/components/layout/AppShell";
 import { DialogNouveauMessage } from "@/components/messagerie/DialogNouveauMessage";
@@ -276,8 +276,10 @@ function PageMessagerie() {
     }));
   };
 
+  const publicationEnCours = useRef(false);
   const publierProposition = (signature: boolean) => {
-    if (!actif || !brouillonBail) return;
+    if (publicationEnCours.current || !actif || !brouillonBail) return;
+    publicationEnCours.current = true;
     memoriserBrouillon(brouillonBail);
     const heure = heureMaintenant();
     const date = new Date().toLocaleDateString("fr-FR");
@@ -310,25 +312,29 @@ function PageMessagerie() {
       },
     ];
     void (async () => {
-      for (const message of messages) {
-        const ok = await ajouterMessageFil(message);
-        if (!ok) {
-          toastErreur(
-            "La proposition n'a pas été enregistrée. Vous pouvez réessayer : les messages déjà partis ne seront pas doublés.",
-          );
-          return;
+      try {
+        for (const message of messages) {
+          const ok = await ajouterMessageFil(message);
+          if (!ok) {
+            toastErreur(
+              "La proposition n'a pas été enregistrée. Vous pouvez réessayer : les messages déjà partis ne seront pas doublés.",
+            );
+            return;
+          }
         }
+        oublierJetonProposition(conversationId);
+        setConversations((liste) =>
+          liste.map((c) =>
+            c.id === conversationId
+              ? { ...c, extrait: "Proposition de bail", ilYa: "À l'instant" }
+              : c,
+          ),
+        );
+        toastOk(signature ? "Parcours de signature préparé." : "Proposition envoyée dans le fil.");
+        definirVue();
+      } finally {
+        publicationEnCours.current = false;
       }
-      oublierJetonProposition(conversationId);
-      setConversations((liste) =>
-        liste.map((c) =>
-          c.id === conversationId
-            ? { ...c, extrait: "Proposition de bail", ilYa: "À l'instant" }
-            : c,
-        ),
-      );
-      toastOk(signature ? "Parcours de signature préparé." : "Proposition envoyée dans le fil.");
-      definirVue();
     })();
   };
 
