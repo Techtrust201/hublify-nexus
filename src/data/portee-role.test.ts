@@ -3,9 +3,11 @@ import { etatCanon } from "@/data/etat-canon";
 import { ACCES_RESTREINT, DROITS_PAR_ROLE } from "@/auth/permissions";
 import {
   decisionRetrait,
+  documentPourRole,
   filtrerConversationsPrestataire,
   filtrerDocumentsPrestataire,
   filtrerEtatPourRole,
+  ligneAppartient,
   peutEcrireCollection,
   peutLireCollection,
   peutRemplacerCollections,
@@ -154,21 +156,17 @@ describe("filtrerEtatPourRole", () => {
     expect(vue.biens.length).toBeGreaterThan(0);
   });
 
-  it("ne donne à un prestataire que le fil qui le désigne", () => {
+  it("ne donne à un prestataire que le fil rattaché à son identifiant", () => {
+    expect(filtrerConversationsPrestataire(etat.conversations, "Linge & Entretien")).toEqual([]);
     expect(
-      filtrerConversationsPrestataire(etat.conversations, "Linge & Entretien").map((c) => c.id),
+      filtrerConversationsPrestataire(etat.conversations, "lucas.menage@hublify.app").map(
+        (c) => c.id,
+      ),
     ).toEqual(["c-lentil"]);
-    expect(
-      filtrerConversationsPrestataire(
-        etat.conversations,
-        "Lucas Ménage",
-        "lucas.menage@hublify.app",
-      ).map((c) => c.id),
-    ).toEqual(["c-lentil"]);
-    const autre = filtrerConversationsPrestataire(etat.conversations, "Studio Sérénité");
-    expect(autre.map((c) => c.id)).toEqual(["c-silver"]);
-    expect(autre.some((c) => c.id === "c-lentil")).toBe(false);
-    expect(filtrerConversationsPrestataire(etat.conversations, "Inconnu Total")).toEqual([]);
+    expect(filtrerConversationsPrestataire(etat.conversations, "linge.autre@hublify.app")).toEqual(
+      [],
+    );
+    expect(filtrerConversationsPrestataire(etat.conversations, "studio@hublify.app")).toEqual([]);
   });
 
   it("retire au gestionnaire restreint les collections hors de ses droits", () => {
@@ -202,6 +200,151 @@ describe("filtrerEtatPourRole", () => {
       peutLireCollection(
         acteur({ roleId: "gestionnaire", droits: [ACCES_RESTREINT, "messagerie"] }),
         "documents",
+      ),
+    ).toBe(false);
+    expect(vue.notifications).toEqual([]);
+    expect(
+      peutLireCollection(
+        acteur({ roleId: "gestionnaire", droits: [ACCES_RESTREINT, "messagerie"] }),
+        "notifications",
+      ),
+    ).toBe(false);
+    expect(
+      peutLireCollection(
+        acteur({ roleId: "gestionnaire", droits: [ACCES_RESTREINT, "voir-reservations"] }),
+        "notifications",
+      ),
+    ).toBe(true);
+    expect(peutLireCollection(acteur({ roleId: "super-admin", droits: [] }), "notifications")).toBe(
+      true,
+    );
+  });
+
+  it("laisse le parc au gestionnaire complet et au super-admin", () => {
+    for (const roleId of ["gestionnaire", "super-admin"] as const) {
+      const vue = filtrerEtatPourRole(
+        etat,
+        acteur({ roleId, droits: [...DROITS_PAR_ROLE[roleId]] }),
+      );
+      expect(vue.biens.length).toBeGreaterThan(0);
+      expect(vue.documents.length).toBeGreaterThan(0);
+      expect(vue.conversations.length).toBeGreaterThan(0);
+      expect(vue.notifications.length).toBeGreaterThan(0);
+      expect(vue.reservationsDossier.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("laisse les notifications à un gestionnaire qui voit les réservations", () => {
+    const vue = filtrerEtatPourRole(
+      etat,
+      acteur({
+        roleId: "gestionnaire",
+        droits: [ACCES_RESTREINT, "voir-reservations"],
+      }),
+    );
+    expect(vue.notifications.length).toBeGreaterThan(0);
+    expect(vue.conversations).toEqual([]);
+  });
+
+  it("ne rattache pas un logement vide ou un simple préfixe", () => {
+    const colette = [{ nom: "Appartement Colette" }];
+    expect(documentPourRole({ vue: "proprio", logement: "" }, "proprietaire", colette)).toBe(false);
+    expect(documentPourRole({ vue: "proprio", logement: "   " }, "proprietaire", colette)).toBe(
+      false,
+    );
+    expect(documentPourRole({ vue: "proprio", logement: "co" }, "proprietaire", colette)).toBe(
+      false,
+    );
+    expect(documentPourRole({ vue: "proprio", logement: "Tous" }, "proprietaire", colette)).toBe(
+      false,
+    );
+    expect(
+      documentPourRole(
+        { vue: "proprio", logement: "Appartement Colette Annexe" },
+        "proprietaire",
+        colette,
+      ),
+    ).toBe(false);
+    expect(
+      documentPourRole(
+        { vue: "proprio", logement: "Appartement Colette" },
+        "proprietaire",
+        colette,
+      ),
+    ).toBe(true);
+    expect(
+      documentPourRole(
+        { vue: "logements", logement: "Appartement Colette — 4e étage" },
+        "proprietaire",
+        colette,
+      ),
+    ).toBe(true);
+    expect(
+      documentPourRole(
+        { vue: "residents", logement: "", occupant: "locataires" },
+        "locataire",
+        colette,
+      ),
+    ).toBe(false);
+    expect(
+      documentPourRole(
+        { vue: "residents", logement: "Appartement Colette", occupant: "locataires" },
+        "locataire",
+        colette,
+      ),
+    ).toBe(true);
+    expect(
+      documentPourRole(
+        { vue: "residents", logement: "Suzette", occupant: "voyageurs" },
+        "voyageur",
+        [{ nom: "Suzette" }],
+      ),
+    ).toBe(true);
+  });
+
+  it("refuse un fil prestataire dont seul le nom correspond", () => {
+    expect(
+      ligneAppartient(
+        acteur({
+          roleId: "prestataire",
+          email: "autre@hublify.app",
+          prenom: "Linge",
+          nom: "& Entretien",
+        }),
+        "conversations",
+        {
+          type: "prestataire",
+          nom: "Linge & Entretien",
+          assigne: "lucas.menage@hublify.app",
+        },
+      ),
+    ).toBe(false);
+    expect(
+      ligneAppartient(
+        acteur({
+          roleId: "prestataire",
+          email: "lucas.menage@hublify.app",
+          prenom: "Lucas",
+          nom: "Ménage",
+        }),
+        "conversations",
+        {
+          type: "prestataire",
+          nom: "Titre différent",
+          assigne: "Lucas.Menage@hublify.app",
+        },
+      ),
+    ).toBe(true);
+    expect(
+      ligneAppartient(
+        acteur({
+          roleId: "prestataire",
+          email: "lucas.menage@hublify.app",
+          prenom: "Lucas",
+          nom: "Ménage",
+        }),
+        "conversations",
+        { type: "prestataire", nom: "Linge & Entretien", assigne: "" },
       ),
     ).toBe(false);
   });

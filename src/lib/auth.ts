@@ -79,6 +79,11 @@ export const auth = betterAuth({
   },
   advanced: {
     useSecureCookies: process.env["NODE_ENV"] === "production",
+    // Pas de `x-forwarded-for` : son premier saut est choisi par le client.
+    // Vercel pose `x-vercel-forwarded-for` ; `x-real-ip` est le repli plateforme.
+    ipAddress: {
+      ipAddressHeaders: ["x-vercel-forwarded-for", "x-real-ip"],
+    },
     database: {
       generateId: "uuid",
     },

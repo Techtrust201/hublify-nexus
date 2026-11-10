@@ -169,6 +169,32 @@ describe("insererEntite / chargerEntite", () => {
     expect(espion.appels).toHaveLength(0);
   });
 
+  it("refuse à un gestionnaire messagerie seule une notification par identifiant", async () => {
+    const { d, espion } = deps({
+      roleId: "gestionnaire",
+      droits: ["messagerie"],
+      lignes: [{ id: "n-loyer", titre: "Loyer à valider", detail: "Sophie Martin · 850 €" }],
+    });
+    expect(await chargerEntite(d, "notifications", "n-loyer")).toEqual({
+      ok: false,
+      raison: "interdit",
+    });
+    expect(espion.appels).toHaveLength(0);
+  });
+
+  it("lit une notification pour un gestionnaire qui voit les réservations", async () => {
+    const ligne = { id: "n-loyer", titre: "Loyer à valider", detail: "Sophie Martin · 850 €" };
+    const { d } = deps({
+      roleId: "gestionnaire",
+      droits: ["voir-reservations"],
+      lignes: [ligne],
+    });
+    expect(await chargerEntite(d, "notifications", "n-loyer")).toEqual({
+      ok: true,
+      entite: ligne,
+    });
+  });
+
   it("ne trouve pas une ligne d'une autre org", async () => {
     const { d, espion } = deps({ lignes: [] });
     expect(await chargerEntite(d, "reservationsDossier", "r-secret")).toEqual({

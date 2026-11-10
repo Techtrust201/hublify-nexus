@@ -4,7 +4,6 @@ import {
   filtrerConversationsPrestataire,
   filtrerDocumentsPrestataire,
   filtrerEtatPourRole,
-  nomActeur,
 } from "@/data/portee-role";
 import {
   COLLECTIONS_METIER,
@@ -670,7 +669,7 @@ export async function assemblerEtat(sql: Sql, org: OrgSession): Promise<EtatSess
         "conversations",
         gestId,
       )) as EtatSession["conversations"];
-      etat.conversations = filtrerConversationsPrestataire(conv, nomActeur(org), emailActeur(org));
+      etat.conversations = filtrerConversationsPrestataire(conv, emailActeur(org));
       const convIds = new Set(etat.conversations.map((c) => c.id));
       const fils = (await listerCollection(
         sql,

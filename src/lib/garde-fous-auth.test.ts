@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CADENCE_AUTH } from "@/lib/cadence-auth";
-import { autoriserCadence, reinitialiserCadence } from "@/lib/cadence-memoire";
+import { autoriserCadence, cleAdresse, reinitialiserCadence } from "@/lib/cadence-memoire";
 import { ENTETE_HSTS, ENTETES_SECURITE, poserEntetesSecurite } from "@/lib/entetes-securite";
 import { htmlPourArchive } from "@/lib/mail";
 import { genererMotDePasseInvitation } from "@/lib/mot-de-passe-invitation";
@@ -38,6 +38,40 @@ describe("cadence d'authentification", () => {
     for (let i = 0; i < 5; i += 1) expect(autoriserCadence(cle, 5, 3_600_000, 1_000)).toBe(true);
     expect(autoriserCadence(cle, 5, 3_600_000, 1_000)).toBe(false);
     expect(autoriserCadence("inscription:203.0.113.9", 5, 3_600_000, 1_000)).toBe(true);
+  });
+
+  it("ignore un X-Forwarded-For forgé et garde l'IP Vercel", () => {
+    const entetes = new Headers({
+      "x-forwarded-for": "203.0.113.50, 198.51.100.2",
+      "x-vercel-forwarded-for": "192.0.2.10, 10.0.0.1",
+      "x-real-ip": "192.0.2.10",
+    });
+    expect(cleAdresse("inscription", entetes)).toBe("inscription:192.0.2.10");
+    const autreForge = new Headers({
+      "x-forwarded-for": "198.51.100.77",
+      "x-vercel-forwarded-for": "192.0.2.10",
+    });
+    expect(cleAdresse("inscription", autreForge)).toBe("inscription:192.0.2.10");
+  });
+
+  it("prend x-real-ip quand Vercel n'a pas posé son en-tête", () => {
+    const entetes = new Headers({
+      "x-forwarded-for": "203.0.113.9",
+      "x-real-ip": "192.0.2.20",
+    });
+    expect(cleAdresse("liste-bailleurs", entetes)).toBe("liste-bailleurs:192.0.2.20");
+  });
+
+  it("ne laisse pas varier X-Forwarded-For pour sortir du plafond", () => {
+    reinitialiserCadence();
+    const une = new Headers({ "x-forwarded-for": "203.0.113.1" });
+    const deux = new Headers({ "x-forwarded-for": "203.0.113.2" });
+    expect(cleAdresse("inscription", une)).toBe(cleAdresse("inscription", deux));
+    const cle = cleAdresse("inscription", une);
+    for (let i = 0; i < 5; i += 1) expect(autoriserCadence(cle, 5, 3_600_000, 1_000)).toBe(true);
+    expect(autoriserCadence(cleAdresse("inscription", deux), 5, 3_600_000, 1_000)).toBe(false);
+    const distincte = new Headers({ "x-real-ip": "192.0.2.30" });
+    expect(autoriserCadence(cleAdresse("inscription", distincte), 5, 3_600_000, 1_000)).toBe(true);
   });
 });
 

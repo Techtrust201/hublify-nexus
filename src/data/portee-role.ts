@@ -91,12 +91,27 @@ function conversationPourPersonne(
   return Boolean(nom) && !assigne && meme(conversation.nom, nom);
 }
 
+function libelleLogement(valeur: string) {
+  return valeur.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/**
+ * Égalité stricte, ou le même nom suivi d'un séparateur (« Nom — adresse »).
+ * Une chaîne vide ne correspond à rien : `includes("")` est toujours vrai.
+ * Un préfixe nu non plus : « Appartement Colette » n'est pas « Appartement Colette Annexe ».
+ */
+function memeLogement(a: string, b: string) {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const [court, long] = a.length <= b.length ? [a, b] : [b, a];
+  if (court.length < 4 || !long.startsWith(court)) return false;
+  return /^(?:\s+[—–]| - |, |\s+\(| \/ )/.test(long.slice(court.length));
+}
+
 function logementDuBien(logement: string, biens: readonly { nom: string }[]) {
-  const cible = logement.toLowerCase();
-  return biens.some((b) => {
-    const nom = (b.nom ?? "").toLowerCase();
-    return nom.length >= 4 && (cible.includes(nom) || nom.includes(cible));
-  });
+  const cible = libelleLogement(logement);
+  if (!cible) return false;
+  return biens.some((b) => memeLogement(cible, libelleLogement(b.nom ?? "")));
 }
 
 /**
@@ -328,19 +343,35 @@ export function filtrerEtatPourRole(etat: EtatSession, acteur: ActeurPortee): Et
   return filtrerSelonDroits(etat, acteur);
 }
 
-export function filtrerConversationsPrestataire<
-  T extends { type: string; nom: string; assigne?: string },
->(conversations: readonly T[], nom: string, email = ""): T[] {
-  const presta = conversations.filter((c) => c.type === "prestataire");
-  const cible = nom.trim().toLowerCase();
+/** L'identifiant d'un compte est son e-mail. Un nom affiché n'en est pas un. */
+function identifiantCompte(email: string) {
   const mail = email.trim().toLowerCase();
-  return presta.filter((c) => {
-    const assigne = (c.assigne ?? "").trim().toLowerCase();
-    if (mail && assigne === mail) return true;
-    if (cible.length < 4) return false;
-    const titre = c.nom.trim().toLowerCase();
-    return titre === cible || titre.includes(cible) || cible.includes(titre);
-  });
+  return mail.includes("@") ? mail : "";
+}
+
+/**
+ * Un fil prestataire n'est visible que s'il est rattaché à l'identifiant du
+ * compte (`assigne` = e-mail de session). Le titre, même identique au nom
+ * du prestataire, ne suffit jamais — y compris quand le fil n'a pas encore
+ * d'affectation.
+ */
+export function conversationPrestataireRattachee(
+  conversation: { type?: string; assigne?: string },
+  email: string,
+) {
+  if (conversation.type !== "prestataire") return false;
+  const mail = identifiantCompte(email);
+  if (!mail) return false;
+  return (conversation.assigne ?? "").trim().toLowerCase() === mail;
+}
+
+export function filtrerConversationsPrestataire<T extends { type: string; assigne?: string }>(
+  conversations: readonly T[],
+  email: string,
+): T[] {
+  return conversations.filter(
+    (c) => c.type === "prestataire" && conversationPrestataireRattachee(c, email),
+  );
 }
 
 export function peutEcrireCollection(acteur: ActeurPortee, collection: CollectionMetier) {
@@ -412,7 +443,9 @@ const LECTURE_COLLECTION: Record<CollectionMetier, readonly DroitId[]> = {
   partagesDossier: ["voir-reservations", "mod-reservations"],
   candidatures: ["voir-reservations", "mod-reservations"],
   actions: ["voir-reservations", "mod-reservations"],
-  notifications: ["messagerie", "voir-reservations"],
+  // Même règle que filtrerSelonDroits : une notification porte des réservations.
+  // « messagerie » seul ne doit pas permettre de les relire par identifiant.
+  notifications: ["voir-reservations", "mod-reservations"],
   evenements: ["voir-reservations", "mod-reservations", "mod-finances"],
   loyers: ["voir-finances", "mod-finances"],
   ensembles: ["voir-finances", "mod-finances"],
@@ -560,7 +593,13 @@ export function ligneAppartient(
   }
   if (collection === "conversations") {
     if (acteur.roleId === "prestataire") {
-      return String(ligne["type"] ?? "") === "prestataire" && meme(String(ligne["nom"] ?? ""), nom);
+      return conversationPrestataireRattachee(
+        {
+          type: String(ligne["type"] ?? ""),
+          assigne: typeof ligne["assigne"] === "string" ? ligne["assigne"] : "",
+        },
+        email,
+      );
     }
     return conversationPourPersonne(
       {
