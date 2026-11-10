@@ -40,7 +40,13 @@ import {
   useSession,
   useSessionChargee,
 } from "@/data/session";
-import { choisirFichierComplet, confirmer, telechargerPdf, toastOk } from "@/lib/feedback";
+import {
+  choisirFichierComplet,
+  confirmer,
+  telechargerPdf,
+  toastErreur,
+  toastOk,
+} from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
 const VUES = ["profil", "proposition", "automatiques"] as const;
@@ -201,20 +207,27 @@ function PageMessagerie() {
     if ((!texte && piecesBrouillon.length === 0) || !actif) return;
     const heure = heureMaintenant();
     const extrait = texte || piecesBrouillon.map((p) => p.nom).join(", ");
-    ajouterMessageFil({
+    const conversationId = actif.id;
+    const pieces = piecesBrouillon;
+    void ajouterMessageFil({
       id: idNouveau("m"),
-      conversationId: actif.id,
+      conversationId,
       kind: "envoye",
       texte,
       heure,
-      ...(piecesBrouillon.length ? { pieces: piecesBrouillon } : {}),
+      ...(pieces.length ? { pieces } : {}),
+    }).then((ok) => {
+      if (!ok) {
+        toastErreur("Le message n'a pas été enregistré.");
+        return;
+      }
+      setConversations((liste) =>
+        liste.map((c) => (c.id === conversationId ? { ...c, extrait, ilYa: "À l'instant" } : c)),
+      );
+      setBrouillon("");
+      setPiecesBrouillon([]);
+      toastOk("Message envoyé.");
     });
-    setConversations((liste) =>
-      liste.map((c) => (c.id === actif.id ? { ...c, extrait, ilYa: "À l'instant" } : c)),
-    );
-    setBrouillon("");
-    setPiecesBrouillon([]);
-    toastOk("Message envoyé.");
   };
 
   const docsLies = actif ? (actif.documents ?? DOCUMENTS_LIES[actif.id] ?? []) : [];
@@ -549,24 +562,34 @@ function PageMessagerie() {
             nonLu: false,
             archivee: false,
           };
-          void enregistrerConversation(nouvelle);
-          ajouterMessageFil({
-            id: idNouveau("m"),
-            conversationId: id,
-            kind: "envoye",
-            texte: corps,
-            heure: heureMaintenant(),
-            ...(pieces.length ? { pieces } : {}),
+          void enregistrerConversation(nouvelle).then((conversationOk) => {
+            if (!conversationOk) {
+              toastErreur("La conversation n'a pas été enregistrée.");
+              return;
+            }
+            void ajouterMessageFil({
+              id: idNouveau("m"),
+              conversationId: id,
+              kind: "envoye",
+              texte: corps,
+              heure: heureMaintenant(),
+              ...(pieces.length ? { pieces } : {}),
+            }).then((ok) => {
+              if (!ok) {
+                toastErreur("Le message n'a pas été enregistré.");
+                return;
+              }
+              ajouterNotif({
+                titre: "Message envoyé",
+                detail: destinataire,
+                href: `/messagerie?conv=${encodeURIComponent(id)}`,
+              });
+              toastOk("Conversation créée.");
+            });
           });
           setSelection(id);
           setFilMobileOuvert(true);
           setArchives(false);
-          ajouterNotif({
-            titre: "Message envoyé",
-            detail: destinataire,
-            href: `/messagerie?conv=${encodeURIComponent(id)}`,
-          });
-          toastOk("Conversation créée.");
         }}
       />
     </AppShell>

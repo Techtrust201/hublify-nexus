@@ -138,7 +138,19 @@ function ancragePersonne(etat: EtatSession, acteur: ActeurPortee) {
   const dossierIds = new Set(dossiers.map((d) => d.id));
   const conversations = etat.conversations.filter((c) => conversationPourPersonne(c, email, nom));
   const convIds = new Set(conversations.map((c) => c.id));
-  return { email, nom, noms, biens, bienIds, resas, occupants, dossiers, dossierIds, conversations, convIds };
+  return {
+    email,
+    nom,
+    noms,
+    biens,
+    bienIds,
+    resas,
+    occupants,
+    dossiers,
+    dossierIds,
+    conversations,
+    convIds,
+  };
 }
 
 function filtrerLecteur(etat: EtatSession): EtatSession {
@@ -303,21 +315,34 @@ export function peutEcrireParametrage(acteur: ActeurPortee) {
   return aLeDroit(acteur.droits, "mod-biens") || aLeDroit(acteur.droits, "gerer-equipe");
 }
 
-export function chaineExcessive(valeur: unknown, max = 8000, profondeur = 0): boolean {
+/** Contenu binaire légitime (pièce jointe, document). Plafond ≈ 4,5 Mo décodés. */
+const CLES_BINAIRES = new Set(["base64", "contenu", "dataUrl"]);
+const MAX_BINAIRE = 6_000_000;
+
+export function chaineExcessive(
+  valeur: unknown,
+  max = 8000,
+  profondeur = 0,
+  cle?: string,
+): boolean {
   if (profondeur > 5) return true;
-  if (typeof valeur === "string") return valeur.length > max;
-  if (Array.isArray(valeur)) return valeur.some((v) => chaineExcessive(v, max, profondeur + 1));
+  if (typeof valeur === "string") {
+    const plafond = cle && CLES_BINAIRES.has(cle) ? MAX_BINAIRE : max;
+    return valeur.length > plafond;
+  }
+  if (Array.isArray(valeur)) {
+    return valeur.some((v) => chaineExcessive(v, max, profondeur + 1));
+  }
   if (valeur && typeof valeur === "object") {
-    return Object.values(valeur as Record<string, unknown>).some((v) =>
-      chaineExcessive(v, max, profondeur + 1),
+    return Object.entries(valeur as Record<string, unknown>).some(([k, v]) =>
+      chaineExcessive(v, max, profondeur + 1, k),
     );
   }
   return false;
 }
 
 export type PatchReduit =
-  | { ok: true; patch: Record<string, unknown> }
-  | { ok: false; raison: "interdit" | "invalide" };
+  { ok: true; patch: Record<string, unknown> } | { ok: false; raison: "interdit" | "invalide" };
 
 export function reduirePatch(
   acteur: ActeurPortee,
@@ -336,8 +361,7 @@ export function reduirePatch(
     }
     if (
       typeof reste["precheckinIdentite"] === "string" &&
-      (reste["precheckinIdentite"].trim().length === 0 ||
-        reste["precheckinIdentite"].length > 200)
+      (reste["precheckinIdentite"].trim().length === 0 || reste["precheckinIdentite"].length > 200)
     ) {
       return { ok: false, raison: "invalide" };
     }
@@ -381,7 +405,8 @@ export function validerInsertion(
   if (chaineExcessive(item)) return "invalide";
   if (collection === "reservationsDossier" || collection === "candidatures") {
     const montant = item["montant"];
-    if (typeof montant === "number" && (!Number.isFinite(montant) || montant < 0)) return "invalide";
+    if (typeof montant === "number" && (!Number.isFinite(montant) || montant < 0))
+      return "invalide";
     const arrivee = typeof item["arrivee"] === "string" ? item["arrivee"] : "";
     const depart = typeof item["depart"] === "string" ? item["depart"] : "";
     if (arrivee && depart && depart <= arrivee) return "invalide";
@@ -393,7 +418,8 @@ export function validerInsertion(
   }
   if (collection === "loyers") {
     const montant = item["montant"];
-    if (typeof montant === "number" && (!Number.isFinite(montant) || montant < 0)) return "invalide";
+    if (typeof montant === "number" && (!Number.isFinite(montant) || montant < 0))
+      return "invalide";
   }
   return "ok";
 }

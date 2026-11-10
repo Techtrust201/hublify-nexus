@@ -476,14 +476,26 @@ export function enregistrerConversation(ligne: Conversation) {
   return promesse;
 }
 
-export function ajouterMessageFil(message: EtatSession["messagesFil"][number]) {
-  if (etat.messagesFil.some((m) => m.id === message.id)) return;
+export function ajouterMessageFil(message: EtatSession["messagesFil"][number]): Promise<boolean> {
+  if (etat.messagesFil.some((m) => m.id === message.id)) return Promise.resolve(true);
   appliquerLocal((e) => ({ ...e, messagesFil: [...e.messagesFil, message] }));
+  const retirer = () =>
+    appliquerLocal((e) => ({
+      ...e,
+      messagesFil: e.messagesFil.filter((m) => m.id !== message.id),
+    }));
   const attente = apresConversation.get(message.conversationId) ?? Promise.resolve(true);
-  void attente.then((ok) => {
-    if (!ok) return;
+  return attente.then((ok) => {
+    if (!ok) {
+      retirer();
+      return false;
+    }
     return pousserLigne("messagesFil", message).then((suite) => {
-      if (!suite) programmerReprise();
+      if (!suite) {
+        retirer();
+        return false;
+      }
+      return true;
     });
   });
 }
@@ -816,7 +828,9 @@ export function ajouterMessageDash(message: import("@/data/planning-mo1").Messag
   void pousserLigne("messagesDash", message).then((ok) => !ok && programmerReprise());
 }
 
-export function ajouterNotif(notif: Omit<NotifMo1, "id" | "lu"> & { id?: string }) {
+export function ajouterNotif(
+  notif: Omit<NotifMo1, "id" | "lu"> & { id?: string },
+): Promise<boolean> {
   const ligne: NotifMo1 = {
     id: notif.id ?? idNouveau("n"),
     lu: false,
@@ -825,7 +839,16 @@ export function ajouterNotif(notif: Omit<NotifMo1, "id" | "lu"> & { id?: string 
     href: notif.href,
   };
   appliquerLocal((e) => ({ ...e, notifications: [ligne, ...e.notifications] }));
-  void pousserLigne("notifications", ligne).then((ok) => !ok && programmerReprise());
+  return pousserLigne("notifications", ligne).then((ok) => {
+    if (!ok) {
+      appliquerLocal((e) => ({
+        ...e,
+        notifications: e.notifications.filter((n) => n.id !== ligne.id),
+      }));
+      return false;
+    }
+    return true;
+  });
 }
 
 export function marquerNotifsLues() {

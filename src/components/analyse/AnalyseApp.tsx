@@ -178,7 +178,9 @@ export function AnalyseApp({
             onNotes={() => setNotes(true)}
           />
         )}
-        {vue === "synthese" && onglet === "gestionnaires" && <EcranGestionnaires vue={analyse} />}
+        {vue === "synthese" && onglet === "gestionnaires" && (
+          <EcranGestionnaires vue={analyse} onFacture={() => onRecherche({ vue: "facture" })} />
+        )}
         {vue === "encaissements" && <EcranEncaissements vue={analyse} />}
         {vue === "cautions" && <EcranCautions vue={analyse} />}
         {vue === "facture" && <EcranFacture vue={analyse} onVoyageur={setVoyageur} />}

@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 import { Bell, CreditCard, PenLine } from "lucide-react";
 import type { ParametrageSession } from "@/data/parametrage-mo1";
 import {
@@ -16,6 +17,7 @@ export function PanneauNotifications({
   sale,
   onPatch,
   onReglages,
+  onAppliquer,
   onAnnuler,
   onEnregistrer,
 }: {
@@ -24,6 +26,7 @@ export function PanneauNotifications({
   sale: boolean;
   onPatch: (p: Partial<ParametrageSession>) => void;
   onReglages: (p: Partial<ReglagesEtendus>) => void;
+  onAppliquer?: (p: Partial<ReglagesEtendus>) => void;
   onAnnuler: () => void;
   onEnregistrer: () => void;
 }) {
@@ -182,19 +185,21 @@ export function PanneauNotifications({
                 className="h-11 rounded-card border border-line px-3 text-xs text-ink md:h-9"
                 onClick={() => {
                   void confirmer({
-                    titre: "Supprimer les données locales de réglage ?",
+                    titre: "Effacer les textes de relance ?",
                     description:
-                      "Les notifications déjà enregistrées sur le compte restent. Seuls les textes de relance et le choix d'offre, stockés sur cet appareil, sont effacés.",
-                    libelleConfirmer: "Supprimer",
+                      "Les notifications déjà enregistrées sur le compte restent. Les textes de relance et l'offre repassent au minimum, et ce choix est enregistré sur le compte.",
+                    libelleConfirmer: "Effacer",
                     danger: true,
                   }).then((ok) => {
                     if (!ok) return;
-                    onReglages({
+                    const patch = {
                       messageRelanceLoyer: "",
                       messageRelanceFacture: "",
-                      offre: "essentiel",
-                    });
-                    toastOk("Réglages locaux effacés. Le compte n'a pas été supprimé.");
+                      offre: "essentiel" as const,
+                    };
+                    if (onAppliquer) onAppliquer(patch);
+                    else onReglages(patch);
+                    toastOk("Textes de relance effacés. Le compte n'a pas été supprimé.");
                   });
                 }}
               >
@@ -209,13 +214,15 @@ export function PanneauNotifications({
                       ? "Me désabonner ?"
                       : "Réactiver l'abonnement ?",
                     description: reglages.abonnementActif
-                      ? "La demande est notée sur cet appareil. Aucun prélèvement n'est relié : Stripe n'est pas connecté en V1."
-                      : "L'offre redevient active sur cet appareil.",
+                      ? "La demande est enregistrée sur le compte. Aucun prélèvement n'est relié : Stripe n'est pas connecté en V1."
+                      : "L'offre redevient active sur le compte.",
                     libelleConfirmer: reglages.abonnementActif ? "Me désabonner" : "Réactiver",
                     danger: reglages.abonnementActif,
                   }).then((ok) => {
                     if (!ok) return;
-                    onReglages({ abonnementActif: !reglages.abonnementActif });
+                    const patch = { abonnementActif: !reglages.abonnementActif };
+                    if (onAppliquer) onAppliquer(patch);
+                    else onReglages(patch);
                   });
                 }}
               >
@@ -291,7 +298,10 @@ export function PanneauNotifications({
             onChange={(v) => onPatch({ passerellePaiement: v })}
           />
           <p className="text-xs text-ink-muted">
-            Stripe : non connecté. La passerelle Hublify reste le canal de paiement de la V1.
+            Stripe : non connecté. La passerelle Hublify reste le canal de paiement de la V1.{" "}
+            <Link to="/cgv" className="underline">
+              Conditions de vente
+            </Link>
           </p>
         </section>
         {brouillon.notifAlertes && (

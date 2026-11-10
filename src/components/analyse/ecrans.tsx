@@ -1,6 +1,8 @@
 // SOURCE: Hublify V1.0 — Maq V1 Gestionnaire / Analyse, Analyse 2, Analyse 3
 
 import { Download } from "lucide-react";
+import { ajouterNotif } from "@/data/session";
+import { toastErreur, toastOk } from "@/lib/feedback";
 import { useMemo, useState, type ReactNode } from "react";
 import { ScrollHint } from "@/components/layout/ScrollHint";
 import {
@@ -315,9 +317,36 @@ function TableauCanaux({ vue }: { vue: AnalyseVue }) {
   );
 }
 
-export function EcranGestionnaires({ vue }: { vue: AnalyseVue }) {
+export function EcranGestionnaires({
+  vue,
+  onFacture,
+}: {
+  vue: AnalyseVue;
+  onFacture?: () => void;
+}) {
   const k = vue.kpi;
   const proprietaires = Math.max(1, vue.proprietaires.length);
+  const exporterPortefeuille = () => {
+    const lignes = [
+      "Propriétaire;Logements;Occupation;Encaissé;Attendu;Net;Commission OTA",
+      ...vue.proprietaires.map(
+        (p) =>
+          `${p.nom};${p.logements};${p.taux};${p.encaisse};${p.attendu};${p.net};${p.commissionOta}`,
+      ),
+    ];
+    telechargerDemo("portefeuille-gestionnaires.csv", lignes.join("\n"));
+    toastOk("Portefeuille exporté.");
+  };
+  const relancer = (nom: string) => {
+    void ajouterNotif({
+      titre: `Relance — ${nom}`,
+      detail: "Relance de facturation propriétaire enregistrée depuis le tableau gestionnaires.",
+      href: "/analyse?onglet=gestionnaires",
+    }).then((ok) => {
+      if (!ok) toastErreur("La relance n'a pas été enregistrée.");
+      else toastOk(`Relance enregistrée pour ${nom}.`);
+    });
+  };
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -343,10 +372,32 @@ export function EcranGestionnaires({ vue }: { vue: AnalyseVue }) {
         />
       </div>
       <Carte className="min-w-0">
-        <h2 className="text-sm font-medium text-ink">Portefeuille en gestion</h2>
-        <p className="text-xs text-ink-muted">
-          Une ligne par propriétaire mandant. Le gestionnaire du compte consolide ces soldes.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-medium text-ink">Portefeuille en gestion</h2>
+            <p className="text-xs text-ink-muted">
+              Une ligne par propriétaire mandant. Le gestionnaire du compte consolide ces soldes.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={exporterPortefeuille}
+              className="inline-flex h-9 items-center gap-1.5 rounded-card border border-line px-3 text-xs text-ink-body"
+            >
+              <Download className="size-3" /> Exporter le portefeuille
+            </button>
+            {onFacture && (
+              <button
+                type="button"
+                onClick={onFacture}
+                className="inline-flex h-9 items-center rounded-card border border-line px-3 text-xs text-ink-body"
+              >
+                Facturation propriétaire
+              </button>
+            )}
+          </div>
+        </div>
         {vue.proprietaires.length === 0 ? (
           <p className="py-8 text-center text-sm text-ink-muted">
             Aucun propriétaire sur cette période.
@@ -364,6 +415,7 @@ export function EcranGestionnaires({ vue }: { vue: AnalyseVue }) {
                     "Encaissements",
                     "Net propriétaire",
                     "Commission OTA",
+                    "Action",
                   ].map((h) => (
                     <th key={h} scope="col" className="px-2 py-2 font-medium">
                       {h}
@@ -406,6 +458,15 @@ export function EcranGestionnaires({ vue }: { vue: AnalyseVue }) {
                     </td>
                     <td className="px-2 py-3 text-ink">{euroFixe(p.net)}</td>
                     <td className="px-2 py-3">{euroFixe(p.commissionOta)}</td>
+                    <td className="px-2 py-3">
+                      <button
+                        type="button"
+                        onClick={() => relancer(p.nom)}
+                        className="inline-flex h-8 items-center rounded-full border border-line px-3 text-[11px] text-ink"
+                      >
+                        Relancer
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

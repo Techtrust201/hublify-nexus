@@ -147,7 +147,9 @@ describe("filtrerEtatPourRole", () => {
     const lucas = filtrerConversationsPrestataire(etat.conversations, "Lucas Ménage");
     expect(lucas.length).toBeGreaterThan(0);
     expect(lucas.every((c) => c.type === "prestataire")).toBe(true);
-    expect(filtrerConversationsPrestataire(etat.conversations, "Linge & Entretien")).toHaveLength(1);
+    expect(filtrerConversationsPrestataire(etat.conversations, "Linge & Entretien")).toHaveLength(
+      1,
+    );
   });
 });
 
@@ -186,6 +188,25 @@ describe("écritures et invitations", () => {
     expect(
       validerInsertion("messagesFil", { id: "m", texte: "Séjour confirmé — été 2026 🎉" }),
     ).toBe("ok");
+    expect(
+      validerInsertion("messagesFil", {
+        id: "m",
+        texte: "Ci-joint le bail.",
+        pieces: [{ nom: "bail.pdf", taille: "12 Ko", base64: "A".repeat(12_000) }],
+      }),
+    ).toBe("ok");
+    expect(
+      validerInsertion("messagesFil", {
+        id: "m",
+        texte: "A".repeat(8001),
+      }),
+    ).toBe("invalide");
+    expect(
+      validerInsertion("documents", {
+        id: "d",
+        fichier: { nom: "gros.pdf", base64: "A".repeat(6_000_001) },
+      }),
+    ).toBe("invalide");
   });
 
   it("ne retire pas un compte hors organisation ni un super-administrateur", () => {
