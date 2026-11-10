@@ -310,7 +310,7 @@ export function EcranRevenus({
           {k.noteMoyenne !== null ? ` · ${k.noteMoyenne.toLocaleString("fr-FR")}/5` : ""} →
         </button>
       </Carte>
-      <Carte className="min-w-0">
+      <Carte id="paiements-attente" className="min-w-0">
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <h2 className="text-sm font-medium text-ink">Paiements en attente</h2>

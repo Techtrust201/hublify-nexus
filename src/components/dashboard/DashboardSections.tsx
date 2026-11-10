@@ -147,7 +147,7 @@ function CarteKpi({
     "block rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
   if (vers) {
     return (
-      <Link to={vers} className={classe}>
+      <Link to={vers} search={{ onglet: "revenus" }} hash="paiements-attente" className={classe}>
         {corps}
       </Link>
     );
@@ -371,7 +371,7 @@ export function LoyersSection({
       >
         <span className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-ink">
           <FileCheck className="size-4 shrink-0" />
-          Les Loyers Payés Cette Semaine
+          Les Loyers et paiements en attente
           <span className="basis-full text-xs text-ink-muted sm:basis-auto">
             paiements totaux : {loyers.reduce((s, l) => s + l.montant, 0).toLocaleString("fr-FR")} €
             {synthese.enAttente > 0
