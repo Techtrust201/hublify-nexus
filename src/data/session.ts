@@ -476,14 +476,26 @@ export function enregistrerConversation(ligne: Conversation) {
   return promesse;
 }
 
-export function ajouterMessageFil(message: EtatSession["messagesFil"][number]) {
-  if (etat.messagesFil.some((m) => m.id === message.id)) return;
+export function ajouterMessageFil(message: EtatSession["messagesFil"][number]): Promise<boolean> {
+  if (etat.messagesFil.some((m) => m.id === message.id)) return Promise.resolve(true);
   appliquerLocal((e) => ({ ...e, messagesFil: [...e.messagesFil, message] }));
+  const retirer = () =>
+    appliquerLocal((e) => ({
+      ...e,
+      messagesFil: e.messagesFil.filter((m) => m.id !== message.id),
+    }));
   const attente = apresConversation.get(message.conversationId) ?? Promise.resolve(true);
-  void attente.then((ok) => {
-    if (!ok) return;
+  return attente.then((ok) => {
+    if (!ok) {
+      retirer();
+      return false;
+    }
     return pousserLigne("messagesFil", message).then((suite) => {
-      if (!suite) programmerReprise();
+      if (!suite) {
+        retirer();
+        return false;
+      }
+      return true;
     });
   });
 }

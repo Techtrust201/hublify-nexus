@@ -15,7 +15,7 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/auth/auth-context";
 import { AppShell } from "@/components/layout/AppShell";
 import {
@@ -33,6 +33,7 @@ import {
   idNouveau,
   useSession,
 } from "@/data/session";
+import { chargerProfilDistant } from "@/data/profil-remote";
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { emailValide, telephoneValide } from "@/lib/saisie";
 import { cn } from "@/lib/utils";
@@ -138,6 +139,12 @@ function PageDebuter() {
   const session = useSession();
   const auth = useAuth();
   const [etape, setEtape] = useState(1);
+  const [telephoneFiche, setTelephoneFiche] = useState("");
+  useEffect(() => {
+    void chargerProfilDistant().then((res) => {
+      if (res.ok) setTelephoneFiche(res.profil.identite.telephone1.trim());
+    });
+  }, []);
   const [bienId, setBienId] = useState("");
   const [voyageur, setVoyageur] = useState("Léa Moreau");
   const [email, setEmail] = useState("lea.moreau@email.fr");
@@ -287,7 +294,7 @@ function PageDebuter() {
                   {auth ? `${auth.prenom} ${auth.nom}` : "Votre fiche"}
                 </p>
                 <p className="mt-1 flex items-center gap-1 text-xs text-ink-muted">
-                  <Phone className="size-3" /> +33 6 12 45 78 90
+                  <Phone className="size-3" /> {telephoneFiche || "Téléphone à renseigner"}
                 </p>
                 <p className="flex items-center gap-1 text-xs text-ink-muted">
                   <Mail className="size-3" /> {auth?.email ?? "—"}

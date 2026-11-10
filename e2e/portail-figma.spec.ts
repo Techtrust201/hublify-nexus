@@ -4,7 +4,10 @@ import { mkdirSync } from "node:fs";
 const MOT_DE_PASSE = process.env["DEMO_AUTH_PASSWORD"] ?? "";
 const CAPTURES = "/opt/cursor/artifacts/portail";
 
-test.skip(!process.env["DATABASE_URL"] || !MOT_DE_PASSE, "DATABASE_URL ou mot de passe démo absent");
+test.skip(
+  !process.env["DATABASE_URL"] || !MOT_DE_PASSE,
+  "DATABASE_URL ou mot de passe démo absent",
+);
 
 async function connecter(page: Page, email: string) {
   await expect(async () => {
@@ -28,19 +31,19 @@ test.describe("portail maquette", () => {
     await page.context().clearCookies();
     await page.goto("/espace");
     await expect(page.locator("[data-portail-pret='1']")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Management & gestion" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Pilotage et gestion" })).toBeVisible();
     await expect(page.getByRole("heading", { name: /Bonjour|Ma Journée/ })).toHaveCount(0);
     await page.screenshot({ path: `${CAPTURES}/apres-onboarding-390.png` });
     const mode = page.getByRole("switch", { name: "Mode Prestataire" });
     await mode.click();
     await expect(mode).toHaveAttribute("aria-checked", "true");
     await page.getByRole("button", { name: "Partager l'accès" }).click();
-    await page.getByRole("button", { name: "Let's Start" }).click();
+    await page.getByRole("button", { name: "Commencer" }).click();
     await expect(page.getByRole("heading", { name: "Se connecter" })).toBeVisible();
     await page.setViewportSize({ width: 360, height: 740 });
     await page.goto("/espace");
     await expect(page.locator("[data-portail-pret='1']")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Management & gestion" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Pilotage et gestion" })).toBeVisible();
     await page.screenshot({ path: `${CAPTURES}/apres-onboarding-360x740.png` });
   });
 
@@ -55,7 +58,7 @@ test.describe("portail maquette", () => {
       await page.goto("/espace");
       await expect(page.locator("[data-portail-pret='1']")).toBeVisible();
       await expect(page.getByRole("heading", { name: /Bonjour/ })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Let's Start" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Commencer" })).toHaveCount(0);
       await expect(page.getByRole("button", { name: "Résident" })).toHaveCount(0);
       await page.screenshot({ path: `${CAPTURES}/apres-accueil-locataire-${viewport.nom}.png` });
 

@@ -5,10 +5,12 @@ import { Bouton, Carte, Ecran, Entete, champClasse } from "@/components/portail/
 import { useAncre } from "@/components/portail/use-ancre";
 import {
   ajouterMessageFil,
+  enregistrerConversation,
   idNouveau,
   ouvrirConversationProspect,
   useSession,
 } from "@/data/session";
+import type { Conversation } from "@/data/messagerie-mo1";
 import { GESTIONNAIRE_PORTAIL } from "@/lib/portail-mobile";
 import { toastErreur, toastOk } from "@/lib/feedback";
 import { useNavigate } from "@tanstack/react-router";
@@ -28,36 +30,51 @@ const FILTRES = [
   { id: "team", label: "Équipe" },
 ] as const;
 
+function nomComplet(auth: { prenom?: string; nom?: string } | null) {
+  return `${auth?.prenom ?? ""} ${auth?.nom ?? ""}`.trim();
+}
+
+/** Fil réellement rattaché à la personne : c'est celui que le serveur accepte d'enrichir. */
+function filPersonnel(
+  conversations: Conversation[],
+  auth: { prenom?: string; nom?: string; email?: string; roleId?: string } | null,
+) {
+  const nom = nomComplet(auth).toLowerCase();
+  const email = auth?.email?.trim().toLowerCase() ?? "";
+  return conversations.find((c) => {
+    if (auth?.roleId === "prestataire" && c.type !== "prestataire") return false;
+    if (email && c.assigne?.trim().toLowerCase() === email) return true;
+    return nom.length > 0 && !c.assigne && c.nom.trim().toLowerCase() === nom;
+  });
+}
+
 function Liste() {
   const navigate = useNavigate();
   const session = useSession();
+  const auth = useAuth();
   const [filtre, setFiltre] = useState<(typeof FILTRES)[number]["id"]>("tous");
-  const conversations = session.conversations.length
-    ? session.conversations
-    : [
-        {
-          id: "demo-gestionnaire",
-          nom: GESTIONNAIRE_PORTAIL.nom,
-          initiales: "YR",
-          extrait: "Bonjour, je reste disponible pour le logement.",
-          ilYa: "aujourd'hui",
-          section: "team" as const,
-          type: "team" as const,
-          badge: "Gestionnaire",
-          nonLu: true,
-        },
-      ];
+  const personnel = filPersonnel(session.conversations, auth);
+  const conversations = session.conversations.filter((c) => c.id !== personnel?.id);
+  const typeFil =
+    personnel?.type ??
+    (auth?.roleId === "prestataire"
+      ? "prestataire"
+      : auth?.roleId === "voyageur"
+        ? "voyageur"
+        : "locataire");
   const lignes = [
     {
-      id: "gestionnaire",
-      nom: `${GESTIONNAIRE_PORTAIL.nom}`,
+      id: personnel?.id ?? "creer-gestionnaire",
+      nom: GESTIONNAIRE_PORTAIL.nom,
       initiales: "YR",
-      extrait: `${GESTIONNAIRE_PORTAIL.societe} · ${GESTIONNAIRE_PORTAIL.telephone}`,
-      ilYa: "",
-      nonLu: false,
-      section: "team" as const,
-      type: "team" as const,
+      extrait:
+        personnel?.extrait || `${GESTIONNAIRE_PORTAIL.societe} · ${GESTIONNAIRE_PORTAIL.telephone}`,
+      ilYa: personnel?.ilYa ?? "",
+      nonLu: personnel?.nonLu ?? false,
+      section: typeFil === "prestataire" ? ("prestataires" as const) : ("inbox" as const),
+      type: typeFil,
       badge: "Gestionnaire",
+      creer: !personnel,
     },
     ...conversations,
   ];
@@ -84,7 +101,11 @@ function Liste() {
           </button>
         </div>
       </div>
-      <div className="flex gap-2 overflow-x-auto px-4 pb-1" role="tablist" aria-label="Filtres">
+      <div
+        className="flex w-full min-w-0 gap-2 overflow-x-auto px-4 pb-1"
+        role="tablist"
+        aria-label="Filtres"
+      >
         {FILTRES.map((f) => {
           const on = filtre === f.id;
           return (
@@ -94,7 +115,7 @@ function Liste() {
               role="tab"
               aria-selected={on}
               onClick={() => setFiltre(f.id)}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${
+              className={`inline-flex h-11 shrink-0 items-center rounded-full px-3 text-xs font-semibold ${
                 on ? "bg-[#3b82f6] text-white" : "bg-white text-[#3b82f6]"
               }`}
             >
@@ -109,7 +130,50 @@ function Liste() {
             <button
               type="button"
               className="flex w-full items-center gap-3 px-4 py-3 text-left"
-              onClick={() => void navigate({ to: "/espace/messages", hash: `fil-${c.id}` })}
+              onClick={() => {
+                if ("creer" in c && c.creer) {
+                  const nom = nomComplet(auth);
+                  const email = auth?.email?.trim().toLowerCase() ?? "";
+                  if (!nom || !email) return;
+                  const type =
+                    auth?.roleId === "prestataire"
+                      ? "prestataire"
+                      : auth?.roleId === "voyageur"
+                        ? "voyageur"
+                        : "locataire";
+                  const id = idNouveau("c");
+                  const initiales = nom
+                    .split(/\s+/)
+                    .slice(0, 2)
+                    .map((p) => p[0]?.toUpperCase() ?? "")
+                    .join("");
+                  void enregistrerConversation({
+                    id,
+                    section: type === "prestataire" ? "prestataires" : "inbox",
+                    nom,
+                    initiales: initiales || "??",
+                    type,
+                    badge:
+                      type === "prestataire"
+                        ? "Prestataire"
+                        : auth?.roleId === "proprietaire"
+                          ? "Propriétaire"
+                          : type === "voyageur"
+                            ? "Voyageur"
+                            : "Locataire",
+                    extrait: "Message au gestionnaire",
+                    ilYa: "À l'instant",
+                    nonLu: false,
+                    archivee: false,
+                    assigne: email,
+                  }).then((ok) => {
+                    if (!ok) return;
+                    void navigate({ to: "/espace/messages", hash: `fil-${id}` });
+                  });
+                  return;
+                }
+                void navigate({ to: "/espace/messages", hash: `fil-${c.id}` });
+              }}
             >
               <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[#e7eef2] text-sm font-semibold text-[var(--portail-encre)]">
                 {c.initiales}
@@ -139,6 +203,7 @@ function Liste() {
 function Fil({ id }: { id: string }) {
   const navigate = useNavigate();
   const session = useSession();
+  const auth = useAuth();
   const [texte, setTexte] = useState("");
   const conv = session.conversations.find((c) => c.id === id);
   const nom = conv?.nom ?? GESTIONNAIRE_PORTAIL.nom;
@@ -149,7 +214,7 @@ function Fil({ id }: { id: string }) {
   return (
     <Ecran>
       <Entete
-        titre={nom}
+        titre={conv && filPersonnel([conv], auth) ? GESTIONNAIRE_PORTAIL.nom : nom}
         sousTitre={conv?.bienNom}
         surRetour={() => void navigate({ to: "/espace/messages" })}
       />
@@ -173,20 +238,30 @@ function Fil({ id }: { id: string }) {
         className="flex gap-2"
         onSubmit={(e) => {
           e.preventDefault();
-          if (!texte.trim()) {
-            toastErreur("Écrivez un message.");
-            return;
-          }
-          const conversationId = conv?.id ?? id;
-          ajouterMessageFil({
-            id: idNouveau("msg"),
-            conversationId,
-            kind: "envoye",
-            texte: texte.trim(),
-            heure: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-          });
-          setTexte("");
-          toastOk("Message envoyé.");
+          void (async () => {
+            if (!texte.trim()) {
+              toastErreur("Écrivez un message.");
+              return;
+            }
+            const conversationId = conv?.id ?? id;
+            if (!conv) {
+              toastErreur("Ce fil n'est pas enregistré. Ouvrez le gestionnaire depuis la liste.");
+              return;
+            }
+            const ok = await ajouterMessageFil({
+              id: idNouveau("msg"),
+              conversationId,
+              kind: "envoye",
+              texte: texte.trim(),
+              heure: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+            });
+            if (!ok) {
+              toastErreur("Le message n'a pas été enregistré.");
+              return;
+            }
+            setTexte("");
+            toastOk("Message envoyé.");
+          })();
         }}
       >
         <input

@@ -12,8 +12,13 @@ export function ScrollHint({
   snap?: boolean;
 }) {
   return (
-    <div className={cn("relative", className)}>
-      <div className={cn("overflow-x-auto overscroll-x-contain", snap && "snap-x snap-mandatory")}>
+    <div className={cn("relative min-w-0 max-w-full", className)}>
+      <div
+        className={cn(
+          "max-w-full overflow-x-auto overscroll-x-contain",
+          snap && "snap-x snap-mandatory",
+        )}
+      >
         {children}
       </div>
       <div

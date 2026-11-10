@@ -32,6 +32,9 @@ const origines = [
   "https://hublify-nexus.vercel.app",
 ].filter((x): x is string => Boolean(x));
 
+const googleId = process.env["GOOGLE_CLIENT_ID"]?.trim();
+const googleSecret = process.env["GOOGLE_CLIENT_SECRET"]?.trim();
+
 export const auth = betterAuth({
   appName: "Hublify",
   baseURL:
@@ -45,6 +48,16 @@ export const auth = betterAuth({
   }),
   database: obtenirPool(),
   trustedOrigins: origines,
+  ...(googleId && googleSecret
+    ? {
+        socialProviders: {
+          google: {
+            clientId: googleId,
+            clientSecret: googleSecret,
+          },
+        },
+      }
+    : {}),
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 10,
