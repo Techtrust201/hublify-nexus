@@ -40,7 +40,13 @@ import {
   useSession,
   useSessionChargee,
 } from "@/data/session";
-import { choisirFichierComplet, confirmer, telechargerPdf, toastOk } from "@/lib/feedback";
+import {
+  choisirFichierComplet,
+  confirmer,
+  telechargerPdf,
+  toastErreur,
+  toastOk,
+} from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
 const VUES = ["profil", "proposition", "automatiques"] as const;
@@ -201,20 +207,27 @@ function PageMessagerie() {
     if ((!texte && piecesBrouillon.length === 0) || !actif) return;
     const heure = heureMaintenant();
     const extrait = texte || piecesBrouillon.map((p) => p.nom).join(", ");
-    ajouterMessageFil({
+    const conversationId = actif.id;
+    const pieces = piecesBrouillon;
+    void ajouterMessageFil({
       id: idNouveau("m"),
-      conversationId: actif.id,
+      conversationId,
       kind: "envoye",
       texte,
       heure,
-      ...(piecesBrouillon.length ? { pieces: piecesBrouillon } : {}),
+      ...(pieces.length ? { pieces } : {}),
+    }).then((ok) => {
+      if (!ok) {
+        toastErreur("Le message n'a pas été enregistré.");
+        return;
+      }
+      setConversations((liste) =>
+        liste.map((c) => (c.id === conversationId ? { ...c, extrait, ilYa: "À l'instant" } : c)),
+      );
+      setBrouillon("");
+      setPiecesBrouillon([]);
+      toastOk("Message envoyé.");
     });
-    setConversations((liste) =>
-      liste.map((c) => (c.id === actif.id ? { ...c, extrait, ilYa: "À l'instant" } : c)),
-    );
-    setBrouillon("");
-    setPiecesBrouillon([]);
-    toastOk("Message envoyé.");
   };
 
   const docsLies = actif ? (actif.documents ?? DOCUMENTS_LIES[actif.id] ?? []) : [];
@@ -262,31 +275,42 @@ function PageMessagerie() {
       { nom: actif.nom, heure, date, bien: actif.bienNom ?? "" },
     );
     const piece = `Proposition de bail - ${actif.nom}${actif.bienNom ? ` - ${actif.bienNom}` : ""}`;
-    textes.forEach((texte, index) => {
-      ajouterMessageFil({
-        id: idNouveau(`m-auto-${index}`),
-        conversationId: actif.id,
-        kind: "systeme",
-        iconeSysteme: "key",
-        texte,
-      });
-    });
-    ajouterMessageFil({
-      id: idNouveau("m-bail"),
-      conversationId: actif.id,
-      kind: "envoye",
-      heure,
-      texte: signature
-        ? `Bonjour,\nLa proposition de bail est prête pour signature. Merci de suivre le parcours indiqué.\nBien à vous,\n${redacteur}`
-        : `Bonjour,\nVous trouverez ci-joint la proposition de bail.\nBien à vous,\n${redacteur}`,
-      pieces: [{ nom: piece, taille: "186 Ko" }],
-    });
-    setConversations((liste) =>
-      liste.map((c) =>
-        c.id === actif.id ? { ...c, extrait: "Proposition de bail", ilYa: "À l'instant" } : c,
+    const conversationId = actif.id;
+    const envois = [
+      ...textes.map((texte, index) =>
+        ajouterMessageFil({
+          id: idNouveau(`m-auto-${index}`),
+          conversationId,
+          kind: "systeme",
+          iconeSysteme: "key",
+          texte,
+        }),
       ),
-    );
-    toastOk(signature ? "Parcours de signature préparé." : "Proposition envoyée dans le fil.");
+      ajouterMessageFil({
+        id: idNouveau("m-bail"),
+        conversationId,
+        kind: "envoye",
+        heure,
+        texte: signature
+          ? `Bonjour,\nLa proposition de bail est prête pour signature. Merci de suivre le parcours indiqué.\nBien à vous,\n${redacteur}`
+          : `Bonjour,\nVous trouverez ci-joint la proposition de bail.\nBien à vous,\n${redacteur}`,
+        pieces: [{ nom: piece, taille: "186 Ko" }],
+      }),
+    ];
+    void Promise.all(envois).then((resultats) => {
+      if (resultats.some((ok) => !ok)) {
+        toastErreur("La proposition n'a pas été enregistrée.");
+        return;
+      }
+      setConversations((liste) =>
+        liste.map((c) =>
+          c.id === conversationId
+            ? { ...c, extrait: "Proposition de bail", ilYa: "À l'instant" }
+            : c,
+        ),
+      );
+      toastOk(signature ? "Parcours de signature préparé." : "Proposition envoyée dans le fil.");
+    });
     definirVue();
   };
 
@@ -549,24 +573,33 @@ function PageMessagerie() {
             nonLu: false,
             archivee: false,
           };
-          void enregistrerConversation(nouvelle);
-          ajouterMessageFil({
-            id: idNouveau("m"),
-            conversationId: id,
-            kind: "envoye",
-            texte: corps,
-            heure: heureMaintenant(),
-            ...(pieces.length ? { pieces } : {}),
+          void enregistrerConversation(nouvelle).then(async (filOk) => {
+            if (!filOk) {
+              toastErreur("La conversation n'a pas été enregistrée.");
+              return;
+            }
+            const messageOk = await ajouterMessageFil({
+              id: idNouveau("m"),
+              conversationId: id,
+              kind: "envoye",
+              texte: corps,
+              heure: heureMaintenant(),
+              ...(pieces.length ? { pieces } : {}),
+            });
+            if (!messageOk) {
+              toastErreur("La conversation est ouverte, mais le message n'a pas été enregistré.");
+              return;
+            }
+            setSelection(id);
+            setFilMobileOuvert(true);
+            setArchives(false);
+            ajouterNotif({
+              titre: "Message envoyé",
+              detail: destinataire,
+              href: `/messagerie?conv=${encodeURIComponent(id)}`,
+            });
+            toastOk("Conversation créée.");
           });
-          setSelection(id);
-          setFilMobileOuvert(true);
-          setArchives(false);
-          ajouterNotif({
-            titre: "Message envoyé",
-            detail: destinataire,
-            href: `/messagerie?conv=${encodeURIComponent(id)}`,
-          });
-          toastOk("Conversation créée.");
         }}
       />
     </AppShell>

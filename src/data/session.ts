@@ -453,25 +453,32 @@ export function ouvrirConversationProspect(params: {
     ...(params.assigne ? { assigne: params.assigne } : {}),
   };
   appliquerLocal((e) => ({ ...e, conversations: [ligne, ...e.conversations] }));
-  const promesse = pousserLigne("conversations", ligne).then((ok) => {
-    if (!ok) programmerReprise();
-    return ok;
-  });
+  const promesse = pousserConversation(ligne);
   apresConversation.set(id, promesse);
   return id;
 }
 
 const apresConversation = new Map<string, Promise<boolean>>();
 
+function pousserConversation(ligne: Conversation) {
+  return pousserLigne("conversations", ligne).then((ok) => {
+    if (!ok) {
+      appliquerLocal((e) => ({
+        ...e,
+        conversations: e.conversations.filter((c) => c.id !== ligne.id),
+      }));
+      return false;
+    }
+    return true;
+  });
+}
+
 export function enregistrerConversation(ligne: Conversation) {
   appliquerLocal((e) => ({
     ...e,
     conversations: [ligne, ...e.conversations.filter((c) => c.id !== ligne.id)],
   }));
-  const promesse = pousserLigne("conversations", ligne).then((ok) => {
-    if (!ok) programmerReprise();
-    return ok;
-  });
+  const promesse = pousserConversation(ligne);
   apresConversation.set(ligne.id, promesse);
   return promesse;
 }

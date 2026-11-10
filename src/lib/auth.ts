@@ -2,6 +2,7 @@ import { APIError, betterAuth } from "better-auth";
 import { createAuthMiddleware } from "better-auth/api";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { CADENCE_AUTH } from "@/lib/cadence-auth";
+import { assurerEspaceSiOrphelin } from "@/lib/espace-compte";
 import { envoyerMail } from "@/lib/mail";
 import { resoudreSecretAuth } from "@/lib/secret-auth";
 import { obtenirPool } from "@/lib/sql";
@@ -110,6 +111,18 @@ export const auth = betterAuth({
     customRules: {
       "/sign-in/email": CADENCE_AUTH.regles["/sign-in/email"],
       "/request-password-reset": CADENCE_AUTH.regles["/request-password-reset"],
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          // Le formulaire et le seed rattachent eux-mêmes l'organisation.
+          // Sans ce garde, un compte Google aurait une session et aucun espace.
+          if (inscriptionsInternes > 0) return;
+          await assurerEspaceSiOrphelin(user.id);
+        },
+      },
     },
   },
   hooks: {

@@ -167,7 +167,10 @@ function Liste() {
                     archivee: false,
                     assigne: email,
                   }).then((ok) => {
-                    if (!ok) return;
+                    if (!ok) {
+                      toastErreur("Le fil n'a pas pu être ouvert.");
+                      return;
+                    }
                     void navigate({ to: "/espace/messages", hash: `fil-${id}` });
                   });
                   return;
@@ -313,46 +316,52 @@ function NouveauContact() {
         />
         <Bouton
           onClick={() => {
-            const cible = email.trim().toLowerCase();
-            if (!cible && !tel.trim()) {
-              toastErreur("Indiquez un e-mail ou un téléphone.");
-              return;
-            }
-            const connu =
-              session.membres.some((m) => m.email?.toLowerCase() === cible) ||
-              session.prestataires.some((p) => p.email.toLowerCase() === cible) ||
-              cible === GESTIONNAIRE_PORTAIL.email;
-            const nom = cible || tel.trim();
-            const lien = `https://hublify.app/invitation?de=${encodeURIComponent(auth?.email ?? "portail")}`;
-            const extrait = connu
-              ? "Profil partagé dans la messagerie."
-              : "Lien directionnel préparé, sans envoi réel.";
-            const conversationId = ouvrirConversationProspect({
-              nom,
-              extrait,
-              type: "voyageur",
-              assigne: auth?.email,
-            });
-            ajouterMessageFil({
-              id: idNouveau("msg"),
-              conversationId,
-              kind: "envoye",
-              texte: connu
-                ? `Profil partagé avec ${nom}.`
-                : `Lien directionnel pour ${nom} : ${lien}`,
-              heure: new Date().toLocaleTimeString("fr-FR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
-            });
-            if (connu) {
-              setResultat("Contact déjà sur Hublify : le profil est dans la messagerie.");
-              toastOk("Contact trouvé sur la plateforme.");
-              return;
-            }
-            setResultat(`Lien directionnel (non envoyé) : ${lien}`);
-            void navigator.clipboard?.writeText(lien).catch(() => {});
-            toastOk("Lien préparé et copié. Aucun SMS ni e-mail n'est parti.");
+            void (async () => {
+              const cible = email.trim().toLowerCase();
+              if (!cible && !tel.trim()) {
+                toastErreur("Indiquez un e-mail ou un téléphone.");
+                return;
+              }
+              const connu =
+                session.membres.some((m) => m.email?.toLowerCase() === cible) ||
+                session.prestataires.some((p) => p.email.toLowerCase() === cible) ||
+                cible === GESTIONNAIRE_PORTAIL.email;
+              const nom = cible || tel.trim();
+              const lien = `https://hublify.app/invitation?de=${encodeURIComponent(auth?.email ?? "portail")}`;
+              const extrait = connu
+                ? "Profil partagé dans la messagerie."
+                : "Lien directionnel préparé, sans envoi réel.";
+              const conversationId = ouvrirConversationProspect({
+                nom,
+                extrait,
+                type: "voyageur",
+                assigne: auth?.email,
+              });
+              const ok = await ajouterMessageFil({
+                id: idNouveau("msg"),
+                conversationId,
+                kind: "envoye",
+                texte: connu
+                  ? `Profil partagé avec ${nom}.`
+                  : `Lien directionnel pour ${nom} : ${lien}`,
+                heure: new Date().toLocaleTimeString("fr-FR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+              });
+              if (!ok) {
+                toastErreur("Le contact n'a pas été enregistré.");
+                return;
+              }
+              if (connu) {
+                setResultat("Contact déjà sur Hublify : le profil est dans la messagerie.");
+                toastOk("Contact trouvé sur la plateforme.");
+                return;
+              }
+              setResultat(`Lien directionnel (non envoyé) : ${lien}`);
+              void navigator.clipboard?.writeText(lien).catch(() => {});
+              toastOk("Lien préparé et copié. Aucun SMS ni e-mail n'est parti.");
+            })();
           }}
         >
           Préparer le contact
