@@ -42,8 +42,9 @@ function Page() {
         <p>
           Le compte gratuit ne demande pas de carte bancaire. Aucun prélèvement n'est lancé depuis
           l'application : la facturation d'une offre payante est confirmée avec vous avant tout
-          encaissement. Stripe n'est pas connecté dans cette version. La passerelle affichée dans
-          les paramètres sert aux dépôts de garantie des voyageurs, pas à l'abonnement Hublify.
+          encaissement. Aucune carte n'est reliée à l'abonnement dans cette version. La passerelle
+          affichée dans les paramètres sert aux dépôts de garantie des voyageurs, pas à l'abonnement
+          Hublify.
         </p>
         <h2 className="text-base font-semibold text-v1-ink">Durée et résiliation</h2>
         <p>
