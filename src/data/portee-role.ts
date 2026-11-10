@@ -114,22 +114,37 @@ function logementDuBien(logement: string, biens: readonly { nom: string }[]) {
   return biens.some((b) => memeLogement(cible, libelleLogement(b.nom ?? "")));
 }
 
+/** Tous les mots du nom de la personne figurent dans le titre (ordre indifférent). */
+function titreConcernePersonne(titre: string, personne: string) {
+  const mots = personne.toLowerCase().split(/\s+/).filter(Boolean);
+  if (mots.length < 2) return false;
+  const mots_titre = new Set(titre.toLowerCase().split(/[^\p{L}\p{N}]+/u));
+  return mots.every((m) => mots_titre.has(m));
+}
+
 /**
- * Un occupant ne reçoit que les pièces marquées « résidents » de son logement.
- * Un propriétaire ne reçoit que le dossier de ses biens (vue proprio ou
- * logements), jamais la vue « proprio » de tout le parc.
+ * Un occupant ne reçoit que les pièces de son logement qui le concernent
+ * nommément : un autre résident du même logement n'a pas à les lire.
+ * Un propriétaire reçoit les pièces de ses biens, mais ses pièces personnelles
+ * (vue « proprio » : CNI, justificatifs…) seulement si son nom y figure.
+ * Faute de colonne « personne » en base, un document sans nom est refusé.
  */
 export function documentPourRole(
-  doc: { vue: string; logement: string; occupant?: string },
+  doc: { vue: string; logement: string; titre: string; occupant?: string },
   roleId: "locataire" | "voyageur" | "proprietaire",
   biens: readonly { nom: string }[],
+  personne: string,
 ) {
   if (!logementDuBien(doc.logement, biens)) return false;
-  if (roleId === "proprietaire") return doc.vue === "proprio" || doc.vue === "logements";
-  if (doc.vue !== "residents") return false;
+  if (roleId === "proprietaire") {
+    if (doc.vue === "proprio") return titreConcernePersonne(doc.titre, personne);
+    return doc.vue === "logements";
+  }
+  if (doc.vue !== "residents" && doc.vue !== "logements") return false;
   if (doc.occupant === "prestataires") return false;
-  if (roleId === "locataire") return doc.occupant !== "voyageurs";
-  return doc.occupant !== "locataires";
+  if (roleId === "locataire" ? doc.occupant === "voyageurs" : doc.occupant === "locataires")
+    return false;
+  return titreConcernePersonne(doc.titre, personne);
 }
 
 /** Rapports d'intervention du prestataire : seulement les biens de ses missions. */
@@ -224,7 +239,7 @@ function filtrerLocataire(etat: EtatSession, acteur: ActeurPortee): EtatSession 
     biens: a.biens,
     reservationsDossier: a.resas,
     reservationsCalendrier: calendrierLie(a.resas, etat.reservationsCalendrier),
-    documents: etat.documents.filter((d) => documentPourRole(d, "locataire", a.biens)),
+    documents: etat.documents.filter((d) => documentPourRole(d, "locataire", a.biens, a.nom)),
     loyers: etat.loyers.filter((l) => a.noms.has(l.locataire.toLowerCase())),
     conversations: a.conversations,
     messagesFil: etat.messagesFil.filter((m) => a.convIds.has(m.conversationId)),
@@ -244,7 +259,7 @@ function filtrerVoyageur(etat: EtatSession, acteur: ActeurPortee): EtatSession {
     biens: a.biens,
     reservationsDossier: a.resas,
     reservationsCalendrier: calendrierLie(a.resas, etat.reservationsCalendrier),
-    documents: etat.documents.filter((d) => documentPourRole(d, "voyageur", a.biens)),
+    documents: etat.documents.filter((d) => documentPourRole(d, "voyageur", a.biens, a.nom)),
     loyers: etat.loyers.filter((l) => a.noms.has(l.locataire.toLowerCase())),
     conversations: a.conversations,
     messagesFil: etat.messagesFil.filter((m) => a.convIds.has(m.conversationId)),
@@ -270,7 +285,7 @@ function filtrerProprietaire(etat: EtatSession, acteur: ActeurPortee): EtatSessi
     reservationsDossier: resas,
     reservationsCalendrier: etat.reservationsCalendrier.filter((r) => bienIds.has(r.bienId)),
     loyers: etat.loyers.filter((l) => logementDuBien(l.bienNom, biens)),
-    documents: etat.documents.filter((d) => documentPourRole(d, "proprietaire", biens)),
+    documents: etat.documents.filter((d) => documentPourRole(d, "proprietaire", biens, nom)),
     occupants: etat.occupants.filter((o) => logementDuBien(o.logement, biens)),
     conversations,
     messagesFil: etat.messagesFil.filter((m) => convIds.has(m.conversationId)),

@@ -248,57 +248,141 @@ describe("filtrerEtatPourRole", () => {
 
   it("ne rattache pas un logement vide ou un simple préfixe", () => {
     const colette = [{ nom: "Appartement Colette" }];
-    expect(documentPourRole({ vue: "proprio", logement: "" }, "proprietaire", colette)).toBe(false);
-    expect(documentPourRole({ vue: "proprio", logement: "   " }, "proprietaire", colette)).toBe(
-      false,
-    );
-    expect(documentPourRole({ vue: "proprio", logement: "co" }, "proprietaire", colette)).toBe(
-      false,
-    );
-    expect(documentPourRole({ vue: "proprio", logement: "Tous" }, "proprietaire", colette)).toBe(
-      false,
-    );
     expect(
       documentPourRole(
-        { vue: "proprio", logement: "Appartement Colette Annexe" },
+        { vue: "proprio", logement: "", titre: "CNI — Pierre Moreau" },
         "proprietaire",
         colette,
+        "Pierre Moreau",
       ),
     ).toBe(false);
     expect(
       documentPourRole(
-        { vue: "proprio", logement: "Appartement Colette" },
+        { vue: "proprio", logement: "   ", titre: "CNI — Pierre Moreau" },
         "proprietaire",
         colette,
-      ),
-    ).toBe(true);
-    expect(
-      documentPourRole(
-        { vue: "logements", logement: "Appartement Colette — 4e étage" },
-        "proprietaire",
-        colette,
-      ),
-    ).toBe(true);
-    expect(
-      documentPourRole(
-        { vue: "residents", logement: "", occupant: "locataires" },
-        "locataire",
-        colette,
+        "Pierre Moreau",
       ),
     ).toBe(false);
     expect(
       documentPourRole(
-        { vue: "residents", logement: "Appartement Colette", occupant: "locataires" },
-        "locataire",
+        { vue: "proprio", logement: "co", titre: "CNI — Pierre Moreau" },
+        "proprietaire",
         colette,
+        "Pierre Moreau",
+      ),
+    ).toBe(false);
+    expect(
+      documentPourRole(
+        { vue: "proprio", logement: "Tous", titre: "RIB — Pierre Moreau" },
+        "proprietaire",
+        colette,
+        "Pierre Moreau",
+      ),
+    ).toBe(false);
+    expect(
+      documentPourRole(
+        { vue: "proprio", logement: "Appartement Colette Annexe", titre: "CNI — Pierre Moreau" },
+        "proprietaire",
+        colette,
+        "Pierre Moreau",
+      ),
+    ).toBe(false);
+    expect(
+      documentPourRole(
+        { vue: "proprio", logement: "Appartement Colette", titre: "CNI — Pierre Moreau" },
+        "proprietaire",
+        colette,
+        "Pierre Moreau",
       ),
     ).toBe(true);
     expect(
       documentPourRole(
-        { vue: "residents", logement: "Suzette", occupant: "voyageurs" },
+        { vue: "logements", logement: "Appartement Colette — 4e étage", titre: "DPE" },
+        "proprietaire",
+        colette,
+        "Pierre Moreau",
+      ),
+    ).toBe(true);
+    expect(
+      documentPourRole(
+        { vue: "residents", logement: "", titre: "Bail — Jean Martin", occupant: "locataires" },
+        "locataire",
+        colette,
+        "Jean Martin",
+      ),
+    ).toBe(false);
+    expect(
+      documentPourRole(
+        {
+          vue: "residents",
+          logement: "Appartement Colette",
+          titre: "Bail — Jean Martin",
+          occupant: "locataires",
+        },
+        "locataire",
+        colette,
+        "Jean Martin",
+      ),
+    ).toBe(true);
+    expect(
+      documentPourRole(
+        {
+          vue: "residents",
+          logement: "Suzette",
+          titre: "Contrat — Marie Dubois",
+          occupant: "voyageurs",
+        },
         "voyageur",
         [{ nom: "Suzette" }],
+        "Marie Dubois",
       ),
+    ).toBe(true);
+  });
+
+  it("ne montre à un locataire que les pièces à son nom, pas celles des autres résidents", () => {
+    const colette = [{ nom: "Appartement Colette" }];
+    const doc = (titre: string, vue = "residents") => ({
+      vue,
+      logement: "Appartement Colette",
+      titre,
+      occupant: "locataires",
+    });
+    expect(documentPourRole(doc("Bail — Dupont Jean"), "locataire", colette, "Jean Martin")).toBe(
+      false,
+    );
+    expect(documentPourRole(doc("Bail — Martin Sophie"), "locataire", colette, "Jean Martin")).toBe(
+      false,
+    );
+    expect(
+      documentPourRole(doc("Avoir AV-1 — Anna Schmidt"), "locataire", colette, "Jean Martin"),
+    ).toBe(false);
+    expect(
+      documentPourRole(
+        doc("Bail meublé — Jean Martin", "logements"),
+        "locataire",
+        colette,
+        "Jean Martin",
+      ),
+    ).toBe(true);
+  });
+
+  it("cache à un propriétaire les pièces personnelles d'un autre propriétaire", () => {
+    const colette = [{ nom: "Appartement Colette" }];
+    const proprio = (titre: string) => ({ vue: "proprio", logement: "Appartement Colette", titre });
+    expect(
+      documentPourRole(proprio("CNI — Yannick Ratti"), "proprietaire", colette, "Pierre Moreau"),
+    ).toBe(false);
+    expect(
+      documentPourRole(
+        proprio("Justificatif de domicile"),
+        "proprietaire",
+        colette,
+        "Pierre Moreau",
+      ),
+    ).toBe(false);
+    expect(
+      documentPourRole(proprio("CNI — Pierre Moreau"), "proprietaire", colette, "Pierre Moreau"),
     ).toBe(true);
   });
 
