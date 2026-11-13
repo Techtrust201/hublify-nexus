@@ -102,7 +102,7 @@ export function AppShell({
           )}
         >
           <div className="flex min-h-[72px] min-w-0 items-center justify-between gap-2 py-3 sm:gap-4">
-            <div className="flex min-w-0 items-center gap-3">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
               <button
                 ref={hamburgerRef}
                 type="button"
@@ -132,12 +132,12 @@ export function AppShell({
               )}
               {retourPlanning && <RetourVueGenerale className="shrink-0" />}
             </div>
-            <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
+            <div className="flex shrink-0 items-center gap-1 sm:gap-3">
               {actions ? <div className="flex shrink-0 items-center">{actions}</div> : null}
               <DropdownMenu modal={false}>
-                <DropdownMenuTrigger className="inline-flex h-9 shrink-0 items-center gap-1 rounded-gest-outils bg-gest-outils px-4 font-sans text-sm font-medium text-ink outline-none">
+                <DropdownMenuTrigger className="inline-flex h-9 shrink-0 items-center gap-1 rounded-gest-outils bg-gest-outils px-3 font-sans text-sm sm:px-4 font-medium text-ink outline-none">
                   Outils
-                  <ChevronDown className="size-3.5 shrink-0" />
+                  <ChevronDown className="size-3.5 shrink-0 max-sm:hidden" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
@@ -228,7 +228,7 @@ export function AppShell({
               </DropdownMenu>
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger
-                  className="inline-flex size-11 shrink-0 items-center justify-center rounded-full outline-none sm:h-auto sm:w-auto sm:min-h-10 sm:flex-col sm:items-start sm:px-1"
+                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-full outline-none sm:h-auto sm:w-auto sm:min-h-10 sm:flex-col sm:items-start sm:px-1"
                   aria-label="Compte gestionnaire"
                 >
                   <span className="hidden text-[11px] leading-none text-ink-muted sm:block">
