@@ -317,7 +317,7 @@ export function BandMissionsJour({
             onAjouter(date);
           }}
           className="absolute bottom-1 right-1 z-[2] flex size-11 items-center justify-center rounded-md border border-line bg-white text-ink-muted shadow-sm hover:border-ink hover:bg-surface hover:text-ink lg:size-6"
-          aria-label={`Ajouter une prestation — ${bienNom}`}
+          aria-label={`Ajouter une prestation — ${bienNom} — ${dateLabel}`}
         >
           <Plus className="size-3.5" />
         </button>

@@ -13,6 +13,7 @@ import { toastErreur, toastOk } from "@/lib/feedback";
 import {
   TYPES_PRESTATION,
   descriptionVisible,
+  conserverReglementPrestation,
   ecrireDescription,
   facturationPrestation,
   heureAffichee,
@@ -137,7 +138,14 @@ export function CreatePrestationDialog({
       toastErreur("Indiquez le nom du type de prestation.");
       return;
     }
-    const meta = metaCourante();
+    const courante = metaCourante();
+    const precedente = mission
+      ? lireMetaPrestation(
+          session.missions.find((item) => item.id === mission.id)?.description ??
+            mission.description,
+        )
+      : {};
+    const meta = edition ? conserverReglementPrestation(precedente, courante) : courante;
     // Les types custom restent sous le bucket enum « Maintenance » (contrainte SQL)
     // mais le libellé et typeLibre sont persistés pour l'affichage et le filtre.
     const typeStocke: MissionMo1["type"] = typeLibrePropre ? "Maintenance" : type;

@@ -1,7 +1,8 @@
 // SOURCE: Hublify V1.0 — Maq V1 Gestionnaire / Analyse, Analyse 2, Analyse 3
 
-import { Download } from "lucide-react";
+import { Download, FileDown } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { ScrollHint } from "@/components/layout/ScrollHint";
 import {
   GraphiqueCanaux,
@@ -26,6 +27,7 @@ import {
   type LigneHistorique,
 } from "@/lib/analyse-vue";
 import { telechargerDemo } from "@/lib/feedback";
+import { montantDepuisSaisie, type ResultatPaiement } from "@/lib/gestionnaire-planning";
 import { cn } from "@/lib/utils";
 
 function vide(vue: AnalyseVue) {
@@ -136,17 +138,67 @@ export function EcranOccupation({ vue }: { vue: AnalyseVue }) {
   );
 }
 
+export type ImpayeAnalyse = {
+  id: string;
+  occupant: string;
+  logement: string;
+  du: number;
+  encaisse: number;
+  restant: number;
+  situation: string;
+  relance: boolean;
+};
+
+export type FacturePrestaVue = {
+  id: string;
+  titre: string;
+  prestataire: string;
+  logement: string;
+  date: string;
+  du: number;
+  paye: number;
+  restant: number;
+};
+
+function euroSaisi(montant: number) {
+  return `${montant.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €`;
+}
+
 export function EcranRevenus({
   vue,
   passerelle,
   onOuvrir,
   onNotes,
+  impayes = [],
+  factures = [],
+  peutRelancer = false,
+  peutPayer = false,
+  peutDossier = true,
+  onRelancer,
+  onDossier,
+  onPayer,
+  onAjouterPaiement,
+  onFacture,
 }: {
   vue: AnalyseVue;
   passerelle: boolean;
   onOuvrir: (vue: "encaissements" | "cautions" | "facture") => void;
   onNotes: () => void;
+  impayes?: ImpayeAnalyse[];
+  factures?: FacturePrestaVue[];
+  peutRelancer?: boolean;
+  peutPayer?: boolean;
+  peutDossier?: boolean;
+  onRelancer?: (id: string) => void;
+  onDossier?: (id: string) => void;
+  onPayer?: (id: string) => void;
+  /** Renvoie `ok: false` (avec le message) pour laisser le dialogue ouvert. */
+  onAjouterPaiement?: (id: string, montant: number) => ResultatPaiement;
+  onFacture?: (id: string) => void;
 }) {
+  const [paiement, setPaiement] = useState<FacturePrestaVue | null>(null);
+  const [montantSaisi, setMontantSaisi] = useState("");
+  const [erreurPaiement, setErreurPaiement] = useState("");
   const k = vue.kpi;
   const variation =
     k.variationEncaisse === null
@@ -261,6 +313,224 @@ export function EcranRevenus({
           {k.noteMoyenne !== null ? ` · ${k.noteMoyenne.toLocaleString("fr-FR")}/5` : ""} →
         </button>
       </Carte>
+      <Carte id="paiements-attente" className="min-w-0">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-medium text-ink">Paiements en attente</h2>
+            <p className="text-xs text-ink-muted">
+              {impayes.length} paiement{impayes.length > 1 ? "s" : ""} à suivre sur la période
+            </p>
+          </div>
+          <a href="/#paiements" className="text-xs font-medium text-accent-teal">
+            Suivre les relances
+          </a>
+        </div>
+        {impayes.length === 0 ? (
+          <p className="py-6 text-sm text-ink-muted">
+            Aucun paiement en attente sur cette période.
+          </p>
+        ) : (
+          <ScrollHint className="mt-3">
+            <table className="w-full min-w-[720px] text-left text-xs">
+              <caption className="sr-only">Paiements de loyers encore dus</caption>
+              <thead className="border-b border-surface-soft text-ink-subtle">
+                <tr>
+                  {[
+                    "Locataire / logement",
+                    "Loyer dû",
+                    "Encaissé",
+                    "Restant",
+                    "Situation",
+                    "Action",
+                  ].map((h) => (
+                    <th key={h} scope="col" className="px-2 py-2 font-medium">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {impayes.map((l) => (
+                  <tr key={l.id} className="border-b border-surface-soft last:border-0">
+                    <td className="px-2 py-2 text-ink">
+                      {l.occupant}
+                      <span className="block text-ink-muted">{l.logement}</span>
+                    </td>
+                    <td className="px-2 py-2">{euro(l.du)}</td>
+                    <td className="px-2 py-2">{euro(l.encaisse)}</td>
+                    <td className="px-2 py-2">{euro(l.restant)}</td>
+                    <td className="px-2 py-2">
+                      {l.situation}
+                      {l.relance ? " · relance armée" : ""}
+                    </td>
+                    <td className="px-2 py-2">
+                      <div className="flex flex-wrap gap-2">
+                        {peutRelancer && onRelancer && (
+                          <button
+                            type="button"
+                            onClick={() => onRelancer(l.id)}
+                            className="inline-flex h-8 items-center rounded-full bg-ink px-3 text-xs font-medium text-white"
+                          >
+                            Relancer
+                          </button>
+                        )}
+                        {peutDossier && onDossier && (
+                          <button
+                            type="button"
+                            onClick={() => onDossier(l.id)}
+                            className="inline-flex h-8 items-center rounded-full border border-line px-3 text-xs"
+                          >
+                            Voir le dossier
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ScrollHint>
+        )}
+      </Carte>
+
+      <Carte className="min-w-0">
+        <h2 className="text-sm font-medium text-ink">Facturation prestataires</h2>
+        <p className="text-xs text-ink-muted">
+          Factures des prestations dont le tarif est posé. Le paiement est enregistré sur la
+          mission.
+        </p>
+        {factures.length === 0 ? (
+          <p className="py-6 text-sm text-ink-muted">
+            Aucune facture prestataire sur cette période.
+          </p>
+        ) : (
+          <ScrollHint className="mt-3">
+            <table className="w-full min-w-[760px] text-left text-xs">
+              <caption className="sr-only">Factures dues aux prestataires</caption>
+              <thead className="border-b border-surface-soft text-ink-subtle">
+                <tr>
+                  {["Prestataire", "Logement", "Date", "Facturé", "Restant", "Action"].map((h) => (
+                    <th key={h} scope="col" className="px-2 py-2 font-medium">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {factures.map((f) => (
+                  <tr key={f.id} className="border-b border-surface-soft last:border-0">
+                    <td className="px-2 py-2 text-ink">
+                      {f.prestataire}
+                      <span className="block text-ink-muted">{f.titre}</span>
+                    </td>
+                    <td className="px-2 py-2">{f.logement}</td>
+                    <td className="px-2 py-2">{dateCourte(f.date)}</td>
+                    <td className="px-2 py-2">{euroSaisi(f.du)}</td>
+                    <td className="px-2 py-2">{euroSaisi(f.restant)}</td>
+                    <td className="px-2 py-2">
+                      <div className="flex flex-wrap gap-2">
+                        {peutPayer && f.restant > 0 && onPayer && (
+                          <button
+                            type="button"
+                            onClick={() => onPayer(f.id)}
+                            className="inline-flex h-8 items-center rounded-full bg-ink px-3 text-xs font-medium text-white"
+                          >
+                            Payer
+                          </button>
+                        )}
+                        {peutPayer && f.restant > 0 && onAjouterPaiement && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPaiement(f);
+                              setMontantSaisi(String(f.restant));
+                              setErreurPaiement("");
+                            }}
+                            className="inline-flex h-8 items-center rounded-full border border-line px-3 text-xs"
+                          >
+                            Ajouter paiement
+                          </button>
+                        )}
+                        {f.restant === 0 && (
+                          <span className="inline-flex h-8 items-center text-ink-muted">Payé</span>
+                        )}
+                        {onFacture && (
+                          <button
+                            type="button"
+                            onClick={() => onFacture(f.id)}
+                            aria-label={`Télécharger la facture de ${f.prestataire}`}
+                            className="inline-flex h-8 items-center gap-1 rounded-full border border-line px-3 text-xs"
+                          >
+                            <FileDown className="size-3" />
+                            Facture
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ScrollHint>
+        )}
+      </Carte>
+
+      <Dialog
+        open={Boolean(paiement)}
+        onOpenChange={(ouvert) => {
+          if (ouvert) return;
+          setPaiement(null);
+          setErreurPaiement("");
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogTitle>Ajouter un paiement prestataire</DialogTitle>
+          <DialogDescription>
+            {paiement ? `${paiement.prestataire} · restant ${euroSaisi(paiement.restant)}` : ""}
+          </DialogDescription>
+          <form
+            className="mt-3 space-y-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!paiement || !onAjouterPaiement) return;
+              const resultat = onAjouterPaiement(paiement.id, montantDepuisSaisie(montantSaisi));
+              // Le dialogue ne se ferme qu'après succès : sinon on garde la saisie et l'erreur.
+              if (!resultat.ok) {
+                setErreurPaiement(resultat.message);
+                return;
+              }
+              setErreurPaiement("");
+              setPaiement(null);
+            }}
+          >
+            <label className="block text-xs text-ink-muted">
+              Montant (€)
+              <input
+                value={montantSaisi}
+                onChange={(e) => {
+                  setMontantSaisi(e.target.value);
+                  setErreurPaiement("");
+                }}
+                inputMode="decimal"
+                aria-invalid={erreurPaiement ? true : undefined}
+                className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
+              />
+            </label>
+            {erreurPaiement && (
+              <p role="alert" className="text-xs text-red-600">
+                {erreurPaiement}
+              </p>
+            )}
+            <button
+              type="submit"
+              className="inline-flex h-10 items-center rounded-full bg-ink px-4 text-sm font-medium text-white"
+            >
+              Enregistrer
+            </button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {vide(vue) && <p className="text-sm text-ink-muted">Aucune réservation sur cette période.</p>}
     </div>
   );

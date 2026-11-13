@@ -420,6 +420,13 @@ export function TableauReservations({
               </tr>
             </thead>
             <tbody>
+              {visibles.length === 0 && (
+                <tr>
+                  <td colSpan={10} className="px-4 py-8 text-center text-sm text-ink-muted">
+                    Aucune réservation ne correspond à ces filtres.
+                  </td>
+                </tr>
+              )}
               {visibles.map((r) => {
                 const bien = bienParId(r.bienId);
                 const pct = pourcentagePaiement(r);

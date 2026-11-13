@@ -40,7 +40,7 @@ test("un téléversement de pièce reste visible après rechargement", async ({ 
   await expect(festival).not.toContainText("27 avril");
 
   const carte = page.getByRole("link", { name: /Paiements en retard/ });
-  await expect(carte).toHaveAttribute("href", "/analyse");
+  await expect(carte).toHaveAttribute("href", "/analyse?onglet=revenus#paiements-attente");
 
   await page.goto("/profil");
   await expect(page.getByRole("heading", { name: "Votre profil gestionnaire" })).toBeVisible({

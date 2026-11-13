@@ -7,13 +7,16 @@ export function Carte({
   children,
   className,
   teinte = "blanc",
+  id,
 }: {
   children: ReactNode;
   className?: string;
   teinte?: "blanc" | "menthe" | "sable";
+  id?: string;
 }) {
   return (
     <article
+      id={id}
       className={cn(
         "rounded-card border border-line bg-white p-4 shadow-[var(--shadow-carte)]",
         teinte === "menthe" && "border-transparent bg-gest-vert",
