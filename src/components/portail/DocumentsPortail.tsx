@@ -133,6 +133,7 @@ const DEMO: DocVue[] = [
 ];
 
 function depuisSession(
+  connecte: boolean,
   documents: {
     id: string;
     titre: string;
@@ -142,7 +143,8 @@ function depuisSession(
     modifiePar: string;
   }[],
 ): DocVue[] {
-  if (documents.length === 0) return DEMO;
+  // Les pièces fictives ne servent qu'en démo locale, jamais à un compte connecté.
+  if (documents.length === 0) return connecte ? [] : DEMO;
   return documents.map((d) => ({
     id: d.id,
     titre: d.titre,
@@ -158,7 +160,10 @@ export function DocumentsPortail() {
   const ancre = useAncre();
   const session = useSession();
   const auth = useAuth();
-  const docs = useMemo(() => depuisSession(session.documents), [session.documents]);
+  const docs = useMemo(
+    () => depuisSession(Boolean(auth), session.documents),
+    [auth, session.documents],
+  );
   const dossier = session.dossiersLocation.find(
     (d) => d.email.toLowerCase() === (auth?.email ?? "").toLowerCase(),
   );

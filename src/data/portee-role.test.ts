@@ -4,6 +4,7 @@ import { ACCES_RESTREINT, DROITS_PAR_ROLE } from "@/auth/permissions";
 import {
   decisionRetrait,
   documentPourRole,
+  edlPourPersonne,
   filtrerConversationsPrestataire,
   filtrerDocumentsPrestataire,
   filtrerEtatPourRole,
@@ -130,6 +131,54 @@ describe("filtrerEtatPourRole", () => {
     expect(vue.conversations.every((c) => c.type !== "team")).toBe(true);
     expect(vue.biens.every((b) => b.id === "suzette")).toBe(true);
     expect(vue.documents.some((d) => d.id === "d-bail-jean" || d.vue === "proprio")).toBe(false);
+    expect(vue.edl.map((d) => d.id).sort()).toEqual(["edl1", "edl1s"]);
+    expect(vue.edl.every((d) => d.occupant === "Sophie Martin")).toBe(true);
+    expect(vue.edl.some((d) => d.id === "edl3")).toBe(false);
+  });
+
+  it("ne donne au locataire et au voyageur que les états des lieux qui les nomment", () => {
+    const jeanEdl = {
+      id: "edl-jean",
+      logement: "Appartement Colette",
+      type: "Sortie" as const,
+      occupant: "Jean Martin",
+      date: "2026-09-17",
+      pieces: [],
+    };
+    const etatAvecJean = { ...etat, edl: [...etat.edl, jeanEdl] };
+    const jean = filtrerEtatPourRole(
+      etatAvecJean,
+      acteur({
+        roleId: "locataire",
+        email: "jean.martin@hublify.app",
+        prenom: "Jean",
+        nom: "Martin",
+      }),
+    );
+    expect(jean.edl.map((d) => d.id)).toEqual(["edl-jean"]);
+    expect(jean.edl.some((d) => d.id === "edl3" || d.occupant === "Anna Schmidt")).toBe(false);
+
+    const sophie = filtrerEtatPourRole(
+      etatAvecJean,
+      acteur({
+        roleId: "voyageur",
+        email: "sophie.martin@hublify.app",
+        prenom: "Sophie",
+        nom: "Martin",
+      }),
+    );
+    expect(sophie.edl.map((d) => d.id).sort()).toEqual(["edl1", "edl1s"]);
+    expect(sophie.edl.every((d) => d.occupant === "Sophie Martin")).toBe(true);
+
+    const pierre = filtrerEtatPourRole(
+      etatAvecJean,
+      acteur({ roleId: "proprietaire", prenom: "Pierre", nom: "Moreau" }),
+    );
+    expect(pierre.edl.map((d) => d.id).sort()).toEqual(["edl-jean", "edl3"]);
+    expect(pierre.edl.every((d) => d.logement === "Appartement Colette")).toBe(true);
+    expect(pierre.edl.some((d) => d.logement.includes("Suzette") || d.logement.includes("Lavandrix"))).toBe(
+      false,
+    );
   });
 
   it("limite le propriétaire à ses biens, sans la messagerie d'équipe", () => {
@@ -248,57 +297,161 @@ describe("filtrerEtatPourRole", () => {
 
   it("ne rattache pas un logement vide ou un simple préfixe", () => {
     const colette = [{ nom: "Appartement Colette" }];
-    expect(documentPourRole({ vue: "proprio", logement: "" }, "proprietaire", colette)).toBe(false);
-    expect(documentPourRole({ vue: "proprio", logement: "   " }, "proprietaire", colette)).toBe(
-      false,
-    );
-    expect(documentPourRole({ vue: "proprio", logement: "co" }, "proprietaire", colette)).toBe(
-      false,
-    );
-    expect(documentPourRole({ vue: "proprio", logement: "Tous" }, "proprietaire", colette)).toBe(
-      false,
-    );
     expect(
       documentPourRole(
-        { vue: "proprio", logement: "Appartement Colette Annexe" },
+        { vue: "proprio", logement: "", titre: "CNI — Pierre Moreau" },
         "proprietaire",
         colette,
+        "Pierre Moreau",
       ),
     ).toBe(false);
     expect(
       documentPourRole(
-        { vue: "proprio", logement: "Appartement Colette" },
+        { vue: "proprio", logement: "   ", titre: "CNI — Pierre Moreau" },
         "proprietaire",
         colette,
-      ),
-    ).toBe(true);
-    expect(
-      documentPourRole(
-        { vue: "logements", logement: "Appartement Colette — 4e étage" },
-        "proprietaire",
-        colette,
-      ),
-    ).toBe(true);
-    expect(
-      documentPourRole(
-        { vue: "residents", logement: "", occupant: "locataires" },
-        "locataire",
-        colette,
+        "Pierre Moreau",
       ),
     ).toBe(false);
     expect(
       documentPourRole(
-        { vue: "residents", logement: "Appartement Colette", occupant: "locataires" },
-        "locataire",
+        { vue: "proprio", logement: "co", titre: "CNI — Pierre Moreau" },
+        "proprietaire",
         colette,
+        "Pierre Moreau",
+      ),
+    ).toBe(false);
+    expect(
+      documentPourRole(
+        { vue: "proprio", logement: "Tous", titre: "RIB — Pierre Moreau" },
+        "proprietaire",
+        colette,
+        "Pierre Moreau",
+      ),
+    ).toBe(false);
+    expect(
+      documentPourRole(
+        { vue: "proprio", logement: "Appartement Colette Annexe", titre: "CNI — Pierre Moreau" },
+        "proprietaire",
+        colette,
+        "Pierre Moreau",
+      ),
+    ).toBe(false);
+    expect(
+      documentPourRole(
+        { vue: "proprio", logement: "Appartement Colette", titre: "CNI — Pierre Moreau" },
+        "proprietaire",
+        colette,
+        "Pierre Moreau",
       ),
     ).toBe(true);
     expect(
       documentPourRole(
-        { vue: "residents", logement: "Suzette", occupant: "voyageurs" },
+        { vue: "logements", logement: "Appartement Colette — 4e étage", titre: "DPE" },
+        "proprietaire",
+        colette,
+        "Pierre Moreau",
+      ),
+    ).toBe(true);
+    expect(
+      documentPourRole(
+        { vue: "residents", logement: "", titre: "Bail — Jean Martin", occupant: "locataires" },
+        "locataire",
+        colette,
+        "Jean Martin",
+      ),
+    ).toBe(false);
+    expect(
+      documentPourRole(
+        {
+          vue: "residents",
+          logement: "Appartement Colette",
+          titre: "Bail — Jean Martin",
+          occupant: "locataires",
+        },
+        "locataire",
+        colette,
+        "Jean Martin",
+      ),
+    ).toBe(true);
+    expect(
+      documentPourRole(
+        {
+          vue: "residents",
+          logement: "Suzette",
+          titre: "Contrat — Marie Dubois",
+          occupant: "voyageurs",
+        },
         "voyageur",
         [{ nom: "Suzette" }],
+        "Marie Dubois",
       ),
+    ).toBe(true);
+  });
+
+  it("ne montre à un locataire que les pièces à son nom, pas celles des autres résidents", () => {
+    const colette = [{ nom: "Appartement Colette" }];
+    const doc = (titre: string, vue = "residents") => ({
+      vue,
+      logement: "Appartement Colette",
+      titre,
+      occupant: "locataires",
+    });
+    expect(documentPourRole(doc("Bail — Dupont Jean"), "locataire", colette, "Jean Martin")).toBe(
+      false,
+    );
+    expect(documentPourRole(doc("Bail — Martin Sophie"), "locataire", colette, "Jean Martin")).toBe(
+      false,
+    );
+    expect(
+      documentPourRole(doc("Avoir AV-1 — Anna Schmidt"), "locataire", colette, "Jean Martin"),
+    ).toBe(false);
+    expect(
+      documentPourRole(
+        doc("Bail meublé — Jean Martin", "logements"),
+        "locataire",
+        colette,
+        "Jean Martin",
+      ),
+    ).toBe(true);
+  });
+
+  it("cache à un propriétaire les pièces personnelles d'un autre propriétaire", () => {
+    const colette = [{ nom: "Appartement Colette" }];
+    const proprio = (titre: string) => ({ vue: "proprio", logement: "Appartement Colette", titre });
+    expect(
+      documentPourRole(proprio("CNI — Yannick Ratti"), "proprietaire", colette, "Pierre Moreau"),
+    ).toBe(false);
+    expect(
+      documentPourRole(
+        proprio("Justificatif de domicile"),
+        "proprietaire",
+        colette,
+        "Pierre Moreau",
+      ),
+    ).toBe(false);
+    expect(
+      documentPourRole(proprio("CNI — Pierre Moreau"), "proprietaire", colette, "Pierre Moreau"),
+    ).toBe(true);
+  });
+
+
+  it("refuse un état des lieux sans occupant ou au mauvais nom, même dans le bon logement", () => {
+    const colette = [{ nom: "Appartement Colette" }];
+    expect(edlPourPersonne({ logement: "Appartement Colette", occupant: "Anna Schmidt" }, colette, "Jean Martin")).toBe(
+      false,
+    );
+    expect(edlPourPersonne({ logement: "Appartement Colette", occupant: "Jean Martin" }, colette, "Jean Martin")).toBe(
+      true,
+    );
+    expect(edlPourPersonne({ logement: "Appartement Colette", occupant: "Jean Dupont" }, colette, "Jean Martin")).toBe(
+      false,
+    );
+    expect(edlPourPersonne({ logement: "Appartement Colette", occupant: "" }, colette, "Jean Martin")).toBe(false);
+    expect(edlPourPersonne({ logement: "Appartement Colette", occupant: "Jean Martin" }, colette, "")).toBe(false);
+    expect(edlPourPersonne({ logement: "Suzette", occupant: "Jean Martin" }, colette, "Jean Martin")).toBe(false);
+    expect(
+      edlPourPersonne({ logement: "Appartement Colette", occupant: "Jean Martin — sortie" }, colette, "Jean Martin"),
     ).toBe(true);
   });
 
