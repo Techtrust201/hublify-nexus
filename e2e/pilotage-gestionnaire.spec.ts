@@ -98,6 +98,10 @@ test("le pilotage enregistre prestation, blocage, relance et facture prestataire
   }).toPass({ timeout: 20_000 });
   await page.keyboard.press("Escape");
 
+  // Le calendrier s'ancre sur « aujourd'hui » (jour du mois conservé quand on change de mois) :
+  // sans horloge fixe, deux « Précédent » tombent à côté de la mission du 5 mars selon la date
+  // d'exécution du test. On fige donc un jour du mois qui encadre toujours la mission.
+  await page.clock.install({ time: new Date(2026, 10, 10, 10, 0, 0) });
   await page.goto("/");
   await page.getByLabel("Mois").selectOption("2");
   await page.getByLabel("Année").selectOption("2026");
