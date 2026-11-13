@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { hashPassword } from "better-auth/crypto";
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import {
   ACCES_RESTREINT,
   aLeDroit,
@@ -13,13 +14,30 @@ import {
 } from "@/auth/permissions";
 import { decisionRetrait, roleInvitable } from "@/data/portee-role";
 import { auth, avecInscriptionInterne } from "@/lib/auth";
+import { autoriserCadence, cleAdresse } from "@/lib/cadence-memoire";
 import { envoyerMail } from "@/lib/mail";
+import { genererMotDePasseInvitation } from "@/lib/mot-de-passe-invitation";
 import { rattacherUtilisateur } from "@/lib/rattacher";
 import { sessionDepuisRequete } from "@/lib/session-serveur.server";
 import { getSql } from "@/lib/sql";
 
+function cadencePublique(action: string, max: number) {
+  try {
+    return autoriserCadence(cleAdresse(action, getRequest().headers), max, 60 * 60 * 1000);
+  } catch {
+    return autoriserCadence(`${action}:hors-requete`, max, 60 * 60 * 1000);
+  }
+}
+
 export const getSession = createServerFn({ method: "GET" }).handler(async () => {
   return sessionDepuisRequete();
+});
+
+/** Vrai seulement si les deux secrets Google sont présents. Ne renvoie jamais les secrets. */
+export const googleAuthDisponible = createServerFn({ method: "GET" }).handler(async () => {
+  const id = process.env["GOOGLE_CLIENT_ID"]?.trim();
+  const secret = process.env["GOOGLE_CLIENT_SECRET"]?.trim();
+  return { actif: Boolean(id && secret) };
 });
 
 export const ensureSession = createServerFn({ method: "GET" }).handler(async () => {
@@ -132,7 +150,7 @@ export const inviterMembre = createServerFn({ method: "POST" })
     if (!moi || !aLeDroit(moi.droits, "gerer-equipe")) {
       throw new Error("Droits insuffisants");
     }
-    const motDePasse = `Hublify-${crypto.randomUUID().slice(0, 8)}!aA1`;
+    const motDePasse = genererMotDePasseInvitation();
     const sql = getSql();
     if (!sql) throw new Error("Base indisponible");
     // Pas de signUpEmail ici : il poserait le cookie de session du nouveau
@@ -176,6 +194,7 @@ export const inviterMembre = createServerFn({ method: "POST" })
 <p>E-mail : ${data.email}</p>
 <p>Mot de passe temporaire : <code>${motDePasse}</code></p>
 <p>Changez-le après votre première connexion.</p>`,
+      sensible: true,
     });
     return { ok: true as const, email: data.email, mailEnvoye };
   });
@@ -229,6 +248,9 @@ export const inscrireAdherent = createServerFn({ method: "POST" })
     },
   )
   .handler(async ({ data }) => {
+    if (!cadencePublique("inscription", 5)) {
+      throw new Error("Trop de tentatives. Réessayez plus tard.");
+    }
     const sql = getSql();
     if (!sql) throw new Error("Base indisponible");
     const cree = await avecInscriptionInterne(() =>

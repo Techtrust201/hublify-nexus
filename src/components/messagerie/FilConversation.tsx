@@ -19,6 +19,7 @@ import {
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   MODELES_MESSAGE,
+  libelleAssigne,
   type ActionFil,
   type Conversation,
   type IconeSysteme,
@@ -142,7 +143,9 @@ export function FilConversation({
             <p className="truncate text-xs text-ink-muted">{conversation.bienNom}</p>
           )}
           {conversation.assigne && (
-            <p className="truncate text-[10px] text-ink-muted">Assigné à {conversation.assigne}</p>
+            <p className="truncate text-[10px] text-ink-muted">
+              Assigné à {libelleAssigne(conversation.assigne)}
+            </p>
           )}
         </div>
         <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">

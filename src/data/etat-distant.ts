@@ -21,6 +21,7 @@ import {
   peutEcrireCollection,
   peutEcrireParametrage,
   peutInsererCollection,
+  peutLireCollection,
   peutModifierCollection,
   peutRemplacerCollections,
   reduirePatch,
@@ -36,15 +37,59 @@ export type DepsEtat = {
 };
 
 export type RaisonEchec =
-  | "non_authentifie"
-  | "non_configure"
-  | "interdit"
-  | "introuvable"
-  | "invalide";
+  "non_authentifie" | "non_configure" | "interdit" | "introuvable" | "invalide";
 
 export type Lecture = { ok: true; payload: EtatSession } | { ok: false; raison: RaisonEchec };
 
 export type Ecriture = { ok: true } | { ok: false; raison: RaisonEchec };
+
+/** Collections dont une ligne porte un bien_id soumis à une clé étrangère. */
+const COLLECTIONS_LIEES_AU_BIEN: ReadonlySet<CollectionMetier> = new Set([
+  "missions",
+  "reservationsCalendrier",
+  "reservationsDossier",
+  "datesBloquees",
+]);
+
+export function bienIdDeLigne(item: { bienId?: unknown } | Record<string, unknown>): string {
+  const valeur = item["bienId"];
+  return typeof valeur === "string" ? valeur.trim() : "";
+}
+
+/** Retient seulement les lignes dont le logement existe déjà (ou est dans le même patch). */
+export function retenirLignesAuBienExistant<T extends { bienId?: unknown }>(
+  lignes: readonly T[],
+  idsBiens: ReadonlySet<string>,
+): T[] {
+  return lignes.filter((ligne) => idsBiens.has(bienIdDeLigne(ligne)));
+}
+
+async function idsBiensDeLOrg(
+  sql: Sql,
+  orgId: string,
+  biensDuPatch?: readonly { id: string }[],
+): Promise<Set<string>> {
+  const ids = new Set<string>();
+  for (const bien of biensDuPatch ?? []) {
+    if (bien?.id) ids.add(bien.id);
+  }
+  const rows = (await sql.query(`select id from public.biens where org_id = $1::uuid`, [orgId])) as {
+    id?: string;
+  }[];
+  for (const row of rows ?? []) {
+    if (row?.id) ids.add(String(row.id));
+  }
+  return ids;
+}
+
+async function bienExiste(sql: Sql, orgId: string, bienId: string): Promise<boolean> {
+  if (!bienId) return false;
+  const rows = (await sql.query(
+    `select 1 from public.biens where org_id = $1::uuid and id = $2 limit 1`,
+    [orgId, bienId],
+  )) as unknown[];
+  return rows.length > 0;
+}
 
 export function estPayloadValide(valeur: unknown): valeur is Partial<EtatSession> {
   return typeof valeur === "object" && valeur !== null && !Array.isArray(valeur);
@@ -114,12 +159,16 @@ async function controlerInsertion(
 
   if (
     (org.roleId === "locataire" || org.roleId === "voyageur") &&
-    (collection === "dossiersLocation" || collection === "partagesDossier" || collection === "candidatures")
+    (collection === "dossiersLocation" ||
+      collection === "partagesDossier" ||
+      collection === "candidatures")
   ) {
-    const dossierId =
-      collection === "dossiersLocation" ? item.id : String(item["dossierId"] ?? "");
+    const dossierId = collection === "dossiersLocation" ? item.id : String(item["dossierId"] ?? "");
     const existant = commeLigne(await lireLigne(sql, org.orgId, "dossiersLocation", dossierId));
-    if (collection !== "dossiersLocation" && (!existant || !ligneAppartient(org, "dossiersLocation", existant))) {
+    if (
+      collection !== "dossiersLocation" &&
+      (!existant || !ligneAppartient(org, "dossiersLocation", existant))
+    ) {
       return { ok: false, raison: "interdit" };
     }
     if (collection === "dossiersLocation") {
@@ -153,6 +202,13 @@ async function controlerInsertion(
     ligne = { ...ligne, vue: "inventaire-presta" };
   }
 
+  if (COLLECTIONS_LIEES_AU_BIEN.has(collection)) {
+    const bienId = bienIdDeLigne(ligne);
+    if (!bienId || !(await bienExiste(sql, orgId, bienId))) {
+      return { ok: false, raison: "invalide" };
+    }
+  }
+
   return { ok: true, item: ligne };
 }
 
@@ -179,11 +235,26 @@ export async function ecrireCollections(
 
   // On suit l'ordre de COLLECTIONS_METIER, pas celui du patch : les parents
   // doivent être écrits avant leurs enfants pour satisfaire les clés étrangères.
+  const besoinBiens = COLLECTIONS_METIER.some(
+    (cle) => patch[cle] !== undefined && COLLECTIONS_LIEES_AU_BIEN.has(cle),
+  );
+  const idsBiens = besoinBiens
+    ? await idsBiensDeLOrg(sql, org.orgId, patch.biens)
+    : new Set<string>();
+
   for (const cle of COLLECTIONS_METIER) {
     const valeur = patch[cle];
     if (valeur === undefined) continue;
     if (cle === "missions" && org.orgType === "prestataire") continue;
-    await remplacerCollection(sql, org.orgId, cle, valeur as unknown[]);
+    let items = valeur as unknown[];
+    if (COLLECTIONS_LIEES_AU_BIEN.has(cle)) {
+      const originales = items as { id: string; bienId?: unknown }[];
+      const retenues = retenirLignesAuBienExistant(originales, idsBiens);
+      // Un patch composé uniquement de séjours orphelins ne doit pas vider la table.
+      if (retenues.length === 0 && originales.length > 0) continue;
+      items = retenues;
+    }
+    await remplacerCollection(sql, org.orgId, cle, items);
   }
   if (patch.parametrage !== undefined) {
     await ecrireParametrage(sql, org.orgId, fusionnerParametrage(patch.parametrage));
@@ -226,6 +297,13 @@ export async function modifierEntite(
   if (!reduit.ok) return reduit;
   const sql = deps.sql();
   if (!sql) return { ok: false, raison: "non_configure" };
+  if (COLLECTIONS_LIEES_AU_BIEN.has(collection) && "bienId" in reduit.patch) {
+    const bienId = bienIdDeLigne(reduit.patch);
+    const orgIdCible = await orgCibleEcriture(sql, org, collection);
+    if (!bienId || !(await bienExiste(sql, orgIdCible, bienId))) {
+      return { ok: false, raison: "invalide" };
+    }
+  }
   const orgMaj =
     collection === "missions"
       ? org
@@ -256,7 +334,12 @@ export async function modifierEntite(
     const ligne = commeLigne(await lireLigne(sql, orgMaj.orgId, collection, id));
     const conv = ligne
       ? commeLigne(
-          await lireLigne(sql, orgMaj.orgId, "conversations", String(ligne["conversationId"] ?? "")),
+          await lireLigne(
+            sql,
+            orgMaj.orgId,
+            "conversations",
+            String(ligne["conversationId"] ?? ""),
+          ),
         )
       : null;
     if (!conv || !ligneAppartient(org, "conversations", conv)) {
@@ -278,6 +361,13 @@ export async function chargerEntite(
   if (!org) return { ok: false, raison: "non_authentifie" };
   const sql = deps.sql();
   if (!sql) return { ok: false, raison: "non_configure" };
+  if (
+    !estRolePortail(org.roleId) &&
+    org.roleId !== "lecteur" &&
+    !peutLireCollection(org, collection)
+  ) {
+    return { ok: false, raison: "interdit" };
+  }
   if (org.roleId === "lecteur" || estRolePortail(org.roleId)) {
     const etat = await assemblerEtat(sql, org);
     if (!presentDansEtat(etat, collection, id)) return { ok: false, raison: "introuvable" };

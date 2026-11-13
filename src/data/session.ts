@@ -453,31 +453,51 @@ export function ouvrirConversationProspect(params: {
     ...(params.assigne ? { assigne: params.assigne } : {}),
   };
   appliquerLocal((e) => ({ ...e, conversations: [ligne, ...e.conversations] }));
-  const promesse = pousserLigne("conversations", ligne).then((ok) => {
-    if (!ok) programmerReprise();
-    return ok;
-  });
+  const promesse = pousserConversation(ligne);
   apresConversation.set(id, promesse);
   return id;
 }
 
 const apresConversation = new Map<string, Promise<boolean>>();
 
+function pousserConversation(ligne: Conversation) {
+  return pousserLigne("conversations", ligne).then((ok) => {
+    if (!ok) {
+      appliquerLocal((e) => ({
+        ...e,
+        conversations: e.conversations.filter((c) => c.id !== ligne.id),
+      }));
+      return false;
+    }
+    return true;
+  });
+}
+
 export function enregistrerConversation(ligne: Conversation) {
   appliquerLocal((e) => ({
     ...e,
     conversations: [ligne, ...e.conversations.filter((c) => c.id !== ligne.id)],
   }));
-  const promesse = pousserLigne("conversations", ligne).then((ok) => {
-    if (!ok) programmerReprise();
-    return ok;
-  });
+  const promesse = pousserConversation(ligne);
   apresConversation.set(ligne.id, promesse);
   return promesse;
 }
 
+const ecrituresMessage = new Map<string, Promise<boolean>>();
+
 export function ajouterMessageFil(message: EtatSession["messagesFil"][number]): Promise<boolean> {
+  const enCours = ecrituresMessage.get(message.id);
+  if (enCours) return enCours;
   if (etat.messagesFil.some((m) => m.id === message.id)) return Promise.resolve(true);
+  let conclure!: (ok: boolean) => void;
+  const promesse = new Promise<boolean>((resolve) => {
+    conclure = resolve;
+  });
+  ecrituresMessage.set(message.id, promesse);
+  const terminer = (ok: boolean) => {
+    if (ecrituresMessage.get(message.id) === promesse) ecrituresMessage.delete(message.id);
+    conclure(ok);
+  };
   appliquerLocal((e) => ({ ...e, messagesFil: [...e.messagesFil, message] }));
   const retirer = () =>
     appliquerLocal((e) => ({
@@ -485,19 +505,22 @@ export function ajouterMessageFil(message: EtatSession["messagesFil"][number]): 
       messagesFil: e.messagesFil.filter((m) => m.id !== message.id),
     }));
   const attente = apresConversation.get(message.conversationId) ?? Promise.resolve(true);
-  return attente.then((ok) => {
+  void attente.then((ok) => {
     if (!ok) {
       retirer();
-      return false;
+      terminer(false);
+      return;
     }
     return pousserLigne("messagesFil", message).then((suite) => {
       if (!suite) {
         retirer();
-        return false;
+        terminer(false);
+        return;
       }
-      return true;
+      terminer(true);
     });
   });
+  return promesse;
 }
 
 async function pousserLigne(collection: CollectionMetier, item: { id: string }): Promise<boolean> {

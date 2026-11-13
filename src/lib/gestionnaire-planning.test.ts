@@ -2,16 +2,23 @@ import { describe, expect, it } from "vitest";
 import { DROITS_PAR_ROLE, droitsEffectifs } from "@/auth/permissions";
 import {
   actionsDate,
+  actionsDateAutorisees,
   cautionDemandee,
   EXTRA_PRECHECKIN_DEFAUT,
   fusionMigrationExtra,
   descriptionVisible,
   droitsPersonnalises,
   droitAutoriseParProfil,
+  conserverReglementPrestation,
   ecrireDescription,
+  syntheseBlocagesJour,
   estImportOta,
   exporterAnnonces,
   facturationPrestation,
+  facturesPrestataires,
+  solderPrestation,
+  messageRefusPaiement,
+  montantDepuisSaisie,
   ficheDepuisOccupation,
   horaireDansPlage,
   importerAnnonces,
@@ -72,6 +79,93 @@ describe("prestations", () => {
     expect(actionsDate(false).some((a) => a.id === "bloquer")).toBe(true);
     expect(actionsDate(true).some((a) => a.id === "debloquer")).toBe(true);
     expect(actionsDate(false).some((a) => a.label.includes("note"))).toBe(true);
+  });
+
+  it("masque les actions de case que le rôle ne peut pas écrire", () => {
+    const lecture = actionsDateAutorisees(false, {
+      reservations: false,
+      missions: false,
+      finances: false,
+    });
+    expect(lecture).toEqual([]);
+    const finances = actionsDateAutorisees(false, {
+      reservations: false,
+      missions: false,
+      finances: true,
+    }).map((a) => a.id);
+    expect(finances).toEqual(["evenement"]);
+  });
+
+  it("garde le règlement prestataire quand le formulaire réécrit la méta", () => {
+    const sauve = conserverReglementPrestation(
+      { payePrestataire: 45, attribution: "proprietaire", tarif: 45 },
+      { attribution: "proprietaire", tarif: 50, porteur: "prestataire" },
+    );
+    expect(sauve.payePrestataire).toBe(45);
+    expect(sauve.tarif).toBe(50);
+    expect(conserverReglementPrestation({}, { tarif: 20 }).payePrestataire).toBeUndefined();
+  });
+
+  it("ne ferme la case du mois que si chaque logement est bloqué", () => {
+    const dates = [{ bienId: "suzette", date: "2026-03-05", motif: "Bloqué" }];
+    expect(syntheseBlocagesJour(dates, ["suzette", "colette"], "2026-03-05")).toEqual({
+      fermes: 1,
+      ouvertures: 0,
+      toutFerme: false,
+      toutOuvert: false,
+    });
+    expect(
+      syntheseBlocagesJour(
+        [...dates, { bienId: "colette", date: "2026-03-05", motif: "Bloqué" }],
+        ["suzette", "colette"],
+        "2026-03-05",
+      ).toutFerme,
+    ).toBe(true);
+    expect(
+      syntheseBlocagesJour(
+        [{ bienId: "raclette", date: "2026-03-05", motif: "Bloqué" }],
+        ["suzette"],
+        "2026-03-05",
+      ),
+    ).toEqual({ fermes: 0, ouvertures: 0, toutFerme: false, toutOuvert: false });
+  });
+
+  it("solde une facture prestataire sans dépasser le tarif", () => {
+    expect(solderPrestation(80, 0, 30)).toEqual({ ok: true, paye: 30, restant: 50 });
+    expect(solderPrestation(80, 30, 50)).toEqual({ ok: true, paye: 80, restant: 0 });
+    expect(solderPrestation(80, 30, 60).ok).toBe(false);
+    expect(solderPrestation(80, 0, 0).ok).toBe(false);
+    const lignes = facturesPrestataires(
+      [
+        {
+          id: "ms",
+          bienId: "suzette",
+          date: "2026-03-05",
+          titre: "Ménage",
+          assigne: "Lucas Ménage",
+          description: ecrireDescription("Ménage", {
+            attribution: "proprietaire",
+            porteur: "prestataire",
+            tarif: 45,
+            payePrestataire: 15,
+          }),
+        },
+      ],
+      [{ id: "suzette", nom: "Suzette" }],
+      { debut: "2026-01-01", fin: "2026-12-31", bienId: "tous" },
+    );
+    expect(lignes).toEqual([
+      {
+        id: "ms",
+        titre: "Ménage",
+        prestataire: "Lucas Ménage",
+        logement: "Suzette",
+        date: "2026-03-05",
+        du: 45,
+        paye: 15,
+        restant: 30,
+      },
+    ]);
   });
 });
 
@@ -167,5 +261,31 @@ describe("paiements et tarifs", () => {
     const note = noterPortee("Week-end", true);
     expect(lirePortee(note)).toEqual({ periodeSeule: true, note: "Week-end" });
     expect(lirePortee(noterPortee(note, false)).periodeSeule).toBe(false);
+  });
+});
+
+describe("saisie d'un paiement prestataire (le dialogue ne ferme qu'après succès)", () => {
+  it("lit la virgule ou le point comme séparateur décimal", () => {
+    expect(montantDepuisSaisie("12,5")).toBe(12.5);
+    expect(montantDepuisSaisie(" 1 200.75 ")).toBe(1200.75);
+  });
+
+  it("refuse une saisie vide ou illisible avec un message exploitable", () => {
+    for (const saisie of ["", "   ", "abc"]) {
+      const r = solderPrestation(100, 0, montantDepuisSaisie(saisie));
+      expect(r.ok).toBe(false);
+      if (!r.ok)
+        expect(messageRefusPaiement(r.raison)).toBe("Indiquez un montant supérieur à zéro.");
+    }
+  });
+
+  it("refuse un montant supérieur au restant dû sans rien enregistrer", () => {
+    const r = solderPrestation(100, 40, montantDepuisSaisie("70"));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(messageRefusPaiement(r.raison)).toBe("Le montant dépasse le restant dû.");
+  });
+
+  it("accepte un montant valide", () => {
+    expect(solderPrestation(100, 40, montantDepuisSaisie("60")).ok).toBe(true);
   });
 });

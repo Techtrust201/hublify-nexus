@@ -78,6 +78,8 @@ export type ReservationMo1 = {
   precheckinNote?: string;
   remboursements?: RemboursementReservation[];
   paiements?: PaiementReservation[];
+  /** Jour ISO de la dernière demande de paiement envoyée au séjour. */
+  demandePaiementLe?: string;
 };
 
 export type DateBloqueeMo1 = {

@@ -33,7 +33,11 @@ export function usePortailUi() {
 }
 
 export function Ecran({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("flex flex-col gap-4 px-6 pb-6 pt-3", className)}>{children}</div>;
+  return (
+    <div className={cn("flex w-full min-w-0 flex-col gap-4 px-6 pb-6 pt-3", className)}>
+      {children}
+    </div>
+  );
 }
 
 export function Cloche({ className }: { className?: string }) {

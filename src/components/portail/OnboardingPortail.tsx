@@ -70,13 +70,13 @@ export function OnboardingPortail() {
             className="mt-6 h-auto w-[min(100%,306px)]"
           />
           <h1 className="mt-4 font-display text-[24px] font-semibold leading-tight text-black">
-            Management &amp; gestion
+            Pilotage et gestion
           </h1>
           <p className="mt-4 max-w-[18rem] text-sm leading-relaxed text-[var(--portail-encre-douce)]">
             Cet outil est conçu pour vous aider à gérer vos locations et vos missions.
           </p>
         </div>
-        <Bouton onClick={() => void navigate({ to: "/connexion" })}>Let&apos;s Start</Bouton>
+        <Bouton onClick={() => void navigate({ to: "/connexion" })}>Commencer</Bouton>
         <p className="mt-3 text-center text-xs text-[var(--portail-encre-douce)]">
           Déjà un compte ?{" "}
           <Link to="/connexion" className="font-semibold text-[var(--portail-encre)]">

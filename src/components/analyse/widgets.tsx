@@ -7,13 +7,16 @@ export function Carte({
   children,
   className,
   teinte = "blanc",
+  id,
 }: {
   children: ReactNode;
   className?: string;
   teinte?: "blanc" | "menthe" | "sable";
+  id?: string;
 }) {
   return (
     <article
+      id={id}
       className={cn(
         "rounded-card border border-line bg-white p-4 shadow-[var(--shadow-carte)]",
         teinte === "menthe" && "border-transparent bg-gest-vert",
@@ -45,8 +48,7 @@ export function Kpi({
   onAction?: () => void;
   icone?: ReactNode;
 }) {
-  const valeurClasse =
-    "text-ink";
+  const valeurClasse = "text-ink";
   return (
     <Carte teinte={teinte} className="flex min-h-[132px] flex-col">
       <div className="flex items-start justify-between gap-2">
@@ -86,7 +88,7 @@ export function BarreOnglets<T extends string>({
     <div
       role="tablist"
       aria-label={label}
-      className="flex gap-1 overflow-x-auto border-b border-line"
+      className="flex w-full min-w-0 gap-1 overflow-x-auto border-b border-line"
     >
       {options.map((o) => {
         const actif = o.id === valeur;

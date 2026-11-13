@@ -147,7 +147,7 @@ function CarteKpi({
     "block rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
   if (vers) {
     return (
-      <Link to={vers} className={classe}>
+      <Link to={vers} search={{ onglet: "revenus" }} hash="paiements-attente" className={classe}>
         {corps}
       </Link>
     );
@@ -169,7 +169,7 @@ function CarteKpi({
 
 export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
   const session = useSession();
-  const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.messages", false);
+  const [ouvert, setOuvert] = useSessionBool("hublify.accordeon.messages", true);
   const [canal, setCanal] = useState<CanalMo1 | "prospect" | "nouveaux" | "tous">("occupants");
   const prospects = session.conversations.filter((c) => c.section === "prospections");
   const nonLusAuteurs = new Set(
@@ -326,6 +326,9 @@ export function MessagesSection({ messages }: { messages: MessageMo1[] }) {
             {canal === "prospect" && prospects.length === 0 && (
               <li className="px-4 py-3 text-xs text-ink-muted">Aucune demande prospect.</li>
             )}
+            {canal !== "prospect" && filtres.length === 0 && (
+              <li className="px-4 py-6 text-sm text-ink-muted">Aucun message dans cette vue.</li>
+            )}
           </ul>
         </>
       )}
@@ -368,7 +371,7 @@ export function LoyersSection({
       >
         <span className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-ink">
           <FileCheck className="size-4 shrink-0" />
-          Les Loyers Payés Cette Semaine
+          Les Loyers et paiements en attente
           <span className="basis-full text-xs text-ink-muted sm:basis-auto">
             paiements totaux : {loyers.reduce((s, l) => s + l.montant, 0).toLocaleString("fr-FR")} €
             {synthese.enAttente > 0
@@ -700,6 +703,11 @@ export function EvenementsSection({
             Événements détectés automatiquement selon vos propriétés
           </p>
           <ul>
+            {evenements.length === 0 && (
+              <li className="px-4 py-6 text-sm text-ink-muted">
+                Aucun événement pour le moment. Ajoutez-en un : il reste après rechargement.
+              </li>
+            )}
             {evenements.map((e) => (
               <li key={e.id} className="border-b border-surface-soft px-4 py-3 last:border-b-0">
                 <div className="flex items-start justify-between gap-3">

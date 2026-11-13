@@ -129,7 +129,7 @@ test("profil gestionnaire, je débute et vue missions 3 jours", async ({ page })
 
   await page.goto("/");
   await page.getByRole("button", { name: "3 jours", exact: true }).click();
-  await expect(page.getByText("Les Loyers Payés Cette Semaine")).toBeVisible();
+  await expect(page.getByText("Les Loyers et paiements en attente")).toBeVisible();
   await expect(page.getByText(/paiements totaux/i)).toBeVisible();
   await expect(page.getByText("Événements en cours")).toBeVisible();
 });
