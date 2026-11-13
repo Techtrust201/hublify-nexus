@@ -25,6 +25,7 @@ import {
 } from "@/data/session";
 import { METHODES_PAIEMENT } from "@/data/v1-metier";
 import { confirmer, toastOk } from "@/lib/feedback";
+import { jourLocalIso } from "@/lib/jour-local";
 import {
   LIBELLES_ENVOI,
   descriptionVisible,
@@ -277,7 +278,7 @@ export function DetailsMission({
                       type="button"
                       className="h-10 w-full rounded-gest-primaire bg-gest-primaire text-sm font-medium text-white"
                       onClick={() => {
-                        const jour = new Date().toISOString().slice(0, 10);
+                        const jour = jourLocalIso();
                         const reste = Math.max(0, du - paye);
                         modifierReservation(resa.id, { demandePaiementLe: jour });
                         ajouterNotif({

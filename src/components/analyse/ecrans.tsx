@@ -27,6 +27,7 @@ import {
   type LigneHistorique,
 } from "@/lib/analyse-vue";
 import { telechargerDemo } from "@/lib/feedback";
+import { montantDepuisSaisie, type ResultatPaiement } from "@/lib/gestionnaire-planning";
 import { cn } from "@/lib/utils";
 
 function vide(vue: AnalyseVue) {
@@ -191,11 +192,13 @@ export function EcranRevenus({
   onRelancer?: (id: string) => void;
   onDossier?: (id: string) => void;
   onPayer?: (id: string) => void;
-  onAjouterPaiement?: (id: string, montant: number) => void;
+  /** Renvoie `ok: false` (avec le message) pour laisser le dialogue ouvert. */
+  onAjouterPaiement?: (id: string, montant: number) => ResultatPaiement;
   onFacture?: (id: string) => void;
 }) {
   const [paiement, setPaiement] = useState<FacturePrestaVue | null>(null);
   const [montantSaisi, setMontantSaisi] = useState("");
+  const [erreurPaiement, setErreurPaiement] = useState("");
   const k = vue.kpi;
   const variation =
     k.variationEncaisse === null
@@ -441,6 +444,7 @@ export function EcranRevenus({
                             onClick={() => {
                               setPaiement(f);
                               setMontantSaisi(String(f.restant));
+                              setErreurPaiement("");
                             }}
                             className="inline-flex h-8 items-center rounded-full border border-line px-3 text-xs"
                           >
@@ -471,7 +475,14 @@ export function EcranRevenus({
         )}
       </Carte>
 
-      <Dialog open={Boolean(paiement)} onOpenChange={(ouvert) => !ouvert && setPaiement(null)}>
+      <Dialog
+        open={Boolean(paiement)}
+        onOpenChange={(ouvert) => {
+          if (ouvert) return;
+          setPaiement(null);
+          setErreurPaiement("");
+        }}
+      >
         <DialogContent className="max-w-sm">
           <DialogTitle>Ajouter un paiement prestataire</DialogTitle>
           <DialogDescription>
@@ -482,8 +493,13 @@ export function EcranRevenus({
             onSubmit={(e) => {
               e.preventDefault();
               if (!paiement || !onAjouterPaiement) return;
-              const valeur = Number(montantSaisi.replace(",", "."));
-              onAjouterPaiement(paiement.id, valeur);
+              const resultat = onAjouterPaiement(paiement.id, montantDepuisSaisie(montantSaisi));
+              // Le dialogue ne se ferme qu'après succès : sinon on garde la saisie et l'erreur.
+              if (!resultat.ok) {
+                setErreurPaiement(resultat.message);
+                return;
+              }
+              setErreurPaiement("");
               setPaiement(null);
             }}
           >
@@ -491,11 +507,20 @@ export function EcranRevenus({
               Montant (€)
               <input
                 value={montantSaisi}
-                onChange={(e) => setMontantSaisi(e.target.value)}
+                onChange={(e) => {
+                  setMontantSaisi(e.target.value);
+                  setErreurPaiement("");
+                }}
                 inputMode="decimal"
+                aria-invalid={erreurPaiement ? true : undefined}
                 className="mt-1 h-10 w-full rounded-card border border-line px-3 text-sm text-ink outline-none"
               />
             </label>
+            {erreurPaiement && (
+              <p role="alert" className="text-xs text-red-600">
+                {erreurPaiement}
+              </p>
+            )}
             <button
               type="submit"
               className="inline-flex h-10 items-center rounded-full bg-ink px-4 text-sm font-medium text-white"

@@ -17,6 +17,8 @@ import {
   facturationPrestation,
   facturesPrestataires,
   solderPrestation,
+  messageRefusPaiement,
+  montantDepuisSaisie,
   ficheDepuisOccupation,
   horaireDansPlage,
   importerAnnonces,
@@ -259,5 +261,31 @@ describe("paiements et tarifs", () => {
     const note = noterPortee("Week-end", true);
     expect(lirePortee(note)).toEqual({ periodeSeule: true, note: "Week-end" });
     expect(lirePortee(noterPortee(note, false)).periodeSeule).toBe(false);
+  });
+});
+
+describe("saisie d'un paiement prestataire (le dialogue ne ferme qu'après succès)", () => {
+  it("lit la virgule ou le point comme séparateur décimal", () => {
+    expect(montantDepuisSaisie("12,5")).toBe(12.5);
+    expect(montantDepuisSaisie(" 1 200.75 ")).toBe(1200.75);
+  });
+
+  it("refuse une saisie vide ou illisible avec un message exploitable", () => {
+    for (const saisie of ["", "   ", "abc"]) {
+      const r = solderPrestation(100, 0, montantDepuisSaisie(saisie));
+      expect(r.ok).toBe(false);
+      if (!r.ok)
+        expect(messageRefusPaiement(r.raison)).toBe("Indiquez un montant supérieur à zéro.");
+    }
+  });
+
+  it("refuse un montant supérieur au restant dû sans rien enregistrer", () => {
+    const r = solderPrestation(100, 40, montantDepuisSaisie("70"));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(messageRefusPaiement(r.raison)).toBe("Le montant dépasse le restant dû.");
+  });
+
+  it("accepte un montant valide", () => {
+    expect(solderPrestation(100, 40, montantDepuisSaisie("60")).ok).toBe(true);
   });
 });

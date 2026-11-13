@@ -330,6 +330,21 @@ export function solderPrestation(du: number, deja: number, ajout: number) {
   };
 }
 
+export type ResultatPaiement = { ok: true } | { ok: false; message: string };
+
+/** Message affiché quand un versement prestataire est refusé. */
+export function messageRefusPaiement(raison: "depasse" | "montant"): string {
+  return raison === "depasse"
+    ? "Le montant dépasse le restant dû."
+    : "Indiquez un montant supérieur à zéro.";
+}
+
+/** Montant saisi (virgule ou point). Vide ou illisible : NaN, donc refusé par `solderPrestation`. */
+export function montantDepuisSaisie(saisie: string): number {
+  const texte = saisie.trim().replace(/\s/g, "").replace(",", ".");
+  return texte === "" ? Number.NaN : Number(texte);
+}
+
 export type LigneFacturePrestation = {
   id: string;
   titre: string;

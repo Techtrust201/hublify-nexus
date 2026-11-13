@@ -47,9 +47,13 @@ import {
   facturationPrestation,
   facturesPrestataires,
   lireMetaPrestation,
+  messageRefusPaiement,
   messageRelancePaiement,
   solderPrestation,
+  type ResultatPaiement,
 } from "@/lib/gestionnaire-planning";
+import { jourLocalIso } from "@/lib/jour-local";
+import { loyerDuSejour } from "@/lib/relance-loyer";
 import { formatTaux, totauxFacture } from "@/lib/analyse-finance";
 import { construireAnalyse, exerciceParDefaut, exporterEncaissementsCsv } from "@/lib/analyse-vue";
 
@@ -151,18 +155,13 @@ export function AnalyseApp({
       encaisse: ligne.encaisse,
       restant: ligne.restant,
       situation: situationImpaye(ligne.checkIn, ligne.encaisse, analyse.filtre.aujourdhui),
-      relance: session.loyers.some(
-        (loyer) =>
-          loyer.locataire.toLowerCase() === ligne.occupant.toLowerCase() &&
-          !loyer.valide &&
-          loyer.relanceAuto,
-      ),
+      relance: Boolean(loyerDuSejour(session.loyers, ligne)?.relanceAuto),
     }));
 
   const relancer = (id: string) => {
     const ligne = analyse.lignes.find((item) => item.id === id);
     if (!ligne) return;
-    const jour = new Date().toISOString().slice(0, 10);
+    const jour = jourLocalIso();
     const lien = `${window.location.origin}/reservations?vue=liste&resa=${ligne.id}`;
     const texte = messageRelancePaiement({
       locataire: ligne.occupant,
@@ -172,9 +171,7 @@ export function AnalyseApp({
       lien,
     });
     if (peutReserver) modifierReservation(ligne.id, { demandePaiementLe: jour });
-    const loyer = session.loyers.find(
-      (item) => item.locataire.toLowerCase() === ligne.occupant.toLowerCase() && !item.valide,
-    );
+    const loyer = loyerDuSejour(session.loyers, ligne);
     if (peutFinances && loyer) definirRelanceLoyer(loyer.id, true);
     if (peutMessages) {
       ajouterMessageDash({
@@ -196,9 +193,9 @@ export function AnalyseApp({
     void copierTexte(texte, "Message copié pour le mail ou le SMS.");
   };
 
-  const payerPrestation = (id: string, ajout?: number) => {
+  const payerPrestation = (id: string, ajout?: number): ResultatPaiement => {
     const mission = session.missions.find((item) => item.id === id);
-    if (!mission || !peutMissions) return;
+    if (!mission || !peutMissions) return { ok: false, message: "Paiement impossible." };
     const meta = lireMetaPrestation(mission.description);
     const facture = facturationPrestation(meta);
     const du = facture.montant ?? 0;
@@ -208,12 +205,9 @@ export function AnalyseApp({
       ajout ?? du - (meta.payePrestataire ?? 0),
     );
     if (!resultat.ok) {
-      toastErreur(
-        resultat.raison === "depasse"
-          ? "Le montant dépasse le restant dû."
-          : "Indiquez un montant supérieur à zéro.",
-      );
-      return;
+      const message = messageRefusPaiement(resultat.raison);
+      toastErreur(message);
+      return { ok: false, message };
     }
     modifierMission(id, {
       description: ecrireDescription(descriptionVisible(mission.description), {
@@ -231,6 +225,7 @@ export function AnalyseApp({
     toastOk(
       resultat.restant === 0 ? "Facture prestataire soldée." : "Paiement prestataire enregistré.",
     );
+    return { ok: true };
   };
 
   const telechargerFacturePresta = (id: string) => {
