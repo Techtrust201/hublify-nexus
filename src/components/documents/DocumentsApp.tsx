@@ -153,10 +153,11 @@ export function DocumentsApp({
       );
     else list = list.filter((d) => d.vue === vue);
     if (vue === "residents") {
-      list =
-        onglet === "prestataires"
-          ? list.filter((d) => d.occupant === "prestataires")
-          : list.filter((d) => d.occupant !== "prestataires");
+      list = list.filter((d) => {
+        if (onglet === "prestataires") return d.occupant === "prestataires";
+        if (onglet === "voyageurs") return d.occupant === "voyageurs";
+        return d.occupant === "locataires" || !d.occupant;
+      });
     }
     if (vue === "logements") {
       list = list.filter(
@@ -354,10 +355,45 @@ export function DocumentsApp({
           logementActif={logementFiltre}
           onRetour={() => aller("hub")}
           montrerOccupant
+          onglets={
+            <div
+              className="flex flex-wrap gap-2 border-b border-surface-soft px-5 py-3"
+              role="tablist"
+            >
+              {(
+                [
+                  ["locataires", "Locataires"],
+                  ["voyageurs", "Voyageurs"],
+                  ["prestataires", "Prestataires"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={onglet === id}
+                  onClick={() => {
+                    setOnglet(id);
+                    setTypeFiltre("Tous");
+                    setSelection([]);
+                    onVue("residents", id);
+                  }}
+                  className={cn(
+                    "h-9 rounded-full px-3 text-xs font-medium",
+                    onglet === id ? "bg-ink text-white" : "border border-line text-ink-body",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          }
           bandeau={
             onglet === "prestataires"
               ? "Rapports de prestation, factures et contrats. Importez un fichier ou une photo, recto puis verso."
-              : "Le bail n'est saisi qu'une fois, côté occupant. Importez un fichier ou une photo, recto puis verso."
+              : onglet === "voyageurs"
+                ? "Contrats de séjour, factures et pièces des voyageurs. Distinct des baux locataires."
+                : "Le bail n'est saisi qu'une fois, côté locataire. Importez un fichier ou une photo, recto puis verso."
           }
           actionsEntete={
             <>
@@ -376,7 +412,7 @@ export function DocumentsApp({
                     modifiePar: "Vous",
                     photos: 0,
                     vue: "residents",
-                    occupant: onglet === "prestataires" ? "prestataires" : "voyageurs",
+                    occupant: onglet,
                   };
                   ajouterDocument(doc);
                   marquerDocRecent(doc.id);
@@ -394,7 +430,7 @@ export function DocumentsApp({
                     modifiePar: "Vous",
                     photos: 0,
                     vue: "residents",
-                    occupant: "locataires",
+                    occupant: onglet === "prestataires" ? "prestataires" : onglet,
                   };
                   ajouterDocument(doc);
                   setTypeFiltre("Autres");

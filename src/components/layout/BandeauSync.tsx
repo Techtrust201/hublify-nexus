@@ -13,7 +13,7 @@ export function BandeauSync() {
     statut.raison === "non_authentifie"
       ? "Votre session a expiré : reconnectez-vous pour enregistrer vos modifications."
       : statut.raison === "invalide"
-        ? "Le serveur a refusé des informations (montant, date ou texte). Corrigez-les puis réessayez."
+        ? "Le serveur a refusé l'enregistrement (texte, pièce jointe ou donnée invalide). Corrigez puis réessayez."
         : statut.origine === "lecture"
           ? "Impossible de charger vos données. Rien n'a été effacé : réessayez."
           : "Vos dernières modifications ne sont pas enregistrées sur le serveur.";

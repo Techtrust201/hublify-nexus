@@ -208,6 +208,7 @@ export function AppShell({
                   {session.notifications.length === 0 ? (
                     <p className="px-3 py-4 text-xs text-ink-subtle">Aucune notification.</p>
                   ) : (
+                    // La liste de session est triée du plus récent au plus ancien.
                     session.notifications.slice(0, 8).map((n) => (
                       <DropdownMenuItem
                         key={n.id}

@@ -851,7 +851,9 @@ export function ajouterMessageDash(message: import("@/data/planning-mo1").Messag
   void pousserLigne("messagesDash", message).then((ok) => !ok && programmerReprise());
 }
 
-export function ajouterNotif(notif: Omit<NotifMo1, "id" | "lu"> & { id?: string }) {
+export function ajouterNotif(
+  notif: Omit<NotifMo1, "id" | "lu"> & { id?: string },
+): Promise<boolean> {
   const ligne: NotifMo1 = {
     id: notif.id ?? idNouveau("n"),
     lu: false,
@@ -860,7 +862,16 @@ export function ajouterNotif(notif: Omit<NotifMo1, "id" | "lu"> & { id?: string 
     href: notif.href,
   };
   appliquerLocal((e) => ({ ...e, notifications: [ligne, ...e.notifications] }));
-  void pousserLigne("notifications", ligne).then((ok) => !ok && programmerReprise());
+  return pousserLigne("notifications", ligne).then((ok) => {
+    if (!ok) {
+      appliquerLocal((e) => ({
+        ...e,
+        notifications: e.notifications.filter((n) => n.id !== ligne.id),
+      }));
+      return false;
+    }
+    return true;
+  });
 }
 
 export function marquerNotifsLues() {

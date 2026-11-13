@@ -508,13 +508,27 @@ export function peutEcrireParametrage(acteur: ActeurPortee) {
   return aLeDroit(acteur.droits, "mod-biens") || aLeDroit(acteur.droits, "gerer-equipe");
 }
 
-export function chaineExcessive(valeur: unknown, max = 8000, profondeur = 0): boolean {
+/** Contenu binaire légitime (pièce jointe, document). Plafond ≈ 4,5 Mo décodés. */
+const CLES_BINAIRES = new Set(["base64", "contenu", "dataUrl"]);
+const MAX_BINAIRE = 6_000_000;
+
+export function chaineExcessive(
+  valeur: unknown,
+  max = 8000,
+  profondeur = 0,
+  cle?: string,
+): boolean {
   if (profondeur > 5) return true;
-  if (typeof valeur === "string") return valeur.length > max;
-  if (Array.isArray(valeur)) return valeur.some((v) => chaineExcessive(v, max, profondeur + 1));
+  if (typeof valeur === "string") {
+    const plafond = cle && CLES_BINAIRES.has(cle) ? MAX_BINAIRE : max;
+    return valeur.length > plafond;
+  }
+  if (Array.isArray(valeur)) {
+    return valeur.some((v) => chaineExcessive(v, max, profondeur + 1));
+  }
   if (valeur && typeof valeur === "object") {
-    return Object.values(valeur as Record<string, unknown>).some((v) =>
-      chaineExcessive(v, max, profondeur + 1),
+    return Object.entries(valeur as Record<string, unknown>).some(([k, v]) =>
+      chaineExcessive(v, max, profondeur + 1, k),
     );
   }
   return false;

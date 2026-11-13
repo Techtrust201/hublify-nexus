@@ -63,6 +63,13 @@ function PageParametrage() {
     setReglages((r) => ({ ...r, ...p }));
   };
 
+  const appliquerReglages = (p: Partial<ReglagesEtendus>) => {
+    const suivant = { ...reglages, ...p };
+    setReglages(suivant);
+    setToucheReglages(false);
+    sauverReglages(suivant);
+  };
+
   const enregistrer = () => {
     modifierSession((e) => ({ ...e, parametrage: brouillon }));
     sauverReglages(reglages);
@@ -137,6 +144,7 @@ function PageParametrage() {
           sale={saleTout}
           onPatch={patch}
           onReglages={patchReglages}
+          onAppliquer={appliquerReglages}
           onAnnuler={annuler}
           onEnregistrer={enregistrer}
         />

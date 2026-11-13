@@ -43,6 +43,7 @@ export function FilConversation({
   brouillon,
   onBrouillon,
   onEnvoyer,
+  envoiEnCours = false,
   piecesBrouillon = [],
   onJoindre,
   onRetirerPiece,
@@ -64,6 +65,8 @@ export function FilConversation({
   brouillon: string;
   onBrouillon: (v: string) => void;
   onEnvoyer: () => void;
+  /** Envoi en cours : le bouton est désactivé pour éviter un double envoi. */
+  envoiEnCours?: boolean;
   piecesBrouillon?: PieceJointe[];
   onJoindre?: () => void;
   onRetirerPiece?: (nom: string) => void;
@@ -84,7 +87,7 @@ export function FilConversation({
   const zoneModeles = useRef<HTMLDivElement>(null);
   const zoneFil = useRef<HTMLDivElement>(null);
   const nombreConnu = useRef(messages.length);
-  const peutEnvoyer = Boolean(brouillon.trim() || piecesBrouillon.length);
+  const peutEnvoyer = Boolean(brouillon.trim() || piecesBrouillon.length) && !envoiEnCours;
 
   useEffect(() => {
     if (!modelesOuverts) return;
