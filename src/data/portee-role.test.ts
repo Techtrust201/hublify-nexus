@@ -4,6 +4,7 @@ import { ACCES_RESTREINT, DROITS_PAR_ROLE } from "@/auth/permissions";
 import {
   decisionRetrait,
   documentPourRole,
+  edlPourPersonne,
   filtrerConversationsPrestataire,
   filtrerDocumentsPrestataire,
   filtrerEtatPourRole,
@@ -130,6 +131,54 @@ describe("filtrerEtatPourRole", () => {
     expect(vue.conversations.every((c) => c.type !== "team")).toBe(true);
     expect(vue.biens.every((b) => b.id === "suzette")).toBe(true);
     expect(vue.documents.some((d) => d.id === "d-bail-jean" || d.vue === "proprio")).toBe(false);
+    expect(vue.edl.map((d) => d.id).sort()).toEqual(["edl1", "edl1s"]);
+    expect(vue.edl.every((d) => d.occupant === "Sophie Martin")).toBe(true);
+    expect(vue.edl.some((d) => d.id === "edl3")).toBe(false);
+  });
+
+  it("ne donne au locataire et au voyageur que les états des lieux qui les nomment", () => {
+    const jeanEdl = {
+      id: "edl-jean",
+      logement: "Appartement Colette",
+      type: "Sortie" as const,
+      occupant: "Jean Martin",
+      date: "2026-09-17",
+      pieces: [],
+    };
+    const etatAvecJean = { ...etat, edl: [...etat.edl, jeanEdl] };
+    const jean = filtrerEtatPourRole(
+      etatAvecJean,
+      acteur({
+        roleId: "locataire",
+        email: "jean.martin@hublify.app",
+        prenom: "Jean",
+        nom: "Martin",
+      }),
+    );
+    expect(jean.edl.map((d) => d.id)).toEqual(["edl-jean"]);
+    expect(jean.edl.some((d) => d.id === "edl3" || d.occupant === "Anna Schmidt")).toBe(false);
+
+    const sophie = filtrerEtatPourRole(
+      etatAvecJean,
+      acteur({
+        roleId: "voyageur",
+        email: "sophie.martin@hublify.app",
+        prenom: "Sophie",
+        nom: "Martin",
+      }),
+    );
+    expect(sophie.edl.map((d) => d.id).sort()).toEqual(["edl1", "edl1s"]);
+    expect(sophie.edl.every((d) => d.occupant === "Sophie Martin")).toBe(true);
+
+    const pierre = filtrerEtatPourRole(
+      etatAvecJean,
+      acteur({ roleId: "proprietaire", prenom: "Pierre", nom: "Moreau" }),
+    );
+    expect(pierre.edl.map((d) => d.id).sort()).toEqual(["edl-jean", "edl3"]);
+    expect(pierre.edl.every((d) => d.logement === "Appartement Colette")).toBe(true);
+    expect(pierre.edl.some((d) => d.logement.includes("Suzette") || d.logement.includes("Lavandrix"))).toBe(
+      false,
+    );
   });
 
   it("limite le propriétaire à ses biens, sans la messagerie d'équipe", () => {
@@ -383,6 +432,26 @@ describe("filtrerEtatPourRole", () => {
     ).toBe(false);
     expect(
       documentPourRole(proprio("CNI — Pierre Moreau"), "proprietaire", colette, "Pierre Moreau"),
+    ).toBe(true);
+  });
+
+
+  it("refuse un état des lieux sans occupant ou au mauvais nom, même dans le bon logement", () => {
+    const colette = [{ nom: "Appartement Colette" }];
+    expect(edlPourPersonne({ logement: "Appartement Colette", occupant: "Anna Schmidt" }, colette, "Jean Martin")).toBe(
+      false,
+    );
+    expect(edlPourPersonne({ logement: "Appartement Colette", occupant: "Jean Martin" }, colette, "Jean Martin")).toBe(
+      true,
+    );
+    expect(edlPourPersonne({ logement: "Appartement Colette", occupant: "Jean Dupont" }, colette, "Jean Martin")).toBe(
+      false,
+    );
+    expect(edlPourPersonne({ logement: "Appartement Colette", occupant: "" }, colette, "Jean Martin")).toBe(false);
+    expect(edlPourPersonne({ logement: "Appartement Colette", occupant: "Jean Martin" }, colette, "")).toBe(false);
+    expect(edlPourPersonne({ logement: "Suzette", occupant: "Jean Martin" }, colette, "Jean Martin")).toBe(false);
+    expect(
+      edlPourPersonne({ logement: "Appartement Colette", occupant: "Jean Martin — sortie" }, colette, "Jean Martin"),
     ).toBe(true);
   });
 

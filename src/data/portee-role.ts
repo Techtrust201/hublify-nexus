@@ -147,6 +147,22 @@ export function documentPourRole(
   return titreConcernePersonne(doc.titre, personne);
 }
 
+/**
+ * Un locataire ou un voyageur ne voit que les états des lieux de son logement
+ * qui le nomment (champ occupant). Un occupant vide est refusé. Un propriétaire
+ * conserve tous les dossiers de ses biens, déjà filtrés en amont par logement.
+ */
+export function edlPourPersonne(
+  edl: { logement: string; occupant?: string },
+  biens: readonly { nom: string }[],
+  personne: string,
+) {
+  if (!logementDuBien(edl.logement, biens)) return false;
+  const occupant = (edl.occupant ?? "").trim();
+  if (!personne.trim() || !occupant) return false;
+  return meme(occupant, personne) || titreConcernePersonne(occupant, personne);
+}
+
 /** Rapports d'intervention du prestataire : seulement les biens de ses missions. */
 export function filtrerDocumentsPrestataire<T extends { vue: string; logement: string }>(
   documents: readonly T[],
@@ -246,7 +262,7 @@ function filtrerLocataire(etat: EtatSession, acteur: ActeurPortee): EtatSession 
     dossiersLocation: a.dossiers,
     partagesDossier: etat.partagesDossier.filter((p) => a.dossierIds.has(p.dossierId)),
     candidatures: etat.candidatures.filter((c) => a.dossierIds.has(c.dossierId)),
-    edl: etat.edl.filter((d) => logementDuBien(d.logement, a.biens)),
+    edl: etat.edl.filter((d) => edlPourPersonne(d, a.biens, a.nom)),
     notifications: notifsDuNom(etat, a.nom),
   });
 }
@@ -263,7 +279,7 @@ function filtrerVoyageur(etat: EtatSession, acteur: ActeurPortee): EtatSession {
     loyers: etat.loyers.filter((l) => a.noms.has(l.locataire.toLowerCase())),
     conversations: a.conversations,
     messagesFil: etat.messagesFil.filter((m) => a.convIds.has(m.conversationId)),
-    edl: etat.edl.filter((d) => logementDuBien(d.logement, a.biens)),
+    edl: etat.edl.filter((d) => edlPourPersonne(d, a.biens, a.nom)),
     notifications: notifsDuNom(etat, a.nom),
   });
 }
