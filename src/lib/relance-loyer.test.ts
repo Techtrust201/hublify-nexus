@@ -49,4 +49,63 @@ describe("loyerDuSejour", () => {
     ];
     expect(loyerDuSejour(loyers, sejour)).toBeNull();
   });
+
+  describe("lien reservationId", () => {
+    const avecId = { ...sejour, id: "r-1" };
+
+    it("associe d'abord par reservationId, même si locataire et logement diffèrent", () => {
+      const l = loyer({
+        id: "lie",
+        locataire: "Autre Nom",
+        bienNom: "Autre bien",
+        reservationId: "r-1",
+      });
+      expect(loyerDuSejour([l], avecId)?.id).toBe("lie");
+    });
+
+    it("préfère le loyer lié au candidat de la règle historique", () => {
+      const loyers = [
+        loyer({ id: "regle" }),
+        loyer({ id: "lie", reservationId: "r-1", echeance: "2026-03-20" }),
+      ];
+      expect(loyerDuSejour(loyers, avecId)?.id).toBe("lie");
+    });
+
+    it("ignore un loyer lié mais déjà validé et retombe sur la règle", () => {
+      const loyers = [
+        loyer({ id: "lie", reservationId: "r-1", valide: true }),
+        loyer({ id: "regle" }),
+      ];
+      expect(loyerDuSejour(loyers, avecId)?.id).toBe("regle");
+    });
+
+    it("départage plusieurs loyers liés par l'échéance dans le séjour", () => {
+      const loyers = [
+        loyer({ id: "avant", reservationId: "r-1", echeance: "2026-01-05" }),
+        loyer({ id: "pendant", reservationId: "r-1", echeance: "2026-03-05" }),
+      ];
+      expect(loyerDuSejour(loyers, avecId)?.id).toBe("pendant");
+    });
+
+    it("ne retombe pas sur la règle quand plusieurs loyers liés restent ambigus", () => {
+      const loyers = [
+        loyer({ id: "a", reservationId: "r-1", echeance: "2026-03-05" }),
+        loyer({ id: "b", reservationId: "r-1", echeance: "2026-03-20" }),
+        loyer({ id: "regle" }),
+      ];
+      expect(loyerDuSejour(loyers, avecId)).toBeNull();
+    });
+
+    it("ne prend jamais un loyer lié à un autre séjour via la règle historique", () => {
+      expect(loyerDuSejour([loyer({ id: "ailleurs", reservationId: "r-2" })], avecId)).toBeNull();
+    });
+
+    it("sans identifiant de séjour, garde la règle historique", () => {
+      expect(loyerDuSejour([loyer({ id: "l1", reservationId: "r-2" })], sejour)?.id).toBe("l1");
+    });
+
+    it("traite un lien null comme l'absence de lien", () => {
+      expect(loyerDuSejour([loyer({ id: "l1", reservationId: null })], avecId)?.id).toBe("l1");
+    });
+  });
 });

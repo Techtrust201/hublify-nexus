@@ -12,6 +12,7 @@ import {
   peutEcrireCollection,
   peutLireCollection,
   peutRemplacerCollections,
+  reduirePatch,
   roleInvitable,
   validerInsertion,
   type ActeurPortee,
@@ -520,6 +521,21 @@ describe("écritures et invitations", () => {
     expect(peutEcrireCollection(acteur({ roleId: "lecteur" }), "reservationsDossier")).toBe(false);
     expect(peutEcrireCollection(acteur({ roleId: "locataire" }), "loyers")).toBe(false);
     expect(peutEcrireCollection(acteur({ roleId: "voyageur" }), "biens")).toBe(false);
+  });
+
+  it("accepte un lien loyer → séjour texte, absent ou null, et refuse le reste", () => {
+    const base = { id: "ly9", montant: 850 };
+    expect(validerInsertion("loyers", base)).toBe("ok");
+    expect(validerInsertion("loyers", { ...base, reservationId: "r-sophie" })).toBe("ok");
+    expect(validerInsertion("loyers", { ...base, reservationId: null })).toBe("ok");
+    expect(validerInsertion("loyers", { ...base, reservationId: "" })).toBe("invalide");
+    expect(validerInsertion("loyers", { ...base, reservationId: 12 })).toBe("invalide");
+    expect(validerInsertion("loyers", { ...base, reservationId: { id: "x" } })).toBe("invalide");
+    const gest = acteur({ roleId: "gestionnaire" });
+    expect(reduirePatch(gest, "loyers", { reservationId: "r-1" }).ok).toBe(true);
+    expect(reduirePatch(gest, "loyers", { reservationId: null }).ok).toBe(true);
+    expect(reduirePatch(gest, "loyers", { reservationId: ["a"] }).ok).toBe(false);
+    expect(reduirePatch(gest, "loyers", { reservationId: "x".repeat(161) }).ok).toBe(false);
   });
 
   it("refuse un montant négatif, des dates inversées et un texte vide", () => {
