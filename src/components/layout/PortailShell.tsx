@@ -153,7 +153,7 @@ function Coque({ children }: { children: ReactNode }) {
           <div className="relative z-10">
             <BandeauSync />
           </div>
-          <main className="relative z-10 min-h-0 flex-1 overflow-y-auto pb-28">
+          <main className="relative z-10 min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden pb-28">
             {chargee && donnees.pret ? (
               children
             ) : (

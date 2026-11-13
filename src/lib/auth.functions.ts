@@ -33,6 +33,13 @@ export const getSession = createServerFn({ method: "GET" }).handler(async () => 
   return sessionDepuisRequete();
 });
 
+/** Vrai seulement si les deux secrets Google sont présents. Ne renvoie jamais les secrets. */
+export const googleAuthDisponible = createServerFn({ method: "GET" }).handler(async () => {
+  const id = process.env["GOOGLE_CLIENT_ID"]?.trim();
+  const secret = process.env["GOOGLE_CLIENT_SECRET"]?.trim();
+  return { actif: Boolean(id && secret) };
+});
+
 export const ensureSession = createServerFn({ method: "GET" }).handler(async () => {
   const session = await sessionDepuisRequete();
   if (!session) throw new Error("Non authentifié");

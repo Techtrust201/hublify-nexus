@@ -88,7 +88,7 @@ export function BarreOnglets<T extends string>({
     <div
       role="tablist"
       aria-label={label}
-      className="flex gap-1 overflow-x-auto border-b border-line"
+      className="flex w-full min-w-0 gap-1 overflow-x-auto border-b border-line"
     >
       {options.map((o) => {
         const actif = o.id === valeur;

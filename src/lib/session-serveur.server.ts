@@ -1,8 +1,9 @@
 import { getRequest } from "@tanstack/react-start/server";
 import { droitsEffectifs, labelDuRole, type AuthContexte, type RoleId } from "@/auth/permissions";
+import { assurerEspaceSiOrphelin } from "@/lib/espace-compte";
 import { auth } from "@/lib/auth";
 import type { OrgType } from "@/lib/orgs";
-import { getSql } from "@/lib/sql";
+import { getSql, type Sql } from "@/lib/sql";
 
 type MembreRow = {
   prenom: string;
@@ -16,18 +17,8 @@ type MembreRow = {
   org_nom: string;
 };
 
-export async function sessionDepuisRequete(): Promise<AuthContexte | null> {
-  let session: Awaited<ReturnType<typeof auth.api.getSession>> | null = null;
-  try {
-    session = await auth.api.getSession({ headers: getRequest().headers });
-  } catch {
-    return null;
-  }
-  if (!session?.user) return null;
-  const sql = getSql();
-  if (!sql) return null;
-  try {
-    const rows = (await sql`
+async function lireMembre(sql: Sql, userId: string) {
+  return (await sql`
     select
       p.prenom,
       p.nom,
@@ -41,9 +32,32 @@ export async function sessionDepuisRequete(): Promise<AuthContexte | null> {
     from public.org_membres m
     join public.orgs o on o.id = m.org_id
     join public.profils p on p.user_id = m.user_id
-    where m.user_id = ${session.user.id}::uuid
+    where m.user_id = ${userId}::uuid
     limit 1
   `) as MembreRow[];
+}
+
+export async function sessionDepuisRequete(): Promise<AuthContexte | null> {
+  let session: Awaited<ReturnType<typeof auth.api.getSession>> | null = null;
+  try {
+    session = await auth.api.getSession({ headers: getRequest().headers });
+  } catch {
+    return null;
+  }
+  if (!session?.user) return null;
+  const sql = getSql();
+  if (!sql) return null;
+  try {
+    let rows = await lireMembre(sql, session.user.id);
+    if (!rows[0]) {
+      // Compte Google dont l'ouverture d'espace a échoué : on réessaie à la lecture.
+      try {
+        await assurerEspaceSiOrphelin(session.user.id);
+      } catch {
+        return null;
+      }
+      rows = await lireMembre(sql, session.user.id);
+    }
     const ligne = rows[0];
     if (!ligne) return null;
     const roleId = ligne.role_id;

@@ -3,9 +3,10 @@ import { Circle, CircleCheck, CircleHelp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { boutonAuth, CadreAuth, champAuth, labelAuth } from "@/components/marque/CadreAuth";
 import { lireRechercheInscription, offreParId } from "@/design/offres";
+import { boutonGoogleVisible } from "@/routes/connexion";
 import { forceMotDePasse } from "@/lib/force-mot-de-passe";
 import { ChampMotDePasse } from "@/components/ui/champ-mot-de-passe";
-import { inscrireAdherent } from "@/lib/auth.functions";
+import { googleAuthDisponible, inscrireAdherent } from "@/lib/auth.functions";
 import { authClient } from "@/lib/auth-client";
 import { toastErreur, toastOk } from "@/lib/feedback";
 
@@ -36,9 +37,13 @@ function PageInscription() {
   const recherche = Route.useSearch();
   const [enCours, setEnCours] = useState(false);
   const [pret, setPret] = useState(false);
+  const [google, setGoogle] = useState(false);
   const [mdp, setMdp] = useState("");
   const force = forceMotDePasse(mdp);
   useEffect(() => setPret(true), []);
+  useEffect(() => {
+    void googleAuthDisponible().then((res) => setGoogle(res.actif));
+  }, []);
   const offre = recherche.offre ? offreParId(recherche.offre) : null;
 
   async function inscrire(e: React.FormEvent<HTMLFormElement>) {
@@ -104,6 +109,15 @@ function PageInscription() {
         </p>
       ) : null}
       <div className="space-y-4">
+        {boutonGoogleVisible(google) ? (
+          <button
+            type="button"
+            className={boutonAuth}
+            onClick={() => void authClient.signIn.social({ provider: "google", callbackURL: "/" })}
+          >
+            S&apos;inscrire avec Google
+          </button>
+        ) : null}
         <form className="space-y-4" onSubmit={(ev) => void inscrire(ev)}>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block">

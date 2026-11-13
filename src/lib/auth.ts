@@ -2,6 +2,7 @@ import { APIError, betterAuth } from "better-auth";
 import { createAuthMiddleware } from "better-auth/api";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { CADENCE_AUTH } from "@/lib/cadence-auth";
+import { assurerEspaceSiOrphelin } from "@/lib/espace-compte";
 import { envoyerMail } from "@/lib/mail";
 import { resoudreSecretAuth } from "@/lib/secret-auth";
 import { obtenirPool } from "@/lib/sql";
@@ -32,6 +33,9 @@ const origines = [
   "https://hublify-nexus.vercel.app",
 ].filter((x): x is string => Boolean(x));
 
+const googleId = process.env["GOOGLE_CLIENT_ID"]?.trim();
+const googleSecret = process.env["GOOGLE_CLIENT_SECRET"]?.trim();
+
 export const auth = betterAuth({
   appName: "Hublify",
   baseURL:
@@ -45,6 +49,16 @@ export const auth = betterAuth({
   }),
   database: obtenirPool(),
   trustedOrigins: origines,
+  ...(googleId && googleSecret
+    ? {
+        socialProviders: {
+          google: {
+            clientId: googleId,
+            clientSecret: googleSecret,
+          },
+        },
+      }
+    : {}),
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 10,
@@ -97,6 +111,27 @@ export const auth = betterAuth({
     customRules: {
       "/sign-in/email": CADENCE_AUTH.regles["/sign-in/email"],
       "/request-password-reset": CADENCE_AUTH.regles["/request-password-reset"],
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          // Le formulaire et le seed rattachent eux-mêmes l'organisation.
+          if (inscriptionsInternes > 0) return;
+          await assurerEspaceSiOrphelin(user.id);
+        },
+      },
+    },
+    session: {
+      create: {
+        after: async (session) => {
+          // Si la création du compte a échoué après l'écriture de l'utilisateur,
+          // la connexion suivante ouvre l'espace. Le formulaire interne est exclu.
+          if (inscriptionsInternes > 0) return;
+          await assurerEspaceSiOrphelin(session.userId);
+        },
+      },
     },
   },
   hooks: {
