@@ -151,17 +151,19 @@ export function FilConversation({
             </p>
           )}
         </div>
-        <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+        {/* Mobile : une seule ligne qui défile (cibles tactiles de 44 px conservées). */}
+        <div className="-mx-4 flex w-[calc(100%+2rem)] shrink-0 flex-nowrap items-center gap-2 overflow-x-auto overscroll-x-contain px-4 pb-0.5 sm:mx-0 sm:w-auto sm:flex-wrap sm:justify-end sm:overflow-visible sm:px-0 sm:pb-0 [&>*]:shrink-0">
           <button
             type="button"
             onClick={onBasculerArchives}
             className={cn(
-              "inline-flex h-11 items-center gap-1.5 rounded-card border px-3 text-xs md:h-[30px]",
+              "inline-flex h-11 items-center gap-1.5 whitespace-nowrap rounded-card border px-3 text-xs md:h-[30px]",
               archivesOuvertes ? "border-ink text-ink" : "border-line text-ink-subtle",
             )}
           >
             <Archive className="size-3" />
-            Messages archivés ({nbArchives})
+            <span className="sm:hidden">Archivés</span>
+            <span className="hidden sm:inline">Messages archivés</span> ({nbArchives})
           </button>
           <BoutonOutil
             label="Partager"
@@ -338,10 +340,10 @@ export function FilConversation({
             ))}
           </div>
         )}
-        <div className="flex items-end gap-2">
+        <div className="flex items-end gap-2 max-sm:flex-wrap">
           <button
             type="button"
-            className="flex size-11 shrink-0 items-center justify-center rounded-[14px] border border-line text-ink-body"
+            className="flex size-11 shrink-0 items-center justify-center rounded-[14px] border border-line text-ink-body max-sm:order-2"
             aria-label="Joindre un fichier"
             onClick={onJoindre}
           >
@@ -351,17 +353,17 @@ export function FilConversation({
             value={brouillon}
             onChange={(e) => onBrouillon(e.target.value)}
             placeholder="Écrire un message…"
-            className="h-11 min-w-0 flex-1 rounded-[14px] border border-line px-3 text-base text-ink outline-none placeholder:text-line-strong md:h-[34px] md:text-xs"
+            className="h-11 min-w-0 flex-1 rounded-[14px] border border-line px-3 text-base text-ink outline-none placeholder:text-line-strong max-sm:order-1 max-sm:basis-full md:h-[34px] md:text-xs"
           />
           <button
             type="submit"
             disabled={!peutEnvoyer}
-            className="flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-ink text-white disabled:opacity-40"
+            className="flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-ink text-white disabled:opacity-40 max-sm:order-4 max-sm:ml-auto"
             aria-label="Envoyer"
           >
             <Send className="size-3.5" />
           </button>
-          <div className="relative" ref={zoneModeles}>
+          <div className="relative max-sm:order-3" ref={zoneModeles}>
             <button
               type="button"
               className="flex size-11 shrink-0 items-center justify-center rounded-[14px] border border-line text-ink-body"
