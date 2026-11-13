@@ -553,6 +553,14 @@ async function lireImbriques(
   }
 }
 
+/**
+ * Les notifications se lisent du plus récent au plus ancien, comme `ajouterNotif` qui les
+ * insère en tête : les identifiants ne sont pas chronologiques (« formation-… », « n-loyer »).
+ */
+export function ordreDeListe(collection: CollectionMetier): string {
+  return collection === "notifications" ? "created_at desc, id desc" : "id";
+}
+
 export async function listerCollection(
   sql: Sql,
   collection: CollectionMetier,
@@ -579,7 +587,7 @@ export async function listerCollection(
 
   const lignes = (await sql.query(
     `select ${selection(collection)} from public.${table(collection)}
-      where org_id = $1::uuid order by id`,
+      where org_id = $1::uuid order by ${ordreDeListe(collection)}`,
     [orgId],
   )) as Ligne[];
   await lireImbriques(sql, orgId, lignes, collection);

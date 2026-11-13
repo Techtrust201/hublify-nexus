@@ -208,23 +208,21 @@ export function AppShell({
                   {session.notifications.length === 0 ? (
                     <p className="px-3 py-4 text-xs text-ink-subtle">Aucune notification.</p>
                   ) : (
-                    [...session.notifications]
-                      .slice(-8)
-                      .reverse()
-                      .map((n) => (
-                        <DropdownMenuItem
-                          key={n.id}
-                          asChild
-                          className="cursor-pointer items-start gap-2 py-2"
-                        >
-                          <a href={n.href}>
-                            <span>
-                              <span className="block text-xs text-ink">{n.titre}</span>
-                              <span className="block text-[11px] text-ink-muted">{n.detail}</span>
-                            </span>
-                          </a>
-                        </DropdownMenuItem>
-                      ))
+                    // La liste de session est triée du plus récent au plus ancien.
+                    session.notifications.slice(0, 8).map((n) => (
+                      <DropdownMenuItem
+                        key={n.id}
+                        asChild
+                        className="cursor-pointer items-start gap-2 py-2"
+                      >
+                        <a href={n.href}>
+                          <span>
+                            <span className="block text-xs text-ink">{n.titre}</span>
+                            <span className="block text-[11px] text-ink-muted">{n.detail}</span>
+                          </span>
+                        </a>
+                      </DropdownMenuItem>
+                    ))
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>

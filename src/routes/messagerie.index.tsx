@@ -15,6 +15,7 @@ function oublierJetonProposition(conversationId: string) {
   sessionStorage.removeItem(`hublify.proposition.${conversationId}`);
 }
 import { useEffect, useMemo, useRef, useState } from "react";
+import { creerVerrouEnvoi } from "@/lib/verrou-envoi";
 import { useAuth } from "@/auth/auth-context";
 import { AppShell } from "@/components/layout/AppShell";
 import { DialogNouveauMessage } from "@/components/messagerie/DialogNouveauMessage";
@@ -215,32 +216,39 @@ function PageMessagerie() {
     setFilMobileOuvert(true);
   };
 
+  const verrouEnvoi = useRef(creerVerrouEnvoi()).current;
+  const [envoiEnCours, setEnvoiEnCours] = useState(false);
   const envoyer = () => {
     const texte = brouillon.trim();
-    if ((!texte && piecesBrouillon.length === 0) || !actif) return;
+    if ((!texte && piecesBrouillon.length === 0) || !actif || verrouEnvoi.enCours()) return;
     const heure = heureMaintenant();
     const extrait = texte || piecesBrouillon.map((p) => p.nom).join(", ");
     const conversationId = actif.id;
     const pieces = piecesBrouillon;
-    void ajouterMessageFil({
-      id: idNouveau("m"),
-      conversationId,
-      kind: "envoye",
-      texte,
-      heure,
-      ...(pieces.length ? { pieces } : {}),
-    }).then((ok) => {
-      if (!ok) {
-        toastErreur("Le message n'a pas été enregistré.");
-        return;
-      }
-      setConversations((liste) =>
-        liste.map((c) => (c.id === conversationId ? { ...c, extrait, ilYa: "À l'instant" } : c)),
-      );
-      setBrouillon("");
-      setPiecesBrouillon([]);
-      toastOk("Message envoyé.");
-    });
+    setEnvoiEnCours(true);
+    void verrouEnvoi
+      .executer(async () => {
+        const ok = await ajouterMessageFil({
+          id: idNouveau("m"),
+          conversationId,
+          kind: "envoye",
+          texte,
+          heure,
+          ...(pieces.length ? { pieces } : {}),
+        });
+        if (!ok) {
+          toastErreur("Le message n'a pas été enregistré.");
+          return;
+        }
+        setConversations((liste) =>
+          liste.map((c) => (c.id === conversationId ? { ...c, extrait, ilYa: "À l'instant" } : c)),
+        );
+        // On n'efface que ce qui vient de partir : ce qui a été tapé ou joint pendant l'attente reste.
+        setBrouillon((courant) => (courant.trim() === texte ? "" : courant));
+        setPiecesBrouillon((courantes) => (courantes === pieces ? [] : courantes));
+        toastOk("Message envoyé.");
+      })
+      .finally(() => setEnvoiEnCours(false));
   };
 
   const docsLies = actif ? (actif.documents ?? DOCUMENTS_LIES[actif.id] ?? []) : [];
@@ -452,6 +460,7 @@ function PageMessagerie() {
             brouillon={brouillon}
             onBrouillon={setBrouillon}
             onEnvoyer={envoyer}
+            envoiEnCours={envoiEnCours}
             piecesBrouillon={piecesBrouillon}
             onJoindre={() =>
               choisirFichierComplet((fichier) =>
