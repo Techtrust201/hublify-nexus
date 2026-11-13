@@ -1,5 +1,6 @@
 import { getRequest } from "@tanstack/react-start/server";
 import { droitsEffectifs, labelDuRole, type AuthContexte, type RoleId } from "@/auth/permissions";
+import { accesBloque } from "@/lib/acces-membre";
 import { assurerEspaceSiOrphelin } from "@/lib/espace-compte";
 import { auth } from "@/lib/auth";
 import type { OrgType } from "@/lib/orgs";
@@ -11,6 +12,7 @@ type MembreRow = {
   initiales: string;
   affectation: string;
   role_id: RoleId;
+  statut: string;
   droits: string[] | null;
   org_id: string;
   org_type: OrgType;
@@ -25,6 +27,7 @@ async function lireMembre(sql: Sql, userId: string) {
       p.initiales,
       p.affectation,
       m.role_id,
+      m.statut,
       m.droits,
       o.id as org_id,
       o.type as org_type,
@@ -60,6 +63,8 @@ export async function sessionDepuisRequete(): Promise<AuthContexte | null> {
     }
     const ligne = rows[0];
     if (!ligne) return null;
+    // Invité non validé : pas de session exploitable, aucune donnée lue.
+    if (accesBloque(ligne.statut)) return null;
     const roleId = ligne.role_id;
     return {
       userId: session.user.id,
