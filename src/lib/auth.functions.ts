@@ -171,7 +171,10 @@ export const inviterMembre = createServerFn({ method: "POST" })
       );
     } catch (e) {
       const message = e instanceof Error ? e.message : "";
-      if (/duplicate|unique/i.test(message)) throw new Error("Cet e-mail a déjà un compte");
+      // Cas métier attendu (adresse déjà inscrite) : réponse gérée, pas une exception serveur.
+      if (/duplicate|unique/i.test(message)) {
+        return { ok: false as const, raison: "email-existant" as const };
+      }
       throw e;
     }
     await rattacherUtilisateur({

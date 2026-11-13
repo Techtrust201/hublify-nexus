@@ -543,7 +543,10 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
             const result = await inviterMembre({
               data: { prenom, nom, email, role, affectation, droits },
             });
-            if (!result.ok) throw new Error("Invitation refusée");
+            if (!result.ok) {
+              toastErreur("Cet e-mail a déjà un compte.");
+              return;
+            }
             ajouterNotif({
               titre: result.mailEnvoye ? "Invitation envoyée" : "Invitation créée",
               detail: `${prenom} ${nom}`,
