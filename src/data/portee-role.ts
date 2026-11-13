@@ -534,6 +534,12 @@ export function chaineExcessive(
   return false;
 }
 
+/** Lien loyer → séjour : un identifiant texte court, ou rien (null/absent). */
+function reservationIdValide(valeur: unknown) {
+  if (valeur === undefined || valeur === null) return true;
+  return typeof valeur === "string" && valeur.length > 0 && valeur.length <= 160;
+}
+
 export type PatchReduit =
   { ok: true; patch: Record<string, unknown> } | { ok: false; raison: "interdit" | "invalide" };
 
@@ -579,6 +585,9 @@ export function reduirePatch(
     const depart = typeof patch["depart"] === "string" ? patch["depart"] : "";
     if (arrivee && depart && depart <= arrivee) return { ok: false, raison: "invalide" };
   }
+  if (collection === "loyers" && !reservationIdValide(patch["reservationId"])) {
+    return { ok: false, raison: "invalide" };
+  }
   if (
     (acteur.roleId === "locataire" || acteur.roleId === "voyageur") &&
     collection === "dossiersLocation"
@@ -613,6 +622,7 @@ export function validerInsertion(
     const montant = item["montant"];
     if (typeof montant === "number" && (!Number.isFinite(montant) || montant < 0))
       return "invalide";
+    if (!reservationIdValide(item["reservationId"])) return "invalide";
   }
   return "ok";
 }

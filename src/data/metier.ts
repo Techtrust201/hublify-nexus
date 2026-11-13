@@ -91,6 +91,7 @@ const CHAMPS: Record<CollectionMetier, Champs> = {
     ["reference", "reference"],
     ["paye_le", "payeLe"],
     ["relance_auto", "relanceAuto"],
+    ["reservation_id", "reservationId"],
   ],
   evenements: [
     ["id", "id"],
@@ -926,6 +927,14 @@ export async function upsertLigne(
     maj.push(
       `org_prestataire_id = coalesce(excluded.org_prestataire_id, public.missions.org_prestataire_id)`,
     );
+  }
+  if (collection === "loyers") {
+    // Un client qui ignore le lien (état ancien, réensemencement) ne doit pas l'effacer.
+    const i = maj.findIndex((m) => m.startsWith('"reservation_id" ='));
+    if (i >= 0) {
+      maj[i] =
+        `"reservation_id" = coalesce(excluded."reservation_id", public.loyers."reservation_id")`;
+    }
   }
 
   await sql.query(

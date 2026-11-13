@@ -62,6 +62,8 @@ export type LoyerMo1 = {
   payeLe?: string;
   /** Relance automatique mail / SMS / lien. Persisté en base. */
   relanceAuto?: boolean;
+  /** Séjour (id de `reservations_dossier`) réglé par ce loyer, quand le lien est connu. */
+  reservationId?: string;
 };
 
 export type EvenementMo1 = {
