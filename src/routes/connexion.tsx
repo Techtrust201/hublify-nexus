@@ -5,7 +5,7 @@ import { SUPER_ADMINS, accueilPourRole } from "@/auth/permissions";
 import { boutonAuth, CadreAuth, champAuth, labelAuth } from "@/components/marque/CadreAuth";
 import { ChampMotDePasse } from "@/components/ui/champ-mot-de-passe";
 import { authClient } from "@/lib/auth-client";
-import { getSession } from "@/lib/auth.functions";
+import { getSession, googleAuthDisponible } from "@/lib/auth.functions";
 import { toastErreur, toastOk } from "@/lib/feedback";
 
 /**
@@ -46,9 +46,9 @@ const COMPTES_DEMO = [
   { email: "claire.lecture@hublify.app", role: "Lecture" },
 ];
 
-/** La connexion Google n'est pas branchée : le bouton reste hors de l'écran. */
-export function boutonGoogleVisible(): boolean {
-  return false;
+/** Le bouton n'existe que si le serveur confirme un fournisseur Google configuré. */
+export function boutonGoogleVisible(configure = false): boolean {
+  return configure === true;
 }
 
 /** Exposé pour les tests unitaires — ne lit jamais le mot de passe hors DEV. */
@@ -69,7 +69,11 @@ function PageConnexion() {
   // La page est servie par le serveur : jusqu'à l'hydratation, un clic partirait
   // en soumission native. Le bouton signale l'attente au lieu de perdre la saisie.
   const [pret, setPret] = useState(false);
+  const [google, setGoogle] = useState(false);
   useEffect(() => setPret(true), []);
+  useEffect(() => {
+    void googleAuthDisponible().then((res) => setGoogle(res.actif));
+  }, []);
 
   function remplirCompte(email: string) {
     if (!MODE_DEMO) return;
@@ -106,6 +110,15 @@ function PageConnexion() {
       description="Accédez à votre espace Hublify et reprenez là où vous vous êtes arrêté."
     >
       <div className="space-y-4">
+        {boutonGoogleVisible(google) ? (
+          <button
+            type="button"
+            className={boutonAuth}
+            onClick={() => void authClient.signIn.social({ provider: "google", callbackURL: "/" })}
+          >
+            Continuer avec Google
+          </button>
+        ) : null}
         <form className="space-y-4" onSubmit={(ev) => void connecter(ev)}>
           <label className="block">
             <span className={labelAuth}>Adresse e-mail</span>

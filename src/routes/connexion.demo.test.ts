@@ -8,6 +8,7 @@ import {
 describe("raccourcis démo connexion", () => {
   it("masque le bouton Google tant que le fournisseur n'est pas branché", () => {
     expect(boutonGoogleVisible()).toBe(false);
+    expect(boutonGoogleVisible(true)).toBe(true);
   });
 
   it("n'expose pas le panneau ni le mot de passe hors mode démo DEV", () => {

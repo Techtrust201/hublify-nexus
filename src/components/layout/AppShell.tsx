@@ -101,7 +101,7 @@ export function AppShell({
             accueil ? "bg-gest-zone" : "border-b border-gest-bordure bg-white/90 backdrop-blur-sm",
           )}
         >
-          <div className="flex min-h-[72px] items-center justify-between gap-4 py-3">
+          <div className="flex min-h-[72px] min-w-0 items-center justify-between gap-2 py-3 sm:gap-4">
             <div className="flex min-w-0 items-center gap-3">
               <button
                 ref={hamburgerRef}
@@ -132,7 +132,7 @@ export function AppShell({
               )}
               {retourPlanning && <RetourVueGenerale className="shrink-0" />}
             </div>
-            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
               {actions ? <div className="flex shrink-0 items-center">{actions}</div> : null}
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger className="inline-flex h-9 shrink-0 items-center gap-1 rounded-gest-outils bg-gest-outils px-4 font-sans text-sm font-medium text-ink outline-none">
@@ -227,15 +227,15 @@ export function AppShell({
               </DropdownMenu>
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger
-                  className="inline-flex min-h-10 flex-col items-start justify-center rounded-full px-1 text-left outline-none"
+                  className="inline-flex size-11 shrink-0 items-center justify-center rounded-full outline-none sm:h-auto sm:w-auto sm:min-h-10 sm:flex-col sm:items-start sm:px-1"
                   aria-label="Compte gestionnaire"
                 >
-                  <span className="text-[11px] leading-none text-ink-muted">
+                  <span className="hidden text-[11px] leading-none text-ink-muted sm:block">
                     Compte gestionnaire
                   </span>
-                  <span className="mt-1 inline-flex items-center gap-1.5 text-sm text-ink">
+                  <span className="inline-flex items-center gap-1.5 text-sm text-ink sm:mt-1">
                     <span className="size-2.5 shrink-0 rounded-full bg-[#b9fbbd]" aria-hidden />
-                    <span className="max-w-[9rem] truncate">
+                    <span className="hidden max-w-[9rem] truncate sm:inline">
                       {auth ? `${auth.prenom} ${auth.nom}` : "Compte"}
                     </span>
                     <ChevronDown className="size-3.5 shrink-0 text-ink-muted" />
@@ -309,7 +309,7 @@ export function AppShell({
 
         <main
           id="contenu-principal"
-          className="espace-gestionnaire flex-1 p-4 pb-[calc(4.75rem+env(safe-area-inset-bottom))] lg:p-6 lg:pb-6"
+          className="espace-gestionnaire min-w-0 flex-1 p-4 pb-[calc(4.75rem+env(safe-area-inset-bottom))] lg:p-6 lg:pb-6"
         >
           {attendDonnees && !chargee ? (
             <CorpsEnAttente />

@@ -145,8 +145,8 @@ export function CalendrierPortail() {
                 type="button"
                 disabled={!jour}
                 onClick={() => jour && setJourChoisi(date)}
-                className={`mx-auto grid h-11 w-10 place-items-center text-base font-semibold text-[var(--portail-encre)] ${
-                  choisi ? "animate-pulse rounded-lg ring-4 ring-[#5591A9]" : ""
+                className={`mx-auto grid h-11 w-10 place-items-center text-base font-semibold text-black ${
+                  choisi ? "rounded-lg ring-2 ring-[#5591A9]" : ""
                 } ${marque && !choisi ? "underline decoration-2 underline-offset-4 decoration-[var(--portail-corail)]" : ""}`}
               >
                 {jour}

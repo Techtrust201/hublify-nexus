@@ -118,7 +118,7 @@ test.describe("portails", () => {
     await page.goto("/espace");
     await demarrerPortail(page);
     await expect(page.getByRole("heading", { name: /Bonjour/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Let's Start" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Commencer" })).toHaveCount(0);
     await page.getByRole("link", { name: "Agenda" }).click();
     await expect(page.getByRole("heading", { name: "Calendrier" })).toBeVisible();
     expect(await debordement(page)).toBeLessThanOrEqual(1);
