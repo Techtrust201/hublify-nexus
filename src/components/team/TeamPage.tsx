@@ -29,7 +29,12 @@ import {
   useSession,
 } from "@/data/session";
 import { toastErreur, toastOk } from "@/lib/feedback";
-import { enregistrerDroitsMembre, inviterMembre, retirerMembre } from "@/lib/auth.functions";
+import {
+  approuverMembre,
+  enregistrerDroitsMembre,
+  inviterMembre,
+  retirerMembre,
+} from "@/lib/auth.functions";
 import { cn } from "@/lib/utils";
 import { DROITS_CATALOGUE } from "@/auth/permissions";
 import { CarteMessage } from "./CarteMessage";
@@ -168,6 +173,24 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
                       <Mail className="size-2.5" />
                       Envoyer un message
                     </button>
+                    {!m.protege && m.statut === "attente" && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await approuverMembre({ data: { userId: m.id } });
+                            toastOk(`Accès validé pour ${m.prenom}.`);
+                            await router.invalidate();
+                          } catch {
+                            toastErreur("Impossible de valider cet accès.");
+                          }
+                        }}
+                        className="inline-flex h-11 items-center gap-1.5 rounded-card border border-line-strong px-3 text-sm font-medium text-ink md:h-[30px] md:text-xs"
+                      >
+                        <Check className="size-2.5" />
+                        Valider l'accès
+                      </button>
+                    )}
                     {!m.protege && (
                       <>
                         <button
@@ -208,7 +231,7 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
                       <p className="text-sm text-ink">Actions en cours</p>
                       <p className="mt-1 text-xs text-ink-muted">
                         {m.statut === "attente"
-                          ? "Invitation en attente"
+                          ? "Accès en attente de validation"
                           : "Invitations et tâches liées à ce membre"}
                       </p>
                       <ul className="mt-2 space-y-1 text-xs text-ink-body">
@@ -554,8 +577,8 @@ export function TeamPage({ membres }: { membres: MembreEquipe[] }) {
             });
             toastOk(
               result.mailEnvoye
-                ? "Invitation envoyée par e-mail."
-                : "Membre ajouté. L'e-mail partira dès que le service d'envoi sera configuré.",
+                ? "Invitation envoyée par e-mail. L'accès s'ouvre après « Valider l'accès »."
+                : "Membre ajouté. L'e-mail partira dès que le service d'envoi sera configuré ; l'accès s'ouvre après « Valider l'accès ».",
             );
             await router.invalidate();
           } catch {

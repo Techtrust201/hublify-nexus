@@ -165,8 +165,9 @@ export const inviterMembre = createServerFn({ method: "POST" })
         [userId, nomComplet, data.email],
       );
       await sql.query(
-        `insert into account (id, "accountId", "providerId", "userId", password, "createdAt", "updatedAt")
-         values ($1::uuid, $2, 'credential', $1::uuid, $3, now(), now())`,
+        // `issuer` est exigé par Better Auth à la connexion : sans lui, le compte invité ne peut jamais se connecter.
+        `insert into account (id, "accountId", "providerId", "userId", password, issuer, "createdAt", "updatedAt")
+         values ($1::uuid, $2, 'credential', $1::uuid, $3, 'local:credential', now(), now())`,
         [userId, userId, hash],
       );
     } catch (e) {
@@ -196,10 +197,44 @@ export const inviterMembre = createServerFn({ method: "POST" })
 <p>Connexion : <a href="${base}/connexion">${base}/connexion</a></p>
 <p>E-mail : ${data.email}</p>
 <p>Mot de passe temporaire : <code>${motDePasse}</code></p>
-<p>Changez-le après votre première connexion.</p>`,
+<p>Votre accès s'ouvre dès qu'un administrateur de ${moi.orgNom} l'a validé : tant que ce n'est pas fait, la connexion est refusée.</p>
+<p>Changez ce mot de passe après votre première connexion.</p>`,
       sensible: true,
     });
     return { ok: true as const, email: data.email, mailEnvoye };
+  });
+
+export const approuverMembre = createServerFn({ method: "POST" })
+  .validator((input: { userId: string }) => input)
+  .handler(async ({ data }) => {
+    const moi = await sessionDepuisRequete();
+    if (!moi || !aLeDroit(moi.droits, "gerer-equipe")) {
+      throw new Error("Droits insuffisants");
+    }
+    const sql = getSql();
+    if (!sql) throw new Error("Base indisponible");
+    // Uniquement un membre de MON organisation, encore en attente.
+    const maj = (await sql`
+      update public.org_membres
+      set statut = 'actif'
+      where org_id = ${moi.orgId}::uuid and user_id = ${data.userId}::uuid and statut = 'attente'
+      returning user_id
+    `) as { user_id: string }[];
+    if (!maj[0]) throw new Error("Membre introuvable ou déjà validé");
+    await sql`update public.profils set statut = 'actif' where user_id = ${data.userId}::uuid`;
+    const comptes = (await sql`select email from "user" where id = ${data.userId}::uuid`) as {
+      email: string;
+    }[];
+    const base = process.env["BETTER_AUTH_URL"] ?? "http://localhost:8080";
+    if (comptes[0]?.email) {
+      await envoyerMail({
+        a: comptes[0].email,
+        sujet: `Votre accès Hublify — ${moi.orgNom}`,
+        html: `<p>Un administrateur de <strong>${moi.orgNom}</strong> a validé votre accès.</p>
+<p>Connexion : <a href="${base}/connexion">${base}/connexion</a></p>`,
+      });
+    }
+    return { ok: true as const };
   });
 
 export const retirerMembre = createServerFn({ method: "POST" })

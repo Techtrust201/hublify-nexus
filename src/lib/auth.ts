@@ -1,11 +1,12 @@
 import { APIError, betterAuth } from "better-auth";
 import { createAuthMiddleware } from "better-auth/api";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
+import { MESSAGE_ACCES_EN_ATTENTE, membreEnAttente } from "@/lib/acces-membre";
 import { CADENCE_AUTH } from "@/lib/cadence-auth";
 import { assurerEspaceSiOrphelin } from "@/lib/espace-compte";
 import { envoyerMail } from "@/lib/mail";
 import { resoudreSecretAuth } from "@/lib/secret-auth";
-import { obtenirPool } from "@/lib/sql";
+import { getSql, obtenirPool } from "@/lib/sql";
 
 let inscriptionsInternes = 0;
 
@@ -125,6 +126,13 @@ export const auth = betterAuth({
     },
     session: {
       create: {
+        before: async (session) => {
+          // Compte invité non validé : pas de session, donc pas de connexion (e-mail ou Google).
+          const sql = getSql();
+          if (sql && (await membreEnAttente(sql, session.userId))) {
+            throw new APIError("FORBIDDEN", { message: MESSAGE_ACCES_EN_ATTENTE });
+          }
+        },
         after: async (session) => {
           // Si la création du compte a échoué après l'écriture de l'utilisateur,
           // la connexion suivante ouvre l'espace. Le formulaire interne est exclu.
