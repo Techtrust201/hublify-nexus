@@ -20,6 +20,48 @@ async function capturer(sql: Sql, mail: Mail) {
   `;
 }
 
+export const EXPEDITEUR_PAR_DEFAUT = "Hublify <noreply@tech-trust.fr>";
+export const REPONSE_PAR_DEFAUT = "contact@tech-trust.fr";
+
+type Env = Record<string, string | undefined>;
+
+const ADRESSE = /^[^\s@<>",;]+@[^\s@<>",;]+\.[^\s@<>",;]+$/;
+const EXPEDITEUR_NOMME = /^[^<>"\r\n]{1,80} <([^\s@<>",;]+@[^\s@<>",;]+\.[^\s@<>",;]+)>$/;
+
+function expediteurValide(valeur: string) {
+  return ADRESSE.test(valeur) || EXPEDITEUR_NOMME.test(valeur);
+}
+
+/**
+ * Expéditeur et adresse de réponse. Une valeur vide ou mal formée retombe sur le
+ * défaut : un `from` invalide ferait refuser chaque envoi par Resend, et un
+ * `reply_to` cassé enverrait les réponses dans le vide.
+ * `MAIL_REPLY_TO=aucune` désactive explicitement l'adresse de réponse.
+ */
+export function parametresEnvoi(env: Env = process.env) {
+  const from = env["MAIL_FROM"]?.trim();
+  const reponse = env["MAIL_REPLY_TO"]?.trim();
+  let replyTo: string | undefined = REPONSE_PAR_DEFAUT;
+  if (reponse?.toLowerCase() === "aucune") replyTo = undefined;
+  else if (reponse && ADRESSE.test(reponse)) replyTo = reponse;
+  return {
+    from: from && expediteurValide(from) ? from : EXPEDITEUR_PAR_DEFAUT,
+    replyTo,
+  };
+}
+
+/** Corps exact envoyé à l'API Resend (testé sans réseau). */
+export function corpsResend(mail: Mail, env: Env = process.env) {
+  const { from, replyTo } = parametresEnvoi(env);
+  return {
+    from,
+    to: [mail.a],
+    subject: mail.sujet,
+    html: mail.html,
+    ...(replyTo ? { reply_to: [replyTo] } : {}),
+  };
+}
+
 async function viaResend(mail: Mail) {
   const cle = process.env["RESEND_API_KEY"];
   if (!cle) return false;
@@ -29,12 +71,7 @@ async function viaResend(mail: Mail) {
       Authorization: `Bearer ${cle}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      from: process.env["MAIL_FROM"] ?? "Hublify <noreply@hublify.app>",
-      to: [mail.a],
-      subject: mail.sujet,
-      html: mail.html,
-    }),
+    body: JSON.stringify(corpsResend(mail)),
   });
   return reponse.ok;
 }
