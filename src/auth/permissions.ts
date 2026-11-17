@@ -87,7 +87,7 @@ export const SUPER_ADMINS = [
   },
   {
     email: "sasgilbois@gmail.com",
-    prenom: "Viktor",
+    prenom: "Victor",
     nom: "Dubois",
     affectation: "Commercial",
   },
