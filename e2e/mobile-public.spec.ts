@@ -88,6 +88,8 @@ test.describe("pages publiques", () => {
     const inscrire = page.getByRole("button", { name: "S'inscrire à la liste" });
     await expect(inscrire).toBeEnabled();
     await page.locator("#liste-bailleurs").fill(email);
+    // Délai minimal anti-robot (DELAI_MINIMAL_MS) : un envoi immédiat est ignoré.
+    await page.waitForTimeout(2200);
     await inscrire.click();
     await expect(page.getByText("Inscription enregistrée")).toBeVisible();
     await page.reload();
@@ -97,6 +99,24 @@ test.describe("pages publiques", () => {
     expect(mails.ok()).toBeTruthy();
     const corps = (await mails.json()) as { mails: unknown[] };
     expect(corps.mails.length).toBeGreaterThan(0);
+  });
+
+  test("liste bailleurs : le champ piège n'archive rien", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const email = `piege.${Date.now().toString(36)}@exemple.test`;
+    await page.goto("/");
+    const inscrire = page.getByRole("button", { name: "S'inscrire à la liste" });
+    await expect(inscrire).toBeEnabled();
+    await page.locator("#liste-bailleurs").fill(email);
+    await page.locator("#liste-bailleurs-site").fill("https://spam.exemple.test", { force: true });
+    await page.waitForTimeout(2200);
+    await inscrire.click();
+    await expect(page.getByText("Inscription enregistrée")).toBeVisible();
+    const mails = await page.request.get(
+      `/api/test/mails?destinataire=${encodeURIComponent(email)}`,
+    );
+    const corps = (await mails.json()) as { mails: unknown[] };
+    expect(corps.mails).toHaveLength(0);
   });
 
   test("mot de passe oublié confirme l'envoi", async ({ page }) => {

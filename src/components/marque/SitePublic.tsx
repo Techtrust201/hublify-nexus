@@ -1,8 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Menu, X } from "lucide-react";
 import { Logo } from "@/components/marque/Logo";
 import { inscrireListeBailleurs } from "@/lib/liste-bailleurs.functions";
+import { CLE_SITE_TURNSTILE } from "@/components/marque/cle-turnstile";
+import { WidgetTurnstile } from "@/components/marque/WidgetTurnstile";
 
 const LIENS = [
   { href: "/#produit", label: "Produit" },
@@ -15,17 +17,32 @@ export function SitePublic({ children }: { children: ReactNode }) {
   const [ouvert, setOuvert] = useState(false);
   const [liste, setListe] = useState<"attente" | "envoye" | "enregistre" | "erreur">("attente");
   const [enCours, setEnCours] = useState(false);
+  const [messageErreur, setMessageErreur] = useState("Indiquez une adresse e-mail valide.");
   const [pret, setPret] = useState(false);
-  useEffect(() => setPret(true), []);
+  const ouvertLe = useRef(0);
+  const [jeton, setJeton] = useState<string | undefined>();
+  const recevoirJeton = useCallback((j: string | undefined) => setJeton(j), []);
+  useEffect(() => {
+    ouvertLe.current = Date.now();
+    setPret(true);
+  }, []);
 
   async function inscrireListe(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const email = String(new FormData(e.currentTarget).get("email") ?? "");
+    const formulaire = new FormData(e.currentTarget);
+    const email = String(formulaire.get("email") ?? "");
+    const site = String(formulaire.get("site") ?? "");
     setEnCours(true);
     try {
-      const res = await inscrireListeBailleurs({ data: { email } });
+      const res = await inscrireListeBailleurs({
+        data: { email, site, ouvertLe: ouvertLe.current, ...(jeton ? { jeton } : {}) },
+      });
       setListe(res.envoye ? "envoye" : "enregistre");
-    } catch {
+    } catch (erreur) {
+      const message = erreur instanceof Error ? erreur.message : "";
+      setMessageErreur(
+        /tentatives|anti-robot/i.test(message) ? message : "Indiquez une adresse e-mail valide.",
+      );
       setListe("erreur");
     } finally {
       setEnCours(false);
@@ -164,6 +181,17 @@ export function SitePublic({ children }: { children: ReactNode }) {
             <p className="mt-1 text-xs text-v1-ink-muted">
               Un conseil utile par mois. Aucun bruit.
             </p>
+            {/* Champ piège : invisible et hors tabulation ; un humain ne le remplit pas. */}
+            <div aria-hidden="true" className="absolute -left-[10000px] h-px w-px overflow-hidden">
+              <label htmlFor="liste-bailleurs-site">Site web (laisser vide)</label>
+              <input
+                id="liste-bailleurs-site"
+                name="site"
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+              />
+            </div>
             <div className="mt-3 flex gap-2">
               <label className="sr-only" htmlFor="liste-bailleurs">
                 Adresse e-mail
@@ -179,13 +207,14 @@ export function SitePublic({ children }: { children: ReactNode }) {
               />
               <button
                 type="submit"
-                disabled={!pret || enCours}
+                disabled={!pret || enCours || (Boolean(CLE_SITE_TURNSTILE) && !jeton)}
                 className="inline-flex size-11 items-center justify-center rounded-lg bg-v1-brand text-white disabled:opacity-60"
                 aria-label="S'inscrire à la liste"
               >
                 →
               </button>
             </div>
+            <WidgetTurnstile onJeton={recevoirJeton} />
             {liste === "envoye" ? (
               <p className="mt-2 text-xs text-v1-ink-body" role="status">
                 Inscription enregistrée. Un e-mail de confirmation vient de partir.
@@ -199,7 +228,7 @@ export function SitePublic({ children }: { children: ReactNode }) {
             ) : null}
             {liste === "erreur" ? (
               <p className="mt-2 text-xs text-v1-ink" role="alert">
-                Indiquez une adresse e-mail valide.
+                {messageErreur}
               </p>
             ) : null}
           </form>
