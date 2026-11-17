@@ -1,41 +1,34 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
-import { autoriserCadence, cleAdresse } from "@/lib/cadence-memoire";
+import { consommerQuotas } from "@/lib/cadence-persistante";
+import { cleAdresse } from "@/lib/cadence-memoire";
+import { traiterInscription, validerEntreeListe } from "@/lib/liste-bailleurs";
 import { envoyerMail } from "@/lib/mail";
+import { getSql } from "@/lib/sql";
+import { verifierTurnstile } from "@/lib/turnstile";
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export { adresseListeValide } from "@/lib/liste-bailleurs";
 
-export function adresseListeValide(valeur: unknown) {
-  const email = String(valeur ?? "")
-    .trim()
-    .toLowerCase();
-  if (!EMAIL.test(email) || email.length > 160) return null;
-  return email;
+function entetesRequete() {
+  try {
+    return getRequest().headers;
+  } catch {
+    return new Headers();
+  }
 }
 
 /** Inscription publique à la liste des bailleurs. L'adresse est archivée avec les autres mails. */
 export const inscrireListeBailleurs = createServerFn({ method: "POST" })
-  .validator((input: { email?: string }) => {
-    const email = adresseListeValide(input?.email);
-    if (!email) throw new Error("Adresse e-mail invalide.");
-    return { email };
-  })
+  .validator((input: unknown) => validerEntreeListe(input))
   .handler(async ({ data }) => {
-    let autorise = true;
-    try {
-      autorise = autoriserCadence(
-        cleAdresse("liste-bailleurs", getRequest().headers),
-        5,
-        60 * 60 * 1000,
-      );
-    } catch {
-      autorise = autoriserCadence("liste-bailleurs:hors-requete", 5, 60 * 60 * 1000);
-    }
-    if (!autorise) throw new Error("Trop de tentatives. Réessayez plus tard.");
-    const envoye = await envoyerMail({
-      a: data.email,
-      sujet: "Hublify — inscription à la liste des bailleurs",
-      html: `<p>Votre adresse ${data.email} est inscrite à la liste des bailleurs Hublify.</p>`,
+    const entetes = entetesRequete();
+    const cleIp = cleAdresse("liste-bailleurs:ip", entetes);
+    const ip = cleIp.slice("liste-bailleurs:ip:".length);
+    return traiterInscription(data, cleIp, {
+      maintenant: Date.now,
+      consommer: (quotas) => consommerQuotas(getSql(), quotas),
+      verifierCaptcha: (jeton) =>
+        verifierTurnstile(jeton, ip === "sans-ip-de-confiance" ? undefined : ip),
+      envoyer: envoyerMail,
     });
-    return { ok: true as const, envoye };
   });
