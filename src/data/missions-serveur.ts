@@ -214,7 +214,8 @@ export async function apercuTarifMission(
       : null;
   const fiche =
     porteur === "prestataire" ? trouverPrestataire(entree.assigne, ctx.prestataires) : null;
-  // Même ordre que l'enregistrement : à la charge du mandataire, la grille de l'org d'abord.
+  // Même ordre que l'enregistrement : à la charge du mandataire ou sans payeur précisé,
+  // la grille de l'org d'abord.
   const attribution =
     entree.attribution === "mandataire" ||
     entree.attribution === "proprietaire" ||
