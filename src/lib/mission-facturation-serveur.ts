@@ -282,3 +282,41 @@ export function nomAffichePourAssigne(
   const fiche = prestataires.find((p) => p.email && normaliser(p.email) === cle);
   return fiche ? fiche.nom : assigne;
 }
+
+/** Clé du barème fixe (R5) pour un type de mission. */
+const CLE_BAREME: Record<
+  TypeMission,
+  "Menage" | "Check-in" | "Check-out" | "Maintenance" | "Etat des lieux"
+> = {
+  Menage: "Menage",
+  "Check-in": "Check-in",
+  "Check-out": "Check-out",
+  Inventaire: "Etat des lieux",
+  Maintenance: "Maintenance",
+};
+
+export type OrigineTarif = "modifie" | "prestataire" | "grille_org" | "bareme" | "aucun";
+
+/**
+ * Ce que la fenêtre affiche comme « Tarif facturé de la prestation ». Affichage seulement :
+ * le tarif automatique n'est jamais recopié dans la méta, seul un tarif saisi à la main
+ * y est écrit (comme avant).
+ */
+export function tarifAffiche(options: {
+  manuelEuros: number | null;
+  auto: { centimes: number; source: SourceTarif } | null;
+  type: string;
+  porteur: Porteur | null;
+  bareme: Readonly<Record<string, number>>;
+}): { centimes: number | null; origine: OrigineTarif } {
+  if (options.porteur === "proprietaire") return { centimes: null, origine: "aucun" };
+  if (options.manuelEuros != null && Number.isFinite(options.manuelEuros)) {
+    return { centimes: Math.round(options.manuelEuros * 100), origine: "modifie" };
+  }
+  if (options.auto) return { centimes: options.auto.centimes, origine: options.auto.source };
+  const cle = TYPES.has(options.type) ? CLE_BAREME[options.type as TypeMission] : "Maintenance";
+  const bareme = options.bareme[cle];
+  return bareme == null
+    ? { centimes: null, origine: "aucun" }
+    : { centimes: bareme, origine: "bareme" };
+}

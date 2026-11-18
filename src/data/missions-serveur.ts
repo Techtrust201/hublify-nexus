@@ -3,6 +3,8 @@ import {
   changeLaFacturation,
   nomAffichePourAssigne,
   preparerMission,
+  tarifAutomatique,
+  trouverPrestataire,
   type ContexteFacturation,
   type FichePrestataire,
   type MissionEntree,
@@ -194,4 +196,31 @@ export function missionsPourGestionnaire<T extends { assigne?: unknown }>(
       ? { ...m, assigne: nomAffichePourAssigne(m.assigne, fiches) }
       : m,
   );
+}
+
+/** Tarif automatique d'une mission en cours de saisie (lecture seule, rien n'est écrit). */
+export async function apercuTarifMission(
+  sql: Sql,
+  orgId: string,
+  entree: { type: string; assigne: string; porteur: string | null; attribution?: string | null },
+): Promise<{ centimes: number; source: "prestataire" | "grille_org" } | null> {
+  if (!(await schemaFacturationPret(sql))) return null;
+  const ctx = await chargerContexteFacturation(sql, orgId);
+  const porteur =
+    entree.porteur === "prestataire" ||
+    entree.porteur === "teammate" ||
+    entree.porteur === "proprietaire"
+      ? entree.porteur
+      : null;
+  const fiche =
+    porteur === "prestataire" ? trouverPrestataire(entree.assigne, ctx.prestataires) : null;
+  // Même ordre que l'enregistrement : à la charge du mandataire ou sans payeur précisé,
+  // la grille de l'org d'abord.
+  const attribution =
+    entree.attribution === "mandataire" ||
+    entree.attribution === "proprietaire" ||
+    entree.attribution === "locataire"
+      ? entree.attribution
+      : null;
+  return tarifAutomatique(entree.type, fiche?.id ?? null, porteur, ctx, attribution);
 }

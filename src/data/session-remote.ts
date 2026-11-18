@@ -6,6 +6,7 @@ import {
   estPayloadValide,
   insererEntite,
   lireAcces,
+  lireApercuTarif,
   lireEtat,
   modifierEntite,
   type AccesLieu,
@@ -90,3 +91,14 @@ export const sauverAccesLieu = createServerFn({ method: "POST" })
     } satisfies AccesLieu;
   })
   .handler(({ data }) => enregistrerAcces(deps, data));
+
+export const apercuTarifMissionDistant = createServerFn({ method: "POST" })
+  .validator(
+    (input: { type?: unknown; assigne?: unknown; porteur?: unknown; attribution?: unknown }) => ({
+      type: typeof input?.type === "string" ? input.type.slice(0, 40) : "",
+      assigne: typeof input?.assigne === "string" ? input.assigne.slice(0, 200) : "",
+      porteur: typeof input?.porteur === "string" ? input.porteur.slice(0, 20) : null,
+      attribution: typeof input?.attribution === "string" ? input.attribution.slice(0, 20) : null,
+    }),
+  )
+  .handler(({ data }) => lireApercuTarif(deps, data));

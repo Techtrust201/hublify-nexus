@@ -32,6 +32,7 @@ import {
 import type { Sql } from "@/lib/sql";
 import type { OrgType } from "@/lib/orgs";
 import {
+  apercuTarifMission,
   CHAMPS_DECLENCHEURS,
   chargerContexteFacturation,
   controlerMission,
@@ -86,7 +87,9 @@ async function idsBiensDeLOrg(
   for (const bien of biensDuPatch ?? []) {
     if (bien?.id) ids.add(bien.id);
   }
-  const rows = (await sql.query(`select id from public.biens where org_id = $1::uuid`, [orgId])) as {
+  const rows = (await sql.query(`select id from public.biens where org_id = $1::uuid`, [
+    orgId,
+  ])) as {
     id?: string;
   }[];
   for (const row of rows ?? []) {
@@ -540,3 +543,22 @@ export async function enregistrerAcces(deps: DepsEtat, acces: AccesLieu): Promis
 }
 
 export type { AccesLieu, OrgSession, OrgType, RoleId };
+
+export type ApercuTarif =
+  | { ok: true; tarif: { centimes: number; source: "prestataire" | "grille_org" } | null }
+  | { ok: false; raison: RaisonEchec };
+
+/** Tarif automatique affiché dans la fenêtre « Créer une Mission ». Lecture seule. */
+export async function lireApercuTarif(
+  deps: DepsEtat,
+  entree: { type: string; assigne: string; porteur: string | null; attribution?: string | null },
+): Promise<ApercuTarif> {
+  const org = await deps.sessionOrg();
+  if (!org) return { ok: false, raison: "non_authentifie" };
+  if (estRolePortail(org.roleId) || !peutInsererCollection(org, "missions")) {
+    return { ok: false, raison: "interdit" };
+  }
+  const sql = deps.sql();
+  if (!sql) return { ok: false, raison: "non_configure" };
+  return { ok: true, tarif: await apercuTarifMission(sql, org.orgId, entree) };
+}
