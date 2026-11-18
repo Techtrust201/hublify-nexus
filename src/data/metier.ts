@@ -13,6 +13,7 @@ import {
   type EtatSession,
 } from "@/data/etat-session";
 import { fusionnerParametrage, type ParametrageSession } from "@/data/parametrage-mo1";
+import { missionsPourGestionnaire } from "@/data/missions-serveur";
 import type { Sql } from "@/lib/sql";
 import type { OrgType } from "@/lib/orgs";
 
@@ -746,6 +747,9 @@ export async function assemblerEtat(sql: Sql, org: OrgSession): Promise<EtatSess
   for (const cle of COLLECTIONS_METIER) {
     (etat[cle] as unknown[]) = await listerCollection(sql, cle, org.orgId);
   }
+  // La base porte l'e-mail du prestataire dans `assigne` (filtre du portail) ; l'écran
+  // gestionnaire, ses regroupements et ses factures attendent le nom de la fiche.
+  etat.missions = missionsPourGestionnaire(etat.missions, etat.prestataires);
   etat.parametrage = await lireParametrage(sql, org.orgId);
   return filtrerEtatPortail(etat, org);
 }
