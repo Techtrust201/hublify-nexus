@@ -5,8 +5,10 @@ import {
   ecrireParametrage,
   lireAccesLieux,
   lireLigne,
+  lireMissionsPrestataire,
   majLigneVisible,
   orgCibleEcriture,
+  prestataireMalRattache,
   remplacerCollection,
   upsertLigne,
   type AccesLieu,
@@ -304,6 +306,12 @@ export async function modifierEntite(
       return { ok: false, raison: "invalide" };
     }
   }
+  // Un prestataire ne change que le statut des missions qui lui sont attribuées,
+  // pas celles d'un collègue ni d'une organisation à laquelle il n'est pas rattaché.
+  if (org.roleId === "prestataire" && collection === "missions") {
+    const miennes = await lireMissionsPrestataire(sql, org);
+    if (!miennes.some((m) => m["id"] === id)) return { ok: false, raison: "introuvable" };
+  }
   const orgMaj =
     collection === "missions"
       ? org
@@ -400,13 +408,13 @@ async function idsBiensPourSecrets(sql: Sql, org: OrgSession): Promise<string[] 
   if (!estRolePortail(org.roleId)) {
     return aLeDroit(org.droits, "mod-biens") ? null : [];
   }
+  if (prestataireMalRattache(org)) return [];
   if (org.roleId === "prestataire" || org.orgType === "prestataire") {
-    const rows = (await sql.query(
-      `select distinct bien_id as id from public.missions
-        where org_prestataire_id = $1::uuid and bien_id is not null`,
-      [org.orgId],
-    )) as { id: string }[];
-    return rows.map((r) => r.id);
+    // Mêmes missions que celles envoyées à l'écran : un prestataire ne reçoit
+    // le code que des logements de ses propres missions.
+    const missions = await lireMissionsPrestataire(sql, org);
+    const ids = missions.map((m) => String(m["bienId"] ?? "")).filter((id) => id !== "");
+    return [...new Set(ids)];
   }
   if (org.roleId === "proprietaire") {
     const rows = (await sql.query(
@@ -438,6 +446,7 @@ export async function lireAcces(
 ): Promise<{ ok: true; acces: AccesLieu[] } | { ok: false; raison: RaisonEchec }> {
   const org = await deps.sessionOrg();
   if (!org) return { ok: false, raison: "non_authentifie" };
+  if (prestataireMalRattache(org)) return { ok: true, acces: [] };
   const prestataire = org.roleId === "prestataire" || org.orgType === "prestataire";
   if (!prestataire && !aLeDroit(org.droits, "voir-biens") && !estRolePortail(org.roleId)) {
     return { ok: false, raison: "interdit" };

@@ -629,17 +629,66 @@ export async function lireParametrage(sql: Sql, orgId: string): Promise<Parametr
   return fusionnerParametrage(upsells.length > 0 ? { ...base, upsells } : base);
 }
 
+/**
+ * Un compte au rôle « prestataire » n'a de sens que dans une organisation de type
+ * prestataire. Rattaché à une organisation gestionnaire, il n'a droit à rien :
+ * il ne doit jamais hériter du parc de cette organisation.
+ */
+export function prestataireMalRattache(org: Pick<OrgSession, "roleId" | "orgType">) {
+  return org.roleId === "prestataire" && org.orgType !== "prestataire";
+}
+
+/** Nombre de comptes prestataires actifs de l'organisation (les invités en attente ne comptent pas). */
+async function nombrePrestatairesActifs(sql: Sql, orgId: string): Promise<number> {
+  const lignes = (await sql.query(
+    `select count(*)::int as n from public.org_membres
+      where org_id = $1::uuid and role_id = 'prestataire' and statut <> 'attente'`,
+    [orgId],
+  )) as { n: number | string }[];
+  return Number(lignes[0]?.n ?? 0);
+}
+
+/**
+ * Missions qu'un compte reçoit depuis une organisation prestataire.
+ *
+ * - Un compte au rôle prestataire ne reçoit que les missions qui lui sont
+ *   attribuées : `assigne` est l'e-mail du compte (même critère que les fils de
+ *   messagerie). Un nom, un nom vide ou un morceau de nom ne donnent jamais accès.
+ * - Exception : quand le compte est le seul prestataire de son organisation, il
+ *   n'y a personne d'autre à qui cacher les missions de l'organisation. C'est le
+ *   cas du compte de démo, dont la mission porte un nom et non un e-mail.
+ * - Les autres rôles de l'organisation (gestion, administration) gardent toute
+ *   l'organisation, comme avant.
+ */
+export async function lireMissionsPrestataire(sql: Sql, org: OrgSession): Promise<Ligne[]> {
+  if (prestataireMalRattache(org)) return [];
+  const lignes = (await sql.query(
+    `select ${selection("missions")} from public.missions
+      where org_prestataire_id = $1::uuid order by id`,
+    [org.orgId],
+  )) as Ligne[];
+  const missions = lignes.map((m) => nettoyer(m));
+  if (org.roleId !== "prestataire") return missions;
+  if ((await nombrePrestatairesActifs(sql, org.orgId)) === 1) return missions;
+  const mail = emailActeur(org);
+  if (!mail.includes("@")) return [];
+  return missions.filter(
+    (m) =>
+      String(m["assigne"] ?? "")
+        .trim()
+        .toLowerCase() === mail,
+  );
+}
+
 export async function assemblerEtat(sql: Sql, org: OrgSession): Promise<EtatSession> {
   const etat: EtatSession = etatVide();
 
+  // Rôle prestataire hors organisation prestataire : rien du tout, pas même les réglages.
+  if (prestataireMalRattache(org)) return etat;
+
   // Un prestataire ne voit que ses missions, ses documents d'intervention et ses messages.
   if (org.orgType === "prestataire") {
-    const missions = (await sql.query(
-      `select ${selection("missions")} from public.missions
-        where org_prestataire_id = $1::uuid order by id`,
-      [org.orgId],
-    )) as Ligne[];
-    etat.missions = missions.map((m) => nettoyer(m)) as EtatSession["missions"];
+    etat.missions = (await lireMissionsPrestataire(sql, org)) as EtatSession["missions"];
     etat.notifications = (await listerCollection(
       sql,
       "notifications",

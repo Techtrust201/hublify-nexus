@@ -371,6 +371,9 @@ export function filtrerEtatPourRole(etat: EtatSession, acteur: ActeurPortee): Et
   if (acteur.roleId === "locataire") return filtrerLocataire(etat, acteur);
   if (acteur.roleId === "voyageur") return filtrerVoyageur(etat, acteur);
   if (acteur.roleId === "proprietaire") return filtrerProprietaire(etat, acteur);
+  // Un prestataire n'est servi que par la branche « organisation prestataire » du serveur,
+  // qui filtre par personne. S'il arrive ici, c'est qu'il est mal rattaché : rien du parc.
+  if (acteur.roleId === "prestataire") return vide({ parametrage: etat.parametrage });
   return filtrerSelonDroits(etat, acteur);
 }
 
