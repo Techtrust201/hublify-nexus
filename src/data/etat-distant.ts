@@ -31,6 +31,17 @@ import {
 } from "@/data/portee-role";
 import type { Sql } from "@/lib/sql";
 import type { OrgType } from "@/lib/orgs";
+import {
+  CHAMPS_DECLENCHEURS,
+  chargerContexteFacturation,
+  controlerMission,
+  ecrireColonnesFacturation,
+  entreeMission,
+  missionsPourGestionnaire,
+  schemaFacturationPret,
+  synchroniserMissionsEnBloc,
+} from "@/data/missions-serveur";
+import type { PreparationMission } from "@/lib/mission-facturation-serveur";
 
 export type DepsEtat = {
   sessionOrg: () => Promise<OrgSession | null>;
@@ -257,6 +268,9 @@ export async function ecrireCollections(
       items = retenues;
     }
     await remplacerCollection(sql, org.orgId, cle, items);
+    if (cle === "missions") {
+      await synchroniserMissionsEnBloc(sql, org.orgId, items as Record<string, unknown>[]);
+    }
   }
   if (patch.parametrage !== undefined) {
     await ecrireParametrage(sql, org.orgId, fusionnerParametrage(patch.parametrage));
@@ -276,13 +290,27 @@ export async function insererEntite(
   const controle = await controlerInsertion(sql, org, collection, item as LigneMetier);
   if (!controle.ok) return controle;
   const orgPrestataire = org.roleId === "prestataire" ? org.orgId : null;
-  await upsertLigne(
-    sql,
-    await orgCibleEcriture(sql, org, collection),
-    collection,
-    controle.item,
-    orgPrestataire,
-  );
+  const orgCible = await orgCibleEcriture(sql, org, collection);
+  let ligne = controle.item;
+  let prep: PreparationMission | null = null;
+  if (
+    collection === "missions" &&
+    org.roleId !== "prestataire" &&
+    (await schemaFacturationPret(sql))
+  ) {
+    const existant = commeLigne(await lireLigne(sql, orgCible, "missions", ligne.id));
+    const verdict = controlerMission(
+      entreeMission(ligne),
+      existant ? String(existant["description"] ?? "") : null,
+      await chargerContexteFacturation(sql, orgCible),
+      aLeDroit(org.droits, "mod-finances"),
+    );
+    if (!verdict.ok) return verdict;
+    prep = verdict.prep;
+    if (prep) ligne = { ...ligne, assigne: prep.assigne };
+  }
+  await upsertLigne(sql, orgCible, collection, ligne, orgPrestataire);
+  if (prep) await ecrireColonnesFacturation(sql, orgCible, ligne.id, prep);
   return { ok: true };
 }
 
@@ -355,8 +383,36 @@ export async function modifierEntite(
     }
   }
 
-  const ok = await majLigneVisible(sql, orgMaj, collection, id, reduit.patch);
+  let patchFinal = reduit.patch;
+  let prep: PreparationMission | null = null;
+  if (
+    collection === "missions" &&
+    org.roleId !== "prestataire" &&
+    CHAMPS_DECLENCHEURS.some((cle) => patchFinal[cle] !== undefined) &&
+    (await schemaFacturationPret(sql))
+  ) {
+    // Une mission confiée par une autre organisation n'est pas à nous : on n'y
+    // calcule rien (elle n'est d'ailleurs pas lisible ici).
+    const existant = commeLigne(await lireLigne(sql, org.orgId, "missions", id));
+    if (existant) {
+      const verdict = controlerMission(
+        entreeMission({ ...existant, ...patchFinal }),
+        String(existant["description"] ?? ""),
+        await chargerContexteFacturation(sql, org.orgId),
+        aLeDroit(org.droits, "mod-finances"),
+      );
+      if (!verdict.ok) return verdict;
+      prep = verdict.prep;
+      const assigneFusionne = String(patchFinal["assigne"] ?? existant["assigne"] ?? "");
+      if (prep && prep.assigne !== assigneFusionne) {
+        patchFinal = { ...patchFinal, assigne: prep.assigne };
+      }
+    }
+  }
+
+  const ok = await majLigneVisible(sql, orgMaj, collection, id, patchFinal);
   if (!ok) return { ok: false, raison: "introuvable" };
+  if (prep) await ecrireColonnesFacturation(sql, org.orgId, id, prep);
   return { ok: true };
 }
 
@@ -390,8 +446,15 @@ export async function chargerEntite(
     if (!trouve || typeof trouve !== "object") return { ok: false, raison: "introuvable" };
     return { ok: true, entite: JSON.parse(JSON.stringify(trouve)) as Record<string, unknown> };
   }
-  const entite = await lireLigne(sql, org.orgId, collection, id);
+  let entite = await lireLigne(sql, org.orgId, collection, id);
   if (entite == null) return { ok: false, raison: "introuvable" };
+  if (collection === "missions" && entite && typeof entite === "object") {
+    const fiches = (await sql.query(
+      `select id, nom, email from public.prestataires where org_id = $1::uuid`,
+      [org.orgId],
+    )) as { id: string; nom: string; email: string | null }[];
+    entite = missionsPourGestionnaire([entite as { assigne?: unknown }], fiches)[0] ?? entite;
+  }
   return { ok: true, entite: JSON.parse(JSON.stringify(entite)) as Record<string, unknown> };
 }
 

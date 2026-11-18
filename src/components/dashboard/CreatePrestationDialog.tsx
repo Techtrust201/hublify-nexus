@@ -142,6 +142,10 @@ export function CreatePrestationDialog({
       toastErreur("Indiquez le nom du type de prestation.");
       return;
     }
+    if (attribution === "locataire" && !reservationId) {
+      toastErreur("Une prestation facturée au locataire doit être rattachée à une réservation.");
+      return;
+    }
     const courante = metaCourante();
     const precedente = mission
       ? lireMetaPrestation(
