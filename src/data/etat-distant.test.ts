@@ -5,6 +5,7 @@ import {
   insererEntite,
   modifierEntite,
   lireEtat,
+  lireFacturation,
   type DepsEtat,
 } from "@/data/etat-distant";
 import { etatVide, type EtatSession } from "@/data/etat-session";
@@ -320,5 +321,29 @@ describe("séjour lié à un logement inexistant (HUBLIFY-NEXUS-4)", () => {
     expect(await insererEntite(d, "reservationsCalendrier", sejour("r-ok", "colette"))).toEqual({
       ok: true,
     });
+  });
+});
+
+describe("lireFacturation (PR 6, lecture seule)", () => {
+  it("refuse sans session, aux rôles portail, à l'org prestataire et sans « voir-finances »", async () => {
+    const cas = [
+      deps({ orgId: null }),
+      deps({ roleId: "proprietaire" }),
+      deps({ roleId: "locataire" }),
+      deps({ roleId: "prestataire", orgType: "prestataire" }),
+      deps({ orgType: "prestataire" }),
+      deps({ roleId: "gestionnaire", droits: ["voir-reservations", "mod-missions"] }),
+    ];
+    for (const { d, espion } of cas) {
+      const r = await lireFacturation(d);
+      expect(r.ok).toBe(false);
+      expect(espion.appels).toEqual([]);
+    }
+  });
+  it("gestionnaire avec « voir-finances » : lit les réglages, schéma absent ⇒ null", async () => {
+    // L'espion renvoie des lignes vides : le schéma 022/023 est vu comme absent.
+    const { d, espion } = deps({ roleId: "gestionnaire" });
+    expect(await lireFacturation(d)).toEqual({ ok: true, facturation: null });
+    expect(espion.appels.every((a) => /^\s*select/i.test(a.texte))).toBe(true);
   });
 });

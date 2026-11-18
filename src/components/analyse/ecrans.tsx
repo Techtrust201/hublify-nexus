@@ -1183,7 +1183,7 @@ export function EcranFacture({
           </p>
           <ul className="mt-3 space-y-2 text-sm">
             {vue.fraisGestion.map((f) => (
-              <li key={f.nature} className="flex justify-between gap-3">
+              <li key={`${f.nature}-${f.prixUnitaireHt}`} className="flex justify-between gap-3">
                 <span>
                   {f.nature} · {f.quantite} × {euroFixe(f.prixUnitaireHt)}
                 </span>
@@ -1191,6 +1191,23 @@ export function EcranFacture({
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {(vue.reglesFacturation.mention || vue.reglesFacturation.chargeMandataireHt > 0) && (
+        <section
+          className="rounded-card border border-line bg-white p-4 text-sm"
+          data-testid="regles-facturation"
+        >
+          {vue.reglesFacturation.mention && (
+            <p className="text-ink">{vue.reglesFacturation.mention}.</p>
+          )}
+          {vue.reglesFacturation.chargeMandataireHt > 0 && (
+            <p className="mt-1 flex justify-between gap-3 text-ink-body">
+              <span>Prestations à la charge du mandataire (hors facture propriétaire)</span>
+              <span>{euroFixe(vue.reglesFacturation.chargeMandataireHt)} HT</span>
+            </p>
+          )}
         </section>
       )}
     </div>

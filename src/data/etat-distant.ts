@@ -1,4 +1,5 @@
 import { aLeDroit, estRolePortail, type RoleId } from "@/auth/permissions";
+import type { FacturationOrg } from "@/lib/facturation-missions";
 import {
   assemblerEtat,
   ecrireAccesLieu,
@@ -33,6 +34,7 @@ import type { Sql } from "@/lib/sql";
 import type { OrgType } from "@/lib/orgs";
 import {
   apercuTarifMission,
+  lireFacturationOrg,
   CHAMPS_DECLENCHEURS,
   chargerContexteFacturation,
   controlerMission,
@@ -561,4 +563,26 @@ export async function lireApercuTarif(
   const sql = deps.sql();
   if (!sql) return { ok: false, raison: "non_configure" };
   return { ok: true, tarif: await apercuTarifMission(sql, org.orgId, entree) };
+}
+
+export type LectureFacturation =
+  { ok: true; facturation: FacturationOrg | null } | { ok: false; raison: RaisonEchec };
+
+/**
+ * Réglages et colonnes de facturation pour l'écran Analyse (PR 6). Lecture seule.
+ * Réservé à l'organisation gestionnaire, hors rôles portail, avec le droit « voir-finances ».
+ */
+export async function lireFacturation(deps: DepsEtat): Promise<LectureFacturation> {
+  const org = await deps.sessionOrg();
+  if (!org) return { ok: false, raison: "non_authentifie" };
+  if (
+    org.orgType !== "gestionnaire" ||
+    estRolePortail(org.roleId) ||
+    !aLeDroit(org.droits, "voir-finances")
+  ) {
+    return { ok: false, raison: "interdit" };
+  }
+  const sql = deps.sql();
+  if (!sql) return { ok: false, raison: "non_configure" };
+  return { ok: true, facturation: await lireFacturationOrg(sql, org.orgId) };
 }

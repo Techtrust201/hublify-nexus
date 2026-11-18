@@ -32,6 +32,7 @@ import {
   type MetaPrestation,
 } from "@/lib/gestionnaire-planning";
 import { analyserReservations } from "@/lib/kpi";
+import { tarifPrestataireEuros, type FacturationOrg } from "@/lib/facturation-missions";
 
 const NOVEMBRE: FiltreAnalyse = {
   debut: "2026-11-01",
@@ -706,5 +707,138 @@ describe("caractérisation — facturation et paiement des prestataires", () => 
         },
       }
     `);
+  });
+});
+
+/**
+ * PR 6 : nouvelles règles de facturation derrière la date d'effet de l'org.
+ * Les colonnes serveur sont celles que la PR 3 dérive de la méta des missions ci-dessus.
+ */
+function colonnesDepuisMeta(dateEffet: string | null, tvaLocataire: number | null = null) {
+  const facturation: FacturationOrg = { dateEffet, tvaLocataire, missions: {}, reservations: {} };
+  for (const m of MISSIONS) {
+    if (!m.description.includes("\u2063")) continue;
+    const meta = lireMetaPrestation(m.description);
+    facturation.missions[m.id] = {
+      attribution: meta.attribution ?? null,
+      porteur: meta.porteur ?? null,
+      reservationId: meta.reservationId ?? null,
+      tarifCentimes: meta.tarif == null ? null : Math.round(meta.tarif * 100),
+      tvaTaux: meta.attribution === "locataire" ? (tvaLocataire ?? 0.2) : null,
+    };
+  }
+  return facturation;
+}
+
+describe("PR 6 — sans date d'effet, ou avant la date d'effet : montants inchangés", () => {
+  const actuel = construireAnalyse(session(), NOVEMBRE);
+  const prestatairesActuels = facturesPrestataires(MISSIONS, session().biens, {
+    debut: NOVEMBRE.debut,
+    fin: NOVEMBRE.fin,
+    bienId: "tous",
+  });
+  for (const [cas, facturation] of [
+    ["réglages absents", null],
+    ["date d'effet vide", colonnesDepuisMeta(null)],
+    ["date d'effet après la période", colonnesDepuisMeta("2026-12-01")],
+  ] as const) {
+    it(`${cas} : analyse identique au centime`, () => {
+      const vue = construireAnalyse(session(), NOVEMBRE, facturation);
+      expect(vue.fraisGestion).toEqual(actuel.fraisGestion);
+      expect(vue.factureProprietaire).toEqual(actuel.factureProprietaire);
+      expect(vue.facturesVoyageurs).toEqual(actuel.facturesVoyageurs);
+      expect(vue.kpi).toEqual(actuel.kpi);
+      expect(piedsFacture(vue)).toEqual(piedsFacture(actuel));
+      expect(vue.reglesFacturation).toEqual({ mention: null, chargeMandataireHt: 0 });
+    });
+    it(`${cas} : facturation prestataires identique`, () => {
+      const lignes = facturesPrestataires(
+        MISSIONS,
+        session().biens,
+        { debut: NOVEMBRE.debut, fin: NOVEMBRE.fin, bienId: "tous" },
+        facturation ? (m, t) => tarifPrestataireEuros(m, t, facturation) : undefined,
+      );
+      expect(lignes).toEqual(prestatairesActuels);
+    });
+  }
+});
+
+describe("PR 6 — date d'effet au 01/11/2026 : nouvelles règles", () => {
+  const facturation = colonnesDepuisMeta("2026-11-01", 0.1);
+  const vue = construireAnalyse(session(), NOVEMBRE, facturation);
+
+  it("facture propriétaire : hors mandataire, locataire et propriétaire-porteur ; tarif sinon barème", () => {
+    // Restent : p4 et s3 (check-in, barème), p5 et x2 (ménage, barème), x1 (ménage 60 €),
+    // s1 (maintenance, barème). Le linge suit les 3 ménages facturés.
+    expect(vue.fraisGestion).toEqual([
+      { nature: "Ménage", quantite: 2, prixUnitaireHt: 4_500, totalHt: 9_000 },
+      { nature: "Ménage", quantite: 1, prixUnitaireHt: 6_000, totalHt: 6_000 },
+      { nature: "Linge et consommables", quantite: 3, prixUnitaireHt: 1_200, totalHt: 3_600 },
+      { nature: "Check-in", quantite: 2, prixUnitaireHt: 2_000, totalHt: 4_000 },
+      {
+        nature: "Commission exceptionnelle (travaux)",
+        quantite: 1,
+        prixUnitaireHt: 8_000,
+        totalHt: 8_000,
+      },
+      { nature: "État des lieux", quantite: 2, prixUnitaireHt: 8_000, totalHt: 16_000 },
+    ]);
+    const ids = vue.factureProprietaire.map((l) => l.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toContain("frais-Ménage");
+    expect(ids).toContain("frais-Ménage-6000");
+  });
+
+  it("mention de la date d'effet et total à la charge du mandataire (p1 barème + x3 tarif)", () => {
+    expect(vue.reglesFacturation).toEqual({
+      mention: "Règles de facturation en vigueur au 01/11/2026",
+      chargeMandataireHt: 4_500 + 7_056,
+    });
+  });
+
+  it("facture voyageur : la prestation du locataire, au taux de l'org", () => {
+    const book = vue.facturesVoyageurs.find((f) => f.id === "r-book");
+    expect(book?.lignes.find((l) => l.id.includes("prestation"))).toEqual({
+      id: "r-book-prestation-p3-menage-locataire",
+      nature: "Prestation Ménage — Logement Alpha",
+      periode: "2026-11-24",
+      quantite: 1,
+      prixUnitaireHt: 4_500,
+      tauxTva: 0.1,
+    });
+    // Les autres voyageurs n'ont pas de ligne en plus.
+    const air = vue.facturesVoyageurs.find((f) => f.id === "r-air");
+    expect(air?.lignes.some((l) => l.id.includes("prestation"))).toBe(false);
+  });
+
+  it("facturation prestataires : tarif calculé par le serveur après la date d'effet", () => {
+    const avecGrille: FacturationOrg = {
+      ...facturation,
+      missions: {
+        ...facturation.missions,
+        "p1-menage-mandataire": {
+          ...facturation.missions["p1-menage-mandataire"]!,
+          tarifCentimes: 3_000,
+        },
+      },
+    };
+    const lignes = facturesPrestataires(
+      MISSIONS,
+      session().biens,
+      { debut: NOVEMBRE.debut, fin: NOVEMBRE.fin, bienId: "tous" },
+      (m, t) => tarifPrestataireEuros(m, t, avecGrille),
+    );
+    expect(lignes.find((l) => l.id === "p1-menage-mandataire")).toMatchObject({
+      du: 30,
+      paye: 0,
+      restant: 30,
+    });
+    // Le règlement suit le même montant.
+    const p1 = MISSIONS.find((m) => m.id === "p1-menage-mandataire")!;
+    const meta = lireMetaPrestation(p1.description);
+    expect(
+      reglerPrestation(meta, undefined, tarifPrestataireEuros(p1, meta.tarif, avecGrille)),
+    ).toMatchObject({ ok: true, paye: 30, restant: 0 });
+    expect(reglerPrestation(meta)).toMatchObject({ ok: false });
   });
 });

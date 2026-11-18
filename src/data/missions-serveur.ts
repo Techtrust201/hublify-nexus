@@ -1,3 +1,4 @@
+import type { FacturationOrg, GestionReservation } from "@/lib/facturation-missions";
 import type { Sql } from "@/lib/sql";
 import {
   changeLaFacturation,
@@ -223,4 +224,94 @@ export async function apercuTarifMission(
       ? entree.attribution
       : null;
   return tarifAutomatique(entree.type, fiche?.id ?? null, porteur, ctx, attribution);
+}
+
+function attributionLue(v: unknown) {
+  return v === "mandataire" || v === "proprietaire" || v === "locataire" ? v : null;
+}
+function porteurLu(v: unknown) {
+  return v === "prestataire" || v === "teammate" || v === "proprietaire" ? v : null;
+}
+function nombreOuNull(v: unknown) {
+  if (v == null) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+function booleenOuNull(v: unknown) {
+  return typeof v === "boolean" ? v : null;
+}
+
+/**
+ * Réglages et colonnes de facturation de l'org, pour l'écran Analyse (PR 6). Lecture seule.
+ *
+ * - Schéma absent (022/023 non appliquées) : `null`, calcul actuel.
+ * - Date d'effet vide : réglages seuls, sans aucune mission ni réservation : rien n'est
+ *   envoyé tant que les nouvelles règles ne sont pas activées.
+ * - « Gestion » des réservations (024) : lue seulement si la migration est en base.
+ */
+export async function lireFacturationOrg(sql: Sql, orgId: string): Promise<FacturationOrg | null> {
+  if (!(await schemaFacturationPret(sql))) return null;
+  const reglages = (await sql.query(
+    `select tva_prestations_locataire, date_effet_facturation from public.org_facturation
+      where org_id = $1::uuid`,
+    [orgId],
+  )) as { tva_prestations_locataire: unknown; date_effet_facturation: unknown }[];
+  const dateEffet =
+    typeof reglages[0]?.date_effet_facturation === "string"
+      ? reglages[0].date_effet_facturation
+      : null;
+  const facturation: FacturationOrg = {
+    dateEffet,
+    tvaLocataire: nombreOuNull(reglages[0]?.tva_prestations_locataire),
+    missions: {},
+    reservations: {},
+  };
+  if (!dateEffet) return facturation;
+
+  const missions = (await sql.query(
+    `select id, attribution, porteur, reservation_id,
+            coalesce(tarif_manuel_centimes, tarif_calcule_centimes) as tarif_centimes,
+            tva_taux
+       from public.missions
+      where org_id = $1::uuid and jour >= $2::date`,
+    [orgId, dateEffet],
+  )) as Record<string, unknown>[];
+  for (const m of missions) {
+    facturation.missions[String(m["id"])] = {
+      attribution: attributionLue(m["attribution"]),
+      porteur: porteurLu(m["porteur"]),
+      reservationId: m["reservation_id"] == null ? null : String(m["reservation_id"]),
+      tarifCentimes: nombreOuNull(m["tarif_centimes"]),
+      tvaTaux: nombreOuNull(m["tva_taux"]),
+    };
+  }
+
+  const ids = [
+    ...new Set(
+      Object.values(facturation.missions)
+        .map((m) => m.reservationId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  if (ids.length === 0) return facturation;
+  const gestion = (await sql.query(
+    `select count(*)::int as n from information_schema.columns
+      where table_schema = 'public' and table_name = 'reservations_dossier'
+        and column_name in ('menage_gere', 'linge_gere', 'consommable_gere')`,
+  )) as { n: number }[];
+  if (Number(gestion[0]?.n ?? 0) < 3) return facturation;
+  const reservations = (await sql.query(
+    `select id, menage_gere, linge_gere, consommable_gere from public.reservations_dossier
+      where org_id = $1::uuid and id = any($2::text[])`,
+    [orgId, ids],
+  )) as Record<string, unknown>[];
+  for (const r of reservations) {
+    const g: GestionReservation = {
+      menage: booleenOuNull(r["menage_gere"]),
+      linge: booleenOuNull(r["linge_gere"]),
+      consommable: booleenOuNull(r["consommable_gere"]),
+    };
+    facturation.reservations[String(r["id"])] = g;
+  }
+  return facturation;
 }

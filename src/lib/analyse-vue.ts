@@ -1,5 +1,4 @@
 import type { EtatSession } from "@/data/etat-session";
-import type { MissionMo1 } from "@/data/planning-mo1";
 import type { ReservationMo1 } from "@/data/reservations-mo1";
 import { nuitsEntre } from "@/data/reservations-mo1";
 import {
@@ -21,6 +20,13 @@ import {
   type LignePrestation,
   type VentilationCentimes,
 } from "@/lib/analyse-finance";
+import {
+  chargeMandataireHt,
+  fraisGestionMissions,
+  mentionRegles,
+  prestationsLocataire,
+  type FacturationOrg,
+} from "@/lib/facturation-missions";
 
 export const NUITS_MAX_COURTE_DUREE = 90;
 
@@ -157,6 +163,9 @@ export type AnalyseVue = {
   mois: MoisAnalyse[];
   proprietaires: LigneGestionnaire[];
   fraisGestion: LigneFraisGestion[];
+  /** Nouvelles règles de facturation (PR 6) : mention de la date d'effet et total HT à la
+   *  charge du mandataire. `mention` vide : calcul actuel sur toute la période. */
+  reglesFacturation: { mention: string | null; chargeMandataireHt: number };
   historique: LigneHistorique[];
   factureProprietaire: LignePrestation[];
   facturesVoyageurs: Array<{
@@ -276,7 +285,15 @@ function retenuCaution(r: ReservationMo1) {
     .reduce((n, x) => n + x.montant, 0);
 }
 
-export function construireAnalyse(session: EtatSession, filtre: FiltreAnalyse): AnalyseVue {
+/**
+ * `facturation` : réglages et colonnes de facturation de l'org (PR 6). Absents, ou date
+ * d'effet vide : calcul actuel, au centime près.
+ */
+export function construireAnalyse(
+  session: EtatSession,
+  filtre: FiltreAnalyse,
+  facturation?: FacturationOrg | null,
+): AnalyseVue {
   const debut = filtre.debut;
   const fin = filtre.fin;
   const bienId = filtre.bienId && filtre.bienId !== "tous" ? filtre.bienId : "";
@@ -499,9 +516,10 @@ export function construireAnalyse(session: EtatSession, filtre: FiltreAnalyse): 
     })
     .sort((a, b) => b.net - a.net);
 
-  const fraisGestion = fraisDepuisMissions(
-    session.missions.filter((m) => idsBiens.has(m.bienId) && m.date >= debut && m.date <= fin),
+  const missionsPeriode = session.missions.filter(
+    (m) => idsBiens.has(m.bienId) && m.date >= debut && m.date <= fin,
   );
+  const fraisGestion = fraisGestionMissions(missionsPeriode, facturation);
   const edlDansPeriode = session.edl.filter((d) => d.date >= debut && d.date <= fin).length;
   if (edlDansPeriode > 0) {
     fraisGestion.push({
@@ -528,9 +546,16 @@ export function construireAnalyse(session: EtatSession, filtre: FiltreAnalyse): 
       tvaForcee: l.honorairesTva,
     });
   }
+  const naturesVues = new Set<string>();
   for (const frais of fraisGestion) {
+    // Une nature peut avoir plusieurs prix sous les nouvelles règles : identifiant unique,
+    // inchangé pour la première ligne de chaque nature (calcul actuel).
+    const id = naturesVues.has(frais.nature)
+      ? `frais-${frais.nature}-${frais.prixUnitaireHt}`
+      : `frais-${frais.nature}`;
+    naturesVues.add(frais.nature);
     factureProprietaire.push({
-      id: `frais-${frais.nature}`,
+      id,
       nature: frais.nature,
       periode: `${debut} → ${fin}`,
       quantite: frais.quantite,
@@ -570,6 +595,7 @@ export function construireAnalyse(session: EtatSession, filtre: FiltreAnalyse): 
         tauxTva: TAUX_TVA_HONORAIRES,
       });
     }
+    prestations.push(...prestationsLocataire(session.missions, facturation, l.id, l.logement));
     if (l.ventilation.taxeSejour > 0) {
       prestations.push({
         id: `${l.id}-taxe`,
@@ -647,6 +673,10 @@ export function construireAnalyse(session: EtatSession, filtre: FiltreAnalyse): 
     mois,
     proprietaires,
     fraisGestion,
+    reglesFacturation: {
+      mention: mentionRegles(missionsPeriode, facturation),
+      chargeMandataireHt: chargeMandataireHt(missionsPeriode, facturation),
+    },
     historique,
     factureProprietaire,
     facturesVoyageurs,
@@ -704,35 +734,6 @@ export function construireAnalyse(session: EtatSession, filtre: FiltreAnalyse): 
 
 function typeDe(session: EtatSession, id: string) {
   return session.reservationsDossier.find((r) => r.id === id)?.type;
-}
-
-function fraisDepuisMissions(missions: MissionMo1[]): LigneFraisGestion[] {
-  const compte = { Menage: 0, "Check-in": 0, "Check-out": 0, Maintenance: 0 };
-  for (const m of missions) {
-    if (
-      m.type === "Menage" ||
-      m.type === "Check-in" ||
-      m.type === "Check-out" ||
-      m.type === "Maintenance"
-    ) {
-      compte[m.type] += 1;
-    }
-  }
-  const lignes: LigneFraisGestion[] = [];
-  const ajouter = (nature: string, quantite: number, prix: number) => {
-    if (quantite <= 0) return;
-    lignes.push({ nature, quantite, prixUnitaireHt: prix, totalHt: quantite * prix });
-  };
-  ajouter("Ménage", compte.Menage, BAREME_FRAIS_GESTION_CENTIMES.Menage);
-  ajouter("Linge et consommables", compte.Menage, BAREME_FRAIS_GESTION_CENTIMES.Linge);
-  ajouter("Check-in", compte["Check-in"], BAREME_FRAIS_GESTION_CENTIMES["Check-in"]);
-  ajouter("Check-out", compte["Check-out"], BAREME_FRAIS_GESTION_CENTIMES["Check-out"]);
-  ajouter(
-    "Commission exceptionnelle (travaux)",
-    compte.Maintenance,
-    BAREME_FRAIS_GESTION_CENTIMES.Maintenance,
-  );
-  return lignes;
 }
 
 export function piedsFacture(vue: AnalyseVue) {

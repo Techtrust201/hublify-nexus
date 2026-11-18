@@ -7,6 +7,7 @@ import {
   insererEntite,
   lireAcces,
   lireApercuTarif,
+  lireFacturation,
   lireEtat,
   modifierEntite,
   type AccesLieu,
@@ -102,3 +103,8 @@ export const apercuTarifMissionDistant = createServerFn({ method: "POST" })
     }),
   )
   .handler(({ data }) => lireApercuTarif(deps, data));
+
+/** Réglages et colonnes de facturation de l'org pour Analyse (PR 6). Lecture seule. */
+export const facturationOrgDistant = createServerFn({ method: "GET" }).handler(() =>
+  lireFacturation(deps),
+);

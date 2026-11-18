@@ -2,9 +2,12 @@
 // Frames : Dashboard occupation, Revenus et paiements, Gestionnaires,
 // Facture propriétaire, Analyse 2 (69:1700), Analyse 3 (69:2651).
 
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useDroit } from "@/auth/auth-context";
+import { useAuth, useDroit } from "@/auth/auth-context";
+import { facturationOrgDistant } from "@/data/session-remote";
+import { tarifPrestataireEuros } from "@/lib/facturation-missions";
 import { Calendar, ChevronDown, ChevronRight, Download } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import {
@@ -124,15 +127,30 @@ export function AnalyseApp({
   const vue = recherche.vue ?? "synthese";
   const onglet = recherche.onglet ?? (vue === "analyse-2" ? "revenus" : "occupation");
   const logement = recherche.logement ?? "tous";
+  const auth = useAuth();
+  const peutVoirFinances = useDroit("voir-finances");
+  // Réglages de facturation de l'org (PR 6). Sans réponse, ou date d'effet vide :
+  // calcul actuel, au centime près.
+  const { data: lectureFacturation } = useQuery({
+    queryKey: ["facturation-org", auth?.orgId],
+    queryFn: () => facturationOrgDistant(),
+    enabled: Boolean(auth?.orgId) && peutVoirFinances,
+    staleTime: 60_000,
+  });
+  const facturation = lectureFacturation?.ok ? lectureFacturation.facturation : null;
   const analyse = useMemo(
     () =>
-      construireAnalyse(session, {
-        debut,
-        fin,
-        bienId: logement,
-        aujourdhui: AUJOURD_HUI_MO1,
-      }),
-    [session, debut, fin, logement],
+      construireAnalyse(
+        session,
+        {
+          debut,
+          fin,
+          bienId: logement,
+          aujourdhui: AUJOURD_HUI_MO1,
+        },
+        facturation,
+      ),
+    [session, debut, fin, logement, facturation],
   );
   const [notes, setNotes] = useState(false);
   const [voyageur, setVoyageur] = useState<string | null>(null);
@@ -142,12 +160,19 @@ export function AnalyseApp({
   const periodeInvalide = fin < debut;
   const factures = useMemo(
     () =>
-      facturesPrestataires(session.missions, session.biens, {
-        debut,
-        fin,
-        bienId: logement,
-      }),
-    [session.missions, session.biens, debut, fin, logement],
+      facturesPrestataires(
+        session.missions,
+        session.biens,
+        {
+          debut,
+          fin,
+          bienId: logement,
+        },
+        facturation
+          ? (m, tarifMeta) => tarifPrestataireEuros(m, tarifMeta, facturation)
+          : undefined,
+      ),
+    [session.missions, session.biens, debut, fin, logement, facturation],
   );
   const impayes = analyse.lignes
     .filter((ligne) => ligne.restant > 0 && ligne.statut !== "Annulé")
@@ -201,7 +226,11 @@ export function AnalyseApp({
     const mission = session.missions.find((item) => item.id === id);
     if (!mission || !peutMissions) return { ok: false, message: "Paiement impossible." };
     const meta = lireMetaPrestation(mission.description);
-    const resultat = reglerPrestation(meta, ajout);
+    const resultat = reglerPrestation(
+      meta,
+      ajout,
+      facturation ? tarifPrestataireEuros(mission, meta.tarif, facturation) : undefined,
+    );
     if (!resultat.ok) {
       const message = messageRefusPaiement(resultat.raison);
       toastErreur(message);
