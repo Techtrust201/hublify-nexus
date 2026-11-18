@@ -149,10 +149,22 @@ export function CreatePrestationDialog({
 
   const typeStocke: MissionMo1["type"] = creerType && typeLibre.trim() ? "Maintenance" : type;
   const { data: apercu } = useQuery({
-    queryKey: ["apercu-tarif-mission", auth?.orgId, typeStocke, decode.porteur, decode.nom],
+    queryKey: [
+      "apercu-tarif-mission",
+      auth?.orgId,
+      typeStocke,
+      decode.porteur,
+      decode.nom,
+      attribution,
+    ],
     queryFn: () =>
       apercuTarifMissionDistant({
-        data: { type: typeStocke, assigne: decode.nom, porteur: decode.porteur },
+        data: {
+          type: typeStocke,
+          assigne: decode.nom,
+          porteur: decode.porteur,
+          attribution: attribution || null,
+        },
       }),
     enabled: ouvert && Boolean(auth?.orgId),
     staleTime: 30_000,

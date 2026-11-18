@@ -202,7 +202,7 @@ export function missionsPourGestionnaire<T extends { assigne?: unknown }>(
 export async function apercuTarifMission(
   sql: Sql,
   orgId: string,
-  entree: { type: string; assigne: string; porteur: string | null },
+  entree: { type: string; assigne: string; porteur: string | null; attribution?: string | null },
 ): Promise<{ centimes: number; source: "prestataire" | "grille_org" } | null> {
   if (!(await schemaFacturationPret(sql))) return null;
   const ctx = await chargerContexteFacturation(sql, orgId);
@@ -214,5 +214,12 @@ export async function apercuTarifMission(
       : null;
   const fiche =
     porteur === "prestataire" ? trouverPrestataire(entree.assigne, ctx.prestataires) : null;
-  return tarifAutomatique(entree.type, fiche?.id ?? null, porteur, ctx);
+  // Même ordre que l'enregistrement : à la charge du mandataire, la grille de l'org d'abord.
+  const attribution =
+    entree.attribution === "mandataire" ||
+    entree.attribution === "proprietaire" ||
+    entree.attribution === "locataire"
+      ? entree.attribution
+      : null;
+  return tarifAutomatique(entree.type, fiche?.id ?? null, porteur, ctx, attribution);
 }
