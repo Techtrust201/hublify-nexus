@@ -5,6 +5,7 @@ import {
   insererEntite,
   modifierEntite,
   lireEtat,
+  lireDisponibiliteGestion,
   lireFacturation,
   lireMissionsOuvertes,
   prendreMission,
@@ -238,10 +239,9 @@ describe("séjour lié à un logement inexistant (HUBLIFY-NEXUS-4)", () => {
       }
       return Promise.resolve([]);
     };
-    const tag = Object.assign(
-      (_g: TemplateStringsArray, ..._v: unknown[]) => Promise.resolve([]),
-      { query },
-    ) as Sql;
+    const tag = Object.assign((_g: TemplateStringsArray, ..._v: unknown[]) => Promise.resolve([]), {
+      query,
+    }) as Sql;
     const d: DepsEtat = {
       sessionOrg: async () => ({
         orgId: ORG_A,
@@ -316,10 +316,12 @@ describe("séjour lié à un logement inexistant (HUBLIFY-NEXUS-4)", () => {
       ok: false,
       raison: "invalide",
     });
-    expect(await modifierEntite(d, "reservationsCalendrier", "r-x", { bienId: "fantome" })).toEqual({
-      ok: false,
-      raison: "invalide",
-    });
+    expect(await modifierEntite(d, "reservationsCalendrier", "r-x", { bienId: "fantome" })).toEqual(
+      {
+        ok: false,
+        raison: "invalide",
+      },
+    );
     expect(await insererEntite(d, "reservationsCalendrier", sejour("r-ok", "colette"))).toEqual({
       ok: true,
     });
@@ -395,3 +397,23 @@ describe("marketplace (PR 5)", () => {
   });
 });
 
+describe("gestion Oui / Non des réservations (024)", () => {
+  it("portail : ni la disponibilité ni l'écriture ne touchent ces colonnes", async () => {
+    const { d, espion } = deps({ roleId: "proprietaire" });
+    expect(await lireDisponibiliteGestion(d)).toEqual({ ok: true, disponible: false });
+    expect(espion.appels).toEqual([]);
+    await modifierEntite(d, "reservationsDossier", "r1", { menageGere: false });
+    expect(espion.appels.some((a) => /menage_gere/.test(a.texte))).toBe(false);
+  });
+
+  it("org prestataire : jamais disponible", async () => {
+    const { d, espion } = deps({ orgType: "prestataire" });
+    expect(await lireDisponibiliteGestion(d)).toEqual({ ok: true, disponible: false });
+    expect(espion.appels).toEqual([]);
+  });
+
+  it("sans session : refus", async () => {
+    const { d } = deps({ orgId: null });
+    expect(await lireDisponibiliteGestion(d)).toEqual({ ok: false, raison: "non_authentifie" });
+  });
+});
