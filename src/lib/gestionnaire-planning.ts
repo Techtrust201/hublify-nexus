@@ -330,10 +330,18 @@ export function solderPrestation(du: number, deja: number, ajout: number) {
   };
 }
 
+function avecTarif(meta: MetaPrestation, tarif: number | undefined): MetaPrestation {
+  const { tarif: _ancien, ...reste } = meta;
+  return tarif === undefined ? reste : { ...reste, tarif };
+}
+
 /** Versement au prestataire depuis la méta de la mission : par défaut le
  *  restant dû. Extrait tel quel de `AnalyseApp.payerPrestation` pour être testé. */
-export function reglerPrestation(meta: MetaPrestation, ajout?: number) {
-  const du = facturationPrestation(meta).montant ?? 0;
+export function reglerPrestation(meta: MetaPrestation, ajout?: number, tarifRetenu?: number) {
+  // `tarifRetenu` (PR 6) : tarif retenu par le serveur sous les nouvelles règles.
+  const du =
+    facturationPrestation(tarifRetenu === undefined ? meta : avecTarif(meta, tarifRetenu))
+      .montant ?? 0;
   const deja = meta.payePrestataire ?? 0;
   return solderPrestation(du, deja, ajout ?? du - deja);
 }
@@ -375,11 +383,17 @@ export function facturesPrestataires(
   }>,
   biens: ReadonlyArray<{ id: string; nom: string }>,
   filtre: { debut: string; fin: string; bienId: string },
+  /** PR 6 : tarif retenu (en euros) sous les nouvelles règles. Absent : tarif de la méta. */
+  tarifRetenu?: (
+    mission: { id: string; date: string },
+    tarifMeta: number | undefined,
+  ) => number | undefined,
 ): LigneFacturePrestation[] {
   return missions.flatMap((mission) => {
     if (mission.date < filtre.debut || mission.date > filtre.fin) return [];
     if (filtre.bienId !== "tous" && mission.bienId !== filtre.bienId) return [];
-    const meta = lireMetaPrestation(mission.description);
+    const lue = lireMetaPrestation(mission.description);
+    const meta = tarifRetenu ? avecTarif(lue, tarifRetenu(mission, lue.tarif)) : lue;
     const facture = facturationPrestation(meta);
     if (!facture.facture || facture.montant == null || facture.montant <= 0) return [];
     const du = Math.round(facture.montant * 100) / 100;
