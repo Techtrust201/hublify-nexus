@@ -49,8 +49,16 @@ function mission(
 }
 
 describe("tarif automatique : manuel d'abord, puis selon l'attribution", () => {
-  it("prend le tarif du prestataire avant la grille", () => {
+  it("payeur non précisé : comme le mandataire, la grille avant le prestataire", () => {
     expect(tarifAutomatique("Menage", "p1", "prestataire", ctx())).toEqual({
+      centimes: 4000,
+      source: "grille_org",
+    });
+    expect(tarifAutomatique("Menage", "p1", "prestataire", ctx(), null)).toEqual(
+      tarifAutomatique("Menage", "p1", "prestataire", ctx(), "mandataire"),
+    );
+    // Sans grille pour ce type : tarif du prestataire.
+    expect(tarifAutomatique("Menage", "p1", "prestataire", ctx({ grilleOrg: new Map() }))).toEqual({
       centimes: 3700,
       source: "prestataire",
     });
@@ -76,8 +84,8 @@ describe("tarif automatique : manuel d'abord, puis selon l'attribution", () => {
     ).toEqual({ centimes: 3700, source: "prestataire" });
     expect(tarifAutomatique("Maintenance", "p1", "prestataire", ctx(), "mandataire")).toBeNull();
   });
-  it("propriétaire ou locataire : ordre inchangé, prestataire avant la grille", () => {
-    for (const attribution of ["proprietaire", "locataire", null] as const) {
+  it("propriétaire ou locataire : prestataire avant la grille", () => {
+    for (const attribution of ["proprietaire", "locataire"] as const) {
       expect(tarifAutomatique("Menage", "p1", "prestataire", ctx(), attribution)).toEqual({
         centimes: 3700,
         source: "prestataire",
@@ -105,10 +113,11 @@ describe("tarif automatique : manuel d'abord, puis selon l'attribution", () => {
   it("le tarif manuel reste prioritaire et modifiable (R1)", () => {
     const p = preparerMission(mission({ porteur: "prestataire", tarif: 55.5 }), ctx());
     expect(p.colonnes.tarifManuelCentimes).toBe(5550);
-    expect(p.colonnes.tarifCalculeCentimes).toBe(3700);
+    // Payeur non précisé : la grille de l'org.
+    expect(p.colonnes.tarifCalculeCentimes).toBe(4000);
     expect(tarifEffectifCentimes(p.colonnes)).toBe(5550);
     const sansManuel = preparerMission(mission({ porteur: "prestataire" }), ctx());
-    expect(tarifEffectifCentimes(sansManuel.colonnes)).toBe(3700);
+    expect(tarifEffectifCentimes(sansManuel.colonnes)).toBe(4000);
   });
 });
 

@@ -108,11 +108,12 @@ function emailValide(email: string | null | undefined): email is string {
  * Ordre du tarif automatique. Le manuel n'est pas « calculé » : il vit dans sa propre
  * colonne et reste prioritaire sur tout (`tarifEffectifCentimes`).
  *
- * - Prestation à la charge du mandataire (attribution « mandataire ») : grille de l'org
- *   (tarif contractuel) → tarif du prestataire → barème. Décision de Hugo du 18/11 :
- *   « le tarif contractuel de l'organisation passe en premier ».
- * - Autres cas (propriétaire, locataire, attribution non renseignée) : tarif du
- *   prestataire → grille de l'org → barème.
+ * - À la charge du mandataire (c'est le mandataire qui paie), ou payeur non précisé
+ *   (attribution vide) : grille de l'org (tarif contractuel) → tarif du prestataire →
+ *   barème. Décisions de Hugo du 18/11 : « le tarif contractuel de l'organisation passe
+ *   en premier » ; « sans payeur précisé, on fait comme pour le mandataire ».
+ * - À la charge du propriétaire ou du locataire : tarif du prestataire → grille de l'org
+ *   → barème.
  *
  * `null` en sortie : aucun tarif connu, le barème fixe s'applique (règle R5).
  */
@@ -129,7 +130,7 @@ export function tarifAutomatique(
   const duPrestataire =
     presta != null ? { centimes: presta, source: "prestataire" as const } : null;
   const deLaGrille = grille != null ? { centimes: grille, source: "grille_org" as const } : null;
-  if (attribution === "mandataire") return deLaGrille ?? duPrestataire;
+  if (attribution === "mandataire" || attribution === null) return deLaGrille ?? duPrestataire;
   return duPrestataire ?? deLaGrille;
 }
 

@@ -325,6 +325,15 @@ test.describe.serial("mission : enregistrement serveur", () => {
       tarif_calcule_centimes: 3700,
       tarif_source: "prestataire",
     });
+    // Payeur non précisé : comme pour le mandataire, la grille de l'org passe en premier.
+    expect(await inserer(page, "missions", mission(ID("h"), { porteur: "prestataire" }))).toEqual({
+      ok: true,
+    });
+    expect(await colonnes(ID("h"))).toMatchObject({
+      attribution: null,
+      tarif_calcule_centimes: 4200,
+      tarif_source: "grille_org",
+    });
   });
 
   test("sauvegarde en bloc de l'écran : colonnes recalculées, e-mail conservé", async ({
