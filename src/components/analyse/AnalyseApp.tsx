@@ -44,18 +44,22 @@ import { copierTexte, telechargerDemo, telechargerPdf, toastErreur, toastOk } fr
 import {
   descriptionVisible,
   ecrireDescription,
-  facturationPrestation,
   facturesPrestataires,
   lireMetaPrestation,
   messageRefusPaiement,
   messageRelancePaiement,
-  solderPrestation,
+  reglerPrestation,
   type ResultatPaiement,
 } from "@/lib/gestionnaire-planning";
 import { jourLocalIso } from "@/lib/jour-local";
 import { loyerDuSejour } from "@/lib/relance-loyer";
 import { formatTaux, totauxFacture } from "@/lib/analyse-finance";
-import { construireAnalyse, exerciceParDefaut, exporterEncaissementsCsv } from "@/lib/analyse-vue";
+import {
+  construireAnalyse,
+  exerciceParDefaut,
+  exporterEncaissementsCsv,
+  exporterFactureVoyageurCsv,
+} from "@/lib/analyse-vue";
 
 export type VueAnalyse =
   "synthese" | "encaissements" | "cautions" | "facture" | "analyse-2" | "analyse-3";
@@ -197,13 +201,7 @@ export function AnalyseApp({
     const mission = session.missions.find((item) => item.id === id);
     if (!mission || !peutMissions) return { ok: false, message: "Paiement impossible." };
     const meta = lireMetaPrestation(mission.description);
-    const facture = facturationPrestation(meta);
-    const du = facture.montant ?? 0;
-    const resultat = solderPrestation(
-      du,
-      meta.payePrestataire ?? 0,
-      ajout ?? du - (meta.payePrestataire ?? 0),
-    );
+    const resultat = reglerPrestation(meta, ajout);
     if (!resultat.ok) {
       const message = messageRefusPaiement(resultat.raison);
       toastErreur(message);
@@ -417,15 +415,9 @@ export function AnalyseApp({
             <FactureVoyageurDetail
               lignes={factureVoyageur.lignes}
               onExporter={() => {
-                const corps = factureVoyageur.lignes
-                  .map(
-                    (l) =>
-                      `${l.nature};${l.periode};${(l.prixUnitaireHt / 100).toFixed(2)};${formatTaux(l.tauxTva)}`,
-                  )
-                  .join("\n");
                 telechargerDemo(
                   `facture-voyageur-${factureVoyageur.reference}.csv`,
-                  `Nature;Période;HT;TVA\n${corps}`,
+                  exporterFactureVoyageurCsv(factureVoyageur.lignes),
                 );
               }}
             />
