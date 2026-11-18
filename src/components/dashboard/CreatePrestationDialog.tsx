@@ -3,7 +3,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/auth/auth-context";
+import { useAuth, useDroit } from "@/auth/auth-context";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import type { MissionMo1 } from "@/data/planning-mo1";
 import { ajouterMission, idNouveau, modifierMission, useSession } from "@/data/session";
@@ -44,11 +44,15 @@ export function CreatePrestationDialog({
 }) {
   const session = useSession();
   const auth = useAuth();
+  // La liste d'équipe est réservée au droit « gérer l'équipe » : sans lui, le
+  // serveur refuse (à raison) et l'appel ne ferait que remonter une erreur.
+  // Sans liste, le champ « assigné » retombe sur la saisie libre.
+  const peutListerEquipe = useDroit("gerer-equipe");
   const edition = Boolean(mission);
   const { data: equipe } = useQuery({
     queryKey: ["equipe-prestation", auth?.orgId],
     queryFn: () => listerEquipe(),
-    enabled: ouvert && Boolean(auth?.orgId),
+    enabled: ouvert && peutListerEquipe && Boolean(auth?.orgId),
     staleTime: 60_000,
   });
   const [type, setType] = useState<MissionMo1["type"]>("Menage");
