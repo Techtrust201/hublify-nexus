@@ -49,23 +49,23 @@ test("le pilotage enregistre prestation, blocage, relance et facture prestataire
 
   await page.getByRole("button", { name: "Créer une Mission" }).click();
   const dialogue = page.getByRole("dialog");
-  await expect(dialogue.getByRole("heading", { name: "Ajouter une prestation" })).toBeVisible();
+  await expect(dialogue.getByRole("heading", { name: "Créer une Mission" })).toBeVisible();
   await dialogue.getByLabel("Logement").selectOption({ label: "Appartement Colette" });
-  await dialogue.getByLabel("Date de début").fill("2026-03-05");
-  await dialogue.getByLabel("Date de fin").fill("2026-03-05");
+  await dialogue.getByLabel("Date", { exact: true }).fill("2026-03-05");
   await dialogue.getByLabel("Titre").fill(TITRE);
-  await dialogue.getByLabel("Attribuée à").selectOption("proprietaire");
-  await dialogue.getByLabel("Tarif facturé (€)").fill("60");
-  const sejours = dialogue.getByLabel("Associée à la réservation").locator("option");
+  await dialogue.getByLabel("Prestation attribuée au").selectOption("proprietaire");
+  await dialogue.getByLabel("Modifier le tarif (€)").fill("60");
+  await dialogue.getByLabel("Associer la mission à la réservation").check();
+  const sejours = dialogue.getByLabel("Réservation", { exact: true }).locator("option");
   const nb = await sejours.count();
   for (let i = 0; i < nb; i += 1) {
     const valeur = await sejours.nth(i).getAttribute("value");
     if (valeur) {
-      await dialogue.getByLabel("Associée à la réservation").selectOption(valeur);
+      await dialogue.getByLabel("Réservation", { exact: true }).selectOption(valeur);
       break;
     }
   }
-  await dialogue.getByRole("button", { name: "Créer la prestation" }).click();
+  await dialogue.getByRole("button", { name: "Enregistrer" }).click();
   await expect(dialogue).toBeHidden({ timeout: 15_000 });
 
   await page.goto("/analyse?onglet=revenus");
