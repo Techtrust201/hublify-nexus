@@ -294,6 +294,37 @@ test.describe.serial("mission : enregistrement serveur", () => {
       }),
     ).toEqual({ ok: false, raison: "invalide" });
     expect((await colonnes(ID("c")))?.["reservation_id"]).toBe(reservationId);
+
+    // 7. Grille de l'org pour le ménage : à la charge du mandataire, le tarif contractuel
+    // de l'org passe avant celui du prestataire (décision du 18/11) ; pour le locataire,
+    // l'ordre ne change pas.
+    await pool.query(
+      `insert into public.tarifs_org (org_id, type_mission, montant_centimes)
+       values ($1::uuid, 'Menage', 4200) on conflict do nothing`,
+      [ORG_REDRIS_ID],
+    );
+    expect(
+      await inserer(
+        page,
+        "missions",
+        mission(ID("f"), { porteur: "prestataire", attribution: "mandataire" }),
+      ),
+    ).toEqual({ ok: true });
+    expect(await colonnes(ID("f"))).toMatchObject({
+      tarif_calcule_centimes: 4200,
+      tarif_source: "grille_org",
+    });
+    expect(
+      await inserer(
+        page,
+        "missions",
+        mission(ID("g"), { porteur: "prestataire", attribution: "locataire", reservationId }),
+      ),
+    ).toEqual({ ok: true });
+    expect(await colonnes(ID("g"))).toMatchObject({
+      tarif_calcule_centimes: 3700,
+      tarif_source: "prestataire",
+    });
   });
 
   test("sauvegarde en bloc de l'écran : colonnes recalculées, e-mail conservé", async ({
@@ -324,8 +355,14 @@ test.describe.serial("mission : enregistrement serveur", () => {
       attribution: "locataire",
       reservation_id: reservationId,
       tarif_manuel_centimes: 5500,
+      tarif_calcule_centimes: 3700,
+      tarif_source: "prestataire",
       ouverte: true,
       tva_taux: 0.2,
+    });
+    expect(await colonnes(ID("f"))).toMatchObject({
+      tarif_calcule_centimes: 4200,
+      tarif_source: "grille_org",
     });
   });
 

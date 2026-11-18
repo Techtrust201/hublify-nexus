@@ -105,8 +105,15 @@ function emailValide(email: string | null | undefined): email is string {
 }
 
 /**
- * Ordre du tarif automatique : manuel → tarif du prestataire → grille de l'org → barème.
- * Le manuel n'est pas « calculé » : il vit dans sa propre colonne et reste prioritaire.
+ * Ordre du tarif automatique. Le manuel n'est pas « calculé » : il vit dans sa propre
+ * colonne et reste prioritaire sur tout (`tarifEffectifCentimes`).
+ *
+ * - Prestation à la charge du mandataire (attribution « mandataire ») : grille de l'org
+ *   (tarif contractuel) → tarif du prestataire → barème. Décision de Hugo du 18/11 :
+ *   « le tarif contractuel de l'organisation passe en premier ».
+ * - Autres cas (propriétaire, locataire, attribution non renseignée) : tarif du
+ *   prestataire → grille de l'org → barème.
+ *
  * `null` en sortie : aucun tarif connu, le barème fixe s'applique (règle R5).
  */
 export function tarifAutomatique(
@@ -114,15 +121,16 @@ export function tarifAutomatique(
   prestataireId: string | null,
   porteur: Porteur | null,
   ctx: Pick<ContexteFacturation, "grilleOrg" | "tarifsPrestataire">,
+  attribution: Attribution | null = null,
 ): { centimes: number; source: SourceTarif } | null {
   if (porteur === "proprietaire") return null;
-  if (prestataireId) {
-    const presta = ctx.tarifsPrestataire.get(`${prestataireId}|${type}`);
-    if (presta != null) return { centimes: presta, source: "prestataire" };
-  }
+  const presta = prestataireId ? ctx.tarifsPrestataire.get(`${prestataireId}|${type}`) : undefined;
   const grille = ctx.grilleOrg.get(type);
-  if (grille != null) return { centimes: grille, source: "grille_org" };
-  return null;
+  const duPrestataire =
+    presta != null ? { centimes: presta, source: "prestataire" as const } : null;
+  const deLaGrille = grille != null ? { centimes: grille, source: "grille_org" as const } : null;
+  if (attribution === "mandataire") return deLaGrille ?? duPrestataire;
+  return duPrestataire ?? deLaGrille;
 }
 
 /** Tarif retenu pour la ligne : manuel, sinon calculé, sinon `null` (barème fixe). */
@@ -222,7 +230,7 @@ export function preparerMission(m: MissionEntree, ctx: ContexteFacturation): Pre
   const assigne = fiche && emailUnique ? normaliser(fiche.email ?? "") : m.assigne;
 
   const type = TYPES.has(m.type) ? m.type : "Maintenance";
-  const auto = tarifAutomatique(type, prestataireId, porteur, ctx);
+  const auto = tarifAutomatique(type, prestataireId, porteur, ctx, attribution);
 
   return {
     colonnes: {

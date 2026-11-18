@@ -48,7 +48,7 @@ function mission(
   };
 }
 
-describe("tarif automatique : manuel → prestataire → grille de l'org → barème", () => {
+describe("tarif automatique : manuel d'abord, puis selon l'attribution", () => {
   it("prend le tarif du prestataire avant la grille", () => {
     expect(tarifAutomatique("Menage", "p1", "prestataire", ctx())).toEqual({
       centimes: 3700,
@@ -64,6 +64,37 @@ describe("tarif automatique : manuel → prestataire → grille de l'org → bar
       centimes: 4000,
       source: "grille_org",
     });
+  });
+  it("à la charge du mandataire : la grille de l'org (contrat) passe avant le prestataire", () => {
+    expect(tarifAutomatique("Menage", "p1", "prestataire", ctx(), "mandataire")).toEqual({
+      centimes: 4000,
+      source: "grille_org",
+    });
+    // Sans grille pour ce type : tarif du prestataire, puis barème.
+    expect(
+      tarifAutomatique("Menage", "p1", "prestataire", ctx({ grilleOrg: new Map() }), "mandataire"),
+    ).toEqual({ centimes: 3700, source: "prestataire" });
+    expect(tarifAutomatique("Maintenance", "p1", "prestataire", ctx(), "mandataire")).toBeNull();
+  });
+  it("propriétaire ou locataire : ordre inchangé, prestataire avant la grille", () => {
+    for (const attribution of ["proprietaire", "locataire", null] as const) {
+      expect(tarifAutomatique("Menage", "p1", "prestataire", ctx(), attribution)).toEqual({
+        centimes: 3700,
+        source: "prestataire",
+      });
+    }
+  });
+  it("mandataire : le tarif manuel reste prioritaire sur tout", () => {
+    const p = preparerMission(
+      mission({ porteur: "prestataire", attribution: "mandataire", tarif: 55 }),
+      ctx(),
+    );
+    expect(p.colonnes).toMatchObject({
+      tarifManuelCentimes: 5500,
+      tarifCalculeCentimes: 4000,
+      tarifSource: "grille_org",
+    });
+    expect(tarifEffectifCentimes(p.colonnes)).toBe(5500);
   });
   it("rend null sans aucun tarif : le barème fixe s'applique (R5)", () => {
     expect(tarifAutomatique("Maintenance", "p1", "prestataire", ctx())).toBeNull();
