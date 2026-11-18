@@ -1,4 +1,9 @@
 import type { FacturationOrg, GestionReservation } from "@/lib/facturation-missions";
+import {
+  projeterMissionOuverte,
+  type LigneMissionOuverte,
+  type MissionOuverte,
+} from "@/lib/marketplace";
 import type { Sql } from "@/lib/sql";
 import {
   changeLaFacturation,
@@ -93,6 +98,14 @@ export async function chargerContexteFacturation(
 }
 
 /** Écrit les colonnes de facturation (et l'e-mail dans `assigne`) d'une mission de l'org. */
+/**
+ * Mission prise sur la marketplace (PR 5) : une écriture qui voudrait la rouvrir sans
+ * personne d'assigné (écran chargé avant la prise) garde le preneur et la ferme.
+ */
+const PRISE_GARDEE = `(org_prestataire_id is not null
+  and position('@' in coalesce(assigne, '')) > 0
+  and $7::boolean and coalesce(btrim($9::text), '') = '')`;
+
 export async function ecrireColonnesFacturation(
   sql: Sql,
   orgId: string,
@@ -108,9 +121,9 @@ export async function ecrireColonnesFacturation(
        tarif_manuel_centimes = $4,
        tarif_calcule_centimes = $5,
        tarif_source = $6,
-       ouverte = $7,
+       ouverte = case when ${PRISE_GARDEE} then false else $7 end,
        tva_taux = case when $1::text = 'locataire' then coalesce(tva_taux, $8::numeric) else null end,
-       assigne = $9
+       assigne = case when ${PRISE_GARDEE} then assigne else $9 end
      where org_id = $10::uuid and id = $11`,
     [
       c.attribution,
@@ -314,4 +327,117 @@ export async function lireFacturationOrg(sql: Sql, orgId: string): Promise<Factu
     facturation.reservations[String(r["id"])] = g;
   }
   return facturation;
+}
+
+/** Séparateur de la méta JSON dans `missions.description` (U+2063). */
+const SEP_META = "\u2063";
+
+/**
+ * Lien actif entre l'org gestionnaire de la mission (`m`) et l'org prestataire (`$1`).
+ * Seule source d'autorisation de la marketplace : pas de RLS, filtre explicite ici.
+ */
+const LIEN_ACTIF = `exists (
+  select 1 from public.liens_org l
+   where l.org_gestionnaire_id = m.org_id
+     and l.org_prestataire_id = $1::uuid
+     and l.statut = 'actif')`;
+
+/** Mission ouverte, pas encore prise, à venir. */
+const OUVERTE_LIBRE = `m.ouverte and coalesce(btrim(m.assigne), '') = '' and m.jour >= current_date`;
+
+/**
+ * Missions ouvertes proposées à une org prestataire (marketplace, PR 5).
+ * Sélection explicite : seuls les champs nécessaires à la projection sont lus, et la
+ * réponse ne contient que les sept champs de `MissionOuverte`. La consigne
+ * (`description`) n'est lue que pour en tirer la plage horaire.
+ */
+export async function listerMissionsOuvertes(
+  sql: Sql,
+  orgPrestataireId: string,
+): Promise<MissionOuverte[]> {
+  if (!(await schemaFacturationPret(sql))) return [];
+  const lignes = (await sql.query(
+    `select m.id, m.jour, m.type_mission, m.titre, m.heure, m.description,
+            b.nom as bien_nom, b.adresse as bien_adresse
+       from public.missions m
+       left join public.biens b on b.org_id = m.org_id and b.id = m.bien_id
+      where ${OUVERTE_LIBRE} and ${LIEN_ACTIF}
+      order by m.jour, m.id
+      limit 200`,
+    [orgPrestataireId],
+  )) as LigneMissionOuverte[];
+  return lignes.map(projeterMissionOuverte);
+}
+
+export type ResultatPrise = { ok: true; id: string } | { ok: false; raison: "indisponible" };
+
+/**
+ * Prise d'une mission ouverte, en UNE seule mise à jour conditionnelle : la mission doit
+ * être encore ouverte, sans personne d'assigné, à venir, d'une org gestionnaire liée par
+ * un lien actif, et désigner une seule ligne. Deux prises simultanées : Postgres réévalue
+ * la condition sur la ligne déjà modifiée, la seconde ne trouve plus rien.
+ *
+ * La mise à jour ferme l'offre, inscrit l'e-mail du preneur dans `assigne` (filtre du
+ * portail, #63), rattache l'org prestataire, passe le porteur à « prestataire » et met la
+ * méta JSON en accord (double écriture). Le tarif est ensuite fixé à la prise.
+ */
+export async function prendreMissionOuverte(
+  sql: Sql,
+  orgPrestataireId: string,
+  email: string,
+  id: string,
+): Promise<ResultatPrise> {
+  if (!(await schemaFacturationPret(sql))) return { ok: false, raison: "indisponible" };
+  const prises = (await sql.query(
+    `update public.missions m
+        set ouverte = false,
+            assigne = $3,
+            org_prestataire_id = $1::uuid,
+            porteur = 'prestataire',
+            description = case
+              when position($4 in coalesce(m.description, '')) > 0 then
+                split_part(m.description, $4, 1) || $4 ||
+                (split_part(m.description, $4, 2)::jsonb
+                  || '{"marketplace": false, "porteur": "prestataire"}'::jsonb)::text
+              else m.description end,
+            updated_at = now()
+      where m.id = $2
+        and ${OUVERTE_LIBRE}
+        and ${LIEN_ACTIF}
+        and 1 = (select count(*) from public.missions x
+                  where x.id = $2 and exists (
+                    select 1 from public.liens_org l2
+                     where l2.org_gestionnaire_id = x.org_id
+                       and l2.org_prestataire_id = $1::uuid
+                       and l2.statut = 'actif'))
+      returning m.org_id, m.type_mission, m.attribution`,
+    [orgPrestataireId, id, email, SEP_META],
+  )) as { org_id: string; type_mission: string; attribution: string | null }[];
+  const prise = prises[0];
+  if (!prise) return { ok: false, raison: "indisponible" };
+
+  // Tarif fixé à la prise : même ordre que l'enregistrement (#65), avec la fiche du
+  // preneur dans l'annuaire de l'org gestionnaire si elle existe.
+  const ctx = await chargerContexteFacturation(sql, prise.org_id);
+  const mail = email.trim().toLowerCase();
+  const fiches = ctx.prestataires.filter((p) => (p.email ?? "").trim().toLowerCase() === mail);
+  const attribution =
+    prise.attribution === "mandataire" ||
+    prise.attribution === "proprietaire" ||
+    prise.attribution === "locataire"
+      ? prise.attribution
+      : null;
+  const auto = tarifAutomatique(
+    prise.type_mission,
+    fiches.length === 1 ? (fiches[0]?.id ?? null) : null,
+    "prestataire",
+    ctx,
+    attribution,
+  );
+  await sql.query(
+    `update public.missions set tarif_calcule_centimes = $1, tarif_source = $2
+      where org_id = $3::uuid and id = $4`,
+    [auto?.centimes ?? null, auto?.source ?? null, prise.org_id, id],
+  );
+  return { ok: true, id };
 }

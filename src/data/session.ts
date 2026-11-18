@@ -329,6 +329,12 @@ export function hydraterSession(userId?: string | null) {
   void hydraterDistant();
 }
 
+/** Relit l'état du serveur (après une prise sur la marketplace, par exemple). */
+export function rechargerSessionDistante() {
+  if (typeof window === "undefined" || !userIdCourant) return;
+  void hydraterDistant();
+}
+
 export function reessayerSync() {
   if (repriseTimer) clearTimeout(repriseTimer);
   tentatives = 0;

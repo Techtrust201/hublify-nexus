@@ -6,6 +6,8 @@ import {
   modifierEntite,
   lireEtat,
   lireFacturation,
+  lireMissionsOuvertes,
+  prendreMission,
   type DepsEtat,
 } from "@/data/etat-distant";
 import { etatVide, type EtatSession } from "@/data/etat-session";
@@ -347,3 +349,49 @@ describe("lireFacturation (PR 6, lecture seule)", () => {
     expect(espion.appels.every((a) => /^\s*select/i.test(a.texte))).toBe(true);
   });
 });
+
+describe("marketplace (PR 5)", () => {
+  const PRESTA = {
+    orgType: "prestataire" as const,
+    roleId: "prestataire" as const,
+  };
+  function avecEmail(d: DepsEtat, email = "presta@exemple.test"): DepsEtat {
+    return {
+      ...d,
+      sessionOrg: async () => {
+        const o = await d.sessionOrg();
+        return o ? { ...o, email } : null;
+      },
+    };
+  }
+
+  it("compte mal rattaché, autre rôle ou sans session : rien lu, rien pris, aucune requête", async () => {
+    const cas = [
+      deps({ orgId: null }),
+      // Rôle prestataire sur une org gestionnaire.
+      deps({ roleId: "prestataire", orgType: "gestionnaire" }),
+      deps({ roleId: "gestionnaire", orgType: "prestataire" }),
+      deps({ ...PRESTA, droits: ["voir-calendrier"] }),
+    ];
+    for (const { d, espion } of cas) {
+      expect((await lireMissionsOuvertes(avecEmail(d))).ok).toBe(false);
+      expect((await prendreMission(avecEmail(d), "m1")).ok).toBe(false);
+      expect(espion.appels).toEqual([]);
+    }
+    // Sans e-mail de session : refusé aussi.
+    const { d, espion } = deps(PRESTA);
+    expect(await lireMissionsOuvertes(avecEmail(d, ""))).toEqual({ ok: false, raison: "interdit" });
+    expect(espion.appels).toEqual([]);
+  });
+
+  it("schéma absent : liste vide et prise refusée, sans écriture", async () => {
+    const { d, espion } = deps(PRESTA);
+    expect(await lireMissionsOuvertes(avecEmail(d))).toEqual({ ok: true, missions: [] });
+    expect(await prendreMission(avecEmail(d), "m1")).toEqual({
+      ok: false,
+      raison: "indisponible",
+    });
+    expect(espion.appels.some((a) => /\bupdate\b/i.test(a.texte))).toBe(false);
+  });
+});
+
