@@ -54,15 +54,8 @@ export function MissionsPortail() {
   >({});
   const photo = useRef<HTMLInputElement>(null);
   const [missionPhoto, setMissionPhoto] = useState<string | null>(null);
-  const miennes =
-    auth?.roleId === "prestataire"
-      ? session.missions.filter(
-          (m) =>
-            m.assigne.toLowerCase().includes((auth.nom ?? "").toLowerCase()) ||
-            m.assigne.toLowerCase().includes("lucas"),
-        )
-      : session.missions;
-  const liste = (miennes.length > 0 ? miennes : []).filter((m) => m.date.slice(0, 10) === jour);
+  // Le serveur n'envoie que les missions du compte : l'écran affiche ce qu'il reçoit.
+  const liste = session.missions.filter((m) => m.date.slice(0, 10) === jour);
 
   return (
     <Ecran>
