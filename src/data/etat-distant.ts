@@ -1,5 +1,6 @@
 import { aLeDroit, estRolePortail, type RoleId } from "@/auth/permissions";
 import type { FacturationOrg } from "@/lib/facturation-missions";
+import { peutUtiliserMarketplace, type MissionOuverte } from "@/lib/marketplace";
 import {
   assemblerEtat,
   ecrireAccesLieu,
@@ -35,6 +36,8 @@ import type { OrgType } from "@/lib/orgs";
 import {
   apercuTarifMission,
   lireFacturationOrg,
+  listerMissionsOuvertes,
+  prendreMissionOuverte,
   CHAMPS_DECLENCHEURS,
   chargerContexteFacturation,
   controlerMission,
@@ -585,4 +588,34 @@ export async function lireFacturation(deps: DepsEtat): Promise<LectureFacturatio
   const sql = deps.sql();
   if (!sql) return { ok: false, raison: "non_configure" };
   return { ok: true, facturation: await lireFacturationOrg(sql, org.orgId) };
+}
+
+export type LectureMissionsOuvertes =
+  { ok: true; missions: MissionOuverte[] } | { ok: false; raison: RaisonEchec };
+
+/**
+ * Marketplace (PR 5) : missions ouvertes des orgs gestionnaires liées par un lien actif.
+ * Réservé au rôle prestataire d'une org prestataire (voir `peutUtiliserMarketplace`).
+ */
+export async function lireMissionsOuvertes(deps: DepsEtat): Promise<LectureMissionsOuvertes> {
+  const org = await deps.sessionOrg();
+  if (!org) return { ok: false, raison: "non_authentifie" };
+  if (!peutUtiliserMarketplace(org)) return { ok: false, raison: "interdit" };
+  const sql = deps.sql();
+  if (!sql) return { ok: false, raison: "non_configure" };
+  return { ok: true, missions: await listerMissionsOuvertes(sql, org.orgId) };
+}
+
+export type PriseMission =
+  { ok: true; id: string } | { ok: false; raison: RaisonEchec | "indisponible" };
+
+/** Marketplace (PR 5) : prendre une mission ouverte. Une seule personne peut la prendre. */
+export async function prendreMission(deps: DepsEtat, id: string): Promise<PriseMission> {
+  const org = await deps.sessionOrg();
+  if (!org) return { ok: false, raison: "non_authentifie" };
+  if (!peutUtiliserMarketplace(org)) return { ok: false, raison: "interdit" };
+  if (!id) return { ok: false, raison: "invalide" };
+  const sql = deps.sql();
+  if (!sql) return { ok: false, raison: "non_configure" };
+  return prendreMissionOuverte(sql, org.orgId, emailActeur(org), id);
 }

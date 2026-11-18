@@ -635,6 +635,20 @@ export async function lireParametrage(sql: Sql, orgId: string): Promise<Parametr
  * prestataire. Rattaché à une organisation gestionnaire, il n'a droit à rien :
  * il ne doit jamais hériter du parc de cette organisation.
  */
+/**
+ * Marketplace (PR 5) : une mission prise (org prestataire rattachée, e-mail du preneur dans
+ * `assigne`) ne doit pas être rouverte par un écran gestionnaire chargé avant la prise.
+ * Une écriture qui la remettrait « Ouvert » sans personne d'assigné garde l'état en base.
+ * `desc` et `assigne` sont les expressions SQL des valeurs entrantes.
+ */
+export function sqlRouvertureObsolete(desc: string, assigne: string | null) {
+  const prise = `public.missions.org_prestataire_id is not null
+    and position('@' in coalesce(public.missions.assigne, '')) > 0`;
+  const rouvre = `position('"marketplace":true' in coalesce(${desc}, '')) > 0`;
+  const vide = assigne ? ` and coalesce(btrim(${assigne}), '') = ''` : "";
+  return `(${prise} and ${rouvre}${vide})`;
+}
+
 export function prestataireMalRattache(org: Pick<OrgSession, "roleId" | "orgType">) {
   return org.roleId === "prestataire" && org.orgType !== "prestataire";
 }
@@ -980,6 +994,14 @@ export async function upsertLigne(
     maj.push(
       `org_prestataire_id = coalesce(excluded.org_prestataire_id, public.missions.org_prestataire_id)`,
     );
+    const garde = sqlRouvertureObsolete(`excluded."description"`, `excluded."assigne"`);
+    for (const col of ["assigne", "description"]) {
+      const i = maj.findIndex((m) => m.startsWith(`"${col}" =`));
+      if (i >= 0) {
+        maj[i] =
+          `"${col}" = case when ${garde} then public.missions."${col}" else excluded."${col}" end`;
+      }
+    }
   }
   if (collection === "loyers") {
     // Un client qui ignore le lien (état ancien, réensemencement) ne doit pas l'effacer.
@@ -1062,6 +1084,20 @@ export async function majLigneVisible(
 
   // Un prestataire met à jour une mission qui lui est confiée sans posséder la ligne.
   if (collection === "missions") {
+    // Mission prise sur la marketplace : un écran périmé ne la rouvre pas (PR 5).
+    const iDesc = affectations.findIndex((a) => a.startsWith('"description" ='));
+    if (iDesc >= 0) {
+      const pDesc = affectations[iDesc]!.split(" = ")[1]!;
+      const iAss = affectations.findIndex((a) => a.startsWith('"assigne" ='));
+      const pAss = iAss >= 0 ? affectations[iAss]!.split(" = ")[1]! : null;
+      const garde = sqlRouvertureObsolete(pDesc, pAss);
+      affectations[iDesc] =
+        `"description" = case when ${garde} then public.missions."description" else ${pDesc} end`;
+      if (iAss >= 0 && pAss) {
+        affectations[iAss] =
+          `"assigne" = case when ${garde} then public.missions."assigne" else ${pAss} end`;
+      }
+    }
     const portee = `id = $${params.length + 1} and (org_id = $${params.length + 2}::uuid or org_prestataire_id = $${params.length + 2}::uuid)`;
     if (affectations.length === 0) {
       const test = (await sql.query(`select 1 from public.missions where ${portee} limit 1`, [

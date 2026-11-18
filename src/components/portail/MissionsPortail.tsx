@@ -1,8 +1,16 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useAuth, useDroit } from "@/auth/auth-context";
 import { Bouton, Carte, Ecran, Entete } from "@/components/portail/chrome";
 import { champClasse } from "@/components/portail/chrome";
-import { ajouterRapport, changerStatutMission, idNouveau, useSession } from "@/data/session";
+import {
+  ajouterRapport,
+  changerStatutMission,
+  idNouveau,
+  rechargerSessionDistante,
+  useSession,
+} from "@/data/session";
+import { missionsOuvertesDistant, prendreMissionDistant } from "@/data/session-remote";
 import { deposerFichier, lireFichier } from "@/lib/documents.functions";
 import { preparerFichier, urlDepuisBase64 } from "@/lib/fichiers-client";
 import { descriptionVisible } from "@/lib/gestionnaire-planning";
@@ -43,6 +51,84 @@ function etiquette(date: Date) {
   };
 }
 
+const LIBELLES_TYPE: Record<string, string> = {
+  Menage: "Ménage",
+  "Check-in": "Check-in",
+  "Check-out": "Check-out",
+  Inventaire: "Inventaire",
+  Maintenance: "Maintenance",
+};
+
+/**
+ * Marketplace (PR 5, règle R2) : missions ouvertes des gestionnaires liés. Le serveur
+ * n'envoie que l'identifiant, la date, le type, le titre, la plage, le logement et la
+ * ville. La mission prise rejoint ensuite la liste du compte.
+ */
+function MissionsOuvertes() {
+  const auth = useAuth();
+  const peutMod = useDroit("mod-missions");
+  const client = useQueryClient();
+  const [enCours, setEnCours] = useState<string | null>(null);
+  const cle = ["missions-ouvertes", auth?.orgId];
+  const { data } = useQuery({
+    queryKey: cle,
+    queryFn: () => missionsOuvertesDistant(),
+    enabled: Boolean(auth?.orgId) && peutMod,
+    staleTime: 15_000,
+  });
+  const missions = data?.ok ? data.missions : [];
+  if (!peutMod || missions.length === 0) return null;
+
+  const prendre = async (id: string) => {
+    setEnCours(id);
+    try {
+      const r = await prendreMissionDistant({ data: { id } });
+      if (r.ok) {
+        toastOk("Mission prise : elle est dans votre liste.");
+        rechargerSessionDistante();
+      } else {
+        toastErreur(
+          r.raison === "indisponible"
+            ? "Cette mission n'est plus disponible."
+            : "Impossible de prendre cette mission.",
+        );
+      }
+    } finally {
+      setEnCours(null);
+      await client.invalidateQueries({ queryKey: cle });
+    }
+  };
+
+  return (
+    <section aria-label="Missions ouvertes" className="space-y-2">
+      <p className="text-[12px] font-semibold">
+        {missions.length} mission{missions.length > 1 ? "s" : ""} ouverte
+        {missions.length > 1 ? "s" : ""}
+      </p>
+      <ul className="space-y-3">
+        {missions.map((m) => (
+          <li key={m.id}>
+            <Carte className="space-y-2">
+              <p className="text-sm font-semibold text-[#1d2939]">{m.titre}</p>
+              <p className="text-xs text-[#667085]">
+                {LIBELLES_TYPE[m.type] ?? m.type} · {m.date.split("-").reverse().join("/")}
+                {m.plage ? ` · ${m.plage}` : ""}
+              </p>
+              <p className="text-xs text-[#344054]">
+                {m.logement || "Logement"}
+                {m.ville ? ` · ${m.ville}` : ""}
+              </p>
+              <Bouton onClick={() => void prendre(m.id)} disabled={enCours !== null}>
+                {enCours === m.id ? "Prise en cours…" : "Prendre"}
+              </Bouton>
+            </Carte>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export function MissionsPortail() {
   const session = useSession();
   const peutMod = useDroit("mod-missions");
@@ -60,6 +146,7 @@ export function MissionsPortail() {
   return (
     <Ecran>
       <Entete titre="Toutes les tâches en cours" sousTitre="Ordre chronologique" />
+      <MissionsOuvertes />
       <div className="grid grid-cols-5 gap-1.5" role="group" aria-label="Jours">
         {bandeau.map((date) => {
           const e = etiquette(date);

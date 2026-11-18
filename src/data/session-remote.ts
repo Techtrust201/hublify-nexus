@@ -8,6 +8,8 @@ import {
   lireAcces,
   lireApercuTarif,
   lireFacturation,
+  lireMissionsOuvertes,
+  prendreMission,
   lireEtat,
   modifierEntite,
   type AccesLieu,
@@ -108,3 +110,15 @@ export const apercuTarifMissionDistant = createServerFn({ method: "POST" })
 export const facturationOrgDistant = createServerFn({ method: "GET" }).handler(() =>
   lireFacturation(deps),
 );
+
+/** Marketplace (PR 5) : missions ouvertes, sept champs seulement. */
+export const missionsOuvertesDistant = createServerFn({ method: "GET" }).handler(() =>
+  lireMissionsOuvertes(deps),
+);
+
+/** Marketplace (PR 5) : prendre une mission ouverte. */
+export const prendreMissionDistant = createServerFn({ method: "POST" })
+  .validator((input: { id?: unknown }) => ({
+    id: typeof input?.id === "string" ? input.id.slice(0, 200) : "",
+  }))
+  .handler(({ data }) => prendreMission(deps, data.id));
