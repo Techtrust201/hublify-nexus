@@ -330,6 +330,14 @@ export function solderPrestation(du: number, deja: number, ajout: number) {
   };
 }
 
+/** Versement au prestataire depuis la méta de la mission : par défaut le
+ *  restant dû. Extrait tel quel de `AnalyseApp.payerPrestation` pour être testé. */
+export function reglerPrestation(meta: MetaPrestation, ajout?: number) {
+  const du = facturationPrestation(meta).montant ?? 0;
+  const deja = meta.payePrestataire ?? 0;
+  return solderPrestation(du, deja, ajout ?? du - deja);
+}
+
 export type ResultatPaiement = { ok: true } | { ok: false; message: string };
 
 /** Message affiché quand un versement prestataire est refusé. */

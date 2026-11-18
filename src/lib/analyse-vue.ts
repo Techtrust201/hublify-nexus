@@ -836,6 +836,17 @@ export function exporterEncaissementsCsv(vue: AnalyseVue) {
   return [ligne(entete), ...corps].join("\n");
 }
 
+/** CSV de la facture voyageur. Extrait tel quel de `AnalyseApp` pour être testé. */
+export function exporterFactureVoyageurCsv(lignes: readonly LignePrestation[]) {
+  const corps = lignes
+    .map(
+      (l) =>
+        `${l.nature};${l.periode};${(l.prixUnitaireHt / 100).toFixed(2)};${formatTaux(l.tauxTva)}`,
+    )
+    .join("\n");
+  return `Nature;Période;HT;TVA\n${corps}`;
+}
+
 export function exerciceParDefaut(aujourdhui: string) {
   const annee = aujourdhui.slice(0, 4) || "2026";
   return { debut: `${annee}-01-01`, fin: `${annee}-12-31` };
