@@ -7,6 +7,7 @@ import {
   insererEntite,
   lireAcces,
   lireApercuTarif,
+  lireDisponibiliteGestion,
   lireFacturation,
   lireMissionsOuvertes,
   prendreMission,
@@ -109,6 +110,11 @@ export const apercuTarifMissionDistant = createServerFn({ method: "POST" })
 /** Réglages et colonnes de facturation de l'org pour Analyse (PR 6). Lecture seule. */
 export const facturationOrgDistant = createServerFn({ method: "GET" }).handler(() =>
   lireFacturation(deps),
+);
+
+/** Ménage / Linge / Consommables Oui-Non affichés seulement si la migration 024 est en base. */
+export const gestionReservationDistant = createServerFn({ method: "GET" }).handler(() =>
+  lireDisponibiliteGestion(deps),
 );
 
 /** Marketplace (PR 5) : missions ouvertes, sept champs seulement. */

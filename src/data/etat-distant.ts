@@ -48,6 +48,13 @@ import {
   synchroniserMissionsEnBloc,
 } from "@/data/missions-serveur";
 import type { PreparationMission } from "@/lib/mission-facturation-serveur";
+import {
+  avecGestion,
+  ecrireGestionReservation,
+  lireGestionReservations,
+  schemaGestionPret,
+} from "@/data/reservation-gestion-serveur";
+import { gestionDepuisEntree } from "@/lib/reservation-gestion";
 
 export type DepsEtat = {
   sessionOrg: () => Promise<OrgSession | null>;
@@ -122,7 +129,32 @@ export async function lireEtat(deps: DepsEtat): Promise<Lecture> {
   const sql = deps.sql();
   if (!sql) return { ok: false, raison: "non_configure" };
   const payload = await assemblerEtat(sql, org);
+  // Gestion Oui / Non des réservations (024) : équipe de l'org gestionnaire seulement.
+  if (gestionReservationVisible(org) && payload.reservationsDossier.length > 0) {
+    payload.reservationsDossier = avecGestion(
+      payload.reservationsDossier,
+      await lireGestionReservations(sql, org.orgId),
+    );
+  }
   return { ok: true, payload };
+}
+
+/** La gestion Oui / Non d'une réservation est un réglage interne : pas pour le portail. */
+function gestionReservationVisible(org: OrgSession) {
+  return org.orgType === "gestionnaire" && !estRolePortail(org.roleId);
+}
+
+export type DisponibiliteGestion =
+  { ok: true; disponible: boolean } | { ok: false; raison: RaisonEchec };
+
+/** La fenêtre de réservation n'affiche Ménage / Linge / Consommables que si la 024 est là. */
+export async function lireDisponibiliteGestion(deps: DepsEtat): Promise<DisponibiliteGestion> {
+  const org = await deps.sessionOrg();
+  if (!org) return { ok: false, raison: "non_authentifie" };
+  if (!gestionReservationVisible(org)) return { ok: true, disponible: false };
+  const sql = deps.sql();
+  if (!sql) return { ok: false, raison: "non_configure" };
+  return { ok: true, disponible: await schemaGestionPret(sql) };
 }
 
 type LigneMetier = { id: string } & Record<string, unknown>;
@@ -279,6 +311,14 @@ export async function ecrireCollections(
     if (cle === "missions") {
       await synchroniserMissionsEnBloc(sql, org.orgId, items as Record<string, unknown>[]);
     }
+    if (cle === "reservationsDossier" && gestionReservationVisible(org)) {
+      for (const r of items as Record<string, unknown>[]) {
+        const gestion = gestionDepuisEntree(r ?? {});
+        if (Object.keys(gestion).length > 0) {
+          await ecrireGestionReservation(sql, org.orgId, String(r["id"] ?? ""), gestion);
+        }
+      }
+    }
   }
   if (patch.parametrage !== undefined) {
     await ecrireParametrage(sql, org.orgId, fusionnerParametrage(patch.parametrage));
@@ -319,6 +359,9 @@ export async function insererEntite(
   }
   await upsertLigne(sql, orgCible, collection, ligne, orgPrestataire);
   if (prep) await ecrireColonnesFacturation(sql, orgCible, ligne.id, prep);
+  if (collection === "reservationsDossier" && gestionReservationVisible(org)) {
+    await ecrireGestionReservation(sql, orgCible, ligne.id, gestionDepuisEntree(ligne));
+  }
   return { ok: true };
 }
 
@@ -421,6 +464,9 @@ export async function modifierEntite(
   const ok = await majLigneVisible(sql, orgMaj, collection, id, patchFinal);
   if (!ok) return { ok: false, raison: "introuvable" };
   if (prep) await ecrireColonnesFacturation(sql, org.orgId, id, prep);
+  if (collection === "reservationsDossier" && gestionReservationVisible(org)) {
+    await ecrireGestionReservation(sql, orgMaj.orgId, id, gestionDepuisEntree(reduit.patch));
+  }
   return { ok: true };
 }
 

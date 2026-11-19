@@ -1,5 +1,6 @@
 import { useAuth, useDroit } from "@/auth/auth-context";
 import { emettreAvoir } from "@/data/avoirs";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Check, ChevronDown, ChevronLeft, Minus, Plus, User, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -33,6 +34,14 @@ import {
   lignesServicesImport,
   missionDepuisLigne,
 } from "@/lib/gestionnaire-planning";
+import {
+  CHAMPS_GESTION,
+  depuisChoix,
+  versChoix,
+  type ChoixGestion,
+  type CleGestion,
+} from "@/lib/reservation-gestion";
+import { gestionReservationDistant } from "@/data/session-remote";
 import { cn } from "@/lib/utils";
 import {
   METHODES_PAIEMENT,
@@ -100,6 +109,26 @@ export function FormulaireReservation({
   const [creerOccupant, setCreerOccupant] = useState(false);
   const [nouveauOccupant, setNouveauOccupant] = useState({ nom: "", email: "", telephone: "" });
   const [occupantsAjoutes, setOccupantsAjoutes] = useState<string[]>([]);
+  // Gestion Ménage / Linge / Consommables (migration 024). Vide = non renseigné.
+  const [gestion, setGestion] = useState<Record<CleGestion, ChoixGestion>>({
+    menageGere: "",
+    lingeGere: "",
+    consommableGere: "",
+  });
+  const { data: dispoGestion } = useQuery({
+    queryKey: ["gestion-reservation-disponible", auth?.orgId],
+    queryFn: () => gestionReservationDistant(),
+    enabled: Boolean(auth?.orgId),
+    staleTime: 5 * 60_000,
+  });
+  const gestionDisponible = Boolean(dispoGestion?.ok && dispoGestion.disponible);
+  const gestionSaisie = gestionDisponible
+    ? {
+        menageGere: depuisChoix(gestion.menageGere),
+        lingeGere: depuisChoix(gestion.lingeGere),
+        consommableGere: depuisChoix(gestion.consommableGere),
+      }
+    : {};
 
   const couleurChoisie = couleur;
   const occupantsOptions = useMemo(() => {
@@ -175,6 +204,11 @@ export function FormulaireReservation({
     setFraisPlateforme(String(r.fraisPlateforme ?? 0));
     setMontantVoyageur(r.montantVoyageur ? String(r.montantVoyageur) : "");
     setAttribution(r.attributionCommission ?? "");
+    setGestion({
+      menageGere: versChoix(r.menageGere),
+      lingeGere: versChoix(r.lingeGere),
+      consommableGere: versChoix(r.consommableGere),
+    });
     setPlateforme(
       r.plateforme === "Direct"
         ? "Canal Direct"
@@ -345,6 +379,7 @@ export function FormulaireReservation({
             taxeSejour: taxe,
           }),
         attributionCommission: attribution.trim(),
+        ...gestionSaisie,
       });
       ajouterNotif({
         titre: "Réservation mise à jour",
@@ -397,6 +432,7 @@ export function FormulaireReservation({
             taxeSejour: taxe,
           }),
         attributionCommission: attribution.trim(),
+        ...gestionSaisie,
       },
       calendrier: {
         id: `cal-${id}`,
@@ -928,6 +964,29 @@ export function FormulaireReservation({
                     "Ajoutez un service depuis le détail de la réservation."
                   )}
                 </p>
+              )}
+              {gestionDisponible && (
+                <fieldset className="mt-4">
+                  <legend className="text-xs text-ink-subtle">Gestion</legend>
+                  <div className="mt-1 grid grid-cols-3 gap-2">
+                    {CHAMPS_GESTION.map(({ cle, libelle }) => (
+                      <label key={cle} className="block text-xs text-ink-subtle">
+                        {libelle}
+                        <select
+                          value={gestion[cle]}
+                          onChange={(e) =>
+                            setGestion((g) => ({ ...g, [cle]: e.target.value as ChoixGestion }))
+                          }
+                          className={cn(champ, "mt-1")}
+                        >
+                          <option value="">Non renseigné</option>
+                          <option value="oui">Oui</option>
+                          <option value="non">Non</option>
+                        </select>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
               )}
               {edition && reservationId && (
                 <button

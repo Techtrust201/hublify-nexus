@@ -80,6 +80,13 @@ export type ReservationMo1 = {
   paiements?: PaiementReservation[];
   /** Jour ISO de la dernière demande de paiement envoyée au séjour. */
   demandePaiementLe?: string;
+  /**
+   * Gestion Oui / Non (migration 024). Absent ou `null` = non renseigné : calcul actuel.
+   * Lu et écrit seulement quand la migration est en base.
+   */
+  menageGere?: boolean | null;
+  lingeGere?: boolean | null;
+  consommableGere?: boolean | null;
 };
 
 export type DateBloqueeMo1 = {
