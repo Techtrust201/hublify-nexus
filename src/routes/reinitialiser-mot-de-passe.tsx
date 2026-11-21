@@ -4,6 +4,7 @@ import { authClient } from "@/lib/auth-client";
 import { boutonAuth, CadreAuth, champAuth, labelAuth } from "@/components/marque/CadreAuth";
 import { ChampMotDePasse } from "@/components/ui/champ-mot-de-passe";
 import { toastErreur, toastOk } from "@/lib/feedback";
+import { AlerteLienInvalide, lienMotDePasseInvalide } from "@/lib/lien-mot-de-passe";
 
 export const Route = createFileRoute("/reinitialiser-mot-de-passe")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -20,19 +21,24 @@ function PageReset() {
   const navigate = useNavigate();
   const [enCours, setEnCours] = useState(false);
   const [pret, setPret] = useState(false);
+  const [lienInvalide, setLienInvalide] = useState(false);
   useEffect(() => setPret(true), []);
 
   async function enregistrer(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const password = String(new FormData(e.currentTarget).get("password") ?? "");
-    if (!token) {
-      toastErreur("Lien invalide ou expiré.");
+    if (lienMotDePasseInvalide(token)) {
+      setLienInvalide(true);
       return;
     }
     setEnCours(true);
     const { error } = await authClient.resetPassword({ newPassword: password, token });
     setEnCours(false);
     if (error) {
+      if (lienMotDePasseInvalide(token, error)) {
+        setLienInvalide(true);
+        return;
+      }
       toastErreur(error.message ?? "Réinitialisation impossible.");
       return;
     }
@@ -46,6 +52,7 @@ function PageReset() {
       titre="Nouveau mot de passe"
       description="Choisissez un mot de passe d'au moins 10 caractères."
     >
+      {lienInvalide ? <AlerteLienInvalide /> : null}
       <form className="space-y-4" onSubmit={(ev) => void enregistrer(ev)}>
         <div>
           <label htmlFor="champ-mdp-reset" className={labelAuth}>

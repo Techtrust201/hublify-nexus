@@ -32,7 +32,10 @@ test("une inscription crée un org vide, sans parc Redris", async ({ page }) => 
   await expect(page.getByText("Sophie Martin")).toHaveCount(0);
 });
 
-test("l'invitation n'expose pas le mot de passe et envoie un mail capturé", async ({ page }) => {
+test("l'invitation n'expose aucun mot de passe et envoie un lien de définition", async ({
+  page,
+  browser,
+}) => {
   test.setTimeout(90_000);
   const suffixe = Date.now().toString(36);
   const email = `invitee.${suffixe}@exemple.test`;
@@ -73,6 +76,40 @@ test("l'invitation n'expose pas le mot de passe et envoie un mail capturé", asy
   expect(mails.ok()).toBeTruthy();
   const corps = (await mails.json()) as { mails: Array<{ html: string; sujet: string }> };
   expect(corps.mails.length).toBeGreaterThan(0);
-  expect(corps.mails[0]?.html ?? "").toMatch(/Hublify-/);
+  const html = corps.mails[0]?.html ?? "";
+  expect(corps.mails[0]?.sujet ?? "").toMatch(/^Invitation Hublify — /);
+  expect(html).not.toMatch(/mot de passe temporaire/i);
+  expect(html).not.toMatch(/Hublify-[A-Za-z0-9_-]{10,}/);
   expect(JSON.stringify(corps)).not.toContain("motDePasseTemporaire");
+  const lien = /href="([^"]*\/reinitialiser-mot-de-passe\?token=[^"]+)"/.exec(html)?.[1];
+  expect(lien, "lien de définition du mot de passe").toBeTruthy();
+
+  // L'invité choisit son mot de passe via le lien, sans session administrateur.
+  const invite = await browser.newContext();
+  const pageInvite = await invite.newPage();
+  const cible = new URL(lien ?? "");
+  await pageInvite.goto(cible.toString());
+  const nouveau = "Invite-Choisi-2026!";
+  await pageInvite.locator('input[name="password"]').fill(nouveau);
+  await pageInvite.locator('form button[type="submit"]').click();
+  await expect(pageInvite).toHaveURL((u) => u.pathname === "/connexion", { timeout: 20_000 });
+  // Le mot de passe est bien posé, mais l'accès reste fermé tant que l'admin n'a pas validé.
+  const essai = await pageInvite.request.post(`${cible.origin}/api/auth/sign-in/email`, {
+    data: { email, password: nouveau },
+  });
+  expect(essai.status()).toBe(403);
+  // Le jeton est à usage unique.
+  const rejeu = await pageInvite.request.post(`${cible.origin}/api/auth/reset-password`, {
+    data: { token: cible.searchParams.get("token"), newPassword: "Autre-Choix-2026!" },
+  });
+  expect(rejeu.ok()).toBe(false);
+  // Deuxième clic sur le même lien : message clair, pas d'erreur technique.
+  await pageInvite.goto(cible.toString());
+  await pageInvite.locator('input[name="password"]').fill("Encore-Un-Choix-2026!");
+  await pageInvite.locator('form button[type="submit"]').click();
+  await expect(pageInvite.getByRole("alert")).toContainText(
+    "Ce lien a déjà été utilisé ou a expiré.",
+  );
+  await expect(pageInvite.getByRole("link", { name: "Mot de passe oublié" })).toBeVisible();
+  await invite.close();
 });

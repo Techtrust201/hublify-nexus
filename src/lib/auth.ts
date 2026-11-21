@@ -5,6 +5,7 @@ import { MESSAGE_ACCES_EN_ATTENTE, membreEnAttente } from "@/lib/acces-membre";
 import { CADENCE_AUTH } from "@/lib/cadence-auth";
 import { assurerEspaceSiOrphelin } from "@/lib/espace-compte";
 import { envoyerMail } from "@/lib/mail";
+import { invitationEnCours, mailPourJetonMotDePasse } from "@/lib/mail-invitation";
 import { resoudreSecretAuth } from "@/lib/secret-auth";
 import { getSql, obtenirPool } from "@/lib/sql";
 
@@ -64,13 +65,11 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 10,
     maxPasswordLength: 128,
-    sendResetPassword: async ({ user, url }) => {
-      await envoyerMail({
-        a: user.email,
-        sujet: "Réinitialiser votre mot de passe Hublify",
-        html: `<p>Réinitialisez votre mot de passe :</p><p><a href="${url}">Choisir un nouveau mot de passe</a></p>`,
-        sensible: true,
-      });
+    sendResetPassword: async ({ user, url, token }) => {
+      // Pendant une invitation, le même jeton sert à définir le premier mot de passe.
+      const invitation = invitationEnCours.getStore();
+      const envoye = await envoyerMail(mailPourJetonMotDePasse(invitation, user, url, token));
+      if (invitation) invitation.envoye = envoye;
     },
   },
   emailVerification: {

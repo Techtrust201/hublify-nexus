@@ -16,6 +16,11 @@ import { decisionRetrait, roleInvitable } from "@/data/portee-role";
 import { auth, avecInscriptionInterne } from "@/lib/auth";
 import { autoriserCadence, cleAdresse } from "@/lib/cadence-memoire";
 import { envoyerMail } from "@/lib/mail";
+import {
+  type ContexteInvitation,
+  invitationEnCours,
+  origineInvitation,
+} from "@/lib/mail-invitation";
 import { genererMotDePasseInvitation } from "@/lib/mot-de-passe-invitation";
 import { rattacherUtilisateur } from "@/lib/rattacher";
 import { sessionDepuisRequete } from "@/lib/session-serveur.server";
@@ -150,6 +155,8 @@ export const inviterMembre = createServerFn({ method: "POST" })
     if (!moi || !aLeDroit(moi.droits, "gerer-equipe")) {
       throw new Error("Droits insuffisants");
     }
+    // Mot de passe aléatoire jamais transmis : le compte reste inutilisable tant
+    // que l'invité n'a pas choisi le sien via le lien du mail.
     const motDePasse = genererMotDePasseInvitation();
     const sql = getSql();
     if (!sql) throw new Error("Base indisponible");
@@ -189,18 +196,27 @@ export const inviterMembre = createServerFn({ method: "POST" })
       orgId: moi.orgId,
       droits: data.droits,
     });
-    const base = process.env["BETTER_AUTH_URL"] ?? "http://localhost:8080";
-    const mailEnvoye = await envoyerMail({
-      a: data.email,
-      sujet: `Invitation Hublify — ${moi.orgNom}`,
-      html: `<p>Vous êtes invité(e) à rejoindre <strong>${moi.orgNom}</strong> sur Hublify.</p>
-<p>Connexion : <a href="${base}/connexion">${base}/connexion</a></p>
-<p>E-mail : ${data.email}</p>
-<p>Mot de passe temporaire : <code>${motDePasse}</code></p>
-<p>Votre accès s'ouvre dès qu'un administrateur de ${moi.orgNom} l'a validé : tant que ce n'est pas fait, la connexion est refusée.</p>
-<p>Changez ce mot de passe après votre première connexion.</p>`,
-      sensible: true,
-    });
+    // Aucun mot de passe dans le mail : un lien à usage unique (jeton Better Auth)
+    // permet à l'invité de choisir le sien.
+    let origineRequete: string | undefined;
+    try {
+      origineRequete = new URL(getRequest().url).origin;
+    } catch {
+      origineRequete = undefined;
+    }
+    const contexte: ContexteInvitation = {
+      orgNom: moi.orgNom,
+      origine: origineInvitation(origineRequete),
+      envoye: false,
+    };
+    try {
+      await invitationEnCours.run(contexte, () =>
+        auth.api.requestPasswordReset({ body: { email: data.email } }),
+      );
+    } catch (e) {
+      console.error("[invitation] lien de définition du mot de passe non émis", e);
+    }
+    const mailEnvoye = contexte.envoye;
     return { ok: true as const, email: data.email, mailEnvoye };
   });
 
