@@ -24,7 +24,7 @@ export function AlerteLienInvalide() {
     {
       role: "alert",
       "data-testid": "lien-mot-de-passe-invalide",
-      className: "rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800",
+      className: "mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800",
     },
     createElement("p", null, MESSAGE_LIEN_INVALIDE),
     createElement(
