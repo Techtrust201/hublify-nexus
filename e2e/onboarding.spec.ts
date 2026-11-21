@@ -103,5 +103,13 @@ test("l'invitation n'expose aucun mot de passe et envoie un lien de définition"
     data: { token: cible.searchParams.get("token"), newPassword: "Autre-Choix-2026!" },
   });
   expect(rejeu.ok()).toBe(false);
+  // Deuxième clic sur le même lien : message clair, pas d'erreur technique.
+  await pageInvite.goto(cible.toString());
+  await pageInvite.locator('input[name="password"]').fill("Encore-Un-Choix-2026!");
+  await pageInvite.locator('form button[type="submit"]').click();
+  await expect(pageInvite.getByRole("alert")).toContainText(
+    "Ce lien a déjà été utilisé ou a expiré.",
+  );
+  await expect(pageInvite.getByRole("link", { name: "Mot de passe oublié" })).toBeVisible();
   await invite.close();
 });
